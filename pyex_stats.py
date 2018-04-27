@@ -25,6 +25,21 @@ def int_str(x,d):
     return f'%{d}d' % x
 
 
+def int_round45(x, decimals=0):
+    x_int = int(x * 10**(decimals+2))
+    if decimals > 0:
+        return np.floor(x_int/(10**2))/10**decimals \
+            if np.mod(x_int, 100) < 50 else \
+            (float(str((np.floor(x_int/(10**2))+1)/10**decimals))
+             if decimals > 0 else int(str((np.floor(x_int/(10**2))+1)/10**decimals)))
+    elif decimals == 0:
+        return int(np.floor(x_int/(10**2))) \
+            if np.mod(x_int, 100) < 50 else \
+            int(np.floor(x_int/(10**2)))+1
+    else:
+        return -1
+
+
 def exp_r(noise=10):
     tf = pl.exp_scoredf_normal(mean=60, std=10, size=1000)
     tf['sf2'] = tf.sf.apply(lambda v: v + np.random.rand()*noise)
