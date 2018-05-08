@@ -12,26 +12,14 @@ def stmapp(name='plt-sd20',
            decimals=0,
            min_score=0,
            max_score=150):
-
-    if type(input_dataframe) != pd.DataFrame:
-        print('no score df given!')
+    if not check_para(input_dataframe=input_dataframe,
+                      input_fields_list=input_fields_list):
         return
-    if len(input_fields_list) == 0:
-        print('no score field given!')
-        return
-    if type(input_fields_list) != list:
-        print('inpurt_field_list is not list!')
-        return
-    for f in input_fields_list:
-        if f not in input_dataframe.columns:
-            print('field {} is not in input_dataframe!'.format(f))
-            return
 
     if name == 'plt-sd20':
         pltmodel = stm.PltScoreModel()
         input_percentage_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]    # ajust ratio
         output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]  # std=15
-
         pltmodel.output_score_decimals = decimals
         pltmodel.set_data(score_dataframe=input_dataframe,
                           score_fields_list=input_fields_list)
@@ -40,10 +28,10 @@ def stmapp(name='plt-sd20',
                                 input_score_min=min_score,
                                 input_score_max=max_score)
         pltmodel.run()
-
         pltmodel.report()
-        # pltmodel.plot('raw')   # plot raw score figure, else 'out', 'model'
-        # pltmodel.plot('out')
+
+        # pltmodel.plot('raw')
+        pltmodel.plot('out')
         # pltmodel.plot('model')
 
         return pltmodel
@@ -94,3 +82,19 @@ def stmapp(name='plt-sd20',
         tm.run()
         tm.report()
         return tm
+
+def check_para(input_dataframe, input_fields_list):
+    if type(input_dataframe) != pd.DataFrame:
+        print('no score df given!')
+        return False
+    if len(input_fields_list) == 0:
+        print('no score field given!')
+        return False
+    if type(input_fields_list) != list:
+        print('inpurt_field_list is not list!')
+        return False
+    for f in input_fields_list:
+        if f not in input_dataframe.columns:
+            print('field {} is not in input_dataframe!'.format(f))
+            return False
+    return True
