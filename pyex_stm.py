@@ -4,11 +4,11 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-# import math
 import time
 import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
+# import math
 
 
 import warnings

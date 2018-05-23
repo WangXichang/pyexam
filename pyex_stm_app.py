@@ -1,8 +1,6 @@
 # -*- utf-8 -*-
-
-
-import pyex_stm as stm
 import pandas as pd
+import pyex_stm as stm
 
 
 # mode: plt-sd20, plt, tscore, zscore, L9
@@ -82,6 +80,7 @@ def stmapp(name='plt-sd20',
         tm.run()
         tm.report()
         return tm
+
 
 def check_para(input_dataframe, input_fields_list):
     if type(input_dataframe) != pd.DataFrame:
