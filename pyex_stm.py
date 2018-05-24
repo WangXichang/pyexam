@@ -9,21 +9,19 @@ import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
 # import math
-
-
 import warnings
 warnings.simplefilter('error')
 
 
 # test Score model
-def exp_scoredf_normal(mean=70, std=10, maxscore=100, minscore=0, samples=100000):
+def exp_score_dataframe(mean=70, std=10, maxscore=100, minscore=0, samples=100000):
     return pd.DataFrame({'sf': [max(minscore, min(int(np.random.randn(1) * std + mean), maxscore), -x)
                          for x in range(samples)]})
 
 
 def test_model(name='plt', df=None, fieldnames='sf', decimals=0):
     if type(df) != pd.DataFrame:
-        scoredf = exp_scoredf_normal()
+        scoredf = exp_score_dataframe()
     else:
         scoredf = df
     if name == 'plt':
@@ -85,35 +83,35 @@ class ScoreTransformModel(object):
     def __init__(self, model_name=''):
         self.model_name = model_name
 
-        self.input_score_dataframe = pd.DataFrame()
-        self.input_score_fields_list = []
+        self.input_data = pd.DataFrame()
+        self.input_field_list = []
         self.input_score_min = 0
         self.input_score_max = 100
 
-        self.output_score_dataframe = pd.DataFrame()
+        self.output_score_data = pd.DataFrame()
         self.output_score_decimals = 0
         self.output_report_doc = ''
 
         self.sys_pricision_decimals = 6  #
 
-    def set_data(self, rawdf=None, scorefields=None):
+    def set_data(self, input_data=None, output_data=None):
         raise NotImplementedError()
         # define in subclass
         # self.__rawdf = rawdf
-        # self.__scorefields = scorefields
+        # self.__output_data = output_data
 
     def set_parameters(self, *args, **kwargs):
         raise NotImplementedError()
 
     def check_data(self):
-        if type(self.input_score_dataframe) != pd.DataFrame:
+        if type(self.input_data) != pd.DataFrame:
             print('rawdf is not dataframe!')
             return False
-        if (type(self.input_score_fields_list) != list) | (len(self.input_score_fields_list) == 0):
+        if (type(self.input_field_list) != list) | (len(self.input_field_list) == 0):
             print('no score fields assigned!')
             return False
-        for sf in self.input_score_fields_list:
-            if sf not in self.input_score_dataframe.columns:
+        for sf in self.input_field_list:
+            if sf not in self.input_data.columns:
                 print(f'error score field {sf} !')
                 return False
         return True
@@ -140,30 +138,30 @@ class ScoreTransformModel(object):
         elif mode.lower() == 'raw':
             self.__plot_raw_score()
         else:
-            print('error mode={}, use valid mode: out, raw'.format(mode))
+            print('error mode={}, use valid mode: out or raw'.format(mode))
             return False
         return True
 
     def __plot_out_score(self):
-        if not self.input_score_fields_list:
-            print('no field:{0} assign in {1}!'.format(self.input_score_fields_list, self.input_score_dataframe))
+        if not self.input_field_list:
+            print('no field:{0} assign in {1}!'.format(self.input_field_list, self.input_data))
             return
         plt.figure(self.model_name + ' out score figure')
         labelstr = 'outscore: '
-        for osf in self.output_score_dataframe.columns.values:
+        for osf in self.output_score_data.columns.values:
             if '_' in osf:  # find sf_outscore field
                 labelstr = labelstr + ' ' + osf
-                plt.plot(self.output_score_dataframe.groupby(osf)[osf].count())
+                plt.plot(self.output_score_data.groupby(osf)[osf].count())
                 plt.xlabel(labelstr)
         return
 
     def __plot_raw_score(self):
-        if not self.input_score_fields_list:
+        if not self.input_field_list:
             print('no field assign in rawdf!')
             return
         plt.figure('Raw Score figure')
-        for sf in self.input_score_fields_list:
-            self.input_score_dataframe.groupby(sf)[sf].count().plot(label=f'{self.input_score_fields_list}')
+        for sf in self.input_field_list:
+            self.input_data.groupby(sf)[sf].count().plot(label=''.format(self.input_field_list))
         return
 
 
@@ -175,7 +173,7 @@ class PltScoreModel(ScoreTransformModel):
     '''
 
     def __init__(self):
-        # intit input_df, input_scorefields, output_df, model_name
+        # intit input_df, input_output_data, output_df, model_name
         super(PltScoreModel, self).__init__('plt')
         # self.model_name = 'plt'  # 'Pieceise Linear Transform Model'
 
@@ -191,25 +189,25 @@ class PltScoreModel(ScoreTransformModel):
 
         return
 
-    def set_data(self, score_dataframe=None, score_fields_list=None):
+    def set_data(self, input_dataframe=None, score_field_list=None):
         # check and set rawdf
-        if type(score_dataframe) == pd.Series:
-            self.input_score_dataframe = pd.DataFrame(score_dataframe)
-        elif type(score_dataframe) == pd.DataFrame:
-            self.input_score_dataframe = score_dataframe
+        if type(input_dataframe) == pd.Series:
+            self.input_data = pd.DataFrame(input_dataframe)
+        elif type(input_dataframe) == pd.DataFrame:
+            self.input_data = input_dataframe
         else:
             print('rawdf set fail!\n not correct data set(DataFrame or Series)!')
-        # check and set scorefields
-        if not score_fields_list:
-            self.input_score_fields_list = [s for s in score_dataframe]
-        elif type(score_fields_list) != list:
-            print('scorefields set fail!\n not a list!')
+        # check and set output_data
+        if not score_field_list:
+            self.input_field_list = [s for s in input_dataframe]
+        elif type(score_field_list) != list:
+            print('input_field_list set fail!\n not a list!')
             return
-        elif sum([1 if sf in score_dataframe else 0 for sf in score_fields_list]) != len(score_fields_list):
-            print('scorefields set fail!\n field must in rawdf.columns!')
+        elif sum([1 if sf in input_dataframe else 0 for sf in score_field_list]) != len(score_field_list):
+            print('input_field_list set fail!\n field must in rawdf.columns!')
             return
         else:
-            self.input_score_fields_list = score_fields_list
+            self.input_field_list = score_field_list
 
     def set_parameters(self,
                        input_score_percent_list=None,
@@ -228,8 +226,8 @@ class PltScoreModel(ScoreTransformModel):
         self.input_score_max = input_score_max
 
     def check_parameter(self):
-        if not self.input_score_fields_list:
-            print('no score field assign in scorefields!')
+        if not self.input_field_list:
+            print('no score field assign in input_field_list!')
             return False
         if (type(self.input_score_percentage_points) != list) | (type(self.output_score_points) != list):
             print('rawscorepoints or stdscorepoints is not list type!')
@@ -248,16 +246,18 @@ class PltScoreModel(ScoreTransformModel):
             return
 
         # transform score on each field
-        df = self.input_score_dataframe.copy()
+        df = self.input_data.copy()
         self.result_all_dict = {}
         result_dataframe = None
         result_report_save = ''
-        for i, fs in enumerate(self.input_score_fields_list):
+        for i, fs in enumerate(self.input_field_list):
+            print(' --start transform score field: <<{}>>'.format(fs))
             # create outdf
             _filter = '(df.{0}>={1}) & (df.{2}<={3})'.\
                 format(fs, self.input_score_min, fs, self.input_score_max)
             df2 = df[eval(_filter)][[fs]]
-            self.output_score_dataframe = df2  # .loc[:, self.input_score_fields_list]
+            self.output_score_data = df2  # .loc[:, self.input_field_list]
+            print('   filter created: [{}]'.format(_filter))
 
             # self.__pltrun(fs)
             if not self.__preprocess(fs):
@@ -265,18 +265,18 @@ class PltScoreModel(ScoreTransformModel):
                 return
 
             # transform score
+            print('   begin calculating ...')
             score_list = df2[fs].apply(self.__get_plt_score, self.output_score_decimals)
-            self.output_score_dataframe.loc[:, (fs + '_plt')] = score_list
+            self.output_score_data.loc[:, (fs + '_plt')] = score_list
             self._create_report(fs)
-            # print(self.output_score_dataframe.head())
-
+            print('   merge dataframe ...')
             if i == 0:
-                result_dataframe = df.merge(self.output_score_dataframe[[fs+'_plt']],
+                result_dataframe = df.merge(self.output_score_data[[fs+'_plt']],
                                             how='left', right_index=True, left_index=True)
             else:
-                result_dataframe = result_dataframe.merge(self.output_score_dataframe[[fs+'_plt']],
+                result_dataframe = result_dataframe.merge(self.output_score_data[[fs+'_plt']],
                                                           how='left', right_index=True, left_index=True)
-            # result_dataframe[fs] = self.output_score_dataframe
+            print('   create report ...')
             result_report_save += self.output_report_doc
 
             # save result
@@ -286,9 +286,10 @@ class PltScoreModel(ScoreTransformModel):
                 'formulas': self.result_formula}
 
         self.output_report_doc = result_report_save
-        self.output_score_dataframe = result_dataframe.fillna(-1)
+        self.output_score_data = result_dataframe.fillna(-1)
 
         print('used time:', time.time() - stime)
+        print('-'*50)
 
     def _create_report(self, field=''):
         self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1], x[2])
@@ -368,7 +369,7 @@ class PltScoreModel(ScoreTransformModel):
 
     def __preprocess(self, field):
         # check format
-        if type(self.input_score_dataframe) != pd.DataFrame:
+        if type(self.input_data) != pd.DataFrame:
             print('no dataset given!')
             return False
         if not self.output_score_points:
@@ -389,18 +390,18 @@ class PltScoreModel(ScoreTransformModel):
             return False
 
         # claculate _rawScorePoints
-        if field in self.output_score_dataframe.columns.values:
-            __rawdfdesc = self.output_score_dataframe[field].describe(self.input_score_percentage_points)
+        if field in self.output_score_data.columns.values:
+            __rawdfdesc = self.output_score_data[field].describe(self.input_score_percentage_points)
             # self.result_input_score_points = [__rawdfdesc.loc[f]
             #                                  for f in __rawdfdesc.index if '%' in f]
             self.result_input_score_points = [int(__rawdfdesc.loc[f])
-                                              if 'int' in self.output_score_dataframe[field].dtype.name
+                                              if 'int' in self.output_score_data[field].dtype.name
                                               else __rawdfdesc.loc[f]
                                               for f in __rawdfdesc.index if '%' in f]
         #    ['int', 'int8', 'int16', 'int32', 'int64']
         else:
             print('error score field name!')
-            print('not in ' + self.input_score_dataframe.columns.values)
+            print('not in ' + self.input_data.columns.values)
             return False
 
         # calculate Coefficients
@@ -415,13 +416,13 @@ class PltScoreModel(ScoreTransformModel):
             return
 
         # transform score
-        self.output_score_dataframe.loc[:, scorefieldname + '_plt'] = \
-            self.input_score_dataframe[scorefieldname].apply(self.__get_plt_score)  # , self.output_score_decimals)
+        self.output_score_data.loc[:, scorefieldname + '_plt'] = \
+            self.input_data[scorefieldname].apply(self.__get_plt_score)  # , self.output_score_decimals)
 
         self._create_report()
 
     def __plotmodel(self):
-        plt.figure('Piecewise Linear Score Transform: {0}'.format(self.input_score_fields_list))
+        plt.figure('Piecewise Linear Score Transform: {0}'.format(self.input_field_list))
         plen = len(self.result_input_score_points)
         plt.xlim(self.result_input_score_points[0], self.result_input_score_points[plen - 1])
         plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
@@ -460,10 +461,10 @@ class ZscoreByTable(ScoreTransformModel):
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
     def set_data(self,
-                 input_score_dataframe=None,
-                 input_score_fields_list=None):
-        self.input_score_dataframe = input_score_dataframe
-        self.input_score_fields_list = input_score_fields_list
+                 input_data=None,
+                 input_field_list=None):
+        self.input_data = input_data
+        self.input_field_list = input_field_list
 
     def set_parameters(self, std_num=3, rawscore_max=100, rawscore_min=0):
         self.stdNum = std_num
@@ -483,22 +484,22 @@ class ZscoreByTable(ScoreTransformModel):
         # check data and parameter in super
         if not super().run():
             return
-        self.output_score_dataframe = self.input_score_dataframe[self.input_score_fields_list]
+        self.output_score_data = self.input_data[self.input_field_list]
         self._segtable = self.__get_segtable(
-            self.output_score_dataframe,
+            self.output_score_data,
             self.maxRawscore,
             self.minRawscore,
-            self.input_score_fields_list)
-        for sf in self.input_score_fields_list:
+            self.input_field_list)
+        for sf in self.input_field_list:
             print('start run...')
             st = time.clock()
             self._calczscoretable(sf)
             # print(f'zscoretable finished with {time.clock()-st} consumed')
-            df = self.output_score_dataframe.copy()
+            df = self.output_score_data.copy()
             df.loc[:, sf+'_zscore'] = df[sf].apply(lambda x: x if x in self._segtable.seg.values else -1)
-            self.output_score_dataframe = df
-            self.output_score_dataframe.loc[:, sf + '_zscore'] = \
-                self.output_score_dataframe[sf + '_zscore'].replace(self._segtable.seg.values,
+            self.output_score_data = df
+            self.output_score_data.loc[:, sf + '_zscore'] = \
+                self.output_score_data[sf + '_zscore'].replace(self._segtable.seg.values,
                                                                     self._segtable[sf+'_zscore'].values)
 
             print(f'zscore transoform finished with {round(time.clock()-st,2)} consumed')
@@ -545,11 +546,11 @@ class ZscoreByTable(ScoreTransformModel):
         return pd.DataFrame({'pdf': pdf_list, 'sv': sv_list, 'cdf': cdf_list})
 
     def report(self):
-        if type(self.output_score_dataframe) == pd.DataFrame:
-            print('output score desc:\n', self.output_score_dataframe.describe())
+        if type(self.output_score_data) == pd.DataFrame:
+            print('output score desc:\n', self.output_score_data.describe())
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.input_score_fields_list}')
+        print(f'data fields in rawscore:{self.input_field_list}')
         print('parameters:')
         print(f'\tzscore stadard diff numbers:{self.stdNum}')
         print(f'\tmax score in raw score:{self.maxRawscore}')
@@ -578,9 +579,9 @@ class TscoreByTable(ScoreTransformModel):
         self.tscore_mean = 50
         self.tscore_stdnum = 4
 
-    def set_data(self, input_score_dataframe=None, input_score_fields_list=None):
-        self.input_score_dataframe = input_score_dataframe
-        self.input_score_fields_list = input_score_fields_list
+    def set_data(self, input_data=None, input_field_list=None):
+        self.input_data = input_data
+        self.input_field_list = input_field_list
 
     def set_parameters(self, rawscore_max=150, rawscore_min=0, tscore_mean=50, tscore_std=10, tscore_stdnum=4):
         self.rscore_max = rawscore_max
@@ -591,39 +592,39 @@ class TscoreByTable(ScoreTransformModel):
 
     def run(self):
         zm = ZscoreByTable()
-        zm.set_data(self.input_score_dataframe, self.input_score_fields_list)
+        zm.set_data(self.input_data, self.input_field_list)
         zm.set_parameters(std_num=self.tscore_stdnum, rawscore_min=self.rscore_min,
                           rawscore_max=self.rscore_max)
         zm.run()
-        self.output_score_dataframe = zm.output_score_dataframe
-        namelist = self.output_score_dataframe.columns
+        self.output_score_data = zm.output_score_data
+        namelist = self.output_score_data.columns
         for sf in namelist:
             if '_zscore' in sf:
                 newsf = sf.replace('_zscore', '_tscore')
-                self.output_score_dataframe.loc[:, newsf] = \
-                    self.output_score_dataframe[sf].apply(lambda x: x * self.tscore_std + self.tscore_mean)
+                self.output_score_data.loc[:, newsf] = \
+                    self.output_score_data[sf].apply(lambda x: x * self.tscore_std + self.tscore_mean)
 
     def report(self):
         print('T-score by normal table transform report')
         print('-' * 50)
-        if type(self.input_score_dataframe) == pd.DataFrame:
+        if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            print('    fields:', self.input_score_fields_list)
+            print('    fields:', self.input_field_list)
             pl.report_stats_describe(
-                self.input_score_dataframe[self.input_score_fields_list])
+                self.input_data[self.input_field_list])
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.output_score_dataframe) == pd.DataFrame:
-            out_fields = [f+'_tscore' for f in self.input_score_fields_list]
+        if type(self.output_score_data) == pd.DataFrame:
+            out_fields = [f+'_tscore' for f in self.input_field_list]
             print('T-score desc:')
             print('    fields:', out_fields)
             pl.report_stats_describe(
-                self.output_score_dataframe[out_fields])
+                self.output_score_data[out_fields])
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.input_score_fields_list}')
+        print(f'data fields in rawscore:{self.input_field_list}')
         print('-' * 50)
         print('parameters:')
         print(f'\tzscore stadard deviation numbers:{self.tscore_std}')
@@ -647,9 +648,9 @@ class TZscoreLinear(ScoreTransformModel):
         self.tscore_std = 10
         self.tscore_stdnum = 4
 
-    def set_data(self, input_score_dataframe=None, input_score_fields_list=None):
-        self.input_score_dataframe = input_score_dataframe
-        self.input_score_fields_list = input_score_fields_list
+    def set_data(self, input_data=None, input_field_list=None):
+        self.input_data = input_data
+        self.input_field_list = input_field_list
 
     def set_parameters(self,
                        input_score_max=150,
@@ -678,32 +679,32 @@ class TZscoreLinear(ScoreTransformModel):
 
     def run(self):
         super().run()
-        self.output_score_dataframe = self.input_score_dataframe[self.input_score_fields_list]
-        for sf in self.input_score_fields_list:
-            rmean, rstd = self.output_score_dataframe[[sf]].describe().loc[['mean', 'std']].values[:, 0]
-            self.output_score_dataframe[sf + '_zscore'] = \
-                self.output_score_dataframe[sf].apply(
+        self.output_score_data = self.input_data[self.input_field_list]
+        for sf in self.input_field_list:
+            rmean, rstd = self.output_score_data[[sf]].describe().loc[['mean', 'std']].values[:, 0]
+            self.output_score_data[sf + '_zscore'] = \
+                self.output_score_data[sf].apply(
                     lambda x: min(max((x - rmean) / rstd, -self.tscore_stdnum), self.tscore_stdnum))
-            self.output_score_dataframe.loc[:, sf + '_tscore'] = \
-                self.output_score_dataframe[sf + '_zscore'].\
+            self.output_score_data.loc[:, sf + '_tscore'] = \
+                self.output_score_data[sf + '_zscore'].\
                 apply(lambda x: x * self.tscore_std + self.tscore_mean)
 
     def report(self):
         print('TZ-score by linear transform report')
         print('-' * 50)
-        if type(self.input_score_dataframe) == pd.DataFrame:
+        if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_stats_describe(self.input_score_dataframe)
+            pl.report_stats_describe(self.input_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.output_score_dataframe) == pd.DataFrame:
+        if type(self.output_score_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            pl.report_stats_describe(self.output_score_dataframe)
+            pl.report_stats_describe(self.output_score_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.input_score_fields_list}')
+        print(f'data fields in rawscore:{self.input_field_list}')
         print('-' * 50)
         print('parameters:')
         print(f'\tzscore stadard deviation numbers:{self.tscore_std}')
@@ -732,10 +733,11 @@ class L9score(ScoreTransformModel):
         self.levelscoretable = {1: [0, 0.04], 2: [0.04, 0.11], 3: [0.11, 0.23], 4: [0.23, 0.4], 5: [0.4, 0.6],
                                 6: [0.6, 0.77], 7: [0.77, 0.89], 8: [0.89, 0.96], 9: [0.96, 1]}
         self.segtable = None
+        self.output_score_data = None
 
-    def set_data(self, rawdf=None, scorefields=None):
-        self.rawdf = rawdf
-        self.scorefields = scorefields
+    def set_data(self, input_data=None, input_field_list=None):
+        self.input_data = input_data
+        self.input_field_list = input_field_list
 
     def set_parameters(self, rawscore_max=100, rawscore_min=0):
         self.rawscore_max = rawscore_max
@@ -744,20 +746,20 @@ class L9score(ScoreTransformModel):
     def run(self):
         # import py2ee_lib as pl
         seg = ps.SegTable()
-        seg.set_data(self.rawdf, self.scorefields)
+        # seg.set_data(self.input_data, self.output_data)
         seg.set_parameters(segmax=self.rawscore_max, segmin=self.rawscore_min, segsort='ascending')
         seg.run()
-        self.segtable = seg.segdf
+        self.segtable = seg.output_data
         self.__calcscoretable()
-        self.outdf = self.rawdf[self.scorefields]
-        for sf in self.scorefields:
+        self.outdf = self.input_data[self.input_field_list]
+        for sf in self.input_field_list:
             self.outdf[sf+'_percent'] = self.outdf[sf].\
                 replace(self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
             self.outdf[sf+'_l9score'] = self.outdf[sf].\
                 replace(self.segtable['seg'].values, self.segtable[sf+'_l9score'].values)
 
     def __calcscoretable(self):
-        for sf in self.scorefields:
+        for sf in self.input_field_list:
             self.segtable.loc[:, sf+'_l9score'] = self.segtable[sf+'_percent'].\
                 apply(lambda x: self.__percentmaplevel(x))
 
@@ -770,19 +772,19 @@ class L9score(ScoreTransformModel):
     def report(self):
         print('L9-score transform report')
         print('=' * 50)
-        if type(self.rawdf) == pd.DataFrame:
+        if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_stats_describe(self.rawdf)
+            pl.report_stats_describe(self.input_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.outdf) == pd.DataFrame:
+        if type(self.output_score_data) == pd.DataFrame:
             print('raw,L9 score desc:')
-            pl.report_stats_describe(self.outdf)
+            pl.report_stats_describe(self.output_score_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.scorefields}')
+        print(f'data fields in rawscore:{self.input_field_list}')
         print('-' * 50)
         print('parameters:')
         print(f'\tmax score in raw score:{self.rawscore_max}')

@@ -4,23 +4,30 @@ import pyex_stm as stm
 
 
 # mode: plt-sd20, plt, tscore, zscore, L9
-def stmapp(name='plt-sd20',
-           input_dataframe=None,
-           input_fields_list=(),
-           decimals=0,
-           min_score=0,
-           max_score=150):
-    if not check_para(input_dataframe=input_dataframe,
-                      input_fields_list=input_fields_list):
+def stm_app(name='plt-sd20',
+            input_dataframe=None,
+            score_field_list=(),
+            decimal_place=0,
+            min_score=0,
+            max_score=150):
+    valid_model_names = ['plt-sd20', 'plt', 'zscore', 'tscore', 'tlinear', 'L9']
+    if name not in valid_model_names:
+        print('Invalid mode name: "{}" ! \nPlease choose from [{}]'.format(name, valid_model_names))
+        return
+    if not __check_para(input_data=input_dataframe,
+                        field_list=score_field_list):
         return
 
-    if name == 'plt-sd20':
+    if name.lower() == 'plt-sd20':
+        print('---shandong new gaokao score model---')
+        print('score  ratio points: {}'.format([0, .03, .10, .26, .50, .74, .90, .97, 1.00]))
+        print('output score points: {}'.format([20, 30, 40, 50, 60, 70, 80, 90, 100]))
         pltmodel = stm.PltScoreModel()
         input_percentage_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]    # ajust ratio
         output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]  # std=15
-        pltmodel.output_score_decimals = decimals
-        pltmodel.set_data(score_dataframe=input_dataframe,
-                          score_fields_list=input_fields_list)
+        pltmodel.output_score_decimals = decimal_place
+        pltmodel.set_data(input_dataframe=input_dataframe,
+                          score_field_list=score_field_list)
         pltmodel.set_parameters(input_percentage_points,
                                 output_score_points,
                                 input_score_min=min_score,
@@ -28,8 +35,8 @@ def stmapp(name='plt-sd20',
         pltmodel.run()
         pltmodel.report()
 
-        # pltmodel.plot('raw')
         pltmodel.plot('out')
+        # pltmodel.plot('raw')
         # pltmodel.plot('model')
 
         return pltmodel
@@ -42,7 +49,7 @@ def stmapp(name='plt-sd20',
         # stdpoints = [0, 15, 30, 50, 70, 85, 100]  # std=15
         output_score_points = [20, 25, 40, 60, 80, 95, 100]  # std=15
 
-        pltmodel.set_data(score_dataframe=input_dataframe, score_fields_list=input_fields_list)
+        pltmodel.set_data(input_dataframe=input_data, score_field_list=score_field_list)
         pltmodel.set_parameters(input_percentage_points, output_score_points)
         pltmodel.run()
         pltmodel.report()
@@ -51,7 +58,7 @@ def stmapp(name='plt-sd20',
 
     if name == 'zscore':
         zm = stm.ZscoreByTable()
-        zm.set_data(input_dataframe, input_fields_list)
+        zm.set_data(input_data, score_field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
@@ -59,7 +66,7 @@ def stmapp(name='plt-sd20',
 
     if name == 'tscore':
         tm = stm.TscoreByTable()
-        tm.set_data(input_dataframe, input_fields_list)
+        tm.set_data(input_data, score_field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
@@ -67,7 +74,7 @@ def stmapp(name='plt-sd20',
 
     if name == 'tlinear':
         tm = stm.TZscoreLinear()
-        tm.set_data(input_dataframe, input_fields_list)
+        tm.set_data(input_data, score_field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
         tm.run()
         tm.report()
@@ -75,25 +82,25 @@ def stmapp(name='plt-sd20',
 
     if name.upper() == 'L9':
         tm = stm.L9score()
-        tm.set_data(input_dataframe, input_fields_list)
+        tm.set_data(input_data, score_field_list)
         tm.set_parameters(rawscore_max=100, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
 
 
-def check_para(input_dataframe, input_fields_list):
-    if type(input_dataframe) != pd.DataFrame:
-        print('no score df given!')
+def __check_para(input_data, field_list):
+    if type(input_data) != pd.DataFrame:
+        print('no score dataframe given!')
         return False
-    if len(input_fields_list) == 0:
+    if len(field_list) == 0:
         print('no score field given!')
         return False
-    if type(input_fields_list) != list:
+    if type(field_list) != list:
         print('inpurt_field_list is not list!')
         return False
-    for f in input_fields_list:
-        if f not in input_dataframe.columns:
-            print('field {} is not in input_dataframe!'.format(f))
+    for f in field_list:
+        if f not in input_data.columns:
+            print('field {} is not in input_dataframe {}!'.format(f, input_data))
             return False
     return True

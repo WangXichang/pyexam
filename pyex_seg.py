@@ -19,7 +19,7 @@ def test_segtable():
     seg.set_data(expdf, expdf.columns.values)
     seg.set_parameters(segstep=3, segmax=8, segmin=3, segclip=False)
     seg.run()
-    print(seg.segdf)
+    print(seg.output_data)
        seg  sf_count  sf_cumsum  sf_percent  sf_count3
     5    8         2          2    0.133333          2
     4    7         1          3    0.200000         -1
@@ -32,18 +32,18 @@ def test_segtable():
     expdf = pd.DataFrame({'sf': [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 9]})
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segmax=8, segmin=3, segalldata=True, dispmode=True)
+    seg.set_parameters(segstep=3, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
     seg.plot()
     seg.show_parameters()
-    print(seg.segdf)
+    print(seg.input_data)
     # change parameters to run to get new result
     seg.segalldata = False
     seg.segmax = 7
     seg.segstep = 2
     seg.run()
     seg.show_parameters()
-    print(seg.segdf)
+    print(seg.output_data)
     return seg
 
 
@@ -54,11 +54,11 @@ class SegTable(object):
     """
     设置数据，数据表（类型为pandas.DataFrame）,同时需要设置需要计算分数分段人数的字段（list类型）
     :data
-        rawdf: input dataframe, with a value fields(int,float) to calculate segment table
+        input_data: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
-        segfields: list, field names used to calculate seg table, empty for calculate all fields
-                   用于计算分段表的分数字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
-                   分数字段的类型应为可计算类型，如int,float.
+        field_list: list, field names used to calculate seg table, empty for calculate all fields
+                   用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
+                   字段的类型应为可计算类型，如int,float.
     设置参数
     :parameters
         segmax: int,  maxvalue for segment, default=150输出分段表中分数段的最大值
@@ -75,35 +75,39 @@ class SegTable(object):
                  低于segmin分数值的计数加入segmin分数段
         dispmode: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
+
     运行结果
     :result
-        segdf: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
+        output_data: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
+
     应用举例
     example:
         import pyex_seg
         seg = pyex_seg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
-        seg.set_data(df, 'sf')
+        seg.set_data(df, ['sf'])
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending', segalldata=True, dispmode=True)
         seg.run()
         seg.plot()
-        resultdf = seg.segdf    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
-    备注
+        resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+
     Note:
-        1)根据segclip确定是否在设定的区间范围内计算分数值，segclip=True时抛弃不再范围内的分数项
-        segclip=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
+        1)根据segalldata确定是否在设定的区间范围内计算分数值，segalldata=True时抛弃不再范围内的分数项
+        segalldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
         segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
-        segclip is used to include or exclude count() outside to segmin or segmax repectively
-        2)分数字段的类型为整数或浮点数（实数）
-        score fields type is int or float
-        3)可以通过属性方式单独设置数据(rawdata),字段列表（scorefields),各项参数（segmax, segmin, segsort,segalldata,
-        segmode), 如，seg.scorefields = ['score_1', 'score_2']; seg.segmax = 120， 便于在计算期间调整模型。
-        by property mode, rawdata,scorefields,parameters can be setted individually
+        segalldata is used to include or exclude data outside [segmin, segmax]
+
+        2)分段字段的类型为整数或浮点数（实数）
+        field_list type is digit, for example: int or float
+
+        3)可以通过属性方式单独设置数据(input_data),字段列表（field_list),各项参数（segmax, segmin, segsort,segalldata,
+        segmode), 如，seg.field_list = ['score_1', 'score_2']; seg.segmax = 120， 便于在计算期间调整模型。
+        by usting property mode, rawdata, scorefields, parameters can be setted individually
     """
 
     def __init__(self):
         # raw data
-        self.__rawDf = None
+        self.__input_dataframe = None
         self.__segFields = []
         # parameter for model
         self.__segStep = 1
@@ -111,31 +115,31 @@ class SegTable(object):
         self.__segMin = 0
         self.__segSort = 'descending'
         self.__segAlldata = True
-        self.__disp = False
+        self.__display = True
         # result data
-        self.__segDf = None
+        self.__output_dataframe = None
         # run status
         self.__runsuccess = False
 
     @property
-    def segdf(self):
-        return self.__segDf
+    def output_data(self):
+        return self.__output_dataframe
 
     @property
-    def rawdf(self):
-        return self.__rawDf
+    def input_data(self):
+        return self.__input_dataframe
 
-    @rawdf.setter
-    def rawdf(self, df):
-        self.__rawDf = df
+    @input_data.setter
+    def input_data(self, df):
+        self.__input_dataframe = df
 
     @property
-    def segfields(self):
+    def field_list(self):
         return self.__segFields
 
-    @segfields.setter
-    def segfields(self, sfs):
-        self.__segFields = sfs
+    @field_list.setter
+    def field_list(self, field_list):
+        self.__segFields = field_list
 
     @property
     def segmax(self):
@@ -158,8 +162,8 @@ class SegTable(object):
         return self.__segSort
 
     @segsort.setter
-    def segsort(self, sortstr):
-        self.__segSort = sortstr
+    def segsort(self, sort_mode):
+        self.__segSort = sort_mode
 
     @property
     def segalldata(self):
@@ -171,29 +175,44 @@ class SegTable(object):
 
     @property
     def dispmode(self):
-        return self.__disp
+        return self.__display
 
     @dispmode.setter
     def dispmode(self, dispmode):
-        self.__disp = dispmode
+        self.__display = dispmode
 
-    def set_data(self, df, segfields=None):
-        self.rawdf = df
-        if type(segfields) == str:
-            segfields = [segfields]
-        if (type(segfields) != list) & (type(df) == pd.DataFrame):
-            self.segfields = df.columns.values
+    def set_data(self, input_data, field_list=None):
+        self.input_data = input_data
+        if type(field_list) == str:
+            field_list = [field_list]
+        if (not isinstance(field_list, list)) & isinstance(input_data, pd.DataFrame):
+            self.field_list = input_data.columns.values
         else:
-            self.segfields = segfields
+            self.field_list = field_list
+        self.__check()
 
-    def set_parameters(self, segmax=100, segmin=0, segstep=1, segsort='descending',
-                       segalldata=False, dispmode=True):
-        self.__segMax = segmax
-        self.__segMin = segmin
-        self.__segStep = segstep
-        self.__segSort = segsort
-        self.__segAlldata = segalldata
-        self.__disp = dispmode
+    def set_parameters(self,
+                       segmax=None,
+                       segmin=None,
+                       segstep=None,
+                       segsort=None,
+                       segalldata=None,
+                       display=None):
+        if isinstance(segmax, int):
+            self.__segMax = segmax
+        if isinstance(segmin, int):
+            self.__segMin = segmin
+        if isinstance(segstep, int):
+            self.__segStep = segstep
+        if isinstance(segsort, str):
+            if segsort.lower() in ['descending', 'ascending']:
+                self.__segSort = segsort
+        if isinstance(segalldata, bool):
+            self.__segAlldata = segalldata
+        if isinstance(display, bool):
+            self.__display = display
+        self.__check()
+        # self.show_parameters()
 
     def show_parameters(self):
         print('seg max value:{}'.format(self.__segMax))
@@ -201,121 +220,126 @@ class SegTable(object):
         print('seg step value:{}'.format(self.__segStep))
         print('seg sort mode:{}'.format(self.__segSort))
         print('seg crop mode:{}'.format(self.__segAlldata))
-        print('seg disp mode:{}'.format(self.__disp))
+        print('seg disp mode:{}'.format(self.__display))
 
-    def check(self):
-        if type(self.__rawDf) == pd.Series:
-            self.__rawDf = pd.DataFrame(self.__rawDf)
-        if type(self.__rawDf) != pd.DataFrame:
-            print('data set is not ready!')
+    def help(self):
+        print(self.__doc__)
+
+    def __check(self):
+        if isinstance(self.__input_dataframe, pd.Series):
+            self.__input_dataframe = pd.DataFrame(self.__input_dataframe)
+        if not isinstance(self.__input_dataframe, pd.DataFrame):
+            print('error: raw score data is not ready!')
             return False
         if self.__segMax <= self.__segMin:
-            print('segmax value is not greater than segmin!')
+            print('error: segmax({}) is not greater than segmin({})!'.format(self.__segMax, self.__segMin))
             return False
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
-            print('segstep is too small or big!')
+            print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        if type(self.segfields) != list:
-            if type(self.segfields) == str:
-                self.segfields = [self.segfields]
+        if not isinstance(self.field_list, list):
+            if isinstance(self.field_list, str):
+                self.field_list = [self.field_list]
             else:
-                print('segfields error:', type(self.segfields))
+                print('error: segfields type({}) error.'.format(type(self.field_list)))
                 return False
-            for f in self.segfields:
-                if f not in self.rawdf.columns.values:
-                    print('field in segfields is not in rawdf:', f)
-                    return False
-        if type(self.__segAlldata) != bool:
-            print('segclip is not bool type!')
+        for f in self.field_list:
+            if f not in self.input_data.columns:
+                print("error: field('{}') is not in input_data fields({})".
+                      format(f, self.input_data.columns.values))
+                return False
+        if not isinstance(self.__segAlldata, bool):
+            print('error: segalldata({}) is not bool type!'.format(self.__segAlldata))
             return False
         return True
 
     def run(self):
         sttime = time.clock()
-        if not self.check():
+        if not self.__check():
             return
         # create output dataframe with segstep = 1
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
-        self.__segDf = pd.DataFrame({'seg': seglist})
-        for f in self.segfields:
+        self.__output_dataframe = pd.DataFrame({'seg': seglist})
+        for f in self.field_list:
             # calculate preliminary group count
-            r = self.rawdf.groupby(f)[f].count()
-            if self.__disp:
+            r = self.input_data.groupby(f)[f].count()
+            if self.__display:
                 print('finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
             # count seg_count in [segmin, segmax]
-            self.__segDf[f + '_count'] = self.__segDf['seg'].\
+            self.__output_dataframe[f + '_count'] = self.__output_dataframe['seg'].\
                 apply(lambda x: np.int64(r[x]) if x in r.index else 0)
-            if self.__disp:
+            if self.__display:
                 print('finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
             # add outside scope number to segmin, segmax
             if self.__segAlldata:
-                self.__segDf.loc[self.__segDf.seg == self.__segMin, f+'_count'] = r[r.index <= self.__segMin].sum()
-                self.__segDf.loc[self.__segDf.seg == self.__segMax, f+'_count'] = r[r.index >= self.__segMax].sum()
+                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = r[r.index <= self.__segMin].sum()
+                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = r[r.index >= self.__segMax].sum()
             # set order for seg fields
             if self.__segSort != 'ascending':
-                self.__segDf = self.__segDf.sort_values(by='seg', ascending=False)
+                self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
             # calculate cumsum field
-            self.__segDf[f + '_cumsum'] = self.__segDf[f + '_count'].cumsum()
+            self.__output_dataframe[f + '_cumsum'] = self.__output_dataframe[f + '_count'].cumsum()
             # calculate percent field
-            if self.__disp:
+            if self.__display:
                 print('finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
-            maxsum = max(max(self.segdf[f + '_cumsum']), 1)     # avoid divided by 0 in percent computing
-            self.__segDf[f + '_percent'] = self.__segDf[f + '_cumsum'].apply(lambda x: x / maxsum)
-            if self.__disp:
+            maxsum = max(max(self.output_data[f + '_cumsum']), 1)     # avoid divided by 0 in percent computing
+            self.__output_dataframe[f + '_percent'] = \
+                self.__output_dataframe[f + '_cumsum'].apply(lambda x: x / maxsum)
+            if self.__display:
                 print('finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
             # processing seg step calculating: skip step at seg field, set -1 for segs not in step
             if self.__segStep > 1:
                 segcountname = f+'_count{0}'.format(self.__segStep)
-                self.__segDf[segcountname] = np.int64(-1)
+                self.__output_dataframe[segcountname] = np.int64(-1)
                 c = 0
                 curpoint, curstep = ((self.__segMin, self.__segStep)
                                      if self.__segSort == 'ascending' else
                                      (self.__segMax, -self.__segStep))
-                for index, row in self.__segDf.iterrows():
+                for index, row in self.__output_dataframe.iterrows():
                     c += row[f+'_count']
                     if np.int64(row['seg']) in [curpoint, self.__segMax, self.__segMin]:
                         # row[segcountname] = c
-                        self.__segDf.loc[index, segcountname] = np.int64(c)
+                        self.__output_dataframe.loc[index, segcountname] = np.int64(c)
                         c = 0
                         curpoint += curstep
-        if self.__disp:
+        if self.__display:
             print('total consumed time:{}'.format(time.clock()-sttime))
         self.__runsuccess = True
         return
 
     def plot(self):
         if not self.__runsuccess:
-            if self.__disp:
+            if self.__display:
                 print('result is not created, please run!')
             return
         legendlist = []
         step = 0
-        for sf in self.segfields:
+        for sf in self.field_list:
             step += 1
             legendlist.append(sf)
             plt.figure('seg table figure({})'.format(self.__segSort))
             plt.subplot(221)
-            plt.hist(self.rawdf[sf], 20)
+            plt.hist(self.input_data[sf], 20)
             plt.title('raw data histogram')
-            if step == len(self.segfields):
+            if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.subplot(222)
-            plt.plot(self.segdf.seg, self.segdf[sf+'_count'])
-            if step == len(self.segfields):
+            plt.plot(self.output_data.seg, self.output_data[sf+'_count'])
+            if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.title('seg -- count')
             plt.xlim([self.__segMin, self.__segMax])
             plt.subplot(223)
-            plt.plot(self.segdf.seg, self.segdf[sf + '_cumsum'])
+            plt.plot(self.output_data.seg, self.output_data[sf + '_cumsum'])
             plt.title('seg -- cumsum')
             plt.xlim([self.__segMin, self.__segMax])
-            if step == len(self.segfields):
+            if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.subplot(224)
-            plt.plot(self.segdf.seg, self.segdf[sf + '_percent'])
+            plt.plot(self.output_data.seg, self.output_data[sf + '_percent'])
             plt.title('seg -- percent')
             plt.xlim([self.__segMin, self.__segMax])
-            if step == len(self.segfields):
+            if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.show()
 # SegTable class end
@@ -331,7 +355,7 @@ def cross_seg(df,    # source dataframe
     segmodel.set_data(df, keyf)
     segmodel.set_parameters(segmax=max(df[keyf]))
     segmodel.run()
-    dfseg = segmodel.segdf
+    dfseg = segmodel.output_data
     dfcount = dfseg[keyf+'_cumsum'].tail(1).values[0]
     vfseg = {x: [] for x in vfseglist}
     vfper = {x: [] for x in vfseglist}
@@ -351,8 +375,12 @@ def cross_seg(df,    # source dataframe
 
 def float_str(x, d1, d2):
     d1 = d1 + d2 + 1
-    return f'%{d1}.{d2}f' % x
+    # return f'%{d1}.{d2}f' % x
+    fstr = '{:'+str(d1)+'.'+str(d2)+'}'
+    return fstr.format(x)
 
 
 def int_str(x, d):
-    return f'%{d}d' % x
+    # return f'%{d}d' % x
+    fstr = '{:'+str(d)+'d}'
+    return fstr.format(x)
