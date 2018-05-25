@@ -20,18 +20,19 @@ def stm_app(name='plt-sd20',
 
     if name.lower() == 'plt-sd20':
         print('---shandong new gaokao score model---')
-        print('score  ratio points: {}'.format([0, .03, .10, .26, .50, .74, .90, .97, 1.00]))
-        print('output score points: {}'.format([20, 30, 40, 50, 60, 70, 80, 90, 100]))
+        print('score percent points: {}'.format([0, .03, .10, .26, .50, .74, .90, .97, 1.00]))
+        print('output score  points: {}'.format([20, 30, 40, 50, 60, 70, 80, 90, 100]))
         pltmodel = stm.PltScoreModel()
-        input_percentage_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]    # ajust ratio
+        score_percent_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]    # ajust ratio
         output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]  # std=15
         pltmodel.output_score_decimals = decimal_place
         pltmodel.set_data(input_dataframe=input_dataframe,
                           score_field_list=score_field_list)
-        pltmodel.set_parameters(input_percentage_points,
-                                output_score_points,
+        pltmodel.set_parameters(input_score_percent_list=score_percent_points,
+                                output_score_points_list=output_score_points,
                                 input_score_min=min_score,
-                                input_score_max=max_score)
+                                input_score_max=max_score
+                                )
         pltmodel.run()
         pltmodel.report()
 
@@ -44,13 +45,13 @@ def stm_app(name='plt-sd20',
     if name == 'plt':
         pltmodel = stm.PltScoreModel()
         # rawpoints = [0, 0.023, 0.169, 0.50, 0.841, 0.977, 1]   # normal ratio
-        input_percentage_points = [0, .15, .30, .50, .70, .85, 1.00]    # ajust ratio
+        score_percent_points = [0, .15, .30, .50, .70, .85, 1.00]    # ajust ratio
         # stdpoints = [40, 50, 65, 80, 95, 110, 120]  # std=15
         # stdpoints = [0, 15, 30, 50, 70, 85, 100]  # std=15
         output_score_points = [20, 25, 40, 60, 80, 95, 100]  # std=15
 
         pltmodel.set_data(input_dataframe=input_data, score_field_list=score_field_list)
-        pltmodel.set_parameters(input_percentage_points, output_score_points)
+        pltmodel.set_parameters(score_percent_points, output_score_points)
         pltmodel.run()
         pltmodel.report()
         pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
