@@ -19,12 +19,24 @@ def stm_app(name='plt-sd20',
         return
 
     if name.lower() == 'plt-sd20':
+        # set model score percentages and endpoints
+        # we get a near normal distribution
+        # according to percent , test std=15.54375 at 50    Zcdf(-10/std)
+        #                        test std=         at 40    Zcdf(-20/std)
+        #                        test std=15.9508  at 30    Zcdf(-30/std)
+        #                        maybe is not real normal
+        # according to std = 15.54375
+        #   cdf(40) = 0.0991
+        #   cdf(30) = 0.0268
+        #   cdf(20) = 0.0050
+
+        score_percent_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]     # percent sequence
+        output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]             # std=15.54375 as normal
         print('---shandong new gaokao score model---')
-        print('score percent points: {}'.format([0, .03, .10, .26, .50, .74, .90, .97, 1.00]))
-        print('output score  points: {}'.format([20, 30, 40, 50, 60, 70, 80, 90, 100]))
+        print('score percent points: {}'.format(score_percent_points))
+        print('output score  points: {}'.format(output_score_points))
+
         pltmodel = stm.PltScoreModel()
-        score_percent_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]    # ajust ratio
-        output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]  # std=15
         pltmodel.output_score_decimals = decimal_place
         pltmodel.set_data(input_data=input_dataframe,
                           score_field_list=score_field_list)
