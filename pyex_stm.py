@@ -189,21 +189,21 @@ class PltScoreModel(ScoreTransformModel):
 
         return
 
-    def set_data(self, input_dataframe=None, score_field_list=None):
+    def set_data(self, input_data=None, score_field_list=None):
         # check and set rawdf
-        if type(input_dataframe) == pd.Series:
-            self.input_data = pd.DataFrame(input_dataframe)
-        elif type(input_dataframe) == pd.DataFrame:
-            self.input_data = input_dataframe
+        if type(input_data) == pd.Series:
+            self.input_data = pd.DataFrame(input_data)
+        elif type(input_data) == pd.DataFrame:
+            self.input_data = input_data
         else:
             print('rawdf set fail!\n not correct data set(DataFrame or Series)!')
         # check and set output_data
         if not score_field_list:
-            self.input_field_list = [s for s in input_dataframe]
+            self.input_field_list = [s for s in input_data]
         elif type(score_field_list) != list:
             print('input_field_list set fail!\n not a list!')
             return
-        elif sum([1 if sf in input_dataframe else 0 for sf in score_field_list]) != len(score_field_list):
+        elif sum([1 if sf in input_data else 0 for sf in score_field_list]) != len(score_field_list):
             print('input_field_list set fail!\n field must in rawdf.columns!')
             return
         else:
