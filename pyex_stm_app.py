@@ -21,11 +21,12 @@ def stm_app(name='plt-sd20',
     if name.lower() == 'plt-sd20':
         # set model score percentages and endpoints
         # we get a near normal distribution
-        # according to percent , test std=15.54375 at 50    Zcdf(-10/std)
-        #                        test std=         at 40    Zcdf(-20/std)
-        #                        test std=15.9508  at 30    Zcdf(-30/std)
-        #                        maybe is not real normal
+        # according to percent , test std=15.54375      at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295   at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.9508       at 30    Zcdf(-30/std)=0.03
+        #                        not real, but approximate normal distribution
         # according to std = 15.54375
+        #   cdf(50) = 0.26  +3.027*E-9
         #   cdf(40) = 0.0991
         #   cdf(30) = 0.0268
         #   cdf(20) = 0.0050
