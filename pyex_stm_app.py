@@ -21,6 +21,7 @@ def stm_app(name='plt-sd20',
     if name.lower() == 'plt-sd20':
         # set model score percentages and endpoints
         # we get a near normal distribution
+        # for exmaple, predict std in some score data:
         # according to percent , test std=15.54375      at 50    Zcdf(-10/std)=0.26
         #                        test std=15.60608295   at 40    Zcdf(-20/std)=0.10
         #                        test std=15.9508       at 30    Zcdf(-30/std)=0.03
