@@ -238,6 +238,8 @@ class PltScoreModel(ScoreTransformModel):
             return False
         return True
 
+    # --------------data and parameters setting end
+
     def run(self):
         stime = time.time()
 
@@ -290,6 +292,7 @@ class PltScoreModel(ScoreTransformModel):
 
         print('used time:', time.time() - stime)
         print('-'*50)
+        # run end
 
     def _create_report(self, field=''):
         self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1], x[2])
@@ -313,8 +316,6 @@ class PltScoreModel(ScoreTransformModel):
             self.__plotmodel()
         elif not super().plot(mode):
             print('mode {} is invalid'.format(mode))
-
-    # --------------property set end
 
     def __getcoeff(self):
         # formula: y = (y2-y1)/(x2 -x1) * (x - x1) + y1
@@ -342,14 +343,6 @@ class PltScoreModel(ScoreTransformModel):
                 y = self.result_pltCoeff[i][0] * \
                     (x - self.result_pltCoeff[i][1]) + self.result_pltCoeff[i][2]
                 return self.score_round(y, self.output_score_decimals)
-
-                # if self.output_score_decimals > 0:
-                #    return np.round(self.result_pltCoeff[i][0] * (x - self.result_pltCoeff[i][1]) +
-                #                    self.result_pltCoeff[i][2],
-                #                    decimals=self.output_score_decimals)
-                # else:
-                #    return int(np.round(self.result_pltCoeff[i][0] * (x - self.result_pltCoeff[i][1]) +
-                #                        self.result_pltCoeff[i][2]))
         return -1
 
     @staticmethod
@@ -391,17 +384,15 @@ class PltScoreModel(ScoreTransformModel):
 
         # claculate _rawScorePoints
         if field in self.output_score_data.columns.values:
+            #  field type including  ['int', 'int8', 'int16', 'int32', 'int64']
             __rawdfdesc = self.output_score_data[field].describe(self.input_score_percentage_points)
-            # self.result_input_score_points = [__rawdfdesc.loc[f]
-            #                                  for f in __rawdfdesc.index if '%' in f]
             self.result_input_score_points = [int(__rawdfdesc.loc[f])
                                               if 'int' in self.output_score_data[field].dtype.name
                                               else __rawdfdesc.loc[f]
                                               for f in __rawdfdesc.index if '%' in f]
-        #    ['int', 'int8', 'int16', 'int32', 'int64']
         else:
-            print('error score field name!')
-            print('not in ' + self.input_data.columns.values)
+            print('score field({}) not in output_dataframe!'.format(field))
+            print('must be in {}'.format(self.input_data.columns.values))
             return False
 
         # calculate Coefficients

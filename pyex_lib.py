@@ -54,7 +54,7 @@ def create_normaltable(size=400, std=1, mean=0, stdnum=4):
 def report_stats_describe(dataframe, decdigits=4):
     """
     report statistic describe of a dataframe, with decimal digits = decnum
-    峰度（Kurtosis）与偏态（Skewness）就是量测数据正态分布特性的两个指标。
+    峰度（Kurtosis）与偏态（Skewness）是量测数据正态分布特性的两个指标。
     峰度衡量数据分布的平坦度（flatness）。尾部大的数据分布峰度值较大。正态分布的峰度值为3。
         Kurtosis = 1/N * Sigma(Xi-Xbar)**4 / (1/N * Sigma(Xi-Xbar)**2)**2
     偏态量度对称性。0 是标准对称性正态分布。右（正）偏态表明平均值大于中位数，反之为左（负）偏态。
@@ -98,7 +98,7 @@ def report_stats_describe(dataframe, decdigits=4):
             'relation':pr}
     return dict
 
-class ScoreStats():
+class ScoreStats:
     """
     :input
         sdf:score dataframe
@@ -110,6 +110,13 @@ class ScoreStats():
         plot_scatter: plot scatter graph
 
     """
+
+    def __init__(self, input_data, field_list):
+        self.df = input_data
+        self.field_list = field_list
+
+    def get_peak_point(self):
+
 
 
 def pearson_relation(x, y):
