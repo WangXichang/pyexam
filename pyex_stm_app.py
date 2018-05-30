@@ -21,15 +21,20 @@ def stm_app(name='plt-sd20',
     if name.lower() == 'plt-sd20':
         # set model score percentages and endpoints
         # we get a near normal distribution
-        # according to percent , test std=15.54375      at 50    Zcdf(-10/std)=0.26
-        #                        test std=15.60608295   at 40    Zcdf(-20/std)=0.10
-        #                        test std=15.9508       at 30    Zcdf(-30/std)=0.03
+        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.9507135        at 30    Zcdf(-30/std)=0.03
         #                        not real, but approximate normal distribution
-        # according to std = 15.54375
-        #   cdf(50) = 0.26  +3.027*E-9
-        #   cdf(40) = 0.0991
-        #   cdf(30) = 0.0268
-        #   cdf(20) = 0.0050
+        # according to std
+        #   cdf(90) = 0.970(9)79656 as std=15.9507135,  0.972718 as std=15.606,  0.9731988 as std=15.54375
+        #   cdf(80) = 0.900001195 as std=15.606,  0.9008989 as std=15.54375
+        #   cdf(70) = 0.0.73999999697 as std=15.54375
+        #   cdf(60) = 0.0
+        #   cdf(50) = 0.26  +3.027*E-9 as std=15.54375
+        #   cdf(40) = 0.0991 as std=15.54375
+        #   cdf(30) = 0.0268 as std=15.54375
+        #   cdf(20) = 0.0050 as std=15.54375
+        #
 
         score_percent_points = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]     # percent sequence
         output_score_points = [20, 30, 40, 50, 60, 70, 80, 90, 100]             # std=15.54375 as normal
