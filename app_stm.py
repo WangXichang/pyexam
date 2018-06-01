@@ -4,12 +4,13 @@ import pyex_stm as stm
 
 
 # mode: plt-sd20, plt, tscore, zscore, L9
-def stm_app(name='plt-sd20',
-            input_dataframe=None,
-            score_field_list=(),
-            decimal_place=0,
-            min_score=0,
-            max_score=150):
+def model(name='plt-sd20',
+          input_dataframe=None,
+          score_field_list=(),
+          decimal_place=0,
+          min_score=0,
+          max_score=150):
+    """model: 'plt-sd20', 'plt', 'zscore', 'tscore', 'tlinear', 'L9' """
     valid_model_names = ['plt-sd20', 'plt', 'zscore', 'tscore', 'tlinear', 'L9']
     if name not in valid_model_names:
         print('Invalid mode name: "{}" ! \nPlease choose from [{}]'.format(name, valid_model_names))
@@ -23,7 +24,7 @@ def stm_app(name='plt-sd20',
         # we get a near normal distribution
         # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
         #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
-        #                        test std=15.9507135        at 30    Zcdf(-30/std)=0.03
+        #                        test std=15.950713502        at 30    Zcdf(-30/std)=0.03
         #                        not real, but approximate normal distribution
         # according to std
         #   cdf(90) = 0.970(9)79656 as std=15.9507135,  0.972718 as std=15.606,  0.9731988 as std=15.54375
