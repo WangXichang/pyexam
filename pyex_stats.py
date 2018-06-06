@@ -18,11 +18,15 @@ def relation(x, y):
 
 
 def float_str(x, d1, d2):
-    return f'%{d1}.{d2}f' % x
+    fs = '{:' + str(d1) + '.' + str(d2) + 'f}'
+    return fs.format(x)
 
 
 def int_str(x,d):
-    return f'%{d}d' % x
+    fs = '{:' + str(d) + 'd}'
+    if not isinstance(x, int):
+        x = int(x)
+    return fs.format(x)
 
 
 def int_round45(x, decimals=0):
