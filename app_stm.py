@@ -5,9 +5,9 @@ import pyex_stm as stm
 
 # mode: plt-sd20, plt, tscore, zscore, L9
 def model(name='plt-sd20',
-          input_dataframe=None,
-          score_field_list=(),
-          decimal_place=0,
+          input_data=None,
+          field_list=(),
+          decimals=0,
           min_score=0,
           max_score=150):
     """model: 'plt-sd20', 'plt', 'zscore', 'tscore', 'tlinear', 'L9' """
@@ -15,8 +15,8 @@ def model(name='plt-sd20',
     if name not in valid_model_names:
         print('Invalid mode name: "{}" ! \nPlease choose from [{}]'.format(name, valid_model_names))
         return
-    if not __check_para(input_data=input_dataframe,
-                        field_list=score_field_list):
+    if not __check_para(input_data=input_data,
+                        field_list=field_list):
         return
 
     if name.lower() == 'plt-sd20':
@@ -48,9 +48,9 @@ def model(name='plt-sd20',
         print('output score  points: {}'.format(output_score_points))
 
         pltmodel = stm.PltScore()
-        pltmodel.output_score_decimals = decimal_place
-        pltmodel.set_data(input_data=input_dataframe,
-                          score_field_list=score_field_list)
+        pltmodel.output_score_decimals = decimals
+        pltmodel.set_data(input_data=input_data,
+                          score_field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=score_percent_points,
                                 output_score_points_list=output_score_points,
                                 input_score_min=min_score,
@@ -74,8 +74,8 @@ def model(name='plt-sd20',
         # output_score_points = [40, 50, 65, 80, 95, 110, 120]  # std=15.6576 at 65, std=15.04 at 50
         output_score_points = [20, 25, 40, 60, 80, 95, 100]     # std=19.6 at 40, std=17.55 at 25
 
-        pltmodel.set_data(input_data=input_dataframe,
-                          score_field_list=score_field_list)
+        pltmodel.set_data(input_data=input_data,
+                          score_field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=score_percent_points,
                                 output_score_points_list=output_score_points,
                                 input_score_max=max_score,
@@ -87,8 +87,8 @@ def model(name='plt-sd20',
 
     if name == 'zscore':
         zm = stm.ZscoreByTable()
-        zm.set_data(input_data=input_dataframe,
-                    input_field_list=score_field_list)
+        zm.set_data(input_data=input_data,
+                    input_field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=max_score, rawscore_min=min_score)
         zm.run()
         zm.report()
@@ -96,8 +96,8 @@ def model(name='plt-sd20',
 
     if name == 'tscore':
         tm = stm.TscoreByTable()
-        tm.set_data(input_data=input_dataframe,
-                    input_field_list=score_field_list)
+        tm.set_data(input_data=input_data,
+                    input_field_list=field_list)
         tm.set_parameters(rawscore_max=150,
                           rawscore_min=0)
         tm.run()
@@ -106,8 +106,8 @@ def model(name='plt-sd20',
 
     if name == 'tlinear':
         tm = stm.TscoreLinear()
-        tm.set_data(input_data=input_dataframe,
-                    input_field_list=score_field_list)
+        tm.set_data(input_data=input_data,
+                    input_field_list=field_list)
         tm.set_parameters(input_score_max=max_score,
                           input_score_min=min_score)
         tm.run()
@@ -116,8 +116,8 @@ def model(name='plt-sd20',
 
     if name.upper() == 'L9':
         tm = stm.L9score()
-        tm.set_data(input_data=input_dataframe,
-                    field_list=score_field_list)
+        tm.set_data(input_data=input_data,
+                    field_list=field_list)
         tm.set_parameters(rawscore_max=max_score,
                           rawscore_min=min_score)
         tm.run()

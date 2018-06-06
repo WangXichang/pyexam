@@ -31,7 +31,7 @@ def test(name='plt', df=None, field_list='', decimals=0):
         stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]    # std:15-16
 
         pltmodel.output_score_decimals = 0
-        pltmodel.set_data(df=scoredf, field_list=field_list)
+        pltmodel.set_data(input_data=scoredf, field_list=field_list)
         pltmodel.set_parameters(rawpoints_sd, stdpoints_sd)
         pltmodel.run()
         # pltmodel.report()
@@ -39,28 +39,28 @@ def test(name='plt', df=None, field_list='', decimals=0):
         return pltmodel
     if name == 'zt':
         zm = ZscoreByTable()
-        zm.set_data(df=scoredf, field_list=field_list)
+        zm.set_data(input_data=scoredf, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
     if name == 'tt':
         tm = TscoreByTable()
-        tm.set_data(df=scoredf, field_list=field_list)
+        tm.set_data(input_data=scoredf, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
     if name == 'tzl':
         tm = TscoreLinear()
-        tm.set_data(df=scoredf, field_list=field_list)
+        tm.set_data(input_data=scoredf, field_list=field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
         tm.run()
         tm.report()
         return tm
     if name == 'l9':
         tm = L9score()
-        tm.set_data(df=scoredf, field_list=field_list)
+        tm.set_data(input_data=scoredf, field_list=field_list)
         tm.set_parameters(rawscore_max=100, rawscore_min=0)
         tm.run()
         tm.report()
