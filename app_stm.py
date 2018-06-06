@@ -50,7 +50,7 @@ def model(name='plt-sd20',
         pltmodel = stm.PltScore()
         pltmodel.output_score_decimals = decimals
         pltmodel.set_data(input_data=input_data,
-                          score_field_list=field_list)
+                          field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=score_percent_points,
                                 output_score_points_list=output_score_points,
                                 input_score_min=min_score,
@@ -75,7 +75,7 @@ def model(name='plt-sd20',
         output_score_points = [20, 25, 40, 60, 80, 95, 100]     # std=19.6 at 40, std=17.55 at 25
 
         pltmodel.set_data(input_data=input_data,
-                          score_field_list=field_list)
+                          field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=score_percent_points,
                                 output_score_points_list=output_score_points,
                                 input_score_max=max_score,
@@ -86,7 +86,7 @@ def model(name='plt-sd20',
         return pltmodel
 
     if name == 'zscore':
-        zm = stm.ZscoreByTable()
+        zm = stm.Zscore()
         zm.set_data(input_data=input_data,
                     input_field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=max_score, rawscore_min=min_score)
@@ -95,7 +95,7 @@ def model(name='plt-sd20',
         return zm
 
     if name == 'tscore':
-        tm = stm.TscoreByTable()
+        tm = stm.Tscore()
         tm.set_data(input_data=input_data,
                     input_field_list=field_list)
         tm.set_parameters(rawscore_max=150,

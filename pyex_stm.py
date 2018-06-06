@@ -13,8 +13,14 @@ warnings.simplefilter('error')
 
 
 def test(name='plt', df=None, field_list='', decimals=0):
+    """
+    :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
+    :param df: input dataframe
+    :param field_list: score fields list in input dataframe
+    :param decimals: output score decimals
+    :return: model, object of ScoreTransformModel
+    """
     if type(df) != pd.DataFrame:
-        # scoredf = exp_score_dataframe()
         print('no score dataframe!')
         return
     else:
@@ -37,21 +43,21 @@ def test(name='plt', df=None, field_list='', decimals=0):
         # pltmodel.report()
         pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
-    if name == 'zt':
-        zm = ZscoreByTable()
+    if name == 'zscore':
+        zm = Zscore()
         zm.set_data(input_data=scoredf, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
-    if name == 'tt':
-        tm = TscoreByTable()
+    if name == 'tscore':
+        tm = Tscore()
         tm.set_data(input_data=scoredf, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
-    if name == 'tzl':
+    if name == 'tlinear':
         tm = TscoreLinear()
         tm.set_data(input_data=scoredf, field_list=field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
@@ -71,9 +77,12 @@ def test(name='plt', df=None, field_list='', decimals=0):
 class ScoreTransformModel(object):
     """
     转换分数是原始分数通过特定模型到预定义标准分数量表的映射结果。
-    一般转换分数模型：Z分数(ZscoreByTable)、T分数(TscoreByTable, TZscoreLinear)、
-                      标准九分数(L9score)、离差智商（IQ）等。
-    分段线性转换分数是山东省新高考改革所使用的转换分数模型（PltScoreModel）
+    本模块转换分数模型：
+        Z分数非线性模型(Zscore)
+        T分数非线性模型(Tscore）
+        T分数线性模型（TscoreLinear)、
+        标准九分数模型(L9score)
+        分段线性转换分数山东省新高考改革转换分数模型（PltScore）
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
@@ -89,11 +98,8 @@ class ScoreTransformModel(object):
 
         self.sys_pricision_decimals = 6  #
 
-    def set_data(self, input_data=None, output_data=None):
+    def set_data(self, input_data=None, field_list=None):
         raise NotImplementedError()
-        # define in subclass
-        # self.__rawdf = rawdf
-        # self.__output_data = output_data
 
     def set_parameters(self, *args, **kwargs):
         raise NotImplementedError()
@@ -184,7 +190,7 @@ class PltScore(ScoreTransformModel):
 
         return
 
-    def set_data(self, input_data=None, score_field_list=None):
+    def set_data(self, input_data=None, field_list=None):
         # check and set rawdf
         if type(input_data) == pd.Series:
             self.input_data = pd.DataFrame(input_data)
@@ -193,16 +199,16 @@ class PltScore(ScoreTransformModel):
         else:
             print('rawdf set fail!\n not correct data set(DataFrame or Series)!')
         # check and set output_data
-        if not score_field_list:
+        if not field_list:
             self.field_list = [s for s in input_data]
-        elif type(score_field_list) != list:
+        elif type(field_list) != list:
             print('field_list set fail!\n not a list!')
             return
-        elif sum([1 if sf in input_data else 0 for sf in score_field_list]) != len(score_field_list):
+        elif sum([1 if sf in input_data else 0 for sf in field_list]) != len(field_list):
             print('field_list set fail!\n field must in rawdf.columns!')
             return
         else:
-            self.field_list = score_field_list
+            self.field_list = field_list
 
     def set_parameters(self,
                        input_score_percent_list=None,
@@ -421,7 +427,7 @@ class PltScore(ScoreTransformModel):
         return
 
 
-class ZscoreByTable(ScoreTransformModel):
+class Zscore(ScoreTransformModel):
     """
     transform raw score to Z-score according to percent position on normal cdf
     input data: 
@@ -434,7 +440,7 @@ class ZscoreByTable(ScoreTransformModel):
     MinError = 0.1 ** 9
 
     def __init__(self):
-        super(ZscoreByTable, self).__init__('zt')
+        super(Zscore, self).__init__('zt')
         # self.model_name = 'zt'
         self.stdNum = 3
         self.maxRawscore = 150
@@ -446,9 +452,7 @@ class ZscoreByTable(ScoreTransformModel):
         self._normtable = pl.create_normaltable(self._samplesize, stdnum=4)
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
-    def set_data(self,
-                 input_data=None,
-                 field_list=None):
+    def set_data(self, input_data=None, field_list=None):
         self.input_data = input_data
         self.field_list = field_list
 
@@ -500,7 +504,7 @@ class ZscoreByTable(ScoreTransformModel):
             print('error: not found field{}+"_percent"!'.format(sf))
 
     def __get_zscore_from_normtable(self, p):
-        df = self._normtable.loc[self._normtable.cdf >= p - ZscoreByTable.MinError][['sv']].head(1).sv
+        df = self._normtable.loc[self._normtable.cdf >= p - Zscore.MinError][['sv']].head(1).sv
         y = df.values[0] if len(df) > 0 else None
         if y is None:
             print('error: cdf value[{}] can not find zscore in normtable!'.format(p))
@@ -551,7 +555,7 @@ class ZscoreByTable(ScoreTransformModel):
             print('not support this mode!')
 
 
-class TscoreByTable(ScoreTransformModel):
+class Tscore(ScoreTransformModel):
     __doc__ = '''
     T分数是一种标准分常模，平均数为50，标准差为10的分数。
     即这一词最早由麦柯尔于1939年提出，是为了纪念推孟和桑代克
@@ -579,7 +583,7 @@ class TscoreByTable(ScoreTransformModel):
         self.tscore_stdnum = tscore_stdnum
 
     def run(self):
-        zm = ZscoreByTable()
+        zm = Zscore()
         zm.set_data(self.input_data, self.field_list)
         zm.set_parameters(std_num=self.tscore_stdnum, rawscore_min=self.rscore_min,
                           rawscore_max=self.rscore_max)
