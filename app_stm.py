@@ -47,7 +47,7 @@ def model(name='plt-sd20',
         print('score percent points: {}'.format(score_percent_points))
         print('output score  points: {}'.format(output_score_points))
 
-        pltmodel = stm.PltScoreModel()
+        pltmodel = stm.PltScore()
         pltmodel.output_score_decimals = decimal_place
         pltmodel.set_data(input_data=input_dataframe,
                           score_field_list=score_field_list)
@@ -66,7 +66,7 @@ def model(name='plt-sd20',
         return pltmodel
 
     if name == 'plt':
-        pltmodel = stm.PltScoreModel()
+        pltmodel = stm.PltScore()
 
         # score_percent_points = [0, 0.023, 0.169, 0.50, 0.841, 0.977, 1]   # normal ratio
         score_percent_points = [0, .15, .30, .50, .70, .85, 1.00]           # adjust ratio
@@ -105,7 +105,7 @@ def model(name='plt-sd20',
         return tm
 
     if name == 'tlinear':
-        tm = stm.TZscoreLinear()
+        tm = stm.TscoreLinear()
         tm.set_data(input_data=input_dataframe,
                     input_field_list=score_field_list)
         tm.set_parameters(input_score_max=max_score,

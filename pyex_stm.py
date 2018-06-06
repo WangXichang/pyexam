@@ -8,77 +8,72 @@ import time
 import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
-# import math
 import warnings
 warnings.simplefilter('error')
 
 
-# test Score model
-def exp_score_dataframe(mean=70, std=10, maxscore=100, minscore=0, samples=100000):
-    return pd.DataFrame({'sf': [max(minscore, min(int(np.random.randn(1) * std + mean), maxscore), -x)
-                         for x in range(samples)]})
-
-
-def test_model(name='plt', df=None, fieldnames='sf', decimals=0):
+def test(name='plt', df=None, field_list='', decimals=0):
     if type(df) != pd.DataFrame:
-        scoredf = exp_score_dataframe()
+        # scoredf = exp_score_dataframe()
+        print('no score dataframe!')
+        return
     else:
         scoredf = df
+    if isinstance(field_list, str):
+        field_list = [field_list]
+    elif not isinstance(field_list, list):
+        print('invalid field_list!')
+        return
+
     if name == 'plt':
-        pltmodel = PltScoreModel()
-        # rawpoints = [0, 0.023, 0.169, 0.50, 0.841, 0.977, 1]   # normal ratio
-        rawpoints = [0, .15, .30, .50, .70, .85, 1.00]    # ajust ratio
-        # stdpoints = [40, 50, 65, 80, 95, 110, 120]  # std=15
-        # stdpoints = [0, 15, 30, 50, 70, 85, 100]  # std=15
-        stdpoints = [20, 25, 40, 60, 80, 95, 100]  # std=15
+        pltmodel = PltScore()
+        rawpoints_sd = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
+        stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]    # std:15-16
 
         pltmodel.output_score_decimals = 0
-        pltmodel.set_data(scoredf, [fieldnames])
-        pltmodel.set_parameters(rawpoints, stdpoints)
+        pltmodel.set_data(df=scoredf, field_list=field_list)
+        pltmodel.set_parameters(rawpoints_sd, stdpoints_sd)
         pltmodel.run()
         # pltmodel.report()
         pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
     if name == 'zt':
         zm = ZscoreByTable()
-        zm.set_data(scoredf, [fieldnames])
+        zm.set_data(df=scoredf, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
     if name == 'tt':
         tm = TscoreByTable()
-        tm.set_data(scoredf, [fieldnames])
+        tm.set_data(df=scoredf, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
     if name == 'tzl':
-        tm = TZscoreLinear()
-        tm.set_data(scoredf, [fieldnames])
+        tm = TscoreLinear()
+        tm.set_data(df=scoredf, field_list=field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
         tm.run()
         tm.report()
         return tm
     if name == 'l9':
         tm = L9score()
-        tm.set_data(scoredf, [fieldnames])
+        tm.set_data(df=scoredf, field_list=field_list)
         tm.set_parameters(rawscore_max=100, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
 
 
-# Interface standard score transform model
+# Score Transform Model Interface
 class ScoreTransformModel(object):
     """
     转换分数是原始分数通过特定模型到预定义标准分数量表的映射结果。
-    标准分常模是将原始分数与平均数的距离以标准差为单位表示出来的量表。
-    因为它的基本单位是标准差，所以叫标准分数,也可以称为转换分数。
-    常见的标准分常模有：z分数、Z分数、T分数、标准九分数、离差智商（IQ）等。
-    标准分常模分数均是等距分数，虽然不同类型的常模其平均数和标准差不同，但均可用离均值来表示。
-    标准分数可以通过线性转换，也可以通过非线性转换得到，
-    由此可将标准分数分为线性转换的标准分数与非线性转换的标准分数。
+    一般转换分数模型：Z分数(ZscoreByTable)、T分数(TscoreByTable, TZscoreLinear)、
+                      标准九分数(L9score)、离差智商（IQ）等。
+    分段线性转换分数是山东省新高考改革所使用的转换分数模型（PltScoreModel）
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
@@ -112,7 +107,7 @@ class ScoreTransformModel(object):
             return False
         for sf in self.field_list:
             if sf not in self.input_data.columns:
-                print(f'error score field {sf} !')
+                print('error score field {} !'.format(sf))
                 return False
         return True
 
@@ -166,7 +161,7 @@ class ScoreTransformModel(object):
 
 
 # model for linear score transform on some intervals
-class PltScoreModel(ScoreTransformModel):
+class PltScore(ScoreTransformModel):
     __doc__ = ''' PltModel:
     use linear standardscore transform from raw-score intervals
     to united score intervals
@@ -174,7 +169,7 @@ class PltScoreModel(ScoreTransformModel):
 
     def __init__(self):
         # intit input_df, input_output_data, output_df, model_name
-        super(PltScoreModel, self).__init__('plt')
+        super(PltScore, self).__init__('plt')
         # self.model_name = 'plt'  # 'Pieceise Linear Transform Model'
 
         # new properties for linear segment stdscore
@@ -273,8 +268,8 @@ class PltScoreModel(ScoreTransformModel):
             self._create_report(fs)
             print('   merge dataframe ...')
             if i == 0:
-                result_dataframe = df.merge(self.output_score_data[[fs+'_plt']],
-                                            how='left', right_index=True, left_index=True)
+                result_dataframe = self.input_data.merge(self.output_score_data[[fs+'_plt']],
+                                                         how='left', right_index=True, left_index=True)
             else:
                 result_dataframe = result_dataframe.merge(self.output_score_data[[fs+'_plt']],
                                                           how='left', right_index=True, left_index=True)
@@ -502,13 +497,13 @@ class ZscoreByTable(ScoreTransformModel):
             self._segtable.loc[:, sf+'_zscore'] = \
                 self._segtable[sf+'_percent'].apply(self.__get_zscore_from_normtable)
         else:
-            print(f'error: not found field{sf+"_percent"}!')
+            print('error: not found field{}+"_percent"!'.format(sf))
 
     def __get_zscore_from_normtable(self, p):
         df = self._normtable.loc[self._normtable.cdf >= p - ZscoreByTable.MinError][['sv']].head(1).sv
         y = df.values[0] if len(df) > 0 else None
         if y is None:
-            print(f'error: cdf value[{p}] can not find zscore in normtable!')
+            print('error: cdf value[{}] can not find zscore in normtable!'.format(p))
             return y
         return max(-self.stdNum, min(y, self.stdNum))
 
@@ -543,11 +538,11 @@ class ZscoreByTable(ScoreTransformModel):
             print('output score desc:\n', self.output_score_data.describe())
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.field_list}')
+        print('data fields in rawscore:{}'.format(self.field_list))
         print('parameters:')
-        print(f'\tzscore stadard diff numbers:{self.stdNum}')
-        print(f'\tmax score in raw score:{self.maxRawscore}')
-        print(f'\tmin score in raw score:{self.minRawscore}')
+        print('\tzscore stadard diff numbers:{}'.format(self.stdNum))
+        print('\tmax score in raw score:{}'.format(self.maxRawscore))
+        print('\tmin score in raw score:{}'.format(self.minRawscore))
 
     def plot(self, mode='out'):
         if mode in 'raw,out':
@@ -617,19 +612,19 @@ class TscoreByTable(ScoreTransformModel):
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.field_list}')
+        print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
         print('parameters:')
-        print(f'\tzscore stadard deviation numbers:{self.tscore_std}')
-        print(f'\tmax score in raw score:{self.rscore_max}')
-        print(f'\tmin score in raw score:{self.rscore_min}')
+        print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
+        print('\tmax score in raw score:{}'.format(self.rscore_max))
+        print('\tmin score in raw score:{}'.format(self.rscore_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
         super().plot(mode)
 
 
-class TZscoreLinear(ScoreTransformModel):
+class TscoreLinear(ScoreTransformModel):
     """Get Zscore by linear formula: (x-mean)/std"""
     def __init__(self):
         super().__init__('tzl')
@@ -666,7 +661,7 @@ class TZscoreLinear(ScoreTransformModel):
             print('raw score max and min error!')
             return False
         if self.tscore_std <= 0 | self.tscore_stdnum <= 0:
-            print(f't score std number error:std={self.tscore_std}, stdnum={self.tscore_stdnum}')
+            print('t_score std number error:std={}, stdnum={}'.format(self.tscore_std, self.tscore_stdnum))
             return False
         return True
 
@@ -697,12 +692,12 @@ class TZscoreLinear(ScoreTransformModel):
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.field_list}')
+        print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
         print('parameters:')
-        print(f'\tzscore stadard deviation numbers:{self.tscore_std}')
-        print(f'\tmax score in raw score:{self.rawscore_max}')
-        print(f'\tmin score in raw score:{self.rawscore_min}')
+        print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
+        print('\tmax score in raw score:{}'.format(self.rawscore_max))
+        print('\tmin score in raw score:{}'.format(self.rawscore_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
@@ -782,11 +777,11 @@ class L9score(ScoreTransformModel):
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print(f'data fields in rawscore:{self.field_list}')
+        print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
         print('parameters:')
-        print(f'\tmax score in raw score:{self.rawscore_max}')
-        print(f'\tmin score in raw score:{self.rawscore_min}')
+        print('\tmax score in raw score:{}'.format(self.rawscore_max))
+        print('\tmin score in raw score:{}'.format(self.rawscore_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
