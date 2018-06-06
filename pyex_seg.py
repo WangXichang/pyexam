@@ -264,12 +264,12 @@ class SegTable(object):
             # calculate preliminary group count
             r = self.input_data.groupby(f)[f].count()
             if self.__display:
-                print('finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
+                print('segments count finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
             # count seg_count in [segmin, segmax]
             self.__output_dataframe[f + '_count'] = self.__output_dataframe['seg'].\
                 apply(lambda x: np.int64(r[x]) if x in r.index else 0)
             if self.__display:
-                print('finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
+                print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
             # add outside scope number to segmin, segmax
             if self.__segAlldata:
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = r[r.index <= self.__segMin].sum()
@@ -281,12 +281,12 @@ class SegTable(object):
             self.__output_dataframe[f + '_cumsum'] = self.__output_dataframe[f + '_count'].cumsum()
             # calculate percent field
             if self.__display:
-                print('finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
+                print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
             maxsum = max(max(self.output_data[f + '_cumsum']), 1)     # avoid divided by 0 in percent computing
             self.__output_dataframe[f + '_percent'] = \
                 self.__output_dataframe[f + '_cumsum'].apply(lambda x: x / maxsum)
             if self.__display:
-                print('finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
+                print('segments count finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
             # processing seg step calculating: skip step at seg field, set -1 for segs not in step
             if self.__segStep > 1:
                 segcountname = f+'_count{0}'.format(self.__segStep)
@@ -303,7 +303,7 @@ class SegTable(object):
                         c = 0
                         curpoint += curstep
         if self.__display:
-            print('total consumed time:{}'.format(time.clock()-sttime))
+            print('segments count total consumed time:{}'.format(time.clock()-sttime))
         self.__runsuccess = True
         return
 

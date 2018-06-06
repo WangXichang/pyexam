@@ -117,7 +117,7 @@ def model(name='plt-sd20',
     if name.upper() == 'L9':
         tm = stm.L9score()
         tm.set_data(input_data=input_dataframe,
-                    input_field_list=score_field_list)
+                    field_list=score_field_list)
         tm.set_parameters(rawscore_max=max_score,
                           rawscore_min=min_score)
         tm.run()
