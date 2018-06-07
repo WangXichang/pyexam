@@ -77,10 +77,8 @@ def report_stats_describe(dataframe, decdigits=4):
         return ''.join([('{:' + '1.' + str(getdecdigits)+'f}  ').format(round(x, getdecdigits)) for x in listvalue])
 
     def tosqrt(listvalue, getdecdigits):
-        return ''.join([f'%(v).{getdecdigits}f  ' % {'v': round(math.sqrt(x), getdecdigits)} for x in listvalue])
+        return ''.join([('{:1.'+str(getdecdigits)+'f}  ').format(round(np.sqrt(x), getdecdigits)) for x in listvalue])
 
-    # for key, value in stats.describe(dataframe)._asdict().items():
-    #    print(key, ':', value)
     pr = [[float_str(stats.pearsonr(dataframe[x], dataframe[y])[0], 2, 4)
            for x in dataframe.columns] for y in dataframe.columns]
     sd = stats.describe(dataframe)
@@ -94,8 +92,12 @@ def report_stats_describe(dataframe, decdigits=4):
     print('\tvariance: ', toround(sd.variance, decdigits), '\n\tstdandard deviation: ', tosqrt(sd.variance, decdigits))
     print('\tskewness: ', toround(sd.skewness, decdigits))
     print('\tkurtosis: ', toround(sd.kurtosis, decdigits))
-    dict = {'records': sd.nobs[0], 'max': sd.minmax[1], 'min': sd.minmax[0],
-            'mean': sd.mean, 'variance': sd.variance, 'skewness': sd.skewness,
+    dict = {'records': sd.nobs,
+            'max': sd.minmax[1],
+            'min': sd.minmax[0],
+            'mean': sd.mean,
+            'variance': sd.variance,
+            'skewness': sd.skewness,
             'kurtosis': sd.kurtosis,
             'relation': pr}
     return dict
