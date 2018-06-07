@@ -20,8 +20,9 @@ def create_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000):
     :return
         DataFrame, columns = {'sv'}
     """
-    df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
-                               for _ in range(size)]})
+    # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
+    #                           for _ in range(size)]})
+    df = pd.DataFrame({'sv': [max(minvalue, min(x, maxvalue)) for x in np.random.normal(mean, std, size)]})
     return df
 
 
