@@ -11,18 +11,17 @@ import math
 from scipy import stats
 
 
-def exp_scoredf_normal(mean=70, std=10, maxscore=100, minscore=0, size=100000):
-    doc_string = \
+def create_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000):
     """
-    生成具有正态分布的分数数据，类型为 pandas.DataFrame, 列名为 sf
-    create a score dataframe with fields 'sf', used to test some application
+    生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
+    create a score dataframe with fields 'score', used to test some application
     :parameter
-        mean: 均值， std:标准差， maxscore:最大分值， minscore:最小分值， size:人数（样本数）
+        mean: 均值， std:标准差， maxvalue:最大值， minvalue:最小值， size:样本数
     :return
-        DataFrame, columns = {'sf'}
+        DataFrame, columns = {'sv'}
     """
-    df = pd.DataFrame({'sf': [max(minscore, min(int(np.random.randn(1)*std + mean), maxscore))
-                              for _ in range(size)]})
+    df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
+                               for _ in range(size)]})
     return df
 
 
@@ -32,21 +31,23 @@ def create_normaltable(size=400, std=1, mean=0, stdnum=4):
     function
         生成正态分布量表
         create normal distributed data(pdf,cdf) with preset std,mean,samples size
-        at interval: [-stdNum * std, std * stdNum]
+        变量区间： [-stdNum * std, std * stdNum]
+        interval: [-stdNum * std, std * stdNum]
     parameter
-        size: samples number for create normal distributed PDF and CDF
-        std:  standard difference
-        mean: mean value
-        stdnum: used to define data range [-std*stdNum, std*stdNum]
+        变量取值数 size: variable value number for create normal distributed PDF and CDF
+        分布标准差  std:  standard difference
+        分布均值   mean: mean value
+        标准差数 stdnum: used to define data range [-std*stdNum, std*stdNum]
     return
-        DataFrame: 'sv':stochastic variable, 'pdf':pdf value, 'cdf':cdf value
+        DataFrame: 'sv':stochastic variable value,
+                  'pdf': pdf value, 'cdf': cdf value
     """
     interval = [mean - std * stdnum, mean + std * stdnum]
     step = (2 * std * stdnum) / size
-    x = [mean + interval[0] + v*step for v in range(size+1)]
-    nplist = [1/(math.sqrt(2*math.pi)*std) * math.exp(-(v - mean)**2 / (2 * std**2)) for v in x]
-    ndf = pd.DataFrame({'sv': x, 'pdf': nplist})
-    ndf['cdf'] = ndf['pdf'].cumsum() * step
+    varset = [mean + interval[0] + v*step for v in range(size+1)]
+    cdflist = [stats.norm.cdf(v) for v in varset]
+    pdflist = [stats.norm.pdf(v) for v in varset]
+    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf':pdflist})
     return ndf
 
 
@@ -72,10 +73,10 @@ def report_stats_describe(dataframe, decdigits=4):
     """
 
     def toround(listvalue, getdecdigits):
-        return ''.join([f'%(v).{getdecdigits}f' % {'v': round(x, getdecdigits)} for x in listvalue])
+        return ''.join([f'%(v).{getdecdigits}f  ' % {'v': round(x, getdecdigits)} for x in listvalue])
 
     def tosqrt(listvalue, getdecdigits):
-        return ''.join([f'%(v).{getdecdigits}f' % {'v': round(math.sqrt(x), getdecdigits)} for x in listvalue])
+        return ''.join([f'%(v).{getdecdigits}f  ' % {'v': round(math.sqrt(x), getdecdigits)} for x in listvalue])
 
     # for key, value in stats.describe(dataframe)._asdict().items():
     #    print(key, ':', value)
