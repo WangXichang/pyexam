@@ -129,11 +129,12 @@ def pearson_relation(x, y):
 
 
 def float_str(x, d1, d2):
-    return f'%{d1}.{d2}f' % x
+    fs = '{:'+str(d1+d2+1)+'.'+str(d2)+'f}'
+    return fs.format(x)
 
 
 def int_str(x, d):
-    return f'%{d}d' % x
+    return ('{:'+str(d)+'d}').format(x)
 
 
 def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
