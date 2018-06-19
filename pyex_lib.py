@@ -3,11 +3,8 @@
 # 2017-11-18
 
 import matplotlib.pyplot as plt
-# import matplotlib as mp
 import pandas as pd
 import numpy as np
-import math
-# from texttable import Texttable
 from scipy import stats
 
 

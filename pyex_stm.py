@@ -8,6 +8,7 @@ import time
 import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
+
 import warnings
 warnings.simplefilter('error')
 
