@@ -52,15 +52,15 @@ def test_segtable():
 # version 0917-2017
 class SegTable(object):
     """
-    设置数据，数据表（类型为pandas.DataFrame）,同时需要设置需要计算分数分段人数的字段（list类型）
-    :data
+    输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
+    :set_data(input_data:DataFrame, field_list:list)
         input_data: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
         field_list: list, field names used to calculate seg table, empty for calculate all fields
                    用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
                    字段的类型应为可计算类型，如int,float.
-    设置参数
-    :parameters
+    设置参数：最高分值，最低分值，分段距离， 分数顺序， 累加分值范围外数据， 关闭计算过程显示
+    set_parameters（segmax, segmin, segstep, segsort, segalldata, dispmode）
         segmax: int,  maxvalue for segment, default=150输出分段表中分数段的最大值
         segmin: int, minvalue for segment, default=0。输出分段表中分数段的最小值
         segstep: int, levels for segment value, default=1
@@ -76,7 +76,8 @@ class SegTable(object):
         dispmode: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
 
-    运行结果
+    运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_cumsum(累计人数)
+              [segfield]_percent(百分数，在顺序中排在其前的人数）
     :result
         output_data: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
 
@@ -92,17 +93,21 @@ class SegTable(object):
         resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
-        1)根据segalldata确定是否在设定的区间范围内计算分数值，segalldata=True时抛弃不再范围内的分数项
-        segalldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
-        segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
-        segalldata is used to include or exclude data outside [segmin, segmax]
+        1)根据segalldata确定是否在设定的区间范围内计算分数值
+          segalldata=True时抛弃不在范围内的记录项
+          segalldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
+          segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
+          segalldata is used to include or exclude data outside [segmin, segmax]
 
         2)分段字段的类型为整数或浮点数（实数）
-        field_list type is digit, for example: int or float
+          field_list type is digit, for example: int or float
 
-        3)可以通过属性方式单独设置数据(input_data),字段列表（field_list),各项参数（segmax, segmin, segsort,segalldata,
-        segmode), 如，seg.field_list = ['score_1', 'score_2']; seg.segmax = 120， 便于在计算期间调整模型。
-        by usting property mode, rawdata, scorefields, parameters can be setted individually
+        3)可以单独设置数据(input_data),字段列表（field_list),各项参数（segmax, segmin, segsort,segalldata, segmode)
+          如，seg.field_list = ['score_1', 'score_2'];
+              seg.segmax = 120
+          重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
+          便于在计算期间调整模型。
+          by usting property mode, rawdata, scorefields, parameters can be setted individually
     """
 
     def __init__(self):
