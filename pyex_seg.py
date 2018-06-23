@@ -65,7 +65,7 @@ class SegTable(object):
                    字段的类型应为可计算类型，如int,float.
 
     设置参数：最高分值，最低分值，分段距离， 分数顺序， 累加分值范围外数据， 关闭计算过程显示
-    set_parameters（segmax, segmin, segstep, segsort, segalldata, dispmode）
+    set_parameters（segmax, segmin, segstep, segsort, segalldata, display）
         segmax: int,  maxvalue for segment, default=150输出分段表中分数段的最大值
         segmin: int, minvalue for segment, default=0。输出分段表中分数段的最小值
         segstep: int, levels for segment value, default=1
@@ -78,7 +78,7 @@ class SegTable(object):
                  default=False.
                  考虑最大和最小值之外的分数记录，高于的segmax的分数计数加入segmax分数段，
                  低于segmin分数值的计数加入segmin分数段
-        dispmode: bool, True: display run() message include time consume, False: close display message in run()
+        display: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
 
     运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_cumsum(累计人数)
@@ -92,7 +92,7 @@ class SegTable(object):
         seg = pyex_seg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
-        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending', segalldata=True, dispmode=True)
+        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending', segalldata=True, display=True)
         seg.run()
         seg.plot()
         resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
@@ -123,6 +123,7 @@ class SegTable(object):
         self.__input_dataframe = None
         self.__segFields = []
         # parameter for model
+        self.__segStart = 100
         self.__segStep = 1
         self.__segMax = 150
         self.__segMin = 0
@@ -155,8 +156,16 @@ class SegTable(object):
         self.__segFields = field_list
 
     @property
+    def segstart(self):
+        return self.__segStart
+
+    @property
     def segmax(self):
         return self.__segMax
+
+    @segstart.setter
+    def segstart(self, segstart):
+        self.__segStart = segstart
 
     @segmax.setter
     def segmax(self, segvalue):
@@ -191,8 +200,8 @@ class SegTable(object):
         return self.__display
 
     @dispmode.setter
-    def dispmode(self, dispmode):
-        self.__display = dispmode
+    def dispmode(self, display):
+        self.__display = display
 
     def set_data(self, input_data, field_list=None):
         self.input_data = input_data
@@ -208,6 +217,7 @@ class SegTable(object):
             self,
             segmax=None,
             segmin=None,
+            segstart=None,
             segstep=None,
             segsort=None,
             segalldata=None,
@@ -225,6 +235,8 @@ class SegTable(object):
             self.__segAlldata = segalldata
         if isinstance(display, bool):
             self.__display = display
+        if isinstance(segstart, int):
+            self.__segStart = segstart
         self.__check()
         # self.show_parameters()
 
@@ -307,17 +319,22 @@ class SegTable(object):
             if self.__segStep > 1:
                 segcountname = f+'_count{0}'.format(self.__segStep)
                 self.__output_dataframe[segcountname] = np.int64(-1)
-                c = 0
+                cum = 0
                 curpoint, curstep = ((self.__segMin, self.__segStep)
                                      if self.__segSort == 'ascending' else
                                      (self.__segMax, -self.__segStep))
                 for index, row in self.__output_dataframe.iterrows():
-                    c += row[f+'_count']
-                    if np.int64(row['seg']) in [curpoint, self.__segMax, self.__segMin]:
-                        # row[segcountname] = c
-                        self.__output_dataframe.loc[index, segcountname] = np.int64(c)
-                        c = 0
+                    cum += row[f+'_count']
+                    curseg = np.int64(row['seg'])
+                    if curseg in [self.__segMax, self.__segMin]:
+                        self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                        cum = 0
+                        continue
+                    if curseg in [self.__segStart, curpoint]:
+                        self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                        cum = 0
                         curpoint += curstep
+
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
         self.__runsuccess = True
