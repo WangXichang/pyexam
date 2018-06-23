@@ -1,12 +1,10 @@
 # -*- utf-8 -*-
-# version 2017-09-16
+# from 2017-09-16
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
-# import matplotlib as mp
-# from texttable import Texttable
 
 
 # test SegTable
@@ -30,13 +28,16 @@ def test_segtable():
     ------------------------------------------------------------------------------
     """
     expdf = pd.DataFrame({'sf': [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 9]})
+    print(expdf)
+
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
     seg.set_parameters(segstep=3, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
     seg.plot()
     seg.show_parameters()
-    print(seg.input_data)
+    print(seg.output_data)
+
     # change parameters to run to get new result
     seg.segalldata = False
     seg.segmax = 7
@@ -44,14 +45,17 @@ def test_segtable():
     seg.run()
     seg.show_parameters()
     print(seg.output_data)
+
     return seg
 
 
-# 计算pandas.DataFrame中分数字段的分段人数表
-# segment table for score dataframe
-# version 0917-2017
 class SegTable(object):
     """
+    * 计算pandas.DataFrame中分数字段的分段人数表
+    * segment table for score dataframe
+    * version1.01, 2018-06-21
+    * from 0917-2017
+
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
     :set_data(input_data:DataFrame, field_list:list)
         input_data: input dataframe, with a value fields(int,float) to calculate segment table
@@ -59,6 +63,7 @@ class SegTable(object):
         field_list: list, field names used to calculate seg table, empty for calculate all fields
                    用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
                    字段的类型应为可计算类型，如int,float.
+
     设置参数：最高分值，最低分值，分段距离， 分数顺序， 累加分值范围外数据， 关闭计算过程显示
     set_parameters（segmax, segmin, segstep, segsort, segalldata, dispmode）
         segmax: int,  maxvalue for segment, default=150输出分段表中分数段的最大值
@@ -108,6 +113,9 @@ class SegTable(object):
           重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
           便于在计算期间调整模型。
           by usting property mode, rawdata, scorefields, parameters can be setted individually
+        4) 当设置大于1分的分段分值X时， 会在结果DataFrame中生成一个字段[segfiled]_countX，改字段中不需要计算的分段
+          值设为-1。
+          when segstep > 1, will create field [segfield]_countX, X=str(segstep), no used value set to -1 in this field
     """
 
     def __init__(self):
@@ -196,13 +204,14 @@ class SegTable(object):
             self.field_list = field_list
         self.__check()
 
-    def set_parameters(self,
-                       segmax=None,
-                       segmin=None,
-                       segstep=None,
-                       segsort=None,
-                       segalldata=None,
-                       display=None):
+    def set_parameters(
+            self,
+            segmax=None,
+            segmin=None,
+            segstep=None,
+            segsort=None,
+            segalldata=None,
+            display=None):
         if isinstance(segmax, int):
             self.__segMax = segmax
         if isinstance(segmin, int):
@@ -277,8 +286,10 @@ class SegTable(object):
                 print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
             # add outside scope number to segmin, segmax
             if self.__segAlldata:
-                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = r[r.index <= self.__segMin].sum()
-                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = r[r.index >= self.__segMax].sum()
+                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = \
+                    r[r.index <= self.__segMin].sum()
+                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = \
+                    r[r.index >= self.__segMax].sum()
             # set order for seg fields
             if self.__segSort != 'ascending':
                 self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
