@@ -12,10 +12,10 @@ def test_segtable():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
-    expdf = pd.DataFrame({'sf': [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 9]})
+    expdf = pd.DataFrame({'sf': [x for x in range(101]})
     seg = SegTable()
     seg.set_data(expdf, expdf.columns.values)
-    seg.set_parameters(segstep=3, segmax=8, segmin=3, segclip=False)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
     print(seg.output_data)
        seg  sf_count  sf_cumsum  sf_percent  sf_count3
@@ -27,12 +27,12 @@ def test_segtable():
     0    3         6         15    1.000000         10
     ------------------------------------------------------------------------------
     """
-    expdf = pd.DataFrame({'sf': [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 9]})
+    expdf = pd.DataFrame({'sf': [x for x in range(11)]})
     print(expdf)
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segmax=8, segmin=3, segalldata=True, display=True)
+    seg.set_parameters(segstep=3, segstart=7, segmax=9, segmin=3, segalldata=True, display=True)
     seg.run()
     seg.plot()
     seg.show_parameters()
@@ -40,7 +40,9 @@ def test_segtable():
 
     # change parameters to run to get new result
     seg.segalldata = False
-    seg.segmax = 7
+    seg.segstart = 7
+    seg.segmax = 10
+    seg.segmin = 1
     seg.segstep = 2
     seg.run()
     seg.show_parameters()
@@ -70,6 +72,8 @@ class SegTable(object):
         segmin: int, minvalue for segment, default=0。输出分段表中分数段的最小值
         segstep: int, levels for segment value, default=1
                  分段间隔，用于生成n-分段表（五分一段的分段表）
+        segStart:int, start seg score to count
+                 开始进行分段计算的分值
         segsort: str, 'ascending' or 'descending', default='descending'(sort seg descending)
                  输出结果中分段值得排序方式，descending:从大到小， ascending：从小到大
                  排序模式的设置影响累计数和百分比的意义。
@@ -188,6 +192,14 @@ class SegTable(object):
         self.__segSort = sort_mode
 
     @property
+    def segstep(self):
+        return self.__segStep
+
+    @segsort.setter
+    def segstep(self, segstep):
+        self.__segStep = segstep
+
+    @property
     def segalldata(self):
         return self.__segAlldata
 
@@ -243,6 +255,7 @@ class SegTable(object):
     def show_parameters(self):
         print('seg max value:{}'.format(self.__segMax))
         print('seg min value:{}'.format(self.__segMin))
+        print('seg start value:{}'.format(self.__segStart))
         print('seg step value:{}'.format(self.__segStep))
         print('seg sort mode:{}'.format(self.__segSort))
         print('seg crop mode:{}'.format(self.__segAlldata))
@@ -262,6 +275,9 @@ class SegTable(object):
             return False
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
+            return False
+        if (self.__segStart < self.__segMin) | (self.__segStart > self.__segMax):
+            print('error: segstart({}) is too small or big!'.format(self.__segStart))
             return False
         if not isinstance(self.field_list, list):
             if isinstance(self.field_list, str):
@@ -287,26 +303,32 @@ class SegTable(object):
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         for f in self.field_list:
+
             # calculate preliminary group count
             r = self.input_data.groupby(f)[f].count()
             if self.__display:
                 print('segments count finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
+
             # count seg_count in [segmin, segmax]
             self.__output_dataframe[f + '_count'] = self.__output_dataframe['seg'].\
                 apply(lambda x: np.int64(r[x]) if x in r.index else 0)
             if self.__display:
                 print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
+
             # add outside scope number to segmin, segmax
             if self.__segAlldata:
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = \
                     r[r.index <= self.__segMin].sum()
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = \
                     r[r.index >= self.__segMax].sum()
+
             # set order for seg fields
             if self.__segSort != 'ascending':
                 self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
+
             # calculate cumsum field
             self.__output_dataframe[f + '_cumsum'] = self.__output_dataframe[f + '_count'].cumsum()
+
             # calculate percent field
             if self.__display:
                 print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
@@ -315,6 +337,7 @@ class SegTable(object):
                 self.__output_dataframe[f + '_cumsum'].apply(lambda x: x / maxsum)
             if self.__display:
                 print('segments count finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
+
             # processing seg step calculating: skip step at seg field, set -1 for segs not in step
             if self.__segStep > 1:
                 segcountname = f+'_count{0}'.format(self.__segStep)
@@ -323,6 +346,7 @@ class SegTable(object):
                 curpoint, curstep = ((self.__segMin, self.__segStep)
                                      if self.__segSort == 'ascending' else
                                      (self.__segMax, -self.__segStep))
+                curpoint = self.__segStart
                 for index, row in self.__output_dataframe.iterrows():
                     cum += row[f+'_count']
                     curseg = np.int64(row['seg'])
