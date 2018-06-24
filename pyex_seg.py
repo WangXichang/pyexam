@@ -12,7 +12,7 @@ def test_segtable():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
-    expdf = pd.DataFrame({'sf': [x for x in range(101]})
+    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
     seg = SegTable()
     seg.set_data(expdf, expdf.columns.values)
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
@@ -27,12 +27,12 @@ def test_segtable():
     0    3         6         15    1.000000         10
     ------------------------------------------------------------------------------
     """
-    expdf = pd.DataFrame({'sf': [x for x in range(11)]})
+    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8,]})
     print(expdf)
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segstart=7, segmax=9, segmin=3, segalldata=True, display=True)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
     seg.plot()
     seg.show_parameters()
@@ -47,6 +47,15 @@ def test_segtable():
     seg.run()
     seg.show_parameters()
     print(seg.output_data)
+
+    # change parameters to run to get new result
+    seg.seglistuse = True
+    seg.seglist = [7, 5, 3]
+    seg.segsort = 'a'
+    seg.segmax = 7
+    seg.run()
+    seg.show_parameters()
+    print(seg.output_data[seg.output_data.sf_list > 0])
 
     return seg
 
@@ -74,7 +83,11 @@ class SegTable(object):
                  分段间隔，用于生成n-分段表（五分一段的分段表）
         segStart:int, start seg score to count
                  开始进行分段计算的分值
-        segsort: str, 'ascending' or 'descending', default='descending'(sort seg descending)
+        seglist: list, used to create set value
+                 使用给定的列表产生分段表，列表中为分段点分数值
+        seglistuse: bool, use or not use seglist to create seg value
+                 是否使用给定列表产生分段值
+        segsort: str, 'a' for ascending order or 'd' for descending order, default='d' (seg order on descending)
                  输出结果中分段值得排序方式，descending:从大到小， ascending：从小到大
                  排序模式的设置影响累计数和百分比的意义。
         segalldata: bool, True: consider all score , the numbers outside are added to segmin or segmax
@@ -96,7 +109,7 @@ class SegTable(object):
         seg = pyex_seg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
-        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending', segalldata=True, display=True)
+        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', segalldata=True, display=True)
         seg.run()
         seg.plot()
         resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
@@ -127,11 +140,13 @@ class SegTable(object):
         self.__input_dataframe = None
         self.__segFields = []
         # parameter for model
+        self.__segList = []
+        self.__segListUse = False
         self.__segStart = 100
         self.__segStep = 1
         self.__segMax = 150
         self.__segMin = 0
-        self.__segSort = 'descending'
+        self.__segSort = 'd'
         self.__segAlldata = True
         self.__display = True
         # result data
@@ -160,16 +175,32 @@ class SegTable(object):
         self.__segFields = field_list
 
     @property
-    def segstart(self):
-        return self.__segStart
+    def seglist(self):
+        return self.__segList
+
+    @seglist.setter
+    def seglist(self, seglist):
+        self.__segList = seglist
 
     @property
-    def segmax(self):
-        return self.__segMax
+    def seglistuse(self):
+        return self.__segListUse
+
+    @seglistuse.setter
+    def seglistuse(self, seglistuse):
+        self.__segListUse = seglistuse
+
+    @property
+    def segstart(self):
+        return self.__segStart
 
     @segstart.setter
     def segstart(self, segstart):
         self.__segStart = segstart
+
+    @property
+    def segmax(self):
+        return self.__segMax
 
     @segmax.setter
     def segmax(self, segvalue):
@@ -195,7 +226,7 @@ class SegTable(object):
     def segstep(self):
         return self.__segStep
 
-    @segsort.setter
+    @segstep.setter
     def segstep(self, segstep):
         self.__segStep = segstep
 
@@ -208,11 +239,11 @@ class SegTable(object):
         self.__segAlldata = datamode
 
     @property
-    def dispmode(self):
+    def display(self):
         return self.__display
 
-    @dispmode.setter
-    def dispmode(self, display):
+    @display.setter
+    def display(self, display):
         self.__display = display
 
     def set_data(self, input_data, field_list=None):
@@ -231,35 +262,54 @@ class SegTable(object):
             segmin=None,
             segstart=None,
             segstep=None,
+            seglist=None,
+            seglistuse=None,
             segsort=None,
             segalldata=None,
             display=None):
+        set_str = ''
         if isinstance(segmax, int):
             self.__segMax = segmax
+            set_str += 'set segmax to {}'.format(segmax) + '\n'
         if isinstance(segmin, int):
             self.__segMin = segmin
+            set_str += 'set segmin to {}'.format(segmin) + '\n'
         if isinstance(segstep, int):
             self.__segStep = segstep
+            set_str += 'set segstep to {}'.format(segstep) + '\n'
         if isinstance(segsort, str):
-            if segsort.lower() in ['descending', 'ascending']:
+            if segsort.lower() in ['d', 'a', 'D', 'A']:
+                set_str += 'set segsort to {}'.format(segsort) + '\n'
                 self.__segSort = segsort
         if isinstance(segalldata, bool):
+            set_str += 'set segalldata to {}'.format(segalldata) + '\n'
             self.__segAlldata = segalldata
         if isinstance(display, bool):
+            set_str += 'set display to {}'.format(display) + '\n'
             self.__display = display
         if isinstance(segstart, int):
+            set_str += 'set segstart to {}'.format(segstart) + '\n'
             self.__segStart = segstart
+        if isinstance(seglist, list):
+            set_str += 'set seglist to {}'.format(seglist) + '\n'
+            self.__segList = seglist
+        if isinstance(seglistuse, bool):
+            set_str += 'set seglistuse to {}'.format(seglistuse) + '\n'
+            self.__segListUse = seglistuse
+        if display:
+            print(set_str)
         self.__check()
         # self.show_parameters()
 
     def show_parameters(self):
+        print('seg list & seglistuse:{0} {1}'.format(self.__segListUse, self.__segList))
         print('seg max value:{}'.format(self.__segMax))
         print('seg min value:{}'.format(self.__segMin))
         print('seg start value:{}'.format(self.__segStart))
         print('seg step value:{}'.format(self.__segStep))
-        print('seg sort mode:{}'.format(self.__segSort))
-        print('seg crop mode:{}'.format(self.__segAlldata))
-        print('seg disp mode:{}'.format(self.__display))
+        print('seg sort mode:{}'.format('descending' if self.__segSort in ['d', 'D'] else 'ascending'))
+        print('seg including all data:{}'.format(self.__segAlldata))
+        print('seg run_messages display:{}'.format(self.__display))
 
     def help(self):
         print(self.__doc__)
@@ -276,9 +326,9 @@ class SegTable(object):
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        if (self.__segStart < self.__segMin) | (self.__segStart > self.__segMax):
-            print('error: segstart({}) is too small or big!'.format(self.__segStart))
-            return False
+        # #if (self.__segStart < self.__segMin) | (self.__segStart > self.__segMax):
+        # #    print('error: segstart({}) is too small or big!'.format(self.__segStart))
+        #     return False
         if not isinstance(self.field_list, list):
             if isinstance(self.field_list, str):
                 self.field_list = [self.field_list]
@@ -323,7 +373,7 @@ class SegTable(object):
                     r[r.index >= self.__segMax].sum()
 
             # set order for seg fields
-            if self.__segSort != 'ascending':
+            if self.__segSort not in ['a', 'A']:
                 self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
 
             # calculate cumsum field
@@ -338,31 +388,68 @@ class SegTable(object):
             if self.__display:
                 print('segments count finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
 
-            # processing seg step calculating: skip step at seg field, set -1 for segs not in step
+            # special seg step
             if self.__segStep > 1:
-                segcountname = f+'_count{0}'.format(self.__segStep)
-                self.__output_dataframe[segcountname] = np.int64(-1)
-                cum = 0
-                curpoint, curstep = ((self.__segMin, self.__segStep)
-                                     if self.__segSort == 'ascending' else
-                                     (self.__segMax, -self.__segStep))
-                curpoint = self.__segStart
-                for index, row in self.__output_dataframe.iterrows():
-                    cum += row[f+'_count']
-                    curseg = np.int64(row['seg'])
-                    if curseg in [self.__segMax, self.__segMin]:
-                        self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
-                        cum = 0
-                        continue
-                    if curseg in [self.__segStart, curpoint]:
-                        self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
-                        cum = 0
-                        curpoint += curstep
+                self.__run_more_step(f)
+
+            # use seglist
+            if self.__segListUse:
+                if len(self.__segList) > 0:
+                    self.__run_seg_list(f)
 
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
         self.__runsuccess = True
         return
+
+    def __run_more_step(self, field: str):
+        f = field
+        segcountname = f + '_count{0}'.format(self.__segStep)
+        self.__output_dataframe[segcountname] = np.int64(-1)
+        cum = 0
+        curpoint, curstep = ((self.__segMin, self.__segStep)
+                             if self.__segSort.lower() == 'a' else
+                             (self.__segMax, -self.__segStep))
+        curpoint = self.__segStart
+        for index, row in self.__output_dataframe.iterrows():
+            cum += row[f + '_count']
+            curseg = np.int64(row['seg'])
+            if curseg in [self.__segMax, self.__segMin]:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                if (self.__segStart <= self.__segMin) | (self.__segStart >= self.__segMax):
+                    curpoint += curstep
+                continue
+            if curseg in [self.__segStart, curpoint]:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                curpoint += curstep
+
+    def __run_seg_list(self, field):
+        f = field
+        segcountname = f + '_list'
+        self.__output_dataframe[segcountname] = np.int64(-1)
+        segpoint = sorted(self.__segList) if self.__segSort.lower() == 'a' \
+            else sorted(self.__segList)[::-1]
+        # curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
+        # curpoint = self.__segStart
+        cum = 0
+        pos = 0
+        curpoint = segpoint[pos]
+        rownum = len(self.__output_dataframe)
+        cur_row = 0
+        for index, row in self.__output_dataframe.iterrows():
+            curseg = np.int64(row['seg'])
+            cum += row[f + '_count']
+            cur_row += 1
+            if curseg == curpoint:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                if pos < len(segpoint)-1:
+                    pos += 1
+                    curpoint = segpoint[pos]
+            elif cur_row == rownum:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
 
     def plot(self):
         if not self.__runsuccess:
@@ -374,7 +461,8 @@ class SegTable(object):
         for sf in self.field_list:
             step += 1
             legendlist.append(sf)
-            plt.figure('seg table figure({})'.format(self.__segSort))
+            plt.figure('seg table figure({})'.
+                       format('Descending' if self.__segSort in 'aA' else 'Ascending'))
             plt.subplot(221)
             plt.hist(self.input_data[sf], 20)
             plt.title('raw data histogram')
@@ -399,9 +487,11 @@ class SegTable(object):
             if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.show()
-# SegTable class end
+
+    # SegTable class end
 
 
+# shanghai li proposed 2018.4
 def cross_seg(df,    # source dataframe
               keyf,  # key field to calculate segment
               vf,  # cross field, calculate count for >=keyf_seg & >=vf_seg
