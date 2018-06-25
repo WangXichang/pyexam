@@ -13,7 +13,7 @@ def test_segtable():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
-    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
+    expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
     seg = SegTable()
     seg.set_data(expdf, expdf.columns.values)
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
@@ -28,7 +28,7 @@ def test_segtable():
     0    3         6         15    1.000000         10
     ------------------------------------------------------------------------------
     """
-    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8,]})
+    expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8,]})
     print(expdf)
 
     seg = SegTable()
