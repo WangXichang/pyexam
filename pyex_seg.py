@@ -8,6 +8,10 @@ import numpy as np
 import time
 
 
+def help():
+    print(test_segtable.__doc__)
+
+
 # test SegTable
 def test_segtable():
     """
@@ -25,8 +29,19 @@ def test_segtable():
     3    6         1          4    0.266667         -1
     2    5         1          5    0.333333          3
     1    4         4          9    0.600000         -1
-    0    3         6         15    1.000000         10
+    0    3         8         17    1.000000         12  # including 0, 1 which below 3
     ------------------------------------------------------------------------------
+    # avoid to count records below segmin if segalldata = False
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+    seg.run()
+    print(seg.output_data)
+       seg  sf_count  sf_cumsum  sf_percent  sf_count3
+    5    8         2          2    0.133333          2
+    4    7         1          3    0.200000         -1
+    3    6         1          4    0.266667         -1
+    2    5         1          5    0.333333          3
+    1    4         4          9    0.600000         -1
+    0    3         6         15    1.000000         10  # excluding 0, 1
     """
     expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8,]})
     print(expdf)
@@ -35,7 +50,10 @@ def test_segtable():
     seg.set_data(expdf, ['sf'])
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
-    seg.plot()
+    seg.show_parameters()
+    print(seg.output_data)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+    seg.run()
     seg.show_parameters()
     print(seg.output_data)
 
@@ -69,7 +87,7 @@ class SegTable(object):
     * from 0917-2017
 
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
-    :set_data(input_data:DataFrame, field_list:list)
+    set_data(input_data:DataFrame, field_list:list)
         input_data: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
         field_list: list, field names used to calculate seg table, empty for calculate all fields
@@ -99,21 +117,23 @@ class SegTable(object):
         display: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
 
+    运行计算，产生输出数据, calculate and create output data
+    run()
+
     运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_cumsum(累计人数)
               [segfield]_percent(百分数，在顺序中排在其前的人数）
-    :result
-        output_data: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
+    output_data: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
 
     应用举例
     example:
-        import pyex_seg
-        seg = pyex_seg.SegTable()
+        import pyex_seg as sg
+        seg = sg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', segalldata=True, display=True)
         seg.run()
         seg.plot()
-        resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+        print(seg.output_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
         1)根据segalldata确定是否在设定的区间范围内计算分数值
@@ -303,14 +323,17 @@ class SegTable(object):
         # self.show_parameters()
 
     def show_parameters(self):
-        print('seg list & seglistuse:{0} {1}'.format(self.__segListUse, self.__segList))
-        print('seg max value:{}'.format(self.__segMax))
-        print('seg min value:{}'.format(self.__segMin))
-        print('seg start value:{}'.format(self.__segStart))
-        print('seg step value:{}'.format(self.__segStep))
-        print('seg sort mode:{}'.format('descending' if self.__segSort in ['d', 'D'] else 'ascending'))
-        print('seg including all data:{}'.format(self.__segAlldata))
-        print('seg run_messages display:{}'.format(self.__display))
+        print('------ seg parameters ------')
+        print('   seg list use:{0}'.format(self.__segListUse, self.__segList))
+        print('   seg list use:{1}'.format(self.__segListUse, self.__segList))
+        print('      max value:{}'.format(self.__segMax))
+        print('      min value:{}'.format(self.__segMin))
+        print('    start value:{}'.format(self.__segStart))
+        print('     step value:{}'.format(self.__segStep))
+        print('      sort mode:{}'.format('descending' if self.__segSort in ['d', 'D'] else 'ascending'))
+        print('       all data:{}'.format(self.__segAlldata))
+        print('        display:{}'.format(self.__display))
+        print('-' * 28)
 
     def help(self):
         print(self.__doc__)
@@ -351,6 +374,8 @@ class SegTable(object):
         if not self.__check():
             return
         # create output dataframe with segstep = 1
+        if self.__display:
+           print('---> start ......')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         for f in self.field_list:
@@ -400,6 +425,7 @@ class SegTable(object):
 
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
+            print('=== end')
         self.__runsuccess = True
         return
 
