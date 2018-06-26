@@ -303,12 +303,12 @@ class SegTable(object):
         # self.show_parameters()
 
     def show_parameters(self):
-        print('seg list & seglistuse:{0} {1}'.format(self.__segListUse, self.__segList))
+        print('seg list: {0},  seglistuse: {1}'.format('Use' if self.__segListUse else 'No', self.__segList))
         print('seg max value:{}'.format(self.__segMax))
         print('seg min value:{}'.format(self.__segMin))
         print('seg start value:{}'.format(self.__segStart))
         print('seg step value:{}'.format(self.__segStep))
-        print('seg sort mode:{}'.format('descending' if self.__segSort in ['d', 'D'] else 'ascending'))
+        print('seg sort mode:{}'.format(' D=descending' if self.__segSort in ['d', 'D'] else ' A=ascending'))
         print('seg including all data:{}'.format(self.__segAlldata))
         print('seg run_messages display:{}'.format(self.__display))
 

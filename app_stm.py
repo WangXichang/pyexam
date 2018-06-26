@@ -88,7 +88,7 @@ def model(name='plt-sd20',
     if name == 'zscore':
         zm = stm.Zscore()
         zm.set_data(input_data=input_data,
-                    input_field_list=field_list)
+                    field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=max_score, rawscore_min=min_score)
         zm.run()
         zm.report()
@@ -97,7 +97,7 @@ def model(name='plt-sd20',
     if name == 'tscore':
         tm = stm.Tscore()
         tm.set_data(input_data=input_data,
-                    input_field_list=field_list)
+                    field_list=field_list)
         tm.set_parameters(rawscore_max=150,
                           rawscore_min=0)
         tm.run()
@@ -107,7 +107,7 @@ def model(name='plt-sd20',
     if name == 'tlinear':
         tm = stm.TscoreLinear()
         tm.set_data(input_data=input_data,
-                    input_field_list=field_list)
+                    field_list=field_list)
         tm.set_parameters(input_score_max=max_score,
                           input_score_min=min_score)
         tm.run()
