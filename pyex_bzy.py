@@ -1,6 +1,7 @@
 # -*- utf -*-
 
 import pandas as pd
+import pyex_tab as pt
 
 
 class Zy:
@@ -27,19 +28,21 @@ class Zy:
               self.td17bk.xx.apply(lambda x: filterfun(str(x)))
               ])
 
-    def find_bypos(self, low, high, filterstr='', kl='wk'):
+    def find_xx(self, low, high, filterstr='', kl='wk'):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         print('2016pc1---')
-        df1 = self.get_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
-        print(df1)
+        df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        print(pt.df_to_table(df1))
+        # print(df1)
         print('2016pc2---')
-        df2 = self.get_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
         print(df2)
         print('2017---')
-        df3 = self.get_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
         print(df3)
+        return df1, df2, df3
 
-    def get_pos(self, df,lowpos, highpos, posfield, filterstr):
+    def get_df_from_pos(self, df,lowpos, highpos, posfield, filterstr):
         return df[['xx', posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
                    df.xx.apply(lambda x: filterstr in str(x))].sort_values(by=posfield)
 
