@@ -2,6 +2,7 @@
 
 import pandas as pd
 import pyex_tab as pt
+from prettytable import PrettyTable as ptt
 
 
 class Zy:
@@ -70,3 +71,9 @@ class Zy:
                     break
             return result
         return filter
+
+def make_table(df, title=''):
+    x = ptt()
+    for f in df.columns:
+        x.add(f, [x for x in df[f]])
+    return x.get_string()

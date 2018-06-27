@@ -13,9 +13,11 @@ def df_to_table(dataframe,
     newtitle = ''
     pagewidth = 0
     pagenum = 0
+    col_wids = [max(dataframe[f].apply(lambda x: str_width(str(x)))) for f in dataframe.columns]
+    print(col_wids)
     for linenum in range(pagelines, dataframe.count()[0]+pagelines, pagelines):
-        print(linenum, dataframe.count()[0])
-        newpage = maketab(dataframe.iloc[pagenum*pagelines:linenum]) + '\f\n\n'
+        newpage = maketab(dataframe.iloc[pagenum*pagelines:linenum],
+                          columns_width=col_wids) + '\f\n\n'
         if linenum == pagelines:
             pagewidth = max([len(s) for s in newpage.split('\n')])
             newtitle = ' ' * int((pagewidth - len(title))/2) + title if pagewidth > len(title) else title
@@ -56,8 +58,7 @@ def maketab(df, *args, **kwargs):
 #           'a'])  # automatic
 #   Api:    listTable
 # --------------------------notes for parameters format
-def tab_text(df, colwidth=None, colnames=None, vline=True):
-    # hline=None, columnsformat = None):
+def tab_text(df, columns_width=None, columns=None, vline=True):
     if type(df) is not pd.DataFrame:
         print('Warning:\n', type(df), '\n', df)
         print('input data is not DataFrame!')
@@ -71,21 +72,20 @@ def tab_text(df, colwidth=None, colnames=None, vline=True):
     table.set_cols_valign(["m"] * colnum)
     table.set_chars(["-", "|", "+", "="])
     table.set_cols_dtype(['t'] * colnum)
-    if not colwidth:
-        colwidth = {}
-    elif type(colwidth) != dict:
+    if not columns_width:
+        columns_width = {}
+    elif type(columns_width) != list:
         print('colWidth is not dict type!')
-        return
+        return ''
     defaultwidth = [10] * colnum
-    if len(colwidth) > 0:
-        for k in colwidth:
-            if (type(k) == int) & (k in range(1, colnum+1)):
-                defaultwidth[k-1] = colwidth[k]
-            else:
-                print('colwidth is error!')
+    if len(columns_width) > 0:
+        defaultwidth = columns_width
+        # j = 0
+        # for k in columns_width:
+        #    defaultwidth[j] = columns_width[k]
     table.set_cols_width(defaultwidth)
-    if colnames:
-        headnames = colnames
+    if columns:
+        headnames = columns
     else:
         headnames = [s for s in df.columns]
     rowall = [headnames] + \
