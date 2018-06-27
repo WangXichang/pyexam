@@ -43,22 +43,23 @@ class Zy:
     def find_xx(self, low, high, filterstr='', kl='wk'):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         print('2016pc1---')
-        df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
         # print(pt.df_to_table(df1))
         # print(make_table(df1, title='2016pc1'))
         print(df1)
         print('2016pc2---')
-        df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
         print(df2)
         # print(make_table(df2, title='2016pc2'))
         print('2017---')
-        df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
         # print(make_table(df3, title='2017bk'))
         print(df3)
-        return df1, df2, df3
+        return # df1, df2, df3
 
-    def get_df_from_pos(self, df,lowpos, highpos, posfield, filterstr):
-        return df[['xx', posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
+    def get_df_from_pos(self, df,lowpos, highpos, posfield, filterstr, kl):
+        jh = 'wkjh' if kl == 'wk' else 'lkjh'
+        return df[['xx', jh, posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
                    df.xx.apply(lambda x: filterstr in str(x))].sort_values(by=posfield)
 
     def somexx(self, filter='医学', kl='wk'):
