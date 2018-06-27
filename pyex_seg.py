@@ -9,33 +9,47 @@ import time
 
 
 # test SegTable
-def test_segtable():
+def test():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
-    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
+    expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
     seg = SegTable()
     seg.set_data(expdf, expdf.columns.values)
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
     print(seg.output_data)
-       seg  sf_count  sf_cumsum  sf_percent  sf_count3
+         seg      sf_count  sf_sum  sf_percent  sf_count3
     5    8         2          2    0.133333          2
     4    7         1          3    0.200000         -1
     3    6         1          4    0.266667         -1
     2    5         1          5    0.333333          3
     1    4         4          9    0.600000         -1
-    0    3         6         15    1.000000         10
+    0    3         8         17    1.000000         12  # including 0, 1 which below 3
     ------------------------------------------------------------------------------
+    # avoid to count records below segmin if segalldata = False
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+    seg.run()
+    print(seg.output_data)
+         seg     sf_count  sf_sum   sf_percent      sf_count3
+    5    8         2          2     0.133333          2
+    4    7         1          3     0.200000         -1
+    3    6         1          4     0.266667         -1
+    2    5         1          5     0.333333          3
+    1    4         4          9     0.600000         -1
+    0    3         6         15     1.000000         10  # excluding 0, 1
     """
-    expdf = pd.DataFrame({'sf': [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8,]})
+    expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8]})
     print(expdf)
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
     seg.run()
-    seg.plot()
+    seg.show_parameters()
+    print(seg.output_data)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+    seg.run()
     seg.show_parameters()
     print(seg.output_data)
 
@@ -53,9 +67,11 @@ def test_segtable():
     seg.seglistuse = True
     seg.seglist = [7, 5, 3]
     seg.segsort = 'a'
+    seg.segstart = 2
     seg.segmax = 7
     seg.run()
     seg.show_parameters()
+    print(seg.output_data)
     print(seg.output_data[seg.output_data.sf_list > 0])
 
     return seg
@@ -69,7 +85,7 @@ class SegTable(object):
     * from 0917-2017
 
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
-    :set_data(input_data:DataFrame, field_list:list)
+    set_data(input_data:DataFrame, field_list:list)
         input_data: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
         field_list: list, field names used to calculate seg table, empty for calculate all fields
@@ -99,21 +115,23 @@ class SegTable(object):
         display: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
 
-    运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_cumsum(累计人数)
+    运行计算，产生输出数据, calculate and create output data
+    run()
+
+    运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_sum(累计人数)
               [segfield]_percent(百分数，在顺序中排在其前的人数）
-    :result
-        output_data: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
+    output_data: dataframe with field 'seg, segfield_count, segfield_sum, segfield_percent'
 
     应用举例
     example:
-        import pyex_seg
-        seg = pyex_seg.SegTable()
+        import pyex_seg as sg
+        seg = sg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', segalldata=True, display=True)
         seg.run()
         seg.plot()
-        resultdf = seg.output_data    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+        print(seg.output_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
         1)根据segalldata确定是否在设定的区间范围内计算分数值
@@ -303,14 +321,17 @@ class SegTable(object):
         # self.show_parameters()
 
     def show_parameters(self):
-        print('seg list: {0},  seglistuse: {1}'.format('Use' if self.__segListUse else 'No', self.__segList))
-        print('seg max value:{}'.format(self.__segMax))
-        print('seg min value:{}'.format(self.__segMin))
-        print('seg start value:{}'.format(self.__segStart))
-        print('seg step value:{}'.format(self.__segStep))
-        print('seg sort mode:{}'.format(' D=descending' if self.__segSort in ['d', 'D'] else ' A=ascending'))
-        print('seg including all data:{}'.format(self.__segAlldata))
-        print('seg run_messages display:{}'.format(self.__display))
+        print('------ seg parameters ------')
+        print('   seg list use:{0}'.format(self.__segListUse, self.__segList))
+        print('       seg list:{1}'.format(self.__segListUse, self.__segList))
+        print('      max value:{}'.format(self.__segMax))
+        print('      min value:{}'.format(self.__segMin))
+        print('    start value:{}'.format(self.__segStart))
+        print('     step value:{}'.format(self.__segStep))
+        print('      sort mode:{}'.format('d (descending)' if self.__segSort in ['d', 'D'] else 'a (ascending)'))
+        print('       all data:{}'.format(self.__segAlldata))
+        print('        display:{}'.format(self.__display))
+        print('-' * 28)
 
     def help(self):
         print(self.__doc__)
@@ -351,6 +372,8 @@ class SegTable(object):
         if not self.__check():
             return
         # create output dataframe with segstep = 1
+        if self.__display:
+           print('---> start ......')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         for f in self.field_list:
@@ -378,20 +401,22 @@ class SegTable(object):
                 self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
 
             # calculate cumsum field
-            self.__output_dataframe[f + '_cumsum'] = self.__output_dataframe[f + '_count'].cumsum()
+            self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
+            if self.__segListUse:
+                self.__output_dataframe[f + '_list_sum'] = self.__output_dataframe[f + '_count'].cumsum()
 
             # calculate percent field
             if self.__display:
                 print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
-            maxsum = max(max(self.output_data[f + '_cumsum']), 1)     # avoid divided by 0 in percent computing
+            maxsum = max(max(self.output_data[f + '_sum']), 1)     # avoid divided by 0 in percent computing
             self.__output_dataframe[f + '_percent'] = \
-                self.__output_dataframe[f + '_cumsum'].apply(lambda x: x / maxsum)
+                self.__output_dataframe[f + '_sum'].apply(lambda x: x / maxsum)
             if self.__display:
                 print('segments count finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
 
             # special seg step
             if self.__segStep > 1:
-                self.__run_more_step(f)
+                self.__run_special_step(f)
 
             # use seglist
             if self.__segListUse:
@@ -400,18 +425,24 @@ class SegTable(object):
 
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
+            print('=== end')
         self.__runsuccess = True
         return
 
-    def __run_more_step(self, field: str):
+    def __run_special_step(self, field: str):
         f = field
         segcountname = f + '_count{0}'.format(self.__segStep)
         self.__output_dataframe[segcountname] = np.int64(-1)
-        cum = 0
-        curpoint, curstep = ((self.__segMin, self.__segStep)
-                             if self.__segSort.lower() == 'a' else
-                             (self.__segMax, -self.__segStep))
+        curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
         curpoint = self.__segStart
+        if self.__segSort.lower() == 'd':
+            while curpoint+curstep > self.__segMax:
+                curpoint += curstep
+        else:
+            while curpoint+curstep < self.__segMin:
+                curpoint += curstep
+        # curpoint = self.__segStart
+        cum = 0
         for index, row in self.__output_dataframe.iterrows():
             cum += row[f + '_count']
             curseg = np.int64(row['seg'])
@@ -430,7 +461,8 @@ class SegTable(object):
         f = field
         segcountname = f + '_list'
         self.__output_dataframe[segcountname] = np.int64(-1)
-        segpoint = sorted(self.__segList) if self.__segSort.lower() == 'a' \
+        segpoint = sorted(self.__segList) \
+            if self.__segSort.lower() == 'a' \
             else sorted(self.__segList)[::-1]
         # curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
         # curpoint = self.__segStart
@@ -439,18 +471,31 @@ class SegTable(object):
         curpoint = segpoint[pos]
         rownum = len(self.__output_dataframe)
         cur_row = 0
+        lastindex = 0
+        maxpoint = max(self.__segList)
+        minpoint = min(self.__segList)
+        list_sum = 0
+        self.__output_dataframe.loc[:, f+'_list_sum'] = 0
         for index, row in self.__output_dataframe.iterrows():
             curseg = np.int64(row['seg'])
-            cum += row[f + '_count']
-            cur_row += 1
+            # cumsum
+            if self.__segAlldata | (minpoint <= curseg <= maxpoint):
+                cum += row[f + '_count']
+                list_sum += row[f+'_count']
+                self.__output_dataframe.loc[index, f+'_list_sum'] = np.int64(list_sum)
+            # set to seg count, only set seg in seglist
             if curseg == curpoint:
                 self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
                 cum = 0
                 if pos < len(segpoint)-1:
                     pos += 1
                     curpoint = segpoint[pos]
+                else:
+                    lastindex = index
             elif cur_row == rownum:
-                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                if self.__segAlldata:
+                    self.__output_dataframe.loc[lastindex, segcountname] += np.int64(cum)
+            cur_row += 1
 
     def plot(self):
         if not self.__runsuccess:
@@ -476,7 +521,7 @@ class SegTable(object):
             plt.title('seg -- count')
             plt.xlim([self.__segMin, self.__segMax])
             plt.subplot(223)
-            plt.plot(self.output_data.seg, self.output_data[sf + '_cumsum'])
+            plt.plot(self.output_data.seg, self.output_data[sf + '_sum'])
             plt.title('seg -- cumsum')
             plt.xlim([self.__segMin, self.__segMax])
             if step == len(self.field_list):
@@ -504,7 +549,7 @@ def cross_seg(df,    # source dataframe
     segmodel.set_parameters(segmax=max(df[keyf]))
     segmodel.run()
     dfseg = segmodel.output_data
-    dfcount = dfseg[keyf+'_cumsum'].tail(1).values[0]
+    dfcount = dfseg[keyf+'_sum'].tail(1).values[0]
     vfseg = {x: [] for x in vfseglist}
     vfper = {x: [] for x in vfseglist}
     seglen = dfseg['seg'].count()
@@ -516,7 +561,7 @@ def cross_seg(df,    # source dataframe
             vfseg[vfv].append(segcount)
             vfper[vfv].append(segcount/dfcount)
     for vs in vfseglist:
-        dfseg[vf + str(vs) + '_cumsum'] = vfseg[vs]
+        dfseg[vf + str(vs) + '_sum'] = vfseg[vs]
         dfseg[vf + str(vs) + '_percent'] = vfper[vs]
     return dfseg
 
