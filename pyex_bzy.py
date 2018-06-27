@@ -33,11 +33,13 @@ class Zy:
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         print('2016pc1---')
         df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
-        print(pt.df_to_table(df1))
+        # print(pt.df_to_table(df1))
+        print(make_table(df1), title='2016pc1')
         # print(df1)
         print('2016pc2---')
         df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
-        print(df2)
+        # print(df2)
+        print(make_table(df1))
         print('2017---')
         df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
         print(df3)
@@ -75,5 +77,7 @@ class Zy:
 def make_table(df, title=''):
     x = ptt()
     for f in df.columns:
-        x.add(f, [x for x in df[f]])
-    return x.get_string()
+        x.add_column(f, [x for x in df[f]])
+        x.align[f] = 'l'
+    rs = x.get_string()
+    return title.center(rs.index('\n')) + '\n' + rs
