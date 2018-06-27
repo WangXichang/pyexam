@@ -7,9 +7,20 @@ from prettytable import PrettyTable as ptt
 
 class Zy:
     def __init__(self):
-        self.td16p1 = pd.read_csv('f:/studies/lqdata/td2016pc1_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
-        self.td16p2 = pd.read_csv('f:/studies/lqdata/td2016pc2_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
-        self.td17bk = pd.read_csv('f:/studies/lqdata/td2017bk_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
+        self.path = 'f:/studies/lqdata/'
+        self.td16p1 = None
+        self.td16p2 = None
+        self.td17bk = None
+        # self.load_data()
+
+    def set_datapath(self, path):
+        self.path = path
+        self.load_data()
+
+    def load_data(self):
+        self.td16p1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
+        self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
+        self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
 
     def lk(self, low, high, filter=('')):
         filterfun = self.filtfun(filter)
@@ -34,14 +45,15 @@ class Zy:
         print('2016pc1---')
         df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
         # print(pt.df_to_table(df1))
-        print(make_table(df1), title='2016pc1')
-        # print(df1)
+        # print(make_table(df1, title='2016pc1'))
+        print(df1)
         print('2016pc2---')
         df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
-        # print(df2)
-        print(make_table(df1))
+        print(df2)
+        # print(make_table(df2, title='2016pc2'))
         print('2017---')
         df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr)
+        # print(make_table(df3, title='2017bk'))
         print(df3)
         return df1, df2, df3
 
@@ -76,8 +88,11 @@ class Zy:
 
 def make_table(df, title=''):
     x = ptt()
+    j = 0
     for f in df.columns:
         x.add_column(f, [x for x in df[f]])
-        x.align[f] = 'l'
+        if j == 0:
+            x.align[f] = 'l'
+        j = j + 1
     rs = x.get_string()
-    return title.center(rs.index('\n')) + '\n' + rs
+    return title.center(rs.index('\n')) + '\n' + rs, x
