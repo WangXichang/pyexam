@@ -28,14 +28,20 @@ class Zy:
                                   dtype={'xx': str,}, verbose=True)
         self.td16p1 = self.td16p1.fillna(0)
         self.td16p1.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td16p1.loc[:, 'xxh'] = self.td16p1.xx.apply(lambda x: x[0:4])
+
         self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td16p2 = self.td16p2.fillna(0)
         self.td16p2.astype(dtype={'wkpos': int, 'lkpos': int})
+
+        self.td16p2.loc[:, 'xxh'] = self.td16p2.xx.apply(lambda x: x[0:4])
+
         self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td17bk = self.td17bk.fillna(0)
-        self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
+        self.td17bk.loc[:, 'xxh'] = self.td17bk.xx.apply(lambda x: str(x)[0:4])
 
     def somexx(self, filter='医学', kl='wk'):
         print('2016p1---')
@@ -87,19 +93,21 @@ class Zy:
         print('2017---')
         df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
                                    filterlist=filterlist, kl=kl)
-        df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: x[0:4])
+        df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
         print(make_table(df3, title='2017bk'))
         # print(df3)
         if kl == 'lk':
             df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
+            df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
+            outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2']
         else:
             df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-        if kl == 'lk':
-            df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
-        else:
             df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
-        dfmerge = pd.merge(df3, df1, on='xxh', how='outer')
-        dfmerge = pd.merge(dfmerge, df2, on='xxh', how='outer')
+            outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2']
+        dfmerge = pd.merge(df3, df1, on='xx', how='outer')
+        dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')[outfields]
+        # dfmerge = pd.merge(dfmerge, self.td17bk[['xxh', 'xx']], on='xxh')
+        # dfmerge = dfmerge[['xx'] + outfields]
 
         return dfmerge
 
