@@ -154,3 +154,25 @@ def make_table(df, title=''):
         j = j + 1
     rs = x.get_string()
     return title.center(rs.index('\n')) + '\n' + rs
+
+
+def make_page(df, title='', pagelines=30):
+    x = ptt()
+    gridnum = len(df.columns)
+    result = ''
+    ptext = make_table(df=df, title=title)
+    plist = ptext.split('\n')
+    plen = len(plist)
+    hline = 0
+    textline = 0
+    head = ''
+    for i in range(plen):
+        result += plist[i]
+        head += plist[i]
+        if plist[i].count('+') == gridnum + 1:
+            hline = hline + 1
+            continue
+        if hline == 2:
+            textline += 1
+
+    return ptext
