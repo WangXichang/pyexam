@@ -1,13 +1,19 @@
 # -*- utf -*-
 
+import os
 import pandas as pd
-import pyex_tab as pt
 from prettytable import PrettyTable as ptt
 
+loc_dell = 'd:/work/data/lq/'
+loc_off = 'f:/studies/lqdata/'
 
-def getzy():
+
+def getzy(loc='home'):
     zy = ZhiYuan()
-    zy.set_datapath('f:/studies/lqdata/')
+    if loc == 'office':
+        zy.set_datapath('f:/studies/lqdata/')
+    else:
+        zy.set_datapath(loc_dell)
     return zy
 
 
@@ -44,7 +50,8 @@ class ZhiYuan:
         self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
         self.td17bk.loc[:, 'xxh'] = self.td17bk.xx.apply(lambda x: str(x)[0:4])
 
-        self.dflq = pd.read_csv('f:/studies/lqdata/2015pc2lqk.csv', sep='\t', low_memory=False)
+        if os.path.isfile('f:/studies/lqdata/2015pc2lqk.csv'):
+            self.dflq = pd.read_csv('f:/studies/lqdata/2015pc2lqk.csv', sep='\t', low_memory=False)
 
     def somexx(self, filter='医学', kl='wk'):
         print('2016p1---')
@@ -120,6 +127,8 @@ class ZhiYuan:
         return dfmerge
 
     def findzy(self, lowpos, highpos, filterlist):
+        if self.dflq is None:
+            return pd.DataFrame()
         filterfun = self.filterclosed(filterlist)
         df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
@@ -166,13 +175,19 @@ def make_page(df, title='', pagelines=30):
     hline = 0
     textline = 0
     head = ''
+    gapline = None
     for i in range(plen):
-        result += plist[i]
-        head += plist[i]
+        result += plist[i] + '\n'
+        if hline < 2:
+            head += plist[i] + '\n'
         if plist[i].count('+') == gridnum + 1:
             hline = hline + 1
+            if gapline is None:
+                gapline = plist[i] + '\n'
             continue
         if hline == 2:
             textline += 1
+        if textline ==pagelines:
+            result += gapline + '\n' + head
 
-    return ptext
+    return result
