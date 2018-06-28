@@ -6,12 +6,12 @@ from prettytable import PrettyTable as ptt
 
 
 def getzy():
-    zy = Zy()
+    zy = ZhiYuan()
     zy.set_datapath('f:/studies/lqdata/')
     return zy
 
 
-class Zy:
+class ZhiYuan:
     def __init__(self):
         self.path = 'f:/studies/lqdata/'
         self.td16p1 = None
