@@ -176,6 +176,8 @@ def make_page(df, title='', pagelines=30):
     textline = 0
     head = ''
     gapline = None
+    pagewid = 0
+    pageno = 0
     for i in range(plen):
         result += plist[i] + '\n'
         if hline < 2:
@@ -183,11 +185,17 @@ def make_page(df, title='', pagelines=30):
         if plist[i].count('+') == gridnum + 1:
             hline = hline + 1
             if gapline is None:
+                pagewid = len(plist[i])
                 gapline = plist[i] + '\n'
             continue
         if hline == 2:
             textline += 1
-        if textline ==pagelines:
-            result += gapline + '\n' + head
-
+        if textline == pagelines:
+            pageno += 1
+            pagenostr = ('--'+str(pageno)+'--').center(pagewid) + '\n\n'
+            result += gapline + pagenostr + head
+            textline = 0
+    pageno += 1
+    pagenostr = ('--'+str(pageno)+'--').center(pagewid) + '\n'
+    result += pagenostr
     return result
