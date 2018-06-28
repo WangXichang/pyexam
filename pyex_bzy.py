@@ -17,6 +17,7 @@ class Zy:
         self.td16p1 = None
         self.td16p2 = None
         self.td17bk = None
+        self.dflq = None
         # self.load_data()
 
     def set_datapath(self, path):
@@ -42,6 +43,8 @@ class Zy:
         self.td17bk = self.td17bk.fillna(0)
         self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
         self.td17bk.loc[:, 'xxh'] = self.td17bk.xx.apply(lambda x: str(x)[0:4])
+
+        self.dflq = pd.read_csv('f:/studies/lqdata/2015pc2lqk.csv', sep='\t', low_memory=False)
 
     def somexx(self, filter='医学', kl='wk'):
         print('2016p1---')
@@ -115,6 +118,12 @@ class Zy:
                                             }, errors='ignore')
         print(make_table(dfmerge))
         return dfmerge
+
+    def findzy(self, lowpos, highpos, filterlist):
+        filterfun = self.filterclosed(filterlist)
+        df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
+            groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
+        return df
 
     def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
