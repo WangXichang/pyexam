@@ -58,7 +58,7 @@ class Zy:
         if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
             print('filterstr is not list or tuple!')
             return
-        filterfun = self.filtfun(filterlist)
+        filterfun = self.filterclosed(filterlist)
         print('2016pc1---')
         print(self.td16p1[['xx', 'lkpos']][(self.td16p1.lkpos <= high) & (self.td16p1.lkpos >= low) &
               # self.td16p1.xx.apply(lambda x: filter in str(x))
@@ -75,26 +75,26 @@ class Zy:
               self.td17bk.xx.apply(lambda x: filterfun(str(x)))
               ])
 
-    def find_xx(self, low, high, filterlist=('',), kl='wk'):
+    def findxx(self, low, high, filterlist=('',), kl='wk'):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         print('2016pc1---')
         df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
                                    filterlist=filterlist, kl=kl)
         df1.loc[:, 'xxh'] = df1.xx.apply(lambda x: x[0:4])
         # print(pt.df_to_table(df1))
-        print(make_table(df1, title='2016pc1'))
+        # print(make_table(df1, title='2016pc1'))
         # print(df1)
         print('2016pc2---')
         df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield,
                                    filterlist=filterlist, kl=kl)
         df2.loc[:, 'xxh'] = df2.xx.apply(lambda x: x[0:4])
-        print(make_table(df2, title='2016pc2'))
+        # print(make_table(df2, title='2016pc2'))
         # print(df2)
         print('2017---')
         df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
                                    filterlist=filterlist, kl=kl)
         df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
-        print(make_table(df3, title='2017bk'))
+        # print(make_table(df3, title='2017bk'))
         # print(df3)
         if kl == 'lk':
             df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
@@ -108,19 +108,22 @@ class Zy:
         dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')[outfields]
         # dfmerge = pd.merge(dfmerge, self.td17bk[['xxh', 'xx']], on='xxh')
         # dfmerge = dfmerge[['xx'] + outfields]
-
+        dfmerge = dfmerge.fillna('0')
+        if kl == 'lk':
+            dfmerge = dfmerge.astype(dtype={'lkpos': int, 'lkpos16': int, 'lkpos16p2': int,
+                                            'lkjh': int, 'lkjh16': int, 'lkjh16p2': int
+                                            }, errors='ignore')
+        print(make_table(dfmerge))
         return dfmerge
 
     def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
-        filterfun = self.filtfun(filterlist)
+        filterfun = self.filterclosed(filterlist)
         return df[['xx', jh, posfield]][(df[posfield] <= highpos) &
                                         (df[posfield] >= lowpos) &
                                         df.xx.apply(filterfun)].sort_values(by=posfield)
-        # return df[['xx', jh, posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
-        #            df.xx.apply(lambda x: filterstr in str(x))].sort_values(by=posfield)
 
-    def filtfun(self, filterlist):
+    def filterclosed(self, filterlist):
         filterlist = filterlist
         if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
             print('filter is not list')
