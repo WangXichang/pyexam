@@ -5,6 +5,12 @@ import pyex_tab as pt
 from prettytable import PrettyTable as ptt
 
 
+def getzy():
+    zy = Zy()
+    zy.set_datapath('f:/studies/lqdata/')
+    return zy
+
+
 class Zy:
     def __init__(self):
         self.path = 'f:/studies/lqdata/'
@@ -18,49 +24,18 @@ class Zy:
         self.load_data()
 
     def load_data(self):
-        self.td16p1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
-        self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
-        self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',', dtype={'xx': str}, verbose=True)
-
-    def lk(self, low, high, filter=('')):
-        filterfun = self.filtfun(filter)
-        print('2016pc1---')
-        print(self.td16p1[['xx', 'lkpos']][(self.td16p1.lkpos <= high) & (self.td16p1.lkpos >= low) &
-              # self.td16p1.xx.apply(lambda x: filter in str(x))
-              self.td16p1.xx.apply(lambda x: filterfun(x))
-              ])
-        print('2016pc2---')
-        print(self.td16p2[['xx', 'lkpos']][(self.td16p2.lkpos <= high) & (self.td16p2.lkpos >= low) &
-              #self.td16p2.xx.apply(lambda x: filter in str(x))
-              self.td16p2.xx.apply(lambda x: filterfun(str(x)))
-              ])
-        print('2017---')
-        print(self.td17bk[['xx', 'lkpos']][(self.td17bk.lkpos <= high) & (self.td17bk.lkpos >= low) &
-              # self.td17bk.xx.apply(lambda x: filter in str(x))
-              self.td17bk.xx.apply(lambda x: filterfun(str(x)))
-              ])
-
-    def find_xx(self, low, high, filterstr='', kl='wk'):
-        posfield = 'wkpos' if kl == 'wk' else 'lkpos'
-        print('2016pc1---')
-        df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
-        # print(pt.df_to_table(df1))
-        # print(make_table(df1, title='2016pc1'))
-        print(df1)
-        print('2016pc2---')
-        df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
-        print(df2)
-        # print(make_table(df2, title='2016pc2'))
-        print('2017---')
-        df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield, filterstr=filterstr, kl=kl)
-        # print(make_table(df3, title='2017bk'))
-        print(df3)
-        return # df1, df2, df3
-
-    def get_df_from_pos(self, df,lowpos, highpos, posfield, filterstr, kl):
-        jh = 'wkjh' if kl == 'wk' else 'lkjh'
-        return df[['xx', jh, posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
-                   df.xx.apply(lambda x: filterstr in str(x))].sort_values(by=posfield)
+        self.td16p1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',',
+                                  dtype={'xx': str,}, verbose=True)
+        self.td16p1 = self.td16p1.fillna(0)
+        self.td16p1.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True)
+        self.td16p2 = self.td16p2.fillna(0)
+        self.td16p2.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True)
+        self.td17bk = self.td17bk.fillna(0)
+        self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int})
 
     def somexx(self, filter='医学', kl='wk'):
         print('2016p1---')
@@ -73,18 +48,80 @@ class Zy:
         print(self.td17bk[self.td17bk.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
               sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
 
-    def filtfun(self, filterstr):
-        filterstr = filterstr
-        if (not isinstance(filterstr, list)) & (not isinstance(filterstr, tuple)):
+    def lk(self, low, high, filterlist=('',)):
+        if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
+            print('filterstr is not list or tuple!')
+            return
+        filterfun = self.filtfun(filterlist)
+        print('2016pc1---')
+        print(self.td16p1[['xx', 'lkpos']][(self.td16p1.lkpos <= high) & (self.td16p1.lkpos >= low) &
+              # self.td16p1.xx.apply(lambda x: filter in str(x))
+              self.td16p1.xx.apply(filterfun)
+              ])
+        print('2016pc2---')
+        print(self.td16p2[['xx', 'lkpos']][(self.td16p2.lkpos <= high) & (self.td16p2.lkpos >= low) &
+              #self.td16p2.xx.apply(lambda x: filter in str(x))
+              self.td16p2.xx.apply(lambda x: filterfun(str(x)))
+              ])
+        print('2017---')
+        print(self.td17bk[['xx', 'lkpos']][(self.td17bk.lkpos <= high) & (self.td17bk.lkpos >= low) &
+              # self.td17bk.xx.apply(lambda x: filter in str(x))
+              self.td17bk.xx.apply(lambda x: filterfun(str(x)))
+              ])
+
+    def find_xx(self, low, high, filterlist=('',), kl='wk'):
+        posfield = 'wkpos' if kl == 'wk' else 'lkpos'
+        print('2016pc1---')
+        df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
+                                   filterlist=filterlist, kl=kl)
+        df1.loc[:, 'xxh'] = df1.xx.apply(lambda x: x[0:4])
+        # print(pt.df_to_table(df1))
+        print(make_table(df1, title='2016pc1'))
+        # print(df1)
+        print('2016pc2---')
+        df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield,
+                                   filterlist=filterlist, kl=kl)
+        df2.loc[:, 'xxh'] = df2.xx.apply(lambda x: x[0:4])
+        print(make_table(df2, title='2016pc2'))
+        # print(df2)
+        print('2017---')
+        df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
+                                   filterlist=filterlist, kl=kl)
+        df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: x[0:4])
+        print(make_table(df3, title='2017bk'))
+        # print(df3)
+        if kl == 'lk':
+            df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
+        else:
+            df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
+        if kl == 'lk':
+            df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
+        else:
+            df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
+        dfmerge = pd.merge(df3, df1, on='xxh', how='outer')
+        dfmerge = pd.merge(dfmerge, df2, on='xxh', how='outer')
+
+        return dfmerge
+
+    def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
+        jh = 'wkjh' if kl == 'wk' else 'lkjh'
+        filterfun = self.filtfun(filterlist)
+        return df[['xx', jh, posfield]][(df[posfield] <= highpos) &
+                                        (df[posfield] >= lowpos) &
+                                        df.xx.apply(filterfun)].sort_values(by=posfield)
+        # return df[['xx', jh, posfield]][(df[posfield] <= highpos) & (df[posfield] >= lowpos) &
+        #            df.xx.apply(lambda x: filterstr in str(x))].sort_values(by=posfield)
+
+    def filtfun(self, filterlist):
+        filterlist = filterlist
+        if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
             print('filter is not list')
             return False
         def filter(x):
-            result = False
-            for s in filterstr:
-                if s in x:
-                    result = True
-                    break
-            return result
+            for s in filterlist:
+                if s in str(x):
+                    return True
+            return False
         return filter
 
 def make_table(df, title=''):
@@ -96,4 +133,4 @@ def make_table(df, title=''):
             x.align[f] = 'l'
         j = j + 1
     rs = x.get_string()
-    return title.center(rs.index('\n')) + '\n' + rs, x
+    return title.center(rs.index('\n')) + '\n' + rs
