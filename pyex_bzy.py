@@ -57,8 +57,8 @@ class ZhiYuan:
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
 
-        if os.path.isfile('f:/studies/lqdata/2015pc2lqk.csv'):
-            self.dflq = pd.read_csv('f:/studies/lqdata/2015pc2lqk.csv', sep='\t', low_memory=False)
+        if os.path.isfile(self.path+'2015pc2lqk.csv'):
+            self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
     def somexx(self, filter='医学', kl='wk', cc='bk'):
         if cc == 'bk':
@@ -132,20 +132,20 @@ class ZhiYuan:
             if kl == 'lk':
                 df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
                 df2 = df2.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
-                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh17', 'lkpos', 'lkpos16', 'lkpos17']
+                outfields = ['xx', 'lkjh16', 'lkjh17', 'lkpos16', 'lkpos17']
             else:
                 df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-                df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
-                outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2']
+                df2 = df2.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
+                outfields = ['xx', 'wkjh16', 'wkjh17', 'wkpos16', 'wkpos17']
             dfmerge = pd.merge(df2, df1, on='xx', how='outer')[outfields]
             dfmerge = dfmerge.fillna('0')
             if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={'lkpos': int, 'lkpos16': int, 'lkpos16p2': int,
-                                                'lkjh': int, 'lkjh16': int, 'lkjh16p2': int
+                dfmerge = dfmerge.astype(dtype={'lkpos16': int, 'lkpos17': int,
+                                                'lkjh16': int, 'lkjh17': int
                                                 }, errors='ignore')
             else:
-                dfmerge = dfmerge.astype(dtype={'wkpos': int, 'wkpos16': int, 'wkpos16p2': int,
-                                                'wkjh': int, 'wkjh16': int, 'wkjh16p2': int
+                dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
+                                                'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
         print(make_table(dfmerge))
         return dfmerge
