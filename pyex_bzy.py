@@ -124,15 +124,15 @@ class ZhiYuan:
                                                 }, errors='ignore')
         else:
             print('2016zk---')
-            df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
+            df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             print('2017zk---')
-            df2 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
+            df2 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             if kl == 'lk':
                 df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
-                df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
-                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2']
+                df2 = df2.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
+                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh17', 'lkpos', 'lkpos16', 'lkpos17']
             else:
                 df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
                 df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
