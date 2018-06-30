@@ -85,22 +85,13 @@ class ZhiYuan:
             print('2016pc1---')
             df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            # df1.loc[:, 'xxh'] = df1.xx.apply(lambda x: x[0:4])
-            # print(pt.df_to_table(df1))
-            # print(make_table(df1, title='2016pc1'))
-            # print(df1)
             print('2016pc2---')
             df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            # df2.loc[:, 'xxh'] = df2.xx.apply(lambda x: x[0:4])
-            # print(make_table(df2, title='2016pc2'))
-            # print(df2)
             print('2017---')
             df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
-            # print(make_table(df3, title='2017bk'))
-            # print(df3)
             if kl == 'lk':
                 df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
                 df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
@@ -111,8 +102,6 @@ class ZhiYuan:
                 outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2']
             dfmerge = pd.merge(df3, df1, on='xx', how='outer')
             dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')[outfields]
-            # dfmerge = pd.merge(dfmerge, self.td17bk[['xxh', 'xx']], on='xxh')
-            # dfmerge = dfmerge[['xx'] + outfields]
             dfmerge = dfmerge.fillna('0')
             if kl == 'lk':
                 dfmerge = dfmerge.astype(dtype={'lkpos': int, 'lkpos16': int, 'lkpos16p2': int,
