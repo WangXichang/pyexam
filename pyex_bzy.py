@@ -66,24 +66,28 @@ class ZhiYuan:
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
-    def somexx(self, filterstr='医学', kl='wk', cc='bk'):
+    def somexx(self, xxsubstr='医学', kl='wk', cc='bk'):
         if cc == 'bk':
             print('2016p1---')
-            print(self.td16p1[self.td16p1.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
-                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos')))
+            df1 = self.td16p1[self.td16p1.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
+            print(make_page(df1, '2016p1'))
             print('2016p2---')
-            print(self.td16p2[self.td16p2.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
+            df2 = self.td16p2[self.td16p2.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(make_page(df2, '2016p2'))
             print('2017bk---')
-            print(self.td17bk[self.td17bk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
+            df3 = self.td17bk[self.td17bk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(make_page(df3, '2017bk'))
         else:
             print('2016zk---')
-            print(self.td16zk[self.td16zk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td16zk[self.td16zk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by=('lkpos' if kl == 'lk' else 'wkpos')))
             print('2017zk---')
-            print(self.td17zk[self.td17zk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td17zk[self.td17zk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
+
 
     def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk'):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
@@ -143,7 +147,7 @@ class ZhiYuan:
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
         print(make_table(dfmerge))
-        return dfmerge
+        return  # dfmerge
 
     def findzy(self, lowpos, highpos, filterlist):
         if self.dflq is None:
@@ -151,7 +155,8 @@ class ZhiYuan:
         filterfun = self.filterclosed(filterlist)
         df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
-        return df
+        print(make_page(df.sort_values('WC'), ''.join(filterlist)))
+        return  # df
 
     def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
