@@ -34,23 +34,19 @@ class ZhiYuan:
 
     def load_data(self):
         self.td16p1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',',
-                                  dtype={'xx': str,}, verbose=True)
+                                  dtype={'xx': str}, verbose=True)
         self.td16p1 = self.td16p1.fillna(0)
         self.td16p1.astype(dtype={'wkpos': int, 'lkpos': int})
-        # self.td16p1.loc[:, 'xxh'] = self.td16p1.xx.apply(lambda x: x[0:4])
 
         self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td16p2 = self.td16p2.fillna(0)
         self.td16p2.astype(dtype={'wkpos': int, 'lkpos': int})
 
-        # self.td16p2.loc[:, 'xxh'] = self.td16p2.xx.apply(lambda x: x[0:4])
-
         self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td17bk = self.td17bk.fillna(0)
         self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
-        # self.td17bk.loc[:, 'xxh'] = self.td17bk.xx.apply(lambda x: str(x)[0:4])
 
         self.td16zk = pd.read_csv(self.path+'td2016zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
