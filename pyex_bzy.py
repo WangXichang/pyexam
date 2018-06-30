@@ -2,19 +2,29 @@
 
 import os
 import pandas as pd
-from prettytable import PrettyTable as ptt
-
-loc_dell = 'd:/work/data/lq/'
-loc_off = 'f:/studies/lqdata/'
+from prettytable import PrettyTable as Ptt
 
 
-def getzy(loc='home'):
+def getzy():
+    loc_dell = 'd:/work/data/lq/'
+    loc_off = 'f:/studies/lqdata/'
+    loc_suface = 'c:/users/wangxichang/zydata/'
+    loc_lq = 'd:/zy/'
+    loc_list = [loc_suface, loc_dell, loc_lq, loc_off]
     zy = ZhiYuan()
-    if loc == 'office':
-        zy.set_datapath('f:/studies/lqdata/')
-    else:
-        zy.set_datapath(loc_dell)
-    return zy
+    for p in loc_list:
+        if os.path.isfile(p+'td2017bk_sc.csv'):
+            zy.set_datapath(p)
+            return zy
+    # elif loc =='dell':
+    #     zy.set_datapath(loc_dell)
+    # elif loc == 'surface':
+    #     zy.set_datapath(loc_suface)
+    # elif loc == 'lq':
+    #     zy.set_datapath(loc_lq)
+    # else:
+    print('error: no location path assign!')
+    return None
 
 
 class ZhiYuan:
@@ -56,23 +66,23 @@ class ZhiYuan:
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
-    def somexx(self, filter='医学', kl='wk', cc='bk'):
+    def somexx(self, filterstr='医学', kl='wk', cc='bk'):
         if cc == 'bk':
             print('2016p1---')
-            print(self.td16p1[self.td16p1.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td16p1[self.td16p1.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by=('lkpos' if kl == 'lk' else 'wkpos')))
             print('2016p2---')
-            print(self.td16p2[self.td16p2.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td16p2[self.td16p2.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
             print('2017bk---')
-            print(self.td17bk[self.td17bk.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td17bk[self.td17bk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
         else:
             print('2016zk---')
-            print(self.td16zk[self.td16zk.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td16zk[self.td16zk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by=('lkpos' if kl == 'lk' else 'wkpos')))
             print('2017zk---')
-            print(self.td17zk[self.td17zk.xx.apply(lambda x: filter in str(x))][['xx', 'wkpos', 'lkpos']].
+            print(self.td17zk[self.td17zk.xx.apply(lambda x: filterstr in str(x))][['xx', 'wkpos', 'lkpos']].
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
 
     def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk'):
@@ -150,20 +160,24 @@ class ZhiYuan:
                                         (df[posfield] >= lowpos) &
                                         df.xx.apply(filterfun)].sort_values(by=posfield)
 
-    def filterclosed(self, filterlist):
+    @staticmethod
+    def filterclosed(filterlist):
         filterlist = filterlist
         if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
             print('filter is not list')
             return False
-        def filter(x):
+
+        def filterfun(x):
             for s in filterlist:
                 if s in str(x):
                     return True
             return False
-        return filter
+
+        return filterfun
+
 
 def make_table(df, title=''):
-    x = ptt()
+    x = Ptt()
     j = 0
     for f in df.columns:
         x.add_column(f, [x for x in df[f]])
@@ -175,7 +189,6 @@ def make_table(df, title=''):
 
 
 def make_page(df, title='', pagelines=30):
-    x = ptt()
     gridnum = len(df.columns)
     result = ''
     ptext = make_table(df=df, title=title)
