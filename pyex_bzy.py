@@ -147,7 +147,7 @@ class ZhiYuan:
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
         print(make_table(dfmerge))
-        return  # dfmerge
+        return  dfmerge
 
     def findzy(self, lowpos, highpos, filterlist):
         if self.dflq is None:
@@ -181,23 +181,31 @@ class ZhiYuan:
         return filterfun
 
 
-def make_table(df, title=''):
+def make_table(df, title='', align={}):
     x = Ptt()
     j = 0
     for f in df.columns:
         x.add_column(f, [x for x in df[f]])
-        if j == 0:
-            x.align[f] = 'l'
+        if (f in align):
+            if (align[f] in ['l', 'c', 'r']):
+                x.align[f] = align[f]
+            elif df[f]._is_numeric_mixed_type:
+                x.align[f] = 'r'
+            elif df[f]._is_mixed_type:
+                x.align[f] = 'l'
+            else:
+                x.align[f] = 'c'
         j = j + 1
     rs = x.get_string()
     return title.center(rs.index('\n')) + '\n' + rs
 
 
-def make_page(df, title='', pagelines=30):
+def make_page(df, title='', pagelines=30, align={}):
     gridnum = len(df.columns)
     result = ''
-    ptext = make_table(df=df, title=title)
+    ptext = make_table(df=df, title=title, align=align)
     plist = ptext.split('\n')
+    # print(plist)
     plen = len(plist)
     hline = 0
     textline = 0
@@ -206,23 +214,39 @@ def make_page(df, title='', pagelines=30):
     pagewid = 0
     pageno = 0
     for i in range(plen):
-        result += plist[i] + '\n'
         if hline < 2:
-            head += plist[i] + '\n'
+            # set subtitle in center
+            if ('+' not in plist[i]) & (plist[i].count('|') == gridnum + 1):
+                sp = plist[i].split('|')
+                newsp = []
+                for x in sp:
+                    if len(x.strip()) < len(x):
+                        left_space = int((len(x) - len(x.strip()))/2)
+                        newsp.append(' '*left_space + x.strip() + ' '*(len(x) - left_space-len(x.strip())))
+                head += '|' + '|'.join(newsp) + '|\n'
+            else:
+                head += plist[i] + '\n'
+        else:
+            # not save first head in result
+            if i < plen -1:
+                result += plist[i] + '\n'
+        # find gapline and the end of head
         if plist[i].count('+') == gridnum + 1:
             hline = hline + 1
             if gapline is None:
                 pagewid = len(plist[i])
                 gapline = plist[i] + '\n'
             continue
+        # add first head+gapline in result
+        if (len(result) == 0) & (gapline is not None):
+            result = head + gapline
+        # start count content row number(textline)
         if hline == 2:
             textline += 1
-        if textline == pagelines:
+        # seperate pages
+        if (textline == pagelines) | (i == plen-2):
             pageno += 1
             pagenostr = ('--'+str(pageno)+'--').center(pagewid) + '\n\n'
-            result += gapline + pagenostr + head
+            result += gapline + pagenostr + (head if i < plen-2 else '')
             textline = 0
-    pageno += 1
-    pagenostr = ('--'+str(pageno)+'--').center(pagewid) + '\n'
-    result += pagenostr
     return result
