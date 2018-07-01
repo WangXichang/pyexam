@@ -11,23 +11,18 @@ def getzy():
     loc_suface = 'c:/users/wangxichang/zydata/'
     loc_lq = 'd:/zy/'
     loc_list = [loc_suface, loc_dell, loc_lq, loc_off]
-    zy = ZhiYuan()
+    
+    zy = Finder()
     for p in loc_list:
         if os.path.isfile(p+'td2017bk_sc.csv'):
             zy.set_datapath(p)
             return zy
-    # elif loc =='dell':
-    #     zy.set_datapath(loc_dell)
-    # elif loc == 'surface':
-    #     zy.set_datapath(loc_suface)
-    # elif loc == 'lq':
-    #     zy.set_datapath(loc_lq)
-    # else:
-    print('error: no location path assign!')
+    
+    print('error: no valid path assigned!')
     return None
 
 
-class ZhiYuan:
+class Finder:
     def __init__(self):
         self.path = 'f:/studies/lqdata/'
         self.td16p1 = None
@@ -36,7 +31,6 @@ class ZhiYuan:
         self.td16zk = None
         self.td17zk = None
         self.dflq = None
-        # self.load_data()
 
     def set_datapath(self, path):
         self.path = path
@@ -66,39 +60,45 @@ class ZhiYuan:
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
-    def somexx(self, xxsubstr='医学', kl='wk', cc='bk'):
+    def somexx(self, xxsubstr=('医学',), kl='wk', cc='bk'):
+        ffun = closed_filter(xxsubstr)
+        if ffun is False:
+            return
+        df1, df2, df3 = None, None, None
         if cc == 'bk':
             print('2016p1---')
-            df1 = self.td16p1[self.td16p1.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+            df1 = self.td16p1[self.td16p1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                   sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
             print(make_page(df1, '2016p1'))
             print('2016p2---')
-            df2 = self.td16p2[self.td16p2.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+            df2 = self.td16p2[self.td16p2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(make_page(df2, '2016p2'))
             print('2017bk---')
-            df3 = self.td17bk[self.td17bk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].\
+            df3 = self.td17bk[self.td17bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                   sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(make_page(df3, '2017bk'))
         else:
-            print('2016zk---')
-            print(self.td16zk[self.td16zk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].
-                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos')))
-            print('2017zk---')
-            print(self.td17zk[self.td17zk.xx.apply(lambda x: xxsubstr in str(x))][['xx', 'wkpos', 'lkpos']].
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos'))
+            # print('2016zk---')
+            df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
+            print(make_page(df1, title='2016zk'))
+            # print('2017zk---')
+            df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(make_page(df2, title='2017zk'))
+        return  # df1, df2, df3
 
-
-    def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk'):
+    def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align={}):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         if cc == 'bk':
-            print('2016pc1---')
+            # print('2016pc1---')
             df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            print('2016pc2---')
+            # print('2016pc2---')
             df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            print('2017---')
+            # print('2017---')
             df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
@@ -122,10 +122,10 @@ class ZhiYuan:
                                                 'wkjh': int, 'wkjh16': int, 'wkjh16p2': int
                                                 }, errors='ignore')
         else:
-            print('2016zk---')
+            # print('2016zk---')
             df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            print('2017zk---')
+            # print('2017zk---')
             df2 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             if kl == 'lk':
@@ -146,39 +146,38 @@ class ZhiYuan:
                 dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
-        print(make_table(dfmerge))
+        print(make_page(dfmerge, title='16-17zk', align=align))
         return  dfmerge
 
-    def findzy(self, lowpos, highpos, filterlist):
+    def findzy(self, lowpos, highpos, filterlist, align):
         if self.dflq is None:
             return pd.DataFrame()
-        filterfun = self.filterclosed(filterlist)
+        filterfun = closed_filter(filterlist)
         df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
-        print(make_page(df.sort_values('WC'), ''.join(filterlist)))
+        print(make_page(df.sort_values('WC'), ''.join(filterlist), align))
         return  # df
 
     def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
-        filterfun = self.filterclosed(filterlist)
+        filterfun = closed_filter(filterlist)
         return df[['xx', jh, posfield]][(df[posfield] <= highpos) &
                                         (df[posfield] >= lowpos) &
                                         df.xx.apply(filterfun)].sort_values(by=posfield)
 
-    @staticmethod
-    def filterclosed(filterlist):
-        filterlist = filterlist
-        if (not isinstance(filterlist, list)) & (not isinstance(filterlist, tuple)):
-            print('filter is not list')
-            return False
+def closed_filter(substr_list):
+    substr_list = substr_list
+    if (not isinstance(substr_list, list)) & (not isinstance(substr_list, tuple)):
+        print('filter is not list')
+        return False
 
-        def filterfun(x):
-            for s in filterlist:
-                if s in str(x):
-                    return True
-            return False
+    def filterfun(x):
+        for s in substr_list:
+            if s in str(x):
+                return True
+        return False
 
-        return filterfun
+    return filterfun
 
 
 def make_table(df, title='', align={}):
