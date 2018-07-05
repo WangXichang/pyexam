@@ -1,6 +1,7 @@
 # -*- utf -*-
 
 import os
+import numpy as np
 import pandas as pd
 import imp
 from prettytable import PrettyTable as Ptt
@@ -42,6 +43,7 @@ class Finder:
         self.td16zk = None
         self.td17zk = None
         self.dflq = None
+        self.fd2018pt = None
 
     def set_datapath(self, path):
         self.path = path
@@ -68,6 +70,19 @@ class Finder:
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
 
+        tempdf = pd.read_csv(self.path + 'fd2018pk.csv', skiprows=22)
+        tempdf.astype(dtype={'rs': int})
+        # print(tempdf.head())
+        temparray = np.array([[x for x in tempdf.loc[y: y+10, 'rs']] for y in range(0, len(tempdf), 11)])
+        # print(temparray.shape)
+        self.fd2018pt = pd.DataFrame({'fd': temparray[:, 0],
+                                      'wk': temparray[:, 1], 'wklj': temparray[:, 2],
+                                      'lk': temparray[:, 3], 'lklj': temparray[:, 4],
+                                      'ty': temparray[:, 5], 'tylj': temparray[:, 6],
+                                      'yw': temparray[:, 7], 'ywlj': temparray[:, 8],
+                                      'yl': temparray[:, 9], 'yllj': temparray[:, 10],
+                                      })
+
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
@@ -88,7 +103,7 @@ class Finder:
             print('2017bk---')
             df3 = self.td17bk[self.td17bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(make_page(df3, '2017bk'))
+            print(make_page(df3, '2017bk', align={'xx': 'l'}))
         else:
             # print('2016zk---')
             df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
@@ -161,14 +176,16 @@ class Finder:
         print(make_page(dfmerge, title='16-17zk', align=align))
         return dfmerge
 
-    def findzy(self, lowpos=0, highpos=1000, filterlist=('',), align=None):
-        align = dict() if align is None else align
+    def findzy(self, lowpos=0, highpos=1000, xxfilterlist=('',), zyfilterlist=('',)):
+        # align = dict() if align is None else align
         if self.dflq is None:
             return pd.DataFrame()
-        filterfun = closed_filter(filterlist)
-        df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
+        xxfilterfun = closed_filter(xxfilterlist)
+        zyfilterfun = closed_filter(zyfilterlist)
+        df = self.dflq[self.dflq.YXMC.apply(xxfilterfun) & self.dflq.ZYMC.apply(zyfilterfun) & \
+                       (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
-        print(make_page(df.sort_values('WC'), ''.join(filterlist), align))
+        print(make_page(df.sort_values('WC'), ''.join(zyfilterlist), align={'YXMC': 'l', 'ZYMC': 'l', 'WC': 'r'}))
         return  # df
 
     @staticmethod

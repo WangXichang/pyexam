@@ -1,16 +1,33 @@
 
 def find(zy):
-    fxx = 1
-    fzy = 1
+    fxx = 10
+    fzy = 0
     fsx = 0
     if fxx:
-        df = zy.findxx(12700, 18000, ['中外'], kl='lk', align={'xx': 'l'})
+        low = 10000
+        high = 20000
+        filterlist = ['']
+        df = zy.findxx(low=low, high=high, filterlist=filterlist, kl='lk', align={'xx': 'l', 'lkjh': 'r'})
         pass
     if fzy:
-        zy.findzy(41000, 90000, ['临床'])
+        low = 40000
+        high = 80000
+        zyfilter = ['临床']
+        xxfilter = ['']
+        zy.findzy(lowpos=low, highpos=high, zyfilterlist=zyfilter, xxfilterlist=xxfilter)
         pass
     if fsx:
-        df = zy.somexx(['云南师范大学', '安徽大学', '长春理工', '东北电力', '安阳工学院', '武汉商学院', '南洋理工'], kl='wk')
+        filterlist = ['山东财经大学']
+        kl = 'lk'
+        df = zy.somexx(xxsubstr=filterlist, kl=kl)
         pass
 
     return
+
+
+def ys_zf(wh=100, zy=200):
+    return wh*0.3 + zy*750/300*0.7
+
+
+def ty_zf(wh=100, zy=100):
+    return wh*0.3 + zy*750/100*0.7
