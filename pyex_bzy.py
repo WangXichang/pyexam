@@ -3,16 +3,16 @@
 import os
 import numpy as np
 import pandas as pd
-import imp
+import importlib as imp
 from prettytable import PrettyTable as Ptt
-import bk
+import bk18
 
-def baokao():
+def getzyfun():
     zy = getzy()
 
     def find():
-        imp.reload(bk)
-        bk.find(zy)
+        imp.reload(bk18)
+        bk18.find(zy)
         return
 
     return find
