@@ -1,21 +1,22 @@
 
 def find(zy):
     fxx = 10
-    fzy = 0
-    fsx = 0
     if fxx:
-        low = 10000
-        high = 20000
-        filterlist = ['']
-        df = zy.findxx(low=low, high=high, filterlist=filterlist, kl='lk', align={'xx': 'l', 'lkjh': 'r'})
+        low = 115000
+        high = 150000
+        filterlist = ['校企']
+        kl = 'lk'
+        df = zy.findxx(low=low, high=high, filterlist=filterlist, kl=kl, align={'xx': 'l', 'lkjh': 'r'})
         pass
+    fzy = 10
     if fzy:
         low = 40000
-        high = 80000
-        zyfilter = ['临床']
-        xxfilter = ['']
+        high = 180000
+        zyfilter = ['法学']
+        xxfilter = ['山东']
         zy.findzy(lowpos=low, highpos=high, zyfilterlist=zyfilter, xxfilterlist=xxfilter)
         pass
+    fsx = 0
     if fsx:
         filterlist = ['山东财经大学']
         kl = 'lk'
