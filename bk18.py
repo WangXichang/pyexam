@@ -1,6 +1,6 @@
 
 def find(zy):
-    fxx = 10
+    fxx = 0
     if fxx:
         low = 115000
         high = 150000
@@ -8,7 +8,7 @@ def find(zy):
         kl = 'lk'
         df = zy.findxx(low=low, high=high, filterlist=filterlist, kl=kl, align={'xx': 'l', 'lkjh': 'r'})
         pass
-    fzy = 10
+    fzy = 0
     if fzy:
         low = 40000
         high = 180000
@@ -16,10 +16,12 @@ def find(zy):
         xxfilter = ['山东']
         zy.findzy(lowpos=low, highpos=high, zyfilterlist=zyfilter, xxfilterlist=xxfilter)
         pass
-    fsx = 0
+    fsx = 10
     if fsx:
-        filterlist = ['山东财经大学']
-        kl = 'lk'
+        # filterlist = ['北京电影', '西南大学', '广州大学', '天津工业大学', '青岛大学', '山东师范大学']
+        # filterlist = ['电子科技大学', '吉林大学', '哈尔滨工业']
+        filterlist = ['校企']
+        kl = 'wk'
         df = zy.somexx(xxsubstr=filterlist, kl=kl)
         pass
 
