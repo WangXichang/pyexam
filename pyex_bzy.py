@@ -1,9 +1,21 @@
 # -*- utf -*-
 
 import os
+import numpy as np
 import pandas as pd
+import importlib as imp
 from prettytable import PrettyTable as Ptt
+import bk18
 
+def getzyfun():
+    zy = getzy()
+
+    def find():
+        imp.reload(bk18)
+        bk18.find(zy)
+        return
+
+    return find
 
 def getzy():
     loc_dell = 'd:/work/data/lq/'
@@ -31,6 +43,7 @@ class Finder:
         self.td16zk = None
         self.td17zk = None
         self.dflq = None
+        self.fd2018pt = None
 
     def set_datapath(self, path):
         self.path = path
@@ -56,6 +69,20 @@ class Finder:
                                   dtype={'xx': str}, verbose=True)
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
+        fdfs = self.path + 'fd2018pk.csv'
+        if os.path.isfile(fdfs):
+            tempdf = pd.read_csv(fdfs, skiprows=22)
+            tempdf.astype(dtype={'rs': int})
+            # print(tempdf.head())
+            temparray = np.array([[x for x in tempdf.loc[y: y+10, 'rs']] for y in range(0, len(tempdf), 11)])
+            # print(temparray.shape)
+            self.fd2018pt = pd.DataFrame({'fd': temparray[:, 0],
+                                          'wk': temparray[:, 1], 'wklj': temparray[:, 2],
+                                          'lk': temparray[:, 3], 'lklj': temparray[:, 4],
+                                          'ty': temparray[:, 5], 'tylj': temparray[:, 6],
+                                          'yw': temparray[:, 7], 'ywlj': temparray[:, 8],
+                                          'yl': temparray[:, 9], 'yllj': temparray[:, 10],
+                                          })
 
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
@@ -64,33 +91,34 @@ class Finder:
         ffun = closed_filter(xxsubstr)
         if ffun is False:
             return
-        df1, df2, df3 = None, None, None
+        # df1, df2, df3 = None, None, None
         if cc == 'bk':
             print('2016p1---')
             df1 = self.td16p1[self.td16p1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
-                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
+                sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
             print(make_page(df1, '2016p1'))
             print('2016p2---')
             df2 = self.td16p2[self.td16p2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+                sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(make_page(df2, '2016p2'))
             print('2017bk---')
             df3 = self.td17bk[self.td17bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(make_page(df3, '2017bk'))
+                sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(make_page(df3, '2017bk', align={'xx': 'l'}))
         else:
             # print('2016zk---')
             df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
-                  sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
+                sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
             print(make_page(df1, title='2016zk'))
             # print('2017zk---')
             df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
-                  sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+                sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(make_page(df2, title='2017zk'))
         return  # df1, df2, df3
 
-    def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align={}):
+    def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
+        align = dict() if align is None else align
         if cc == 'bk':
             # print('2016pc1---')
             df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
@@ -147,23 +175,31 @@ class Finder:
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
         print(make_page(dfmerge, title='16-17zk', align=align))
-        return  dfmerge
+        return dfmerge
 
-    def findzy(self, lowpos, highpos, filterlist, align):
+    def findzy(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
+        # align = dict() if align is None else align
         if self.dflq is None:
             return pd.DataFrame()
-        filterfun = closed_filter(filterlist)
-        df = self.dflq[self.dflq.ZYMC.apply(filterfun) & (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
+        xxfilterfun = closed_filter(xxfilterlist)
+        zyfilterfun = closed_filter(zyfilterlist)
+        df = self.dflq[self.dflq.YXMC.apply(xxfilterfun) & self.dflq.ZYMC.apply(zyfilterfun) & \
+                       (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
-        print(make_page(df.sort_values('WC'), ''.join(filterlist), align))
+        if len(df) > 0:
+            print(make_page(df.sort_values('WC'), ''.join(zyfilterlist), align={'YXMC': 'l', 'ZYMC': 'l', 'WC': 'r'}))
+        else:
+            print('no record found in pos {}--{} for xx={} zy={}'.format(lowpos, highpos, xxfilterlist, zyfilterlist))
         return  # df
 
-    def get_df_from_pos(self, df, lowpos, highpos, posfield, filterlist, kl):
+    @staticmethod
+    def get_df_from_pos(df, lowpos, highpos, posfield, filterlist, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
         filterfun = closed_filter(filterlist)
         return df[['xx', jh, posfield]][(df[posfield] <= highpos) &
                                         (df[posfield] >= lowpos) &
                                         df.xx.apply(filterfun)].sort_values(by=posfield)
+
 
 def closed_filter(substr_list):
     substr_list = substr_list
@@ -227,7 +263,7 @@ def make_page(df, title='', pagelines=30, align={}):
                 head += plist[i] + '\n'
         else:
             # not save first head in result
-            if i < plen -1:
+            if i < plen - 1:
                 result += plist[i] + '\n'
         # find gapline and the end of head
         if plist[i].count('+') == gridnum + 1:
