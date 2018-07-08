@@ -148,3 +148,24 @@ def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
             df[fs+'_f'] = dfsource[fs].apply(lambda x: x.rjust(strlen))
     df.sort_index(axis=1)
     return df
+
+
+def round45(v: float, i=0):
+    vl = str(v).split('.')
+    sign = -1 if v < 0 else 1
+    if len(vl) == 2:
+        if len(vl[1]) > i:
+            if vl[1][i] >= '5':
+                if i > 0:
+                    vp = (eval(vl[1][:i]) + 1)/10**i * sign
+                    return int(v)+vp
+                else:
+                    return int(v)+sign
+            else:
+                if i > 0:
+                    return int(v) + eval(vl[1][:i])/10**i * sign
+                else:
+                    return int(v)
+        else:
+            return v
+    return int(v)
