@@ -171,3 +171,7 @@ def round45(v: float, i=0):
         else:
             return v
     return int(v)
+
+def round45i(v:float, dec=1):
+    u = int(v * 10**dec*10)
+    return (int(u/10)+ (1 if v >0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec

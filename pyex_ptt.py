@@ -110,7 +110,6 @@ def make_mpage(df, title='', page_line_num=30, align=None, fold=0):
         if cur_fold < 0:
             result += mpagetext + '\n\f'
             mpagetext, pagetext, pageline, cur_fold = '', head, 0, fold
-
     return result
 
 
