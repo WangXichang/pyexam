@@ -85,7 +85,7 @@ def make_mpage(df, title='', page_line_num=30, align=None, fold=0):
     plen = len(plist)
 
     # retrieving table head and gapline
-    head, gapline,head_rows = get_head(plist, fold)
+    head, gapline,head_rows = get_head(plist)
 
     # construct pages
     result = ''
@@ -111,11 +111,10 @@ def make_mpage(df, title='', page_line_num=30, align=None, fold=0):
             result += mpagetext + '\n\f'
             mpagetext, pagetext, pageline, cur_fold = '', head, 0, fold
 
-    #print(mhead, 'test')
     return result
 
 
-def get_head(plist, fold):
+def get_head(plist):
     head, gapline = '', None
     hline, i, column_rownum = 0, 0, 0
     while hline < 2:
@@ -137,18 +136,6 @@ def get_head(plist, fold):
             if gapline is None:
                 gapline = plist[i] + '\n'
         i += 1
-
-    # # construct fold head
-    # mhead = ''
-    # if fold > 0:
-    #     hlist = head.split('\n')
-    #     mhlist = []
-    #     for hs in hlist:
-    #         if len(hs) > 0:
-    #             mhlist.append((hs + '\t') * fold + hs)
-    #     mhead = '\n'.join(mhlist) + '\n'
-    # else:
-    #     mhead = head
 
     return head, gapline, i
 
