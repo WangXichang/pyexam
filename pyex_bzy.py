@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import importlib as imp
-from prettytable import PrettyTable as Ptt
+import pyex_ptt as ptt
 import bk18
 
 def getzyfun():
@@ -87,6 +87,14 @@ class Finder:
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
+    def findwc(self, score=500, kl='wk', scope=0):
+        df = self.fd2018pt
+        fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)][['fd', kl, kl+'lj']]
+        if len(fdv) > 0:
+            print(ptt.make_page(fdv, title=kl))
+        else:
+            print('not found data for score={} kl={}!'.format(score, kl))
+
     def somexx(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
         if ffun is False:
@@ -96,24 +104,24 @@ class Finder:
             print('2016p1---')
             df1 = self.td16p1[self.td16p1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
-            print(make_page(df1, '2016p1'))
+            print(ptt.make_page(df1, '2016p1'))
             print('2016p2---')
             df2 = self.td16p2[self.td16p2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(make_page(df2, '2016p2'))
+            print(ptt.make_page(df2, '2016p2'))
             print('2017bk---')
             df3 = self.td17bk[self.td17bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(make_page(df3, '2017bk', align={'xx': 'l'}))
+            print(ptt.make_page(df3, '2017bk', align={'xx': 'l'}))
         else:
             # print('2016zk---')
             df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
-            print(make_page(df1, title='2016zk'))
+            print(ptt.make_page(df1, title='2016zk'))
             # print('2017zk---')
             df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(make_page(df2, title='2017zk'))
+            print(ptt.make_page(df2, title='2017zk'))
         return  # df1, df2, df3
 
     def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
@@ -174,7 +182,7 @@ class Finder:
                 dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
-        print(make_page(dfmerge, title='16-17zk', align=align))
+        print(ptt.make_page(dfmerge, title='16-17zk', align=align))
         return dfmerge
 
     def findzy(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
@@ -187,7 +195,7 @@ class Finder:
                        (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
         if len(df) > 0:
-            print(make_page(df.sort_values('WC'), ''.join(zyfilterlist), align={'YXMC': 'l', 'ZYMC': 'l', 'WC': 'r'}))
+            print(ptt.make_page(df.sort_values('WC'), ''.join(zyfilterlist), align={'YXMC': 'l', 'ZYMC': 'l', 'WC': 'r'}))
         else:
             print('no record found in pos {}--{} for xx={} zy={}'.format(lowpos, highpos, xxfilterlist, zyfilterlist))
         return  # df
@@ -214,74 +222,3 @@ def closed_filter(substr_list):
         return False
 
     return filterfun
-
-
-def make_table(df, title='', align={}):
-    x = Ptt()
-    j = 0
-    for f in df.columns:
-        x.add_column(f, [x for x in df[f]])
-        if (f in align):
-            if (align[f] in ['l', 'c', 'r']):
-                x.align[f] = align[f]
-            elif df[f]._is_numeric_mixed_type:
-                x.align[f] = 'r'
-            elif df[f]._is_mixed_type:
-                x.align[f] = 'l'
-            else:
-                x.align[f] = 'c'
-        j = j + 1
-    rs = x.get_string()
-    return title.center(rs.index('\n')) + '\n' + rs
-
-
-def make_page(df, title='', pagelines=30, align={}):
-    gridnum = len(df.columns)
-    result = ''
-    ptext = make_table(df=df, title=title, align=align)
-    plist = ptext.split('\n')
-    # print(plist)
-    plen = len(plist)
-    hline = 0
-    textline = 0
-    head = ''
-    gapline = None
-    pagewid = 0
-    pageno = 0
-    for i in range(plen):
-        if hline < 2:
-            # set subtitle in center
-            if ('+' not in plist[i]) & (plist[i].count('|') == gridnum + 1):
-                sp = plist[i].split('|')
-                newsp = []
-                for x in sp:
-                    if len(x.strip()) < len(x):
-                        left_space = int((len(x) - len(x.strip()))/2)
-                        newsp.append(' '*left_space + x.strip() + ' '*(len(x) - left_space-len(x.strip())))
-                head += '|' + '|'.join(newsp) + '|\n'
-            else:
-                head += plist[i] + '\n'
-        else:
-            # not save first head in result
-            if i < plen - 1:
-                result += plist[i] + '\n'
-        # find gapline and the end of head
-        if plist[i].count('+') == gridnum + 1:
-            hline = hline + 1
-            if gapline is None:
-                pagewid = len(plist[i])
-                gapline = plist[i] + '\n'
-            continue
-        # add first head+gapline in result
-        if (len(result) == 0) & (gapline is not None):
-            result = head + gapline
-        # start count content row number(textline)
-        if hline == 2:
-            textline += 1
-        # seperate pages
-        if (textline == pagelines) | (i == plen-2):
-            pageno += 1
-            pagenostr = ('--'+str(pageno)+'--').center(pagewid) + '\n\n'
-            result += gapline + pagenostr + (head if i < plen-2 else '')
-            textline = 0
-    return result

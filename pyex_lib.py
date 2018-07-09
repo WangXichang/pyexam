@@ -1,6 +1,7 @@
-# -*- utf-8 -*-
+# -*- coding: utf-8 -*-
 # version 2017-09-16
 # 2017-11-18
+
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -127,13 +128,14 @@ def pearson_relation(x, y):
     return stats.pearsonr(x, y)[0]
 
 
-def float_str(x, d1, d2):
-    fs = '{:'+str(d1+d2+1)+'.'+str(d2)+'f}'
+def float_str(x, intlen, declen):
+    x = round45(x,declen)
+    fs = '{:'+str(intlen+declen+1)+'.'+str(declen)+'f}'
     return fs.format(x)
 
 
-def int_str(x, d):
-    return ('{:'+str(d)+'d}').format(x)
+def int_str(x, len):
+    return ('{:'+str(len)+'d}').format(x)
 
 
 def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
