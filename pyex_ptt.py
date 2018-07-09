@@ -76,24 +76,52 @@ def make_page(df, title='', pagelines=30, align=None):
     return result
 
 
-def make_mpage(df, title='', pagelines=30, align=None, fold=0):
+def make_mpage(df, title='', page_line_num=30, align=None, fold=0):
     if align is None:
         align = dict()
-    gridnum = len(df.columns)
-    result = ''
+    # columns_num = len(df.columns)
     ptext = make_table(df=df, title=title, align=align)
     plist = ptext.split('\n')
     plen = len(plist)
 
     # retrieving table head and gapline
-    hline = 0
-    head = ''
-    gapline = None
-    pagewid = 0
-    i = 0
-    while True:
+    head, gapline,head_rows = get_head(plist, fold)
+
+    # construct pages
+    result = ''
+    mpagetext = ''
+    pagetext = head
+    pageline = 0
+    pageno = 1
+    cur_fold = fold
+    for j in range(head_rows, plen):
+        pagetext += plist[j] + '\n'
+        pageline += 1
+        # full page or end of table
+        if (pageline == page_line_num) | ('+' in plist[j]):
+            pagetext += (gapline if '+' not in plist[j] else '')\
+                        + str(pageno).center(len(plist[j])) + '\n'
+            if cur_fold == fold:
+                mpagetext = pagetext
+            else:
+                if j < plen-1:
+                    mpagetext = concat_page(mpagetext, pagetext)
+            pagetext, pageline, pageno, cur_fold = head, 0, pageno+1, cur_fold-1
+        if cur_fold < 0:
+            result += mpagetext + '\n\f'
+            mpagetext, pagetext, pageline, cur_fold = '', head, 0, fold
+
+    #print(mhead, 'test')
+    return result
+
+
+def get_head(plist, fold):
+    head, gapline = '', None
+    hline, i, column_rownum = 0, 0, 0
+    while hline < 2:
         # set subtitle to center
-        if ('+' not in plist[i]) & (plist[i].count('|') == gridnum + 1):
+        if ('+' not in plist[i]) & (plist[i].count('|') > 1):
+            # column_rownum = plist[i].count('|') - 1
             sp = plist[i].split('|')
             newsp = []
             for x in sp:
@@ -104,52 +132,31 @@ def make_mpage(df, title='', pagelines=30, align=None, fold=0):
         else:
             head += plist[i] + '\n'
         # set gapline
-        if plist[i].count('+') == gridnum + 1:
+        if plist[i].count('+') > 1:
             hline = hline + 1
             if gapline is None:
-                pagewid = len(plist[i])
                 gapline = plist[i] + '\n'
-        # retrieving head finished
-        if hline == 2:
-            break
+        i += 1
 
-    # construct fold head
-    mhead = ''
-    if fold > 0:
-        hlist = head.split('\n')
-        mhlist = []
-        for hs in hlist:
-            mhlist.append((hs + '\t') * fold + hs + '\n')
+    # # construct fold head
+    # mhead = ''
+    # if fold > 0:
+    #     hlist = head.split('\n')
+    #     mhlist = []
+    #     for hs in hlist:
+    #         if len(hs) > 0:
+    #             mhlist.append((hs + '\t') * fold + hs)
+    #     mhead = '\n'.join(mhlist) + '\n'
+    # else:
+    #     mhead = head
 
-    # construct pages
-    result = ''
-    mpagetext = ''
-    pagetext = ''
-    textline = 0
-    pageno = 0
-    # page_fold_line = pagelines * (fold + 1)
-    cur_fold = fold
-    for j in range(i+1, plen):
-        pagetext += plist[j] + '\n'
-        textline += 1
-        if textline == pagelines:
-            if cur_fold == fold:
-                mpagetext = pagetext
-                pagetext = ''
-                cur_fold -= 1
-            else:
-                mpagetext = concat_page(mpagetext, pagetext)
-            textline = 0
-        # find gapline and the end of table
-        if plist[j].count('+') == gridnum + 1:
-            break
-
-    return result
+    return head, gapline, i
 
 
 def concat_page(mp, pt):
     mpl = mp.split('\n')
     npl = pt.split('\n')
     for j in range(len(mpl)):
-        mpl[j] = mpl[j] + '\t' + npl[j] + '\n'
-    return ''.join(mpl)
+        if j < len(npl):
+            mpl[j] = mpl[j] + '\t' + npl[j]
+    return '\n'.join(mpl)
