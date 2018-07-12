@@ -44,6 +44,7 @@ class Finder:
         self.td17zk = None
         self.dflq = None
         self.fd2018pt = None
+        self.yxinfo = None
 
     def set_datapath(self, path):
         self.path = path
@@ -87,13 +88,18 @@ class Finder:
         if os.path.isfile(self.path+'2015pc2lqk.csv'):
             self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
-    def findwc(self, score=500, kl='wk', scope=0):
+        if os.path.isfile(self.path+'yxinfo.csv'):
+            self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
+                                      dtype={'yxdm':str, 'ssdm': str, 'yxjblxdm': str, 'zgdm': str,
+                                             'sf211': str, 'sf985': str})
+
+    def findwc(self, score=500, scope=0):
         df = self.fd2018pt
-        fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)][['fd', kl, kl+'lj']]
+        fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
         if len(fdv) > 0:
-            print(ptt.make_page(fdv, title=kl))
+            print(ptt.make_page(fdv, title=str('focus on '+str(score))))
         else:
-            print('not found data for score={} kl={}!'.format(score, kl))
+            print('not found data for score={} kl={}!'.format(score))
 
     def somexx(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
@@ -117,11 +123,11 @@ class Finder:
             # print('2016zk---')
             df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
-            print(ptt.make_page(df1, title='2016zk'))
+            print(ptt.make_page(df1, title='2016zk', align={'xx': 'l'}))
             # print('2017zk---')
             df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(ptt.make_page(df2, title='2017zk'))
+            print(ptt.make_page(df2, title='2017zk', align={'xx': 'l'}))
         return  # df1, df2, df3
 
     def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
@@ -184,6 +190,11 @@ class Finder:
                                                 }, errors='ignore')
         print(ptt.make_page(dfmerge, title='16-17zk', align=align))
         return dfmerge
+
+    def lookxx(self, yxlist=('',)):
+        yxfilterfun = closed_filter(yxlist)
+        df = self.yxinfo[self.yxinfo.yxmc.apply(yxfilterfun)]
+        print(ptt.make_mpage(df, '/'.join(yxlist)))
 
     def findzy(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
         # align = dict() if align is None else align
