@@ -379,13 +379,16 @@ class SegTable(object):
         for f in self.field_list:
 
             # calculate preliminary group count
+            tempdf = self.input_data
+            self.input_data.loc[:, f] = tempdf[f].apply(
+                lambda x: round(x) if np.random.randint(0, 2)==0 else int(x))
             r = self.input_data.groupby(f)[f].count()
             if self.__display:
                 print('segments count finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
 
             # count seg_count in [segmin, segmax]
-            self.__output_dataframe[f + '_count'] = self.__output_dataframe['seg'].\
-                apply(lambda x: np.int64(r[x]) if x in r.index else 0)
+            # self.__output_dataframe.loc[:, f + '_count'] = self.__output_dataframe['seg'].\
+            #     apply(lambda x: np.int64(r[x]) if x in r.index else 0)
             if self.__display:
                 print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
 

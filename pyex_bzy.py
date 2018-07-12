@@ -99,7 +99,7 @@ class Finder:
         if len(fdv) > 0:
             print(ptt.make_page(fdv, title=str('focus on '+str(score))))
         else:
-            print('not found data for score={} kl={}!'.format(score))
+            print('not found data for score={}!'.format(score))
 
     def somexx(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
