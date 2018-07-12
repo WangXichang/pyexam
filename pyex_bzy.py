@@ -45,6 +45,9 @@ class Finder:
         self.dflq = None
         self.fd2018pt = None
         self.yxinfo = None
+        self.yx16 = None
+        self.yx17 = None
+        self.yx18 = None
 
     def set_datapath(self, path):
         self.path = path
@@ -70,6 +73,7 @@ class Finder:
                                   dtype={'xx': str}, verbose=True)
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
+
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
             tempdf = pd.read_csv(fdfs, skiprows=22)
@@ -92,6 +96,21 @@ class Finder:
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
                                       dtype={'yxdm':str, 'ssdm': str, 'yxjblxdm': str, 'zgdm': str,
                                              'sf211': str, 'sf985': str})
+
+        for fs in ['16', '17', '18']:
+            fname = self.path+'yxdf20'+fs+'.txt'
+            if os.path.isfile(fname):
+                dt = pd.read_csv(fname, sep='\t', index_col=0,
+                                 dtype={'yxdm':str, 'ssdm': str, 'dydm': str, 'jhsxdm': str,
+                                        'sfmb': str, 'sf985': str})
+                if fs == '18':
+                    self.yx18 = dt.copy()
+                elif fs == '17':
+                    self.yx17 = dt.copy()
+                else:
+                    self.yx16 = dt.copy()
+            else:
+                print('load fail:{}'.format(fs))
 
     def findwc(self, score=500, scope=0):
         df = self.fd2018pt
@@ -233,3 +252,7 @@ def closed_filter(substr_list):
         return False
 
     return filterfun
+
+
+def add_yxinfo(df, dfyx):
+    return pd.merge(df, dfyx, on='yxdm')
