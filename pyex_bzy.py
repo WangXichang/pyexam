@@ -1,4 +1,4 @@
-# -*- utf -*-
+# -*- utf8 -*-
 
 import os
 import numpy as np

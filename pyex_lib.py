@@ -77,27 +77,34 @@ def report_stats_describe(dataframe, decdigits=4):
     def tosqrt(listvalue, getdecdigits):
         return ''.join([('{:1.'+str(getdecdigits)+'f}  ').format(round(np.sqrt(x), getdecdigits)) for x in listvalue])
 
-    pr = [[float_str(stats.pearsonr(dataframe[x], dataframe[y])[0], 2, 4)
+    pr = [[stats.pearsonr(dataframe[x], dataframe[y])[0]
            for x in dataframe.columns] for y in dataframe.columns]
     sd = stats.describe(dataframe)
+    cv = dataframe.cov()
     print('\trecords: ', sd.nobs)
     print('\tpearson recorrelation:')
     for i in range(len(dataframe.columns)):
-        print('\t', pr[i])
-    print('\tmin: ', toround(sd.minmax[0], 0))
-    print('\tmax: ', toround(sd.minmax[1], 0))
+        print('\t', toround(pr[i], 4))
+    print('\tcovariance matrix:')
+    for j in range(len(cv)):
+        print('\t', toround(cv.iloc[j, :], 4))
+    print('\tmin : ', toround(sd.minmax[0], 4))
+    print('\tmax : ', toround(sd.minmax[1], 4))
     print('\tmean: ', toround(sd.mean, decdigits))
-    print('\tvariance: ', toround(sd.variance, decdigits), '\n\tstdandard deviation: ', tosqrt(sd.variance, decdigits))
+    print('\tvar : ', toround(sd.variance, decdigits))
+    print('\tstd : ', tosqrt(sd.variance, decdigits))
     print('\tskewness: ', toround(sd.skewness, decdigits))
     print('\tkurtosis: ', toround(sd.kurtosis, decdigits))
-    dict = {'records': sd.nobs,
+    dict = {'record': sd.nobs,
             'max': sd.minmax[1],
             'min': sd.minmax[0],
             'mean': sd.mean,
-            'variance': sd.variance,
+            'var': sd.variance,
+            'cov': cv,
+            'cor': pr,
             'skewness': sd.skewness,
             'kurtosis': sd.kurtosis,
-            'relation': pr}
+            }
     return dict
 
 class ScoreStats:
