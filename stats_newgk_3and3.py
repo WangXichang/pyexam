@@ -58,17 +58,24 @@ def disp(df, kl='wk', minscore=500, maxscore=600):
 def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
         ['yw', 'sx', 'wy', 'wl', 'hx', 'sw']
-    flist = [fs+'n' if fs not in ['yw', 'sx', 'wy'] else fs for fs in flist]
-    print('--- {} correlation for {} ---'.format(year, flist + ['zf']))
-    result1 = df[df.zf > 0][flist + ['zf']].corr()
+    flist = [fs+'n' if fs not in ['yw', 'sx', 'wy'] else fs for fs in flist] + ['zf']
+    print('--- {} correlation for {} ---'.format(year, flist))
+    result1 = df[df.zf > 0][flist].corr()
     result1 = result1.applymap(lambda x: round(x, 4))
     # result1.loc[:, 'year'] = [year]*len(result1)
     print(result1)
+    print('\n')
     d1 = {'year':[], 'scope': []}
     d1.update({fs+'_var': [] for fs in flist})
     dstd = pd.DataFrame(d1)
     dcor = pd.DataFrame(d1)
     for st in range(minscore, maxscore, step):
+        print('--- {} covar for {} ---'.format(year, str(st) + '-' + str(st+step)))
+        result2 = df[df.zf.apply(lambda x: st <= x <= st+step)][flist].cov()
+        result2 = result2.applymap(lambda x: round(x, 4))
+        # result1.loc[:, 'year'] = [year]*len(result1)
+        print(result2)
+        print('\n')
         dt1 = dict()
         dt1.update({'year': [year], 'scope': [str(st) + '-' + str(st+step)]})
         dt2 = dict()
@@ -77,13 +84,15 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
             if fs in df.columns:
                 dftemp = df[(df.zf >= st) & (df.zf <= st+step)]
                 tvar = round(var(dftemp[fs]), 2)
-                tcor = round(stt.pearsonr(dftemp[fs], dftemp['zf'])[0], 4)
                 dt1.update({fs+'_var': [tvar]})
-                dt2.update({fs+'_cor': [tcor]})
+                if fs != 'zf':
+                    tcor = round(stt.pearsonr(dftemp[fs], dftemp['zf'])[0], 4)
+                    dt2.update({fs+'_zf': [tcor]})
         dstd = dstd.append(pd.DataFrame(dt1))
         dcor = dcor.append(pd.DataFrame(dt2))
     print('--- segment var for {} ---'.format(flist))
     print(dstd[['year', 'scope'] + [fs+'_var' for fs in flist]])
+    print('\n')
     print('--- segment std for {} ---'.format(flist))
-    print(dcor[['year', 'scope'] + [fs+'_cor' for fs in flist]])
+    print(dcor[['year', 'scope'] + [fs+'_zf' for fs in flist if fs != 'zf']])
     return [result1, dstd, dcor]
