@@ -1,6 +1,6 @@
 # -*- utf-8 -*-
 
-from numpy import std, mean
+from numpy import std, mean, var
 import pandas as pd
 import os
 import pyex_seg as sg
@@ -55,28 +55,35 @@ def disp(df, kl='wk', minscore=500, maxscore=600):
     print(tdf[flist].describe())
     return dfo
 
-def desc(df, kl='wk', minscore=300, maxscore=400, step=50):
+def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
         ['yw', 'sx', 'wy', 'wl', 'hx', 'sw']
     flist = [fs+'n' if fs not in ['yw', 'sx', 'wy'] else fs for fs in flist]
-    d1 = {'scope': []}
-    d1.update({fs+'_std': [] for fs in flist})
+    print('--- {} correlation for {} ---'.format(year, flist + ['zf']))
+    result1 = df[df.zf > 0][flist + ['zf']].corr()
+    result1 = result1.applymap(lambda x: round(x, 4))
+    # result1.loc[:, 'year'] = [year]*len(result1)
+    print(result1)
+    d1 = {'year':[], 'scope': []}
+    d1.update({fs+'_var': [] for fs in flist})
     dstd = pd.DataFrame(d1)
     dcor = pd.DataFrame(d1)
     for st in range(minscore, maxscore, step):
         dt1 = dict()
-        dt1.update({'scope': [str(st) + '-' + str(st+step)]})
+        dt1.update({'year': [year], 'scope': [str(st) + '-' + str(st+step)]})
         dt2 = dict()
-        dt2.update({'scope': [str(st) + '-' + str(st+step)]})
+        dt2.update({'year': [year], 'scope': [str(st) + '-' + str(st+step)]})
         for fs in flist:
             if fs in df.columns:
                 dftemp = df[(df.zf >= st) & (df.zf <= st+step)]
-                tstd = std(dftemp[fs])
+                tvar = round(var(dftemp[fs]), 2)
                 tcor = round(stt.pearsonr(dftemp[fs], dftemp['zf'])[0], 4)
-                dt1.update({fs+'_std': [tstd]})
+                dt1.update({fs+'_var': [tvar]})
                 dt2.update({fs+'_cor': [tcor]})
         dstd = dstd.append(pd.DataFrame(dt1))
         dcor = dcor.append(pd.DataFrame(dt2))
-    print(dstd[['scope'] + [fs+'_std' for fs in flist]])
-    print(dcor[['scope'] + [fs+'_cor' for fs in flist]])
-    return dstd
+    print('--- segment var for {} ---'.format(flist))
+    print(dstd[['year', 'scope'] + [fs+'_var' for fs in flist]])
+    print('--- segment std for {} ---'.format(flist))
+    print(dcor[['year', 'scope'] + [fs+'_cor' for fs in flist]])
+    return [result1, dstd, dcor]
