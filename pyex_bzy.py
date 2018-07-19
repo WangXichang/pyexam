@@ -96,19 +96,23 @@ class Finder:
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
                                       dtype={'yxdm':str, 'ssdm': str, 'yxjblxdm': str, 'zgdm': str,
                                              'sf211': str, 'sf985': str})
-
+        yxinfoc = self.yxinfo[['yxdm', 'ssdm', 'ssmc', 'zgdm', 'zgmc', 'yxjblxdm', 'yxjblxmc', 'sf985', 'sf211']]
         for fs in ['16', '17', '18']:
             fname = self.path+'yxdf20'+fs+'.txt'
             if os.path.isfile(fname):
-                dt = pd.read_csv(fname, sep='\t', index_col=0,
+                dt = pd.read_csv(fname, sep='\t', index_col=False,
                                  dtype={'yxdm':str, 'ssdm': str, 'dydm': str, 'jhsxdm': str,
-                                        'sfmb': str, 'sf985': str})
+                                        'sfmb': str, 'sf985': str, 'yxdh': str})
                 if fs == '18':
                     self.yx18 = dt.copy()
+                    # print(self.yx18.head())
+                    self.yx18 =pd.merge(self.yx18, yxinfoc, on='yxdm', how='left')
                 elif fs == '17':
                     self.yx17 = dt.copy()
+                    self.yx17 =pd.merge(self.yx17, yxinfoc, on='yxdm', how='left')
                 else:
                     self.yx16 = dt.copy()
+                    self.yx16 =pd.merge(self.yx16, yxinfoc, on='yxdm', how='left')
             else:
                 print('load fail:{}'.format(fs))
 

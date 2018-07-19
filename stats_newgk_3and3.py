@@ -62,17 +62,22 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     print('--- {} correlation for {} ---'.format(year, flist))
     result1 = df[df.zf > 0][flist].corr()
     result1 = result1.applymap(lambda x: round(x, 4))
-    # result1.loc[:, 'year'] = [year]*len(result1)
     print(result1)
     print('\n')
+    result2 = None
     d1 = {'year':[], 'scope': []}
     d1.update({fs+'_var': [] for fs in flist})
     dstd = pd.DataFrame(d1)
     dcor = pd.DataFrame(d1)
     for st in range(minscore, maxscore, step):
         print('--- {} covar for {} ---'.format(year, str(st) + '-' + str(st+step)))
-        result2 = df[df.zf.apply(lambda x: st <= x <= st+step)][flist].cov()
-        result2 = result2.applymap(lambda x: round(x, 4))
+        dftemp = df[df.zf.apply(lambda x: st <= x <= st+step)][flist].cov()
+        dftemp = result2.applymap(lambda x: round(x, 4))
+        dftemp.loc[:, 'seg'] = [str(st)+'-'+str(st+step)]*len(dftemp)
+        if result2 is None:
+            result2 = dftemp
+        else:
+            result2.append(dftemp)
         # result1.loc[:, 'year'] = [year]*len(result1)
         print(result2)
         print('\n')
@@ -95,4 +100,4 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     print('\n')
     print('--- segment std for {} ---'.format(flist))
     print(dcor[['year', 'scope'] + [fs+'_zf' for fs in flist if fs != 'zf']])
-    return [result1, dstd, dcor]
+    return [result1, result2, dstd, dcor]
