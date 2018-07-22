@@ -9,8 +9,8 @@ import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
 
-import warnings
-warnings.simplefilter('error')
+# import warnings
+# warnings.simplefilter('error')
 
 
 def test(name='plt', df=None, field_list='', decimals=0):
@@ -39,7 +39,8 @@ def test(name='plt', df=None, field_list='', decimals=0):
 
         pltmodel.output_score_decimals = 0
         pltmodel.set_data(input_data=scoredf, field_list=field_list)
-        pltmodel.set_parameters(rawpoints_sd, stdpoints_sd)
+        pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
+                                output_score_points_list=stdpoints_sd)
         pltmodel.run()
         # pltmodel.report()
         pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
@@ -183,15 +184,14 @@ class PltScore(ScoreTransformModel):
         # new properties for linear segment stdscore
         self.input_score_percentage_points = []
         self.output_score_points = []
-        self.output_data_seg = None
+        self.input_data_seg = pd.DataFrame()
+        self.lookup_percent_mode = 'minmax'
 
         # result
         self.result_input_score_points = []
         self.result_pltCoeff = {}
         self.result_formula = ''
         self.result_all_dict = {}
-
-        return
 
     def set_data(self, input_data=None, field_list=None):
         # check and set rawdf
@@ -224,8 +224,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list:
         :param input_score_min:
         :param input_score_max:
-        :param set_percent_mode:  minmax, maxmin, nearmin, nearmax
-        :return:
+        :param lookup_percent_mode:  minmax, maxmin, nearmin, nearmax
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
@@ -237,6 +236,7 @@ class PltScore(ScoreTransformModel):
         self.output_score_points = output_score_points_list
         self.input_score_min = input_score_min
         self.input_score_max = input_score_max
+        self.lookup_percent_mode = lookup_percent_mode
 
     def check_parameter(self):
         if not self.field_list:
@@ -287,8 +287,8 @@ class PltScore(ScoreTransformModel):
             # df2 = df[eval(_filter)][[fs]]
             self.output_score_data = df[eval(_filter)][[fs]]
 
-            # self.__pltrun(fs)
-            if not self.__preprocess(fs):
+            # get fomula
+            if not self.__get_formula(fs):
                 print('fail to initializing !')
                 return
 
@@ -324,6 +324,11 @@ class PltScore(ScoreTransformModel):
     def __getcoeff(self):
         # formula: y = (y2-y1)/(x2 -x1) * (x - x1) + y1
         # coeff = (y2-y1)/(x2 -x1)
+
+        if len(self.result_input_score_points) != len(self.output_score_points):
+            print('error score points: {}'.format(self.result_input_score_points))
+            return False
+
         for i in range(1, len(self.output_score_points)):
             if (self.result_input_score_points[i] - self.result_input_score_points[i - 1]) < 0.1**6:
                 print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
@@ -370,7 +375,7 @@ class PltScore(ScoreTransformModel):
         else:
             return False
 
-    def __preprocess(self, field):
+    def __get_formula(self, field):
         # check format
         if type(self.input_data) != pd.DataFrame:
             print('no dataset given!')
@@ -400,7 +405,9 @@ class PltScore(ScoreTransformModel):
             #                                   if 'int' in self.output_score_data[field].dtype.name
             #                                   else __rawdfdesc.loc[f]
             #                                   for f in __rawdfdesc.index if '%' in f]
-            self.result_input_score_points = self.__getRawPoint(field)
+            print('-- get score points...')
+            # print(self.input_data_seg)
+            self.result_input_score_points = self.__getRawPoint(field, self.lookup_percent_mode)
         else:
             print('score field({}) not in output_dataframe!'.format(field))
             print('must be in {}'.format(self.input_data.columns.values))
@@ -414,37 +421,42 @@ class PltScore(ScoreTransformModel):
 
     def __getRawPoint(self, field, mode='minmax'):
         score_points = []
-        minpercent = 0
-        maxpercent = 1
         lastpercent = 0
         lastseg = self.input_score_min
         thisseg = 0
         percent_loc = 0
-        for index, row in self.output_data_seg.iterrows():
+        for index, row in self.input_data_seg.iterrows():
             p = row[field+'_percent']
             thisseg = row['seg']
-            # choose mode
-            if mode == 'minmax':
-                if (p > self.input_score_percentage_points[percent_loc]) | (p == 1):
-                    score_points += [lastseg]
-                    lastpercent = p
-                    lastseg = thisseg
+            thispercent = self.input_score_percentage_points[percent_loc]
+            print(p, thisseg, thispercent, row)
+            if mode in 'minmax, maxmin':
+                if p > thispercent:
+                    score_points += [lastseg] if mode == 'minmax' else [thisseg]
                     percent_loc += 1
-            elif mode == 'maxmin':
-                pass
-            elif mode == 'nearmax':
-                pass
-            elif mode == 'nearmin':
-                pass
+            elif mode in 'nearmax, nearmin':
+                if p > thispercent:
+                    if (p-thispercent) < (thispercent - lastpercent):
+                        score_points += [thisseg]
+                    else:
+                        score_points += [lastseg]
+                    percent_loc += 1
+                elif (p == thispercent) & (p == lastpercent):
+                    if 'max' in mode:  # nearmax
+                        score_points += [thisseg]
+                    else:  # nearmin
+                        score_points += [lastseg]
             else:
                 print('error mode {} !'.format(mode))
                 raise TypeError
+            lastseg = thisseg
+            lastpercent = p
             if (p == 1) | (percent_loc == len(self.input_score_percentage_points)):
                 break
-        return [0, 20]
+        return score_points
 
     def __pltrun(self, scorefieldname):
-        if not self.__preprocess(scorefieldname):
+        if not self.__get_formula(scorefieldname):
             print('fail to initializing !')
             return
 
