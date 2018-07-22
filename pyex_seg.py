@@ -48,18 +48,23 @@ def test():
     seg.run()
     seg.show_parameters()
     print(seg.output_data)
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+
+    # special step, start, no all data
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=False)
     seg.run()
+    print('\n')
     seg.show_parameters()
     print(seg.output_data)
 
     # change parameters to run to get new result
-    seg.segalldata = False
+    seg.segalldata = True
     seg.segstart = 7
     seg.segmax = 10
     seg.segmin = 1
     seg.segstep = 2
+    seg.display = False
     seg.run()
+    print('\n')
     seg.show_parameters()
     print(seg.output_data)
 
@@ -69,9 +74,12 @@ def test():
     seg.segsort = 'a'
     seg.segstart = 2
     seg.segmax = 7
+    seg.display = False
     seg.run()
+    print('\n')
     seg.show_parameters()
     print(seg.output_data)
+    print('\n--- get result using df.sf_list > 0 ---')
     print(seg.output_data[seg.output_data.sf_list > 0])
 
     return seg
