@@ -375,18 +375,18 @@ class SegTable(object):
         if self.__display:
            print('---> start ......')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
+        if  self.__segSort in ['d', 'D']:
+            seglist = sorted(seglist, reverse=True)
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         for f in self.field_list:
-
             # calculate preliminary group count
             tempdf = self.input_data
-            self.input_data.loc[:, f] = tempdf[f].apply(
-                lambda x: round(x) if np.random.randint(0, 2)==0 else int(x))
-            r = self.input_data.groupby(f)[f].count()
-            if self.__display:
-                print('segments count finished groupby ' + f, ' use time:{0}'.format(time.clock() - sttime))
+            self.input_data.loc[:, f] = tempdf[f].apply(round45i)
 
             # count seg_count in [segmin, segmax]
+            r = self.input_data.groupby(f)[f].count()
+            fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
+            self.__output_dataframe.loc[:, f+'_count'] = fcount_list
             # self.__output_dataframe.loc[:, f + '_count'] = self.__output_dataframe['seg'].\
             #     apply(lambda x: np.int64(r[x]) if x in r.index else 0)
             if self.__display:
@@ -400,8 +400,8 @@ class SegTable(object):
                     r[r.index >= self.__segMax].sum()
 
             # set order for seg fields
-            if self.__segSort not in ['a', 'A']:
-                self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
+            # if self.__segSort not in ['a', 'A']:
+            #     self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
 
             # calculate cumsum field
             self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
@@ -433,6 +433,11 @@ class SegTable(object):
         return
 
     def __run_special_step(self, field: str):
+        """
+        processing count for step > 1
+        :param field: for seg stepx
+        :return: field_countx in output_data
+        """
         f = field
         segcountname = f + '_count{0}'.format(self.__segStep)
         self.__output_dataframe[segcountname] = np.int64(-1)
@@ -461,6 +466,12 @@ class SegTable(object):
                 curpoint += curstep
 
     def __run_seg_list(self, field):
+        """
+        use special step list to create seg
+        calculating based on field_count
+        :param field:
+        :return:
+        """
         f = field
         segcountname = f + '_list'
         self.__output_dataframe[segcountname] = np.int64(-1)
@@ -580,3 +591,7 @@ def int_str(x, d):
     # return f'%{d}d' % x
     fstr = '{:'+str(d)+'d}'
     return fstr.format(x)
+
+def round45i(v:float, dec=0):
+    u = int(v * 10**dec*10)
+    return (int(u/10) + (1 if v >0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec
