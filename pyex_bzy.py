@@ -7,6 +7,7 @@ import importlib as imp
 import pyex_ptt as ptt
 import bk18
 
+
 def getzyfun():
     zy = getzy()
 
@@ -16,6 +17,7 @@ def getzyfun():
         return
 
     return find
+
 
 def getzy():
     loc_dell = 'd:/work/data/lq/'
@@ -212,7 +214,7 @@ class Finder:
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
         print(ptt.make_page(dfmerge, title='16-17zk', align=align))
-        return dfmerge
+        return  # dfmerge
 
     def lookxx(self, yxlist=('',)):
         yxfilterfun = closed_filter(yxlist)
