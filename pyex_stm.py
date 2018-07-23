@@ -13,7 +13,7 @@ import scipy.stats as sts
 # warnings.simplefilter('error')
 
 
-def test(name='plt', df=None, field_list='', decimals=0):
+def test(name='sdplt', df=None, field_list='', decimals=0):
     """
     :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
     :param df: input dataframe
@@ -32,10 +32,33 @@ def test(name='plt', df=None, field_list='', decimals=0):
         print('invalid field_list!')
         return
 
-    if name == 'plt':
+    # shandong new project score model
+    if name == 'sdplt':
         pltmodel = PltScore()
         rawpoints_sd = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
-        stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]    # std:15-16
+        stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]
+        # std := 16.4985 at 50-60 with cdf(-16.49852/40) => 0.34000
+
+        # set model score percentages and endpoints
+        # we get a near normal distribution
+        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
+        #                        not real, but approximate normal distribution
+        # according to std
+        #   cdf(100)= 0.99496           as std=15.54375,    0.9939      as std=15.9507
+        #   cdf(90) = 0.970(9)79656     as std=15.9507135,  0.972718    as std=15.606
+        #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
+        #   cdf(70) = 0.0.73999999697   as std=15.54375
+        #   cdf(60) = 0.0
+        #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
+        #   cdf(40) = 0.0991            as std=15.54375
+        #   cdf(30) = 0.0268            as std=15.54375
+        #   cdf(20) = 0.0050            as std=15.54375
+        # p1: std scope in 15.5-16
+        # p2: cut percent at 20, 100 is a little big
+        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+        # on the whole, fitting is approximate fine
 
         pltmodel.output_score_decimals = 0
         pltmodel.set_data(input_data=scoredf, field_list=field_list)
@@ -43,7 +66,7 @@ def test(name='plt', df=None, field_list='', decimals=0):
                                 output_score_points_list=stdpoints_sd)
         pltmodel.run()
         # pltmodel.report()
-        pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
+        # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
     if name == 'zscore':
         zm = Zscore()
@@ -174,6 +197,26 @@ class PltScore(ScoreTransformModel):
     PltModel:
     use linear standardscore transform from raw-score intervals
     to united score intervals
+        # set model score percentages and endpoints
+        # we get a near normal distribution
+        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.950713502        at 30    Zcdf(-30/std)=0.03
+        #                        not real, but approximate normal distribution
+        # according to std
+        #   cdf(100)= 0.99496 as std=15.54375, 0.9939 as std=15.9507
+        #   cdf(90) = 0.970(9)79656 as std=15.9507135,  0.972718 as std=15.606,  0.9731988 as std=15.54375
+        #   cdf(80) = 0.900001195 as std=15.606,  0.9008989 as std=15.54375
+        #   cdf(70) = 0.0.73999999697 as std=15.54375
+        #   cdf(60) = 0.0
+        #   cdf(50) = 0.26  +3.027*E-9 as std=15.54375
+        #   cdf(40) = 0.0991 as std=15.54375
+        #   cdf(30) = 0.0268 as std=15.54375
+        #   cdf(20) = 0.0050 as std=15.54375
+        # p1: std scope in 15.5-16
+        # p2: cut percent at 20, 100 is a little big
+        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+        # on the whole, fitting is approximate fine
     """
 
     def __init__(self):
