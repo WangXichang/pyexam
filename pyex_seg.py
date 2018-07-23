@@ -40,12 +40,15 @@ def test():
     0    3         6         15     1.000000         10  # excluding 0, 1
     """
     expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8]})
+    print('example dataframe')
+    print('='*80)
     print(expdf)
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=False)
     seg.run()
+    print('='*80)
     seg.show_parameters()
     print(seg.output_data)
 
@@ -53,6 +56,7 @@ def test():
     seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=False)
     seg.run()
     print('\n')
+    print('='*80)
     seg.show_parameters()
     print(seg.output_data)
 
@@ -65,22 +69,24 @@ def test():
     seg.display = False
     seg.run()
     print('\n')
+    print('='*80)
     seg.show_parameters()
     print(seg.output_data)
 
     # change parameters to run to get new result
     seg.seglistuse = True
     seg.seglist = [7, 5, 3]
-    seg.segsort = 'a'
+    seg.segsort = 'd'
     seg.segstart = 2
     seg.segmax = 7
     seg.display = False
     seg.run()
     print('\n')
+    print('='*80)
     seg.show_parameters()
     print(seg.output_data)
-    print('\n--- get result using df.sf_list > 0 ---')
-    print(seg.output_data[seg.output_data.sf_list > 0])
+    print('\n--- get result using [(df.sf_list > 0) | (df.seg.isin([segmax, segmin])] ---')
+    print(seg.output_data[(seg.output_data.sf_list > 0) | seg.output_data.seg.isin([7, 1])])
 
     return seg
 

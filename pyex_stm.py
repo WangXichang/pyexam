@@ -321,31 +321,6 @@ class PltScore(ScoreTransformModel):
         print('-'*50)
         # run end
 
-    def __getcoeff(self):
-        # formula: y = (y2-y1)/(x2 -x1) * (x - x1) + y1
-        # coeff = (y2-y1)/(x2 -x1)
-
-        if len(self.result_input_score_points) != len(self.output_score_points):
-            print('error score points: {}'.format(self.result_input_score_points))
-            return False
-
-        for i in range(1, len(self.output_score_points)):
-            if (self.result_input_score_points[i] - self.result_input_score_points[i - 1]) < 0.1**6:
-                print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
-                return False
-            if self.result_input_score_points[i] - self.result_input_score_points[i - 1] > 0:
-                coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
-                       (self.result_input_score_points[i] - self.result_input_score_points[i - 1])
-            else:
-                print('input score points[{0} - {1}] error!'.format(i-1, i))
-                coff = 0
-            y1 = self.output_score_points[i - 1]
-            x1 = self.result_input_score_points[i - 1]
-            coff = self.score_round(coff, self.sys_pricision_decimals)
-            self.result_pltCoeff[i] = [coff, x1, y1]
-
-        return True
-
     def __get_plt_score(self, x):
         for i in range(1, len(self.output_score_points)):
             if x <= self.result_input_score_points[i]:
@@ -354,26 +329,6 @@ class PltScore(ScoreTransformModel):
                 # return self.score_round(y, self.output_score_decimals)
                 return self.round45i(y, self.output_score_decimals)
         return -1
-
-    @staticmethod
-    def round45i(v: float, dec=0):
-        u = int(v * 10 ** dec * 10)
-        return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
-
-    @staticmethod
-    def score_round(x, decimals=0):
-        x_int = int(x * 10**(decimals+2))
-        if decimals > 0:
-            return np.floor(x_int/(10**2))/10**decimals \
-                if np.mod(x_int, 100) < 50 else \
-                (float(str((np.floor(x_int/(10**2))+1)/10**decimals))
-                 if decimals > 0 else int(str((np.floor(x_int/(10**2))+1)/10**decimals)))
-        elif decimals == 0:
-            return int(np.floor(x_int/(10**2))) \
-                if np.mod(x_int, 100) < 50 else \
-                int(np.floor(x_int/(10**2)))+1
-        else:
-            return False
 
     def __get_formula(self, field):
         # check format
@@ -420,6 +375,9 @@ class PltScore(ScoreTransformModel):
         return True
 
     def __getRawPoint(self, field, mode='minmax'):
+        if mode not in 'minmax, maxmin, nearmax, nearmin':
+            print('error mode {} !'.format(mode))
+            raise TypeError
         score_points = []
         lastpercent = 0
         lastseg = self.input_score_min
@@ -429,7 +387,9 @@ class PltScore(ScoreTransformModel):
             p = row[field+'_percent']
             thisseg = row['seg']
             thispercent = self.input_score_percentage_points[percent_loc]
-            print(p, thisseg, thispercent, row)
+            if (p == 1) | (percent_loc == len(self.input_score_percentage_points)):
+                score_points += [thisseg]
+                break
             if mode in 'minmax, maxmin':
                 if p > thispercent:
                     score_points += [lastseg] if mode == 'minmax' else [thisseg]
@@ -446,14 +406,34 @@ class PltScore(ScoreTransformModel):
                         score_points += [thisseg]
                     else:  # nearmin
                         score_points += [lastseg]
-            else:
-                print('error mode {} !'.format(mode))
-                raise TypeError
             lastseg = thisseg
             lastpercent = p
-            if (p == 1) | (percent_loc == len(self.input_score_percentage_points)):
-                break
         return score_points
+
+    def __getcoeff(self):
+        # formula: y = (y2-y1)/(x2 -x1) * (x - x1) + y1
+        # coeff = (y2-y1)/(x2 -x1)
+        print(self.result_input_score_points, self.output_score_points)
+        if len(self.result_input_score_points) != len(self.output_score_points):
+            print('error score points: {}'.format(self.result_input_score_points))
+            return False
+
+        for i in range(1, len(self.output_score_points)):
+            if (self.result_input_score_points[i] - self.result_input_score_points[i - 1]) < 0.1**6:
+                print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
+                return False
+            if self.result_input_score_points[i] - self.result_input_score_points[i - 1] > 0:
+                coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
+                       (self.result_input_score_points[i] - self.result_input_score_points[i - 1])
+            else:
+                print('input score points[{0} - {1}] error!'.format(i-1, i))
+                coff = 0
+            y1 = self.output_score_points[i - 1]
+            x1 = self.result_input_score_points[i - 1]
+            coff = self.score_round(coff, self.sys_pricision_decimals)
+            self.result_pltCoeff[i] = [coff, x1, y1]
+
+        return True
 
     def __pltrun(self, scorefieldname):
         if not self.__get_formula(scorefieldname):
@@ -465,6 +445,26 @@ class PltScore(ScoreTransformModel):
             self.input_data[scorefieldname].apply(self.__get_plt_score)  # , self.output_score_decimals)
 
         self._create_report()
+
+    @staticmethod
+    def round45i(v: float, dec=0):
+        u = int(v * 10 ** dec * 10)
+        return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
+
+    @staticmethod
+    def score_round(x, decimals=0):
+        x_int = int(x * 10**(decimals+2))
+        if decimals > 0:
+            return np.floor(x_int/(10**2))/10**decimals \
+                if np.mod(x_int, 100) < 50 else \
+                (float(str((np.floor(x_int/(10**2))+1)/10**decimals))
+                 if decimals > 0 else int(str((np.floor(x_int/(10**2))+1)/10**decimals)))
+        elif decimals == 0:
+            return int(np.floor(x_int/(10**2))) \
+                if np.mod(x_int, 100) < 50 else \
+                int(np.floor(x_int/(10**2)))+1
+        else:
+            return False
 
     def _create_report(self, field=''):
         self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1], x[2])
