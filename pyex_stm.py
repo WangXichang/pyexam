@@ -46,8 +46,8 @@ def test(name='sdplt', df=None, field_list='', decimals=0):
         #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
         #                        not real, but approximate normal distribution
         # according to std
-        #   cdf(100)= 0.99496           as std=15.54375,    0.9939      as std=15.9507
-        #   cdf(90) = 0.970(9)79656     as std=15.9507135,  0.972718    as std=15.606
+        #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
+        #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
         #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
         #   cdf(70) = 0.0.73999999697   as std=15.54375
         #   cdf(60) = 0.0
