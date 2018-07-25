@@ -34,13 +34,11 @@ def test(name='sdplt', df=None, field_list='', decimals=0):
 
     # shandong new project score model
     if name == 'sdplt':
-        pltmodel = PltScore()
         rawpoints_sd = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
         stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]
-        # std := 16.4985 at 50-60 with cdf(-16.49852/40) => 0.34000
 
         # set model score percentages and endpoints
-        # we get a near normal distribution
+        # get approximate normal distribution
         # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
         #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
         #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
@@ -56,16 +54,21 @@ def test(name='sdplt', df=None, field_list='', decimals=0):
         #   cdf(30) = 0.0268            as std=15.54375
         #   cdf(20) = 0.0050            as std=15.54375
         # -------------------------------------------------------------------------------------------------------------
-        #   std/points      20      30      40      50      60      70        80      90          100
-        #   15.54375    0.0050  0.0268   0.0991   0.26000   0   0.739(6)  0.9008989  0.97000    0.99496
-        #   15.6060     0.0052  0.0273   0.09999  0.26083   0   0.73917   0.9000012  0.97272    0.99481
-        #   15.9507     0.0061  0.0299(5)0.10495  0.26535   0   0.73465   0.8950418  0.970(4)   0.99392
+        #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
+        #   std/points      20      30         40        50        60      70         80        90         100
+        #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
+        #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
+        #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
         # -------------------------------------------------------------------------------------------------------------
-        # p1: std scope in 15.5-16
+        # on the whole, fitting is approximate fine
+        # p1: std scope in 15.54 - 15.95
         # p2: cut percent at 20, 100 is a little big
         # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
-        # on the whole, fitting is approximate fine
+        # p4: max count at 60 estimated to [norm.pdf(0)=0.398942]/(sigma:pdf(50-60)=4.091)*0.24*total_number
+        #     0.0234 * total_number
+        #     200,000-->4680,   300,000 --> 7020
 
+        pltmodel = PltScore()
         pltmodel.output_score_decimals = 0
         pltmodel.set_data(input_data=scoredf, field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
@@ -74,6 +77,7 @@ def test(name='sdplt', df=None, field_list='', decimals=0):
         # pltmodel.report()
         # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
+
     if name == 'zscore':
         zm = Zscore()
         zm.set_data(input_data=scoredf, field_list=field_list)
