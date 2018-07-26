@@ -13,7 +13,8 @@ import scipy.stats as sts
 # warnings.simplefilter('error')
 
 
-def test(name='sdplt', df=None, field_list='', decimals=0):
+def modelapp(name='sdplt', df=None, field_list='', decimals=0,
+             percent_mode='maxmin'):
     """
     :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
     :param df: input dataframe
@@ -72,7 +73,8 @@ def test(name='sdplt', df=None, field_list='', decimals=0):
         pltmodel.output_score_decimals = 0
         pltmodel.set_data(input_data=scoredf, field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
-                                output_score_points_list=stdpoints_sd)
+                                output_score_points_list=stdpoints_sd,
+                                lookup_percent_mode=percent_mode)
         pltmodel.run()
         # pltmodel.report()
         # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
@@ -431,11 +433,11 @@ class PltScore(ScoreTransformModel):
             mode1 = 'defined_low_endpoint'
         else:
             mode1 = 'use_min_as_low_endpoint'
-        score_points = []
+        score_points = [min(self.input_data_seg['seg'][self.input_data_seg[field+'_count']>0])]
         lastpercent = 0
         lastseg = self.input_score_min
         thisseg = 0
-        percent_loc = 0
+        percent_loc = 1
         for index, row in self.input_data_seg.iterrows():
             p = row[field+'_percent']
             thisseg = row['seg']
