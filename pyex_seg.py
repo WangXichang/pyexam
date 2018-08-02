@@ -414,8 +414,8 @@ class SegTable(object):
                     r[r.index >= self.__segMax].sum()
 
             # set order for seg fields
-            # if self.__segSort not in ['a', 'A']:
-            #     self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
+            if self.__segSort not in ['a', 'A']:
+                self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
 
             # calculate cumsum field
             self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
