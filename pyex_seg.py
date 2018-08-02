@@ -387,7 +387,7 @@ class SegTable(object):
             return
         # create output dataframe with segstep = 1
         if self.__display:
-           print('---> start ......')
+           print('seg calculation start ...')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
         if  self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
@@ -403,8 +403,8 @@ class SegTable(object):
             self.__output_dataframe.loc[:, f+'_count'] = fcount_list
             # self.__output_dataframe.loc[:, f + '_count'] = self.__output_dataframe['seg'].\
             #     apply(lambda x: np.int64(r[x]) if x in r.index else 0)
-            if self.__display:
-                print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
+            # if self.__display:
+            #     print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
 
             # add outside scope number to segmin, segmax
             if self.__segAlldata:
@@ -413,23 +413,19 @@ class SegTable(object):
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = \
                     r[r.index >= self.__segMax].sum()
 
-            # set order for seg fields
-            if self.__segSort not in ['a', 'A']:
-                self.__output_dataframe = self.__output_dataframe.sort_values(by='seg', ascending=False)
-
             # calculate cumsum field
             self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
             if self.__segListUse:
                 self.__output_dataframe[f + '_list_sum'] = self.__output_dataframe[f + '_count'].cumsum()
 
             # calculate percent field
-            if self.__display:
-                print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
+            # if self.__display:
+            #     print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
             maxsum = max(max(self.output_data[f + '_sum']), 1)     # avoid divided by 0 in percent computing
             self.__output_dataframe[f + '_percent'] = \
                 self.__output_dataframe[f + '_sum'].apply(lambda x: x / maxsum)
             if self.__display:
-                print('segments count finished percent ' + f, ' use time:{}'.format(time.clock() - sttime))
+                print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
             # special seg step
             if self.__segStep > 1:
