@@ -395,7 +395,10 @@ class SegTable(object):
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
+            # tempdf.fillna(-1)
             self.input_data.loc[:, f] = tempdf[f].apply(round45i)
+            # tempdf[f] = tempdf[f].apply(round)
+            # self.input_data = tempdf
 
             # count seg_count in [segmin, segmax]
             r = self.input_data.groupby(f)[f].count()
@@ -602,6 +605,8 @@ def int_str(x, d):
     fstr = '{:'+str(d)+'d}'
     return fstr.format(x)
 
-def round45i(v:float, dec=0):
+def round45i(v, dec=0):
+    if not isinstance(v, float):
+        return v
     u = int(v * 10**dec*10)
     return (int(u/10) + (1 if v >0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec
