@@ -9,7 +9,7 @@ import numpy as np
 from scipy import stats
 
 
-def create_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000):
+def create_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
     create a score dataframe with fields 'score', used to test some application
@@ -20,7 +20,10 @@ def create_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000):
     """
     # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
     #                           for _ in range(size)]})
-    df = pd.DataFrame({'sv': [max(minvalue, min(x, maxvalue)) for x in np.random.normal(mean, std, size)]})
+    df = pd.DataFrame({'sv': [max(minvalue,
+                                  min(round45i(x, decimal) if decimal>0 else int(round45i(x, decimal)),
+                                      maxvalue))
+                              for x in np.random.normal(mean, std, size)]})
     return df
 
 
