@@ -558,21 +558,48 @@ class PltScore(ScoreTransformModel):
             return
         if mode == 'model':
             self.__plotmodel()
+        elif mode == 'pie':
+            self.__plotpie()
         elif not super().plot(mode):
             print('mode {} is invalid'.format(mode))
 
     def __plotmodel(self):
-        plt.figure('Piecewise Linear Score Transform: {0}'.format(self.field_list))
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size':16})
         plen = len(self.result_input_data_points)
-        plt.xlim(self.result_input_data_points[0], self.result_input_data_points[plen - 1])
-        plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
-        plt.plot(self.result_input_data_points, self.output_score_points)
-        plt.plot([self.result_input_data_points[0], self.result_input_data_points[plen - 1]],
-                 [self.result_input_data_points[0], self.result_input_data_points[plen - 1]],
-                 )
-        plt.xlabel('piecewise linear transform model')
+        flen = len(self.field_list)
+        for i, fs in enumerate(self.field_list):
+            plt.subplot(str(1)+str(flen)+str(i))
+            plt.title(u'分段线性转换模型({})'.format(fs))
+            result = self.result_dict[fs]
+            input_points = result['input_score_points']
+            raw_points = [(input_points[i-1], input_points[i]) for i in range(1, len(input_points))]
+            out_points = [(self.output_score_points[i-1], self.output_score_points[i])
+                          for i in range(1, len(input_points))]
+            # print(raw_points, out_points)
+            cross_points = []
+            for i in range(len(raw_points)):
+                if (out_points[i][0]-raw_points[i][0]) * (out_points[i][1]-raw_points[i][1]) < 0:
+                    a, b, c = result['coeff'][i+1]
+                    cross_points.append(round((a*b-c)/(a-1), 2))
+                    # print(i, a,b,c)
+            plt.xlim(input_points[0], input_points[-1])
+            plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
+            plt.plot(input_points, self.output_score_points)
+            plt.plot([input_points[0], input_points[-1]],
+                     [input_points[0], input_points[-1]],
+                     )
+            if len(cross_points) > 0:
+                for p in cross_points:
+                    plt.plot([p, p], [0, p], '--')
+                    plt.rcParams.update({'font.size': 12})
+                    plt.text(p, p-2, '({})'.format(p))
+            # plt.xlabel('{}'.format(fs))
         plt.show()
         return
+
+    def __plotpie(self):
+        plt.pie([],labels=[])
 
 
 class Zscore(ScoreTransformModel):
