@@ -8,6 +8,7 @@ import time
 import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
+import seaborn as sbn
 
 # import warnings
 # warnings.simplefilter('error')
@@ -192,12 +193,14 @@ class ScoreTransformModel(object):
         if not self.field_list:
             print('no field:{0} assign in {1}!'.format(self.field_list, self.input_data))
             return
-        plt.figure(self.model_name + ' out score figure')
+        # plt.figure(self.model_name + ' out score figure')
         labelstr = 'outscore: '
-        for osf in self.output_data.columns.values:
-            if '_' in osf:  # find sf_outscore field
-                labelstr = labelstr + ' ' + osf
-                plt.plot(self.output_data.groupby(osf)[osf].count())
+        for fs in self.field_list:
+            plt.figure(fs)
+            if fs+'_plt' in self.output_data.columns:  # find sf_outscore field
+                labelstr = labelstr + ' ' + fs
+                # plt.plot(self.output_data.groupby(osf)[osf].count())
+                sbn.distplot(self.output_data[fs+'_plt'])
                 plt.xlabel(labelstr)
         return
 
@@ -552,9 +555,9 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='raw'):
-        if mode not in ['raw', 'out', 'model']:
+        if mode not in ['raw', 'out', 'model', 'pie']:
             print('valid mode is: raw, out, model')
-            print('mode:model describe the differrence of input and output score.')
+            # print('mode:model describe the differrence of input and output score.')
             return
         if mode == 'model':
             self.__plotmodel()
