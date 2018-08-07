@@ -194,23 +194,23 @@ class ScoreTransformModel(object):
             print('no field:{0} assign in {1}!'.format(self.field_list, self.input_data))
             return
         # plt.figure(self.model_name + ' out score figure')
-        labelstr = 'outscore: '
+        labelstr = 'Output Score '
         for fs in self.field_list:
             plt.figure(fs)
             if fs+'_plt' in self.output_data.columns:  # find sf_outscore field
-                labelstr = labelstr + ' ' + fs
-                # plt.plot(self.output_data.groupby(osf)[osf].count())
                 sbn.distplot(self.output_data[fs+'_plt'])
-                plt.xlabel(labelstr)
+                plt.title(labelstr+fs)
         return
 
     def __plot_raw_score(self):
         if not self.field_list:
             print('no field assign in rawdf!')
             return
-        plt.figure('Raw Score figure')
+        labelstr = 'Raw Score '
         for sf in self.field_list:
-            self.input_data.groupby(sf)[sf].count().plot(label=''.format(self.field_list))
+            plt.figure(sf)
+            sbn.distplot(self.input_data[sf])
+            plt.title(labelstr + sf)
         return
 
 
@@ -584,8 +584,7 @@ class PltScore(ScoreTransformModel):
             for i in range(len(raw_points)):
                 if (out_points[i][0]-raw_points[i][0]) * (out_points[i][1]-raw_points[i][1]) < 0:
                     a, b, c = result['coeff'][i+1]
-                    cross_points.append(round((a*b-c)/(a-1), 2))
-                    # print(i, a,b,c)
+                    cross_points.append(round((a*b-c)/(a-1), 1))
             plt.xlim(input_points[0], input_points[-1])
             plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
             plt.plot(input_points, self.output_score_points)
