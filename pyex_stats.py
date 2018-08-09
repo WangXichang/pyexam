@@ -4,6 +4,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os
 from scipy import stats
 import pyex_lib as pl
 import pyex_seg as ps
@@ -45,12 +46,12 @@ def int_round45(x, decimals=0):
 
 
 def exp_r(noise=10):
-    tf = pl.exp_scoredf_normal(mean=60, std=10, size=1000)
-    tf['sf2'] = tf.sf.apply(lambda v: v + np.random.rand()*noise)
-    rs = relation(tf.sf, tf.sf2)
-    maxdiff = max(abs(tf.sf - tf.sf2))
+    tf = pl.create_norm_data(mean=60, std=10, size=1000)
+    tf['sf2'] = tf.sv.apply(lambda v: v + np.random.rand()*noise)
+    rs = relation(tf.sv, tf.sf2)
+    maxdiff = max(abs(tf.sv - tf.sf2))
     #plt.figure()
-    plt.scatter(tf.sf, tf.sf2, label='relation')
+    plt.scatter(tf.sv, tf.sf2, label='relation')
     plt.title('noise={n}   PearsonR={r}   MaxDiff={d}'.
               format(n=noise, r=float_str(rs, 2, 4), d=float_str(maxdiff, 2, 4)))
 
@@ -62,20 +63,16 @@ class ScoreData():
     """
 
     def __init__(self):
-        self.fs_file = 'd:/work/newgk/shanghai1711/cj17b.csv'
-        self.rawdf = None
-        self.dfwlgsw = None
-        self.dfswgwl = None
-        self.dfyswgwl = None
+        self.filename = ''
+        self.df = None
 
-    def read_rawdf(self):
-        # self.df = pd.read_csv('d:/work/newgk/shanghai1711/cj17b.csv', sep='\t', index_col=0)
-        self.rawdf = pd.read_csv(self.fs_file, sep='\t', index_col=0)
-        # self.rawdf = self.rawdf[self.rawdf.ysw > 0]
-        # self.dfswgwl = pd.DataFrame({'wl': [self.rawdf[self.rawdf.sw == x]['wl'].mean() for x in range(91)], 'sw': [x for x in range(91)]})
-        # self.dfwlgsw = pd.DataFrame({'sw': [self.rawdf[self.rawdf.wl == x]['sw'].mean() for x in range(111)], 'wl': [x for x in range(111)]})
-        # self.dfyswgwl = pd.DataFrame({'wl': [self.rawdf[self.rawdf.ysw == x]['wl'].mean() for x in range(450)], 'ysw': [x for x in range(450)]})
-        # self.dfwlgysw = pd.DataFrame({'ysw': [self.rawdf[self.rawdf.wl == x]['ysw'].mean() for x in range(111)], 'wl': [x for x in range(111)]})
+    def read_data(self, filename, sep='\t', index_col=0):
+        if os.path.isfile(filename):
+            self.df = pd.read_csv(filename, sep=sep, index_col=index_col)
+            self.filename = filename
+        else:
+            print('{} no found!'.format(filename))
+            return
         return
 
 
@@ -94,13 +91,22 @@ def df_format(dfsource, intlen=2, declen=4, strlen=8):
 
 
 def ref_stm(df, fkey, f1, f2, adj_rate_points=(0.35, 0.75)):
+    """
+    :param df:
+    :param fkey:
+    :param f1:
+    :param f2:
+    :param adj_rate_points:
+    :return:
+    """
     segmodel = ps.SegTable()
     segmodel.set_data(df, [f1, f2])
     segmodel.set_parameters(segmax=max(df[f1]))
     segmodel.run()
-    segf1 = segmodel.segdf
+    segf1 = segmodel.output_data
     segmodel.set_parameters(segmax=max(df[f2]))
-    segf2 = segmodel.segdf
+    segmodel.run()
+    segf2 = segmodel.output_data
     f1points = []
     for p in adj_rate_points:
         f2count = segf2.loc[segf2[f2+'_percent'] >= p, f2+'_cumsum'].head(1)['seg']
