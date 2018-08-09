@@ -115,7 +115,7 @@ def model(name='plt-sd20',
         return tm
 
     if name.upper() == 'L9':
-        tm = stm.L9score()
+        tm = stm.LevelScore()
         tm.set_data(input_data=input_data,
                     field_list=field_list)
         tm.set_parameters(rawscore_max=max_score,

@@ -8,6 +8,7 @@ import time
 import pyex_seg as ps
 import pyex_lib as pl
 import scipy.stats as sts
+import seaborn as sbn
 
 # import warnings
 # warnings.simplefilter('error')
@@ -88,6 +89,25 @@ def test(name='sdplt', df=None, field_list='',
         # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
 
+    if name == 'zhejiang':
+        m = LevelScore()
+        m.set_data(input_data=scoredf, field_list=field_list)
+        # m.set_parameters()
+        m.run()
+        return m
+
+    if name == 'shanghai':
+        level_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+        level_score = [70-j*3 for j in range(11)]
+        m = LevelScore()
+        m.set_data(input_data=scoredf, field_list=field_list)
+        m.set_parameters(level_ratio_table=level_ratio,
+                         level_score_table=level_score,
+                         rawscore_max=maxscore,
+                         rawscore_min=minscore)
+        m.run()
+        return m
+
     if name == 'zscore':
         zm = Zscore()
         zm.set_data(input_data=scoredf, field_list=field_list)
@@ -109,13 +129,6 @@ def test(name='sdplt', df=None, field_list='',
         tm.run()
         tm.report()
         return tm
-    if name == 'l9':
-        tm = L9score()
-        tm.set_data(input_data=scoredf, field_list=field_list)
-        tm.set_parameters(rawscore_max=100, rawscore_min=0)
-        tm.run()
-        tm.report()
-        return tm
 
 
 # Score Transform Model Interface
@@ -125,7 +138,7 @@ class ScoreTransformModel(object):
     本模块转换分数模型：
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
-        T分数线性模型（TscoreLinear)、
+        T分数线性模型（TscoreLinear), 
         标准九分数模型(L9score)
         分段线性转换分数山东省新高考改革转换分数模型（PltScore）
     """
@@ -192,22 +205,24 @@ class ScoreTransformModel(object):
         if not self.field_list:
             print('no field:{0} assign in {1}!'.format(self.field_list, self.input_data))
             return
-        plt.figure(self.model_name + ' out score figure')
-        labelstr = 'outscore: '
-        for osf in self.output_data.columns.values:
-            if '_' in osf:  # find sf_outscore field
-                labelstr = labelstr + ' ' + osf
-                plt.plot(self.output_data.groupby(osf)[osf].count())
-                plt.xlabel(labelstr)
+        # plt.figure(self.model_name + ' out score figure')
+        labelstr = 'Output Score '
+        for fs in self.field_list:
+            plt.figure(fs)
+            if fs+'_plt' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs+'_plt'])
+                plt.title(labelstr+fs)
         return
 
     def __plot_raw_score(self):
         if not self.field_list:
             print('no field assign in rawdf!')
             return
-        plt.figure('Raw Score figure')
+        labelstr = 'Raw Score '
         for sf in self.field_list:
-            self.input_data.groupby(sf)[sf].count().plot(label=''.format(self.field_list))
+            plt.figure(sf)
+            sbn.distplot(self.input_data[sf])
+            plt.title(labelstr + sf)
         return
 
 
@@ -552,25 +567,100 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='raw'):
-        if mode not in ['raw', 'out', 'model']:
-            print('valid mode is: raw, out, model')
-            print('mode:model describe the differrence of input and output score.')
+        if mode not in ['raw', 'out', 'model', 'shift']:
+            print('valid mode is: raw, out, model,shift')
+            # print('mode:model describe the differrence of input and output score.')
             return
         if mode == 'model':
             self.__plotmodel()
+        elif mode == 'shift':
+            self.__plotshift()
         elif not super().plot(mode):
             print('mode {} is invalid'.format(mode))
 
     def __plotmodel(self):
-        plt.figure('Piecewise Linear Score Transform: {0}'.format(self.field_list))
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size':16})
         plen = len(self.result_input_data_points)
-        plt.xlim(self.result_input_data_points[0], self.result_input_data_points[plen - 1])
-        plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
-        plt.plot(self.result_input_data_points, self.output_score_points)
-        plt.plot([self.result_input_data_points[0], self.result_input_data_points[plen - 1]],
-                 [self.result_input_data_points[0], self.result_input_data_points[plen - 1]],
-                 )
-        plt.xlabel('piecewise linear transform model')
+        flen = len(self.field_list)
+        for i, fs in enumerate(self.field_list):
+            result = self.result_dict[fs]
+            input_points = result['input_score_points']
+            # plt.figure(fs)
+
+            # disp distribution with input_points label
+            plt.subplot(131)
+            # plt.figure(fs+'_raw')
+            plt.yticks([])
+            input_points_count = self.reuslt_input_data_seg[self.reuslt_input_data_seg.seg.isin(
+                input_points)][fs+'_count'].values
+            # plt.plot(self.reuslt_input_data_seg['seg'], self.reuslt_input_data_seg[fs+'_count'])
+            sbn.distplot(self.input_data[fs])
+            plt.rcParams.update({'font.size': 8})
+            plt.xlabel(u'原始分数')
+            for p, q in zip(input_points, input_points_count):
+                plt.plot([p, p], [0, 0.1], '--')
+                plt.text(p, -0.001, '{}'.format(int(p)))
+
+            # 分段线性转换模型
+            plt.subplot(132)
+            # plt.figure(fs+'_plt')
+            plt.title(u'分段线性正态转换模型')
+            plt.xlim(input_points[0], input_points[-1])
+            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
+            plt.plot(input_points, self.output_score_points)
+            # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
+            plt.rcParams.update({'font.size': 10})
+            # plt.text(95, 16, '100')
+            plt.xlabel(u'原始分数')
+            plt.ylabel(u'转换分数')
+            plt.rcParams.update({'font.size': 8})
+            for p, q in zip(input_points, self.output_score_points):
+                plt.plot([p, p], [0, q], '--')
+                plt.plot([0, p], [q, q], '--')
+                plt.text(p, self.output_score_points[0]-2, '{}'.format(int(p)))
+
+            # plt score
+            plt.subplot(133)
+            # plt.figure(fs+'_out')
+            plt.yticks([])
+            sbn.distplot(self.output_data[fs+'_plt'])
+            plt.xlabel(u'转换分数')
+
+        plt.show()
+        return
+
+    def __plotshift(self):
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size':16})
+        plen = len(self.result_input_data_points)
+        flen = len(self.field_list)
+        for i, fs in enumerate(self.field_list):
+            plt.subplot(str(1)+str(flen)+str(i))
+            plt.title(u'分段线性转换模型({})'.format(fs))
+            result = self.result_dict[fs]
+            input_points = result['input_score_points']
+            raw_points = [(input_points[i-1], input_points[i]) for i in range(1, len(input_points))]
+            out_points = [(self.output_score_points[i-1], self.output_score_points[i])
+                          for i in range(1, len(input_points))]
+            # print(raw_points, out_points)
+            cross_points = []
+            for i in range(len(raw_points)):
+                if (out_points[i][0]-raw_points[i][0]) * (out_points[i][1]-raw_points[i][1]) < 0:
+                    a, b, c = result['coeff'][i+1]
+                    cross_points.append(round((a*b-c)/(a-1), 1))
+            plt.xlim(input_points[0], input_points[-1])
+            plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
+            plt.plot(input_points, self.output_score_points)
+            plt.plot([input_points[0], input_points[-1]],
+                     [input_points[0], input_points[-1]]
+                     )
+            if len(cross_points) > 0:
+                for p in cross_points:
+                    plt.plot([p, p], [0, p], '--')
+                    plt.rcParams.update({'font.size': 12})
+                    plt.text(p, p-2, '({})'.format(p))
+            # plt.xlabel('{}'.format(fs))
         plt.show()
         return
 
@@ -856,75 +946,105 @@ class TscoreLinear(ScoreTransformModel):
         super().plot(mode)
 
 
-class L9score(ScoreTransformModel):
+class LevelScore(ScoreTransformModel):
     """
-    level 9 score transform model
-    procedure: rawscore -> percent score(by segtable) -> 9 levels according cdf values:
-    [0, 4%)->1, [4%, 11%)->2, [11%. 23%)->3, [23%, 40%)->4, [40%, 60%)->5
-    [ 60%, 77%)->6, [77%, 89%)->7, [89%, 96%)->8, [97%, 100%]->9
-
+    level score transform model
+    default set to zhejiang project:
+    level_ratio_table = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+    level_score_table = [100, 97, ..., 40]
+    level_order = 'd'   # d: from high to low, a: from low to high
     """
     def __init__(self):
-        super().__init__('l9')
-        # self.model_name = 'l9'
+        super().__init__('level')
 
-        self.rawscore_max = 100
-        self.rawscore_min = 0
-        self.levelscoretable = {1: [0, 0.04], 2: [0.04, 0.11], 3: [0.11, 0.23], 4: [0.23, 0.4], 5: [0.4, 0.6],
-                                6: [0.6, 0.77], 7: [0.77, 0.89], 8: [0.89, 0.96], 9: [0.96, 1]}
+        self.input_score_max = 100
+        self.input_score_min = 0
+        zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]   # zhejiang ratio
+        self.level_ratio_table = [sum(zhejiang_ratio[0:j+1])*0.01
+                                  for j in range(len(zhejiang_ratio))]
+        self.level_score_table = [100-x*3 for x in range(len(self.level_ratio_table))]
+        self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
+        self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+
         self.segtable = None
         self.output_data = None
+        self.report_doc = ''
 
     def set_data(self, input_data=None, field_list=None):
         self.input_data = input_data
-        self.field_list = field_list
+        if isinstance(field_list, list):
+            self.field_list = field_list
+        elif isinstance(field_list, str):
+            self.field_list = [field_list]
+        else:
+            print('error field_list: {}'.format(field_list))
 
-    def set_parameters(self, rawscore_max=100, rawscore_min=0):
-        self.rawscore_max = rawscore_max
-        self.rawscore_min = rawscore_min
+    def set_parameters(self, rawscore_max=100, rawscore_min=0,
+                       level_ratio_table=None, level_score_table=None):
+        self.input_score_max = rawscore_max
+        self.input_score_min = rawscore_min
+        if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
+            self.level_ratio_table = [1-sum(level_ratio_table[0:j+1])*0.01
+                                      for j in range(len(level_ratio_table))]
+        if isinstance(level_score_table, list) or isinstance(level_score_table, tuple):
+            self.level_score_table = level_score_table
+        if len(self.level_ratio_table) != len(self.level_score_table):
+            print('error level data set, ratio/score table is not same length!')
+            print(self.level_ratio_table, '\n', self.level_score_table)
+        self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
+        self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
 
     def run(self):
         # import py2ee_lib as pl
         seg = ps.SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
-        seg.set_parameters(segmax=self.rawscore_max, segmin=self.rawscore_min, segsort='ascending')
+        seg.set_parameters(segmax=self.input_score_max,
+                           segmin=self.input_score_min,
+                           segsort=self.level_order)
         seg.run()
         self.segtable = seg.output_data
-        self.__calcscoretable()
+        self.__calc_level_table()
         self.output_data = self.input_data[self.field_list]
+        self.report_doc = {}
         for sf in self.field_list:
             dft = self.output_data.copy()
-            dft[sf+'_percent'] = dft.loc[:, sf].replace(self.segtable['seg'].values,
-                                         self.segtable[sf+'_percent'].values)
-            # self.output_data.loc[:, sf+'_percent'] = list(tes)
-            dft.loc[:, sf+'_l9score'] = \
-                dft.loc[:, sf].replace(self.segtable['seg'].values,
-                                       self.segtable[sf+'_l9score'].values)
+            dft[sf+'_percent'] = dft.loc[:, sf].replace(
+                self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
+            dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
+                self.segtable['seg'].values, self.segtable[sf + '_level'].values)
+            dft.loc[:, sf+'_level_score'] = \
+                dft.loc[:, sf+'_level'].apply(lambda x: self.level_score_table[int(x)-1])
             self.output_data = dft
+            level_max = self.segtable.groupby(sf+'_level')['seg'].max()
+            level_min = self.segtable.groupby(sf+'_level')['seg'].min()
+            self.report_doc.update({sf: ['level({}):{}-{}'.format(j+1, x[0], x[1])
+                                         for j, x in enumerate(zip(level_max, level_min))]})
 
-    def __calcscoretable(self):
+    def __calc_level_table(self):
         for sf in self.field_list:
-            self.segtable.loc[:, sf+'_l9score'] = self.segtable[sf+'_percent'].\
-                apply(lambda x: self.__percentmaplevel(x))
+            self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
+                apply(lambda x: self.__percent_map_level(x))
+            self.segtable.astype({sf+'_level': int})
 
-    def __percentmaplevel(self, p):
-        for k in self.levelscoretable:
-            if p < self.levelscoretable.get(k)[1]:
-                return k
-        return 9
+    def __percent_map_level(self, p):
+        for j, r in enumerate(self.level_ratio_table):
+            # logic = (p <= r) if self.level_order == 'a' else (p >= r)
+            if p <= r:
+                return self.level_no[j]
+        return self.level_no[-1]
 
     def report(self):
-        print('L9-score transform report')
+        print('Level-score transform report')
         print('=' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_stats_describe(self.input_data)
+            pl.report_stats_describe(self.input_data[self.field_list])
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.output_data) == pd.DataFrame:
-            print('raw,L9 score desc:')
+        if type(self.segtable) == pd.DataFrame:
+            print('raw,Level score desc:')
             pl.report_stats_describe(self.output_data)
             print('-'*50)
         else:
@@ -932,15 +1052,15 @@ class L9score(ScoreTransformModel):
         print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
         print('parameters:')
-        print('\tmax score in raw score:{}'.format(self.rawscore_max))
-        print('\tmin score in raw score:{}'.format(self.rawscore_min))
+        print('\tmax score in raw score:{}'.format(self.input_score_max))
+        print('\tmin score in raw score:{}'.format(self.input_score_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
         super().plot(mode)
 
     def check_parameter(self):
-        if self.rawscore_max > self.rawscore_min:
+        if self.input_score_max > self.input_score_min:
             return True
         else:
             print('raw score max value is less than min value!')
