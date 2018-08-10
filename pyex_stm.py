@@ -642,7 +642,10 @@ class PltScore(ScoreTransformModel):
         flen = len(self.field_list)
         for i, fs in enumerate(self.field_list):
             plt.subplot(str(1)+str(flen)+str(i))
-            plt.title(u'分段线性转换模型({})'.format(fs))
+            # plt.title(u'分段线性转换模型({})'.format(fs))
+            plt.title(u'分段线性转换模型')
+            plt.xlabel(u'原始分数')
+            plt.ylabel(u'转换分数')
             result = self.result_dict[fs]
             input_points = result['input_score_points']
             raw_points = [(input_points[i-1], input_points[i]) for i in range(1, len(input_points))]
