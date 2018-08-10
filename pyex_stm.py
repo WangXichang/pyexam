@@ -90,9 +90,15 @@ def test(name='sdplt', df=None, field_list='',
         return pltmodel
 
     if name == 'zhejiang':
+        zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+        level_ratio_table = [sum(zhejiang_ratio[0:j+1])*0.01
+                             for j in range(len(zhejiang_ratio))]
+        level_score_table = [100-x*3 for x in range(len(level_ratio_table))]
         m = LevelScore()
         m.set_data(input_data=scoredf, field_list=field_list)
-        # m.set_parameters()
+        m.set_parameters(rawscore_max=maxscore,
+                         level_ratio_table=level_ratio_table,
+                         level_score_table=level_score_table)
         m.run()
         return m
 
@@ -1024,14 +1030,16 @@ class LevelScore(ScoreTransformModel):
     def __calc_level_table(self):
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
-                apply(lambda x: self.__percent_map_level(x))
+                apply(lambda x: self.__percent_map_level(1-x))
             self.segtable.astype({sf+'_level': int})
 
     def __percent_map_level(self, p):
+        p_start = 0 if self.level_order == 'a' else 1
         for j, r in enumerate(self.level_ratio_table):
-            # logic = (p <= r) if self.level_order == 'a' else (p >= r)
-            if p <= r:
+            logic = (p_start <= p <= r) if self.level_order == 'a' else (p_start >= p >= r)
+            if logic:
                 return self.level_no[j]
+            p_start = r
         return self.level_no[-1]
 
     def report(self):
