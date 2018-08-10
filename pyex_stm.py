@@ -91,13 +91,12 @@ def test(name='sdplt', df=None, field_list='',
 
     if name == 'zhejiang':
         zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        level_ratio_table = [sum(zhejiang_ratio[0:j+1])*0.01
-                             for j in range(len(zhejiang_ratio))]
-        level_score_table = [100-x*3 for x in range(len(level_ratio_table))]
+        # level_ratio_table = [sum(zhejiang_ratio[0:j+1])*0.01 for j in range(21)]
+        level_score_table = [100-x*3 for x in range(21)]
         m = LevelScore()
         m.set_data(input_data=scoredf, field_list=field_list)
-        m.set_parameters(rawscore_max=maxscore,
-                         level_ratio_table=level_ratio_table,
+        m.set_parameters(maxscore=maxscore,
+                         level_ratio_table=zhejiang_ratio,
                          level_score_table=level_score_table)
         m.run()
         return m
@@ -109,8 +108,8 @@ def test(name='sdplt', df=None, field_list='',
         m.set_data(input_data=scoredf, field_list=field_list)
         m.set_parameters(level_ratio_table=level_ratio,
                          level_score_table=level_score,
-                         rawscore_max=maxscore,
-                         rawscore_min=minscore)
+                         maxscore=maxscore,
+                         minscore=minscore)
         m.run()
         return m
 
@@ -985,10 +984,20 @@ class LevelScore(ScoreTransformModel):
         else:
             print('error field_list: {}'.format(field_list))
 
-    def set_parameters(self, rawscore_max=100, rawscore_min=0,
-                       level_ratio_table=None, level_score_table=None):
-        self.input_score_max = rawscore_max
-        self.input_score_min = rawscore_min
+    def set_parameters(self,
+                       maxscore=None, minscore=None,
+                       level_ratio_table=None,
+                       level_score_table=None):
+        if isinstance(maxscore, int):
+            if len(self.field_list) > 0:
+                if maxscore >= max([max(self.input_data[f]) for f in self.field_list]):
+                    self.input_score_max = maxscore
+                else:
+                    print('error: maxscore is too little to transform score!')
+            else:
+                print('to set field_list first!')
+        if isinstance(minscore, int):
+            self.input_score_min = minscore
         if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
             self.level_ratio_table = [1-sum(level_ratio_table[0:j+1])*0.01
                                       for j in range(len(level_ratio_table))]
@@ -1001,6 +1010,14 @@ class LevelScore(ScoreTransformModel):
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
 
     def run(self):
+        if len(self.field_list) > 0:
+            if (self.input_score_max < max([max(self.input_data[f]) for f in self.field_list])) | \
+                    (self.input_score_min > min([min(self.input_data[f]) for f in self.field_list])):
+                print('error: maxscore/minscore is lower/larger than max(field) to transform score!')
+                return
+        else:
+            print('to set field_list first!')
+            return
         # import py2ee_lib as pl
         seg = ps.SegTable()
         seg.set_data(input_data=self.input_data,
