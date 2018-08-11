@@ -1014,10 +1014,11 @@ class LevelScore(ScoreTransformModel):
 
     def run(self):
         if len(self.field_list) > 0:
-            if (self.input_score_max < max([max(self.input_data[f]) for f in self.field_list])) | \
-                    (self.input_score_min > min([min(self.input_data[f]) for f in self.field_list])):
-                print('error: maxscore/minscore is lower/larger than max(field) to transform score!')
-                return
+            # if (self.input_score_max < max([max(self.input_data[f]) for f in self.field_list])) | \
+            #         (self.input_score_min > min([min(self.input_data[f]) for f in self.field_list])):
+            #     print('error: maxscore/minscore is lower/larger than max(field) to transform score!')
+            #     return
+            pass
         else:
             print('to set field_list first!')
             return
