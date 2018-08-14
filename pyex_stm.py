@@ -585,49 +585,48 @@ class PltScore(ScoreTransformModel):
 
     def __plotmodel(self):
         plt.rcParams['font.sans-serif'] = ['SimHei']
-        plt.rcParams.update({'font.size':16})
+        plt.rcParams.update({'font.size':8})
         plen = len(self.result_input_data_points)
         flen = len(self.field_list)
         for i, fs in enumerate(self.field_list):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
-            # plt.figure(fs)
 
             # disp distribution with input_points label
-            plt.subplot(131)
-            # plt.figure(fs+'_raw')
+            # plt.subplot(131)
+            plt.figure(fs+'_raw')
             plt.yticks([])
             input_points_count = self.reuslt_input_data_seg[self.reuslt_input_data_seg.seg.isin(
                 input_points)][fs+'_count'].values
             # plt.plot(self.reuslt_input_data_seg['seg'], self.reuslt_input_data_seg[fs+'_count'])
             sbn.distplot(self.input_data[fs])
-            plt.rcParams.update({'font.size': 8})
+            # plt.rcParams.update({'font.size': 8})
             plt.xlabel(u'原始分数')
             for p, q in zip(input_points, input_points_count):
                 plt.plot([p, p], [0, 0.1], '--')
                 plt.text(p, -0.001, '{}'.format(int(p)))
 
             # 分段线性转换模型
-            plt.subplot(132)
-            # plt.figure(fs+'_plt')
+            # plt.subplot(132)
+            plt.figure(fs+'_plt')
             plt.title(u'分段线性正态转换模型')
             plt.xlim(input_points[0], input_points[-1])
             plt.ylim(self.output_score_points[0], self.output_score_points[-1])
             plt.plot(input_points, self.output_score_points)
             # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
-            plt.rcParams.update({'font.size': 10})
+            plt.rcParams.update({'font.size': 8})
             # plt.text(95, 16, '100')
             plt.xlabel(u'原始分数')
             plt.ylabel(u'转换分数')
-            plt.rcParams.update({'font.size': 8})
+            # plt.rcParams.update({'font.size': 8})
             for p, q in zip(input_points, self.output_score_points):
                 plt.plot([p, p], [0, q], '--')
                 plt.plot([0, p], [q, q], '--')
                 plt.text(p, self.output_score_points[0]-2, '{}'.format(int(p)))
 
             # plt score
-            plt.subplot(133)
-            # plt.figure(fs+'_out')
+            # plt.subplot(133)
+            plt.figure(fs+'_out')
             plt.yticks([])
             sbn.distplot(self.output_data[fs+'_plt'])
             plt.xlabel(u'转换分数')
