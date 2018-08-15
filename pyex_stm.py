@@ -74,7 +74,7 @@ def test(name='shandong', df=None, field_list='',
 
         pltmodel = PltScore()
         pltmodel.output_score_decimals = 0
-        pltmodel.set_data(input_data=scoredf, 
+        pltmodel.set_data(input_data=scoredf,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
                                 output_score_points_list=stdpoints_sd,
@@ -145,7 +145,7 @@ class ScoreTransformModel(object):
     本模块转换分数模型：
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
-        T分数线性模型（TscoreLinear), 
+        T分数线性模型（TscoreLinear),
         标准九分数模型(L9score)
         分段线性转换分数山东省新高考改革转换分数模型（PltScore）
     """
@@ -270,7 +270,7 @@ class PltScore(ScoreTransformModel):
         self.input_score_percentage_points = []
         self.output_score_points = []
         self.output_score_decimals = 4
-        
+
         # parameters
         self.approximate_mode = 'minmax'
         self.minimum_raw_score_cutout = None
@@ -283,7 +283,7 @@ class PltScore(ScoreTransformModel):
         self.result_dict = {}
 
     def set_data(self, input_data=None, field_list=None):
-        
+
         # check and set rawdf
         if type(input_data) == pd.Series:
             self.input_data = pd.DataFrame(input_data)
