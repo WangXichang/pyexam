@@ -14,7 +14,11 @@ import scipy.stats as sts
 
 
 def modelapp(name='sdplt', df=None, field_list='', decimals=0,
-             percent_mode='maxmin'):
+             percent_mode='maxmin',
+             input_score_min=0,
+             input_score_max=100,
+             define_low_endpoint=-1
+             ):
     """
     :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
     :param df: input dataframe
@@ -74,7 +78,11 @@ def modelapp(name='sdplt', df=None, field_list='', decimals=0,
         pltmodel.set_data(input_data=scoredf, field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
                                 output_score_points_list=stdpoints_sd,
-                                lookup_percent_mode=percent_mode)
+                                lookup_percent_mode=percent_mode,
+                                input_score_max=input_score_max,
+                                input_score_min=input_score_min,
+                                define_low_endpoint=define_low_endpoint
+                                )
         pltmodel.run()
         # pltmodel.report()
         # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
@@ -275,13 +283,15 @@ class PltScore(ScoreTransformModel):
                        input_score_min=0,
                        input_score_max=150,
                        lookup_percent_mode='minmax',
-                       define_low_endpoint=None):
+                       define_low_endpoint=-1):
         """
         :param input_score_percent_list:
         :param output_score_points_list:
         :param input_score_min:
         :param input_score_max:
-        :param lookup_percent_mode:  minmax, maxmin, nearmin, nearmax
+        :param lookup_percent_mode: minmax, maxmin, nearmin, nearmax
+        :param define_low_endpoint: assign min end point, min(rawscore) if -1
+                                     else define_low_endpoint as min endpoint of rawscore
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
@@ -413,7 +423,7 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            self.result_input_score_points = self.__getRawScorePoints(field, self.lookup_percent_mode)
+            self.result_input_score_points = self.__get_raw_score_points(field, self.lookup_percent_mode)
         else:
             print('score field({}) not in output_dataframe!'.format(field))
             print('must be in {}'.format(self.input_data.columns.values))
@@ -425,15 +435,15 @@ class PltScore(ScoreTransformModel):
 
         return True
 
-    def __getRawScorePoints(self, field, mode='minmax'):
+    def __get_raw_score_points(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
-        if self.define_low_endpoint is not None:
+        if self.define_low_endpoint == -1:
             mode1 = 'defined_low_endpoint'
         else:
             mode1 = 'use_min_as_low_endpoint'
-        score_points = [min(self.input_data_seg['seg'][self.input_data_seg[field+'_count']>0])]
+        score_points = [min(self.input_data_seg['seg'][self.input_data_seg[field+'_count'] > 0])]
         lastpercent = 0
         lastseg = self.input_score_min
         thisseg = 0
@@ -631,7 +641,7 @@ class Zscore(ScoreTransformModel):
             df.loc[:, sf+'_zscore'] = df[sf + '_zscore'].replace(self._segtable.seg.values,
                                                                  self._segtable[sf+'_zscore'].values)
             self.output_data = df
-            print('zscore transoform finished with {} consumed'.format(round(time.clock()-st,2)))
+            print('zscore transoform finished with {} consumed'.format(round(time.clock()-st, 2)))
 
     def _calczscoretable(self, sf):
         if sf+'_percent' in self._segtable.columns.values:
