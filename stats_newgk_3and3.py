@@ -6,9 +6,11 @@ import os
 import pyex_seg as sg
 import importlib as pb
 import scipy.stats as stt
+import matplotlib.pyplot as plt
+
 
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/']
+    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/work/newgk/gkdata']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17']:
@@ -37,6 +39,7 @@ def get_cjfun():
         df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df = df.drop('ksh', axis=1)
         return df
+
     return get_cj
 
 def disp(df, kl='wk', minscore=500, maxscore=600):
@@ -101,3 +104,27 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     print('--- segment std for {} ---'.format(flist))
     print(dcor[['year', 'scope'] + [fs+'_zf' for fs in flist if fs != 'zf']])
     return [result1, result2, dstd, dcor]
+
+
+def plot_pie():
+    plt.subplot(141)
+    plt.title('各科目值域总分贡献率')
+    plt.pie([150, 150, 150, 100, 100, 100],
+            labels=['语文', '数学', '外语', '选科1', '选科2', '选科3'],
+            autopct='%1.1f%%')
+    plt.subplot(142)
+    plt.title('各科目有效值域总分贡献率（山东方案）')
+    plt.pie([150, 150, 150, 80, 80, 80, 60],
+            labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
+            autopct='%1.1f%%')
+    plt.subplot(143)
+    plt.title('各科目有效值域总分贡献率（浙江方案）')
+    plt.pie([20, 20, 20, 8, 8, 8, 16],
+            labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
+            autopct='%1.1f%%')
+    plt.subplot(144)
+    plt.title('各科目有效值域总分贡献率（上海方案）')
+    plt.pie([150, 150, 150, 30, 30, 30, 120],
+            labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
+            autopct='%1.1f%%')
+
