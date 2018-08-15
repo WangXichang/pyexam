@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/']
+    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/work/newgk/gkdata']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17']:
@@ -39,6 +39,7 @@ def get_cjfun():
         df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df = df.drop('ksh', axis=1)
         return df
+
     return get_cj
 
 def disp(df, kl='wk', minscore=500, maxscore=600):

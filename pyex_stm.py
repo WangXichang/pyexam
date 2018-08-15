@@ -14,7 +14,7 @@ import seaborn as sbn
 # warnings.simplefilter('error')
 
 
-def test(name='sdplt', df=None, field_list='',
+def test(name='shandong', df=None, field_list='',
          maxscore=100, minscore=0, decimals=0,
          percent_mode='maxmin'):
     """
@@ -36,7 +36,7 @@ def test(name='sdplt', df=None, field_list='',
         return
 
     # shandong new project score model
-    if name == 'sdplt':
+    if name == 'shandong':
         # set model score percentages and endpoints
         # get approximate normal distribution
         # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
@@ -80,8 +80,9 @@ def test(name='sdplt', df=None, field_list='',
                                 output_score_points_list=stdpoints_sd,
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
-                                lookup_percent_mode=percent_mode,
-                                define_low_endpoint=low_rawscore_end
+                                approximate_mode=percent_mode,
+                                minimum_raw_score_cutout=low_rawscore_end,
+                                decimals=decimals
                                 )
         pltmodel.run()
 
@@ -96,6 +97,7 @@ def test(name='sdplt', df=None, field_list='',
         m = LevelScore()
         m.set_data(input_data=scoredf, field_list=field_list)
         m.set_parameters(maxscore=maxscore,
+                         minscore=minscore,
                          level_ratio_table=zhejiang_ratio,
                          level_score_table=level_score_table)
         m.run()
@@ -267,10 +269,11 @@ class PltScore(ScoreTransformModel):
         # new properties for linear segment stdscore
         self.input_score_percentage_points = []
         self.output_score_points = []
+        self.output_score_decimals = 4
         
         # parameters
-        self.lookup_percent_mode = 'minmax'
-        self.define_low_endpoint = None
+        self.approximate_mode = 'minmax'
+        self.minimum_raw_score_cutout = None
 
         # result
         self.reuslt_input_data_seg = pd.DataFrame()
@@ -305,14 +308,16 @@ class PltScore(ScoreTransformModel):
                        output_score_points_list=None,
                        input_score_min=0,
                        input_score_max=150,
-                       lookup_percent_mode='minmax',
-                       define_low_endpoint=None):
+                       approximate_mode='minmax',
+                       minimum_raw_score_cutout=None,
+                       decimals=None):
         """
-        :param input_score_percent_list:
-        :param output_score_points_list:
-        :param input_score_min:
-        :param input_score_max:
-        :param lookup_percent_mode:  minmax, maxmin, nearmin, nearmax
+        :param input_score_percent_list: ratio points for raw score interval
+        :param output_score_points_list: score points for output score interval
+        :param input_score_min: min value to transform
+        :param input_score_max: max value to transform
+        :param approximate_mode:  minmax, maxmin, nearmin, nearmax
+        :param minimum_raw_score_cutout: lowest endpoint for raw score
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
@@ -320,12 +325,16 @@ class PltScore(ScoreTransformModel):
         if len(input_score_percent_list) != len(output_score_points_list):
             print('the number of input score points is not same as output score points!')
             return
+        if isinstance(decimals, int):
+            self.output_score_decimals = decimals
         self.input_score_percentage_points = input_score_percent_list
         self.output_score_points = output_score_points_list
-        self.input_score_min = input_score_min
-        self.input_score_max = input_score_max
-        self.lookup_percent_mode = lookup_percent_mode
-        self.define_low_endpoint = define_low_endpoint
+        if isinstance(input_score_min, int):
+            self.input_score_min = input_score_min
+        if isinstance(input_score_max, int):
+            self.input_score_max = input_score_max
+        self.approximate_mode = approximate_mode
+        self.minimum_raw_score_cutout = minimum_raw_score_cutout
 
     def check_parameter(self):
         if not self.field_list:
@@ -444,7 +453,7 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            self.result_input_data_points = self.__get_raw_score_points(field, self.lookup_percent_mode)
+            self.result_input_data_points = self.__get_raw_score_points(field, self.approximate_mode)
         else:
             print('score field({}) not in output_dataframe!'.format(field))
             print('must be in {}'.format(self.input_data.columns.values))
@@ -460,7 +469,7 @@ class PltScore(ScoreTransformModel):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
-        if self.define_low_endpoint is not None:
+        if self.minimum_raw_score_cutout is not None:
             mode1 = 'defined_low_endpoint'
         else:
             mode1 = 'use_min_as_low_endpoint'
@@ -495,10 +504,10 @@ class PltScore(ScoreTransformModel):
             lastseg = thisseg
             lastpercent = p
             if mode1 == 'defined_low_endpoint':
-                if isinstance(self.define_low_endpoint, int):
-                    score_points[0] = self.define_low_endpoint
+                if isinstance(self.minimum_raw_score_cutout, int):
+                    score_points[0] = self.minimum_raw_score_cutout
                 else:
-                    print('define_low_endpoint must be int, not {}'.format(self.define_low_endpoint))
+                    print('minimum_raw_score_cutout must be int, not {}'.format(self.minimum_raw_score_cutout))
                     raise TypeError
         return score_points
 
