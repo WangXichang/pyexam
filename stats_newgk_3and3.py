@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/work/newgk/gkdata']
+    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/work/newgk/gkdata/xj1517/']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17']:
@@ -21,6 +21,7 @@ def get_cjfun():
                                       dtype={'ksh': str}))
             datalk.append(pd.read_csv(_path+'g'+fs+'lk.csv', index_col=0, low_memory=False,
                                       dtype={'ksh': str}))
+    # print(datawk, datalk)
 
     def get_cj(year='15', kl='wk'):
         if year in '15-16-17':
@@ -75,7 +76,7 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     for st in range(minscore, maxscore, step):
         print('--- {} covar for {} ---'.format(year, str(st) + '-' + str(st+step)))
         dftemp = df[df.zf.apply(lambda x: st <= x <= st+step)][flist].cov()
-        dftemp = result2.applymap(lambda x: round(x, 4))
+        dftemp = dftemp.applymap(lambda x: round(x, 4))
         dftemp.loc[:, 'seg'] = [str(st)+'-'+str(st+step)]*len(dftemp)
         if result2 is None:
             result2 = dftemp
