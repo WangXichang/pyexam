@@ -7,6 +7,7 @@ import pyex_seg as sg
 import importlib as pb
 import scipy.stats as stt
 import matplotlib.pyplot as plt
+import pyex_lib as pl
 
 
 def get_cjfun():
@@ -32,12 +33,15 @@ def get_cjfun():
         df = datawk[yeari] if kl == 'wk' else datalk[yeari]
         for fs in flist:
             if fs not in ['wl', 'sw']:
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: round(x))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.round45i(x, 0))
             elif fs == 'wl':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: round(x/11*10))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.round45i(x/11*10, 0))
             elif fs == 'sw':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: round(x/9*10))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.round45i(x/9*10, 0))
         df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
+        df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
+                          ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else \
+                               (df['wln'] + df['hxn'] + df['swn']))
         df = df.drop('ksh', axis=1)
         return df
 
@@ -65,9 +69,10 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     flist = [fs+'n' if fs not in ['yw', 'sx', 'wy'] else fs for fs in flist] + ['zf']
     print('--- {} correlation for {} ---'.format(year, flist))
     result1 = df[df.zf > 0][flist].corr()
-    result1 = result1.applymap(lambda x: round(x, 4))
+    result1 = result1.applymap(lambda x: round(x, 2))
     print(result1)
     print('\n')
+
     result2 = None
     d1 = {'year':[], 'scope': []}
     d1.update({fs+'_var': [] for fs in flist})
@@ -76,14 +81,15 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
     for st in range(minscore, maxscore, step):
         print('--- {} covar for {} ---'.format(year, str(st) + '-' + str(st+step)))
         dftemp = df[df.zf.apply(lambda x: st <= x <= st+step)][flist].cov()
-        dftemp = dftemp.applymap(lambda x: round(x, 4))
-        dftemp.loc[:, 'seg'] = [str(st)+'-'+str(st+step)]*len(dftemp)
+        dftemp = dftemp.applymap(lambda x: round(x, 2))
+        # dftemp.loc[:, 'seg'] = [str(st)+'-'+str(st+step)]*len(dftemp)
         if result2 is None:
             result2 = dftemp
         else:
             result2.append(dftemp)
         # result1.loc[:, 'year'] = [year]*len(result1)
-        print(result2)
+        # print(result2)
+        print(dftemp)
         print('\n')
         dt1 = dict()
         dt1.update({'year': [year], 'scope': [str(st) + '-' + str(st+step)]})
@@ -91,18 +97,19 @@ def desc(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
         dt2.update({'year': [year], 'scope': [str(st) + '-' + str(st+step)]})
         for fs in flist:
             if fs in df.columns:
-                dftemp = df[(df.zf >= st) & (df.zf <= st+step)]
-                tvar = round(var(dftemp[fs]), 2)
+                # dftemp = df[df.zf.apply(lambda x: st <= x <= st+step)]
+                # tvar = round(var(dftemp[fs]), 3)
+                tvar = round(dftemp.loc[fs, fs], 2)
                 dt1.update({fs+'_var': [tvar]})
                 if fs != 'zf':
-                    tcor = round(stt.pearsonr(dftemp[fs], dftemp['zf'])[0], 4)
+                    tcor = round(stt.pearsonr(dftemp[fs], dftemp['zf'])[0], 2)
                     dt2.update({fs+'_zf': [tcor]})
         dstd = dstd.append(pd.DataFrame(dt1))
         dcor = dcor.append(pd.DataFrame(dt2))
-    print('--- segment var for {} ---'.format(flist))
+    print('--- {} segment var for {} ---'.format(year, flist))
     print(dstd[['year', 'scope'] + [fs+'_var' for fs in flist]])
     print('\n')
-    print('--- segment std for {} ---'.format(flist))
+    print('--- {} segment correlation for {} ---'.format(year, flist))
     print(dcor[['year', 'scope'] + [fs+'_zf' for fs in flist if fs != 'zf']])
     return [result1, result2, dstd, dcor]
 
