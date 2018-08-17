@@ -22,7 +22,7 @@ def df_to_table(dataframe,
             pagewidth = max([len(s) for s in newpage.split('\n')])
             newtitle = ' ' * int((pagewidth - len(title))/2) + title if pagewidth > len(title) else title
             title = newtitle
-        pagenostr = ' ' * int((pagewidth - 8)/2) + '--' + pl.int_str(pagenum+1, 3) + '--'
+        pagenostr = ' ' * int((pagewidth - 8)/2) + '--' + pl.fun_int2str(pagenum + 1, 3) + '--'
         result_string = result_string +  newtitle + '\n' + newpage + '\n' + pagenostr + '\n'
         pagenum += 1
     if len(writefile) > 0:

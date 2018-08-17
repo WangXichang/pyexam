@@ -46,7 +46,7 @@ def int_round45(x, decimals=0):
 
 
 def exp_r(noise=10):
-    tf = pl.create_norm_data(mean=60, std=10, size=1000)
+    tf = pl.exp_norm_data(mean=60, std=10, size=1000)
     tf['sf2'] = tf.sv.apply(lambda v: v + np.random.rand()*noise)
     rs = relation(tf.sv, tf.sf2)
     maxdiff = max(abs(tf.sv - tf.sf2))

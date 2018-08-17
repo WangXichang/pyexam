@@ -594,7 +594,7 @@ class PltScore(ScoreTransformModel):
 
     def __plotmodel(self):
         plt.rcParams['font.sans-serif'] = ['SimHei']
-        plt.rcParams.update({'font.size':8})
+        plt.rcParams.update({'font.size': 8})
         plen = len(self.result_input_data_points)
         flen = len(self.field_list)
         for i, fs in enumerate(self.field_list):
@@ -703,7 +703,7 @@ class Zscore(ScoreTransformModel):
         self.__currentfield = None
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = pl.create_normaltable(self._samplesize, stdnum=4)
+        self._normtable = pl.exp_norm_table(self._samplesize, stdnum=4)
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
     def set_data(self, input_data=None, field_list=None):
@@ -856,7 +856,7 @@ class Tscore(ScoreTransformModel):
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
             print('    fields:', self.field_list)
-            pl.report_stats_describe(
+            pl.report_describe(
                 self.input_data[self.field_list])
             print('-'*50)
         else:
@@ -865,7 +865,7 @@ class Tscore(ScoreTransformModel):
             out_fields = [f+'_tscore' for f in self.field_list]
             print('T-score desc:')
             print('    fields:', out_fields)
-            pl.report_stats_describe(
+            pl.report_describe(
                 self.output_data[out_fields])
             print('-'*50)
         else:
@@ -940,13 +940,13 @@ class TscoreLinear(ScoreTransformModel):
         print('-' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_stats_describe(self.input_data)
+            pl.report_describe(self.input_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            pl.report_stats_describe(self.output_data)
+            pl.report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1076,13 +1076,13 @@ class LevelScore(ScoreTransformModel):
         print('=' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_stats_describe(self.input_data[self.field_list])
+            pl.report_describe(self.input_data[self.field_list])
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.segtable) == pd.DataFrame:
             print('raw,Level score desc:')
-            pl.report_stats_describe(self.output_data)
+            pl.report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
