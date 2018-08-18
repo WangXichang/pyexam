@@ -3,6 +3,7 @@
 from numpy import std, mean, var
 import pandas as pd
 import os
+from itertools import combinations as cb
 import pyex_seg as sg
 import importlib as pb
 import scipy.stats as stt
@@ -167,10 +168,174 @@ def plot_pie_xk():
 
     return
 
-def get_xk_zycount(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv'):
+
+class Xuanke():
+
+    def __init__(self):
+        self.xkfile = 'd:/work/newgk/gkdata/xk/xk_type_zycount.csv'
+        self.xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
+        self.xk_label = ['0', '1', '2', '3', '1/2', '1/3']
+        self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
+        self.km_ccname = ['地理', '化学', '历史', '生物', '物理', '政治']
+        self.xk_km_cb = cb(self.km_pinyin1, 3)
+
+        self.dc = None
+        self.dzy = None
+        self.zyclass_name = None
+        self.xk_comb_dict = None
+        self.load_data()
+
+        self.df_xk_junshi = None
+        self.load_data_junshi()
+
+    def load_data(self):
+        self.dc = pd.read_csv('d:/work/newgk/gkdata/xk/xk_zyclass_zycount.txt')
+        self.dc = self.dc.fillna(0)
+        self.zyclass_name = [x for x in self.dc.zyclass if x not in ('total','ratio')]
+        self.zyclass_name[0] = '00实验基地班'
+        self.zyclass_name[-1] = '88中外合作'
+        self.zyclass_name_bk = self.zyclass_name[0:14]
+        self.zyclass_name_bk.append(self.zyclass_name[-1])
+
+        # read zy class type data
+        dzy = pd.read_csv(self.xkfile, dtype={'zyclass': str})
+        dzy = dzy.fillna(0)
+        self.dzy = dzy
+
+        zyfield=list(dzy.columns.values)
+        zyfield.remove('zyclass')
+        zy_xk_series = dzy[zyfield].sum()
+        self.xk_comb_dict = {}
+        for xs in self.xk_km_cb:
+            zynum = zy_xk_series['xk0']
+            xss = ''.join(xs)
+            for t in zy_xk_series.index:
+                if '_' not in t:
+                    continue
+                xktype = t[0:t.find('_')]
+                xksubs = t[t.find('_')+1:]
+                if xktype in 'xk1,xk2,xk3':
+                    # print(xksubs, xss)
+                    if xksubs in xss:
+                        # print(xss,t,zy_xk_series[t])
+                        zynum += zy_xk_series[t]
+                elif xktype in 'xk21, xk31':
+                    if len(set(xs) & set(xksubs)) > 0:
+                        # print(xs, t, zy_xk_series[t])
+                        zynum += zy_xk_series[t]
+                self.xk_comb_dict.update({xss: zynum})
+            # print('km-{} zycount={}'.format(xs, zynum))
+        self.xk_comb_centage_list = \
+            [(x, pl.fun_round45i(self.xk_comb_dict[x]/34210*100,2)) for x in self.xk_comb_dict]
+
+        dzyp = dzy[dzy.zyclass < '50']  # benke
+        self.zy_xk_series_bk = dzyp[zyfield].sum()
+        self.field_dict = {
+            'xk1': [x for x in dzy.columns if 'xk1_' in x],
+            'xk2': [x for x in dzy.columns if 'xk2_' in x],
+            'xk3': [x for x in dzy.columns if 'xk3_' in x],
+            'xk21': [x for x in dzy.columns if 'xk21_' in x],
+            'xk31': [x for x in dzy.columns if 'xk31_' in x]}
+        dtemp = dzy.copy()
+        dtemp2 = dzyp.copy()
+        for fs in self.field_dict.keys():
+            dtemp.loc[:, fs] = sum(dzy[fd] for fd in self.field_dict[fs])
+            dtemp2.loc[:, fs] = sum(dzyp[fd] for fd in self.field_dict[fs])
+        self.dzy = dtemp
+        self.dzyp = dtemp2
+        dzy = dtemp
+        dzyp = dtemp2
+
+        # count for xk_type
+        xk_name = self.xk_name
+        self.xk_count = dzy[xk_name].sum(axis=0)
+        self.zyclass_count = dzy[xk_name].sum(axis=1)
+        self.type_name = dzy.zyclass
+
+        self.xk_count_bk = dzyp[xk_name].sum()
+        self.zyclass_count_bk = dzyp[xk_name].sum(axis=1)
+        self.type_name_bk = dzyp.zyclass
+
+        self.xk_count_zk = [x-y for x,y in zip(self.xk_count, self.xk_count_bk)]
+        self.zyclass_count_zk = [x-y for x,y in zip(self.zyclass_count, self.zyclass_count_bk)]
+
+    def load_data_junshi(self):
+        self.df_xk_junshi = pd.read_csv('d:/work/newgk/gkdata/xk/xk_junshi2020.csv')
+
+        def get_xktype(xkstr):
+            if '不限' in xkstr:
+                return 'xk0'
+            result = ''
+            kmstr = ''
+            for km, p in zip(self.km_ccname, self.km_pinyin1):
+                if km in xkstr:
+                    kmstr += p
+            if '或' in xkstr:
+                if len(xkstr) == 5:
+                    result = 'xk21_'
+                elif len(xkstr) == 8:
+                    result = 'xk31_'
+                else:
+                    print('or error:{}'.format(xkstr))
+                pass
+            elif '并' in xkstr:
+                if len(xkstr) == 5:
+                    result = 'xk2_'
+                elif len(xkstr) == 8:
+                    result = 'xk3_'
+                else:
+                    print('and error:{}'.format(xkstr))
+                pass
+            else:
+                if len(xkstr) == 2:
+                    result = 'xk1_'
+                else:
+                    print('error:{}'.format(xkstr))
+            return result+kmstr
+
+        dtemp = self.df_xk_junshi
+        dtemp.loc[:, 'zyclass'] = dtemp.zydm.apply(lambda x: str(x)[0:2])
+        dtemp.loc[:, 'xk_type'] = dtemp.xkkm.apply(lambda x: get_xktype(x))
+        self.df_xk_junshi = dtemp
+
+
+    def plot_pie(self):
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size': 16})
+        plt.figure(u'选科专业统计')
+        plt.subplot(131)
+        plt.pie(self.xk_count, labels=self.xk_label, autopct='%1.2f%%')
+        plt.title(u'全部选科专业')
+        plt.subplot(132)
+        plt.pie(self.xk_count_bk, labels=self.xk_label, autopct='%1.2f%%')
+        plt.title(u'本科选科专业')
+        plt.subplot(133)
+        plt.pie(self.xk_count_zk, labels=self.xk_label, autopct='%1.2f%%')
+        plt.title(u'专科选科专业')
+
+    def print_xk(self):
+        print(ptt.make_page(self.dzy[['zyclass']+self.xk_name], title='all zy count'))
+        print(ptt.make_page(self.dzyp[['zyclass']+self.xk_name], title='benke zy count'))
+
+    def ptt_zyclass_xktype(self):
+        # benke zyclass-xktype-count
+        dt = self.dzyp[['zyclass', 'xk0'] + list(self.field_dict.keys())]
+        dt = dt.astype({fs: int for fs in list(self.field_dict.keys())+['xk0']})
+        dt.zyclass = dt.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])])
+        dt.loc[:, 'xk_sum'] = sum(dt[fs] for fs in ['xk0']+list(self.field_dict.keys()))
+        align_dict = {fs: 'r' for fs in list(self.field_dict.keys())+['xk0']}
+        align_dict.update({'zyclass': 'l', 'xk_sum': 'r'})
+        print(ptt.make_page(dt, title='xk type count for benke', align=align_dict))
+
+
+def xk_stats(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv',
+             plot_pie=False,
+             ptt_zycount=False,
+             ):
     xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
     xk_label = ['0', '1', '2', '3', '1/2', '1/3']
     xk_subject = ['d', 'h', 'l', 's', 'w', 'z']
+    xk_sub_cb = cb(xk_subject, 3)
 
     dc = pd.read_csv('d:/work/newgk/gkdata/xk/xk_zyclass_zycount.txt')
     dc = dc.fillna(0)
@@ -179,14 +344,32 @@ def get_xk_zycount(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv'):
     zyclass_name[-1] = '88中外合作'
     # print(zyclass_name)
 
+    # read zy class type data
     dzy = pd.read_csv(xkfile, dtype={'zyclass': str})
     dzy = dzy.fillna(0)
     zyfield=list(dzy.columns.values)
     zyfield.remove('zyclass')
     zy_xk_series = dzy[zyfield].sum()
-    # print(zy_xk_series)
-    # print(len(zy_xk_series))
-    # zy_xk_dict = {ind: zy_xk_series[ind] for ind in zy_xk_series.index}
+    xk_comb_dict = {}
+    for xs in xk_sub_cb:
+        zynum = zy_xk_series['xk0']
+        for t in zy_xk_series.index:
+            if '_' not in t:
+                continue
+            xktype = t[0:t.find('_')]
+            xksubs = t[t.find('_')+1:]
+            if xktype in 'xk1,xk2,xk3':
+                xss = ''.join(xs)
+                # print(xksubs, xss)
+                if xksubs in xss:
+                    print(xss,t,zy_xk_series[t])
+                    zynum += zy_xk_series[t]
+            elif xktype in 'xk21, xk31':
+                if len(set(xs) & set(xksubs)) > 0:
+                    print(xs, t, zy_xk_series[t])
+                    zynum += zy_xk_series[t]
+            xk_comb_dict.update({xs: zynum})
+        print('km-{} zycount={}'.format(xs, zynum))
 
     dzyp = dzy[dzy.zyclass < '50']  # benke
     zy_xk_series_bk = dzyp[zyfield].sum()
@@ -217,21 +400,22 @@ def get_xk_zycount(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv'):
     zyclass_count_zk = [x-y for x,y in zip(zyclass_count, zyclass_count_bk)]
     # print(xk_count_zk)
 
-    plt.rcParams['font.sans-serif'] = ['SimHei']
-    plt.rcParams.update({'font.size': 16})
-    plt.figure(u'选科专业统计')
-    plt.subplot(131)
-    plt.pie(xk_count, labels=xk_label, autopct='%1.2f%%')
-    plt.title(u'全部选科专业')
-    plt.subplot(132)
-    plt.pie(xk_count_bk, labels=xk_label, autopct='%1.2f%%')
-    plt.title(u'本科选科专业')
-    plt.subplot(133)
-    plt.pie(xk_count_zk, labels=xk_label, autopct='%1.2f%%')
-    plt.title(u'专科选科专业')
+    if plot_pie:
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size': 16})
+        plt.figure(u'选科专业统计')
+        plt.subplot(131)
+        plt.pie(xk_count, labels=xk_label, autopct='%1.2f%%')
+        plt.title(u'全部选科专业')
+        plt.subplot(132)
+        plt.pie(xk_count_bk, labels=xk_label, autopct='%1.2f%%')
+        plt.title(u'本科选科专业')
+        plt.subplot(133)
+        plt.pie(xk_count_zk, labels=xk_label, autopct='%1.2f%%')
+        plt.title(u'专科选科专业')
 
-    # print(ptt.make_page(dzy[['zyclass']+xk_name], title='all zy count'))
-    # print(ptt.make_page(dzyp[['zyclass']+xk_name], title='benke zy count'))
-    # print(type_count)
+    if ptt_zycount:
+        print(ptt.make_page(dzy[['zyclass']+xk_name], title='all zy count'))
+        print(ptt.make_page(dzyp[['zyclass']+xk_name], title='benke zy count'))
 
     return  zy_xk_series, zy_xk_series_bk
