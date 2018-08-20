@@ -323,9 +323,22 @@ class Xuanke():
         dt = dt.astype({fs: int for fs in list(self.field_dict.keys())+['xk0']})
         dt.zyclass = dt.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])])
         dt.loc[:, 'xk_sum'] = sum(dt[fs] for fs in ['xk0']+list(self.field_dict.keys()))
+        dsum = pd.DataFrame(dt.sum())
+        dsum.loc['zyclass'] = 'total'
+        dsum = dsum.unstack().unstack()
+        # print(dsum)
+        dt = dt.append(dsum)
+
         align_dict = {fs: 'r' for fs in list(self.field_dict.keys())+['xk0']}
         align_dict.update({'zyclass': 'l', 'xk_sum': 'r'})
         print(ptt.make_page(dt, title='xk type count for benke', align=align_dict))
+
+        dtt = pd.DataFrame(self.dzyp.sum()).unstack().unstack()
+        dtt.zyclass = dtt.zyclass.apply(lambda x: 'total')
+        dt2 = pd.concat([self.dzyp, dtt])
+        dt2.zyclass = dt2.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])] if x != 'total' else x)
+        dt2 = dt2.astype({fs: int for fs in dt2.columns.values if fs != 'zyclass'})
+        print(ptt.make_page(dt2, align={fs: 'l' if fs=='zyclass' else 'r' for fs in dt2.columns}))
 
 
 def xk_stats(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv',
@@ -419,3 +432,47 @@ def xk_stats(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv',
         print(ptt.make_page(dzyp[['zyclass']+xk_name], title='benke zy count'))
 
     return  zy_xk_series, zy_xk_series_bk
+
+
+class StmStats(object):
+
+    def __init__(self):
+        self.d15l = None
+        self.d15w = None
+        self.d16l = None
+        self.d16w = None
+        self.d17l = None
+        self.d17w = None
+
+    def load_data(self):
+        jfun=get_cjfun()
+        self.d15w = jfun()
+        self.d15l = jfun('15', 'lk')
+        self.d16w = jfun('16')
+        self.d16l = jfun('16', 'lk')
+        self.d17w = jfun('17')
+        self.d17l = jfun('17', 'lk')
+
+    @staticmethod
+    def show_mean_std(ms, modelname):
+        import pyex_stm as stm
+        years = ['15', '16', '17']
+        wkkm = ['lsn', 'dln', 'zzn']
+        lkkm = ['wln', 'hxn', 'swn']
+        r_zj = {}
+        field_name = '_plt' if modelname == 'shandong' else '_level_score'
+        for y in years:
+            # calc wenke data
+            df = eval('ms.d'+y+'w')
+            rw = stm.test(modelname, df, field_list=wkkm)
+            rwdesc = rw.output_data.describe()[[fs+field_name for fs in wkkm]].loc[['mean', 'std']]
+            r_zj.update({'wk_'+y: rwdesc})
+            print('{}:{}-{} output score result:\n {}'.format(modelname, y, 'lk', rwdesc))
+            # calc like data
+            df = eval('ms.d'+y+'l')
+            rw = stm.test(modelname, df, field_list=lkkm)
+            rwdesc = rw.output_data.describe()[[fs+field_name for fs in lkkm]].loc[['mean', 'std']]
+            r_zj.update({'lk_'+y: rwdesc})
+            print('{}:{}-{} output score result:\n {}'.format(modelname, y, 'lk', rwdesc))
+
+        return r_zj
