@@ -32,8 +32,11 @@ def use(name='shandong', df=None, field_list='',
     name_set = 'zhejiang, shanghai, shandong, beijing, tscore, zscore, tlinear'
 
     if type(df) != pd.DataFrame:
-        print('no score dataframe!')
-        return
+        if type(df) == pd.Series:
+            scoredf = pd.DataFrame(df)
+        else:
+            print('no score dataframe!')
+            return
     else:
         scoredf = df
     if isinstance(field_list, str):

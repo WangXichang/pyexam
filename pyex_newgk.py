@@ -49,10 +49,10 @@ def get_cjfun():
 
     return get_cj
 
-def disp(df, kl='wk', minscore=500, maxscore=600):
-    flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl=='wk' else \
+def desc_score_segtable_plot(df, kl='wk', minscore=500, maxscore=600):
+    flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
         ['yw', 'sx', 'wy', 'wl', 'hx', 'sw']
-    flist = [fs+'n' for fs in flist]
+    flist = [fs+'n' if fs not in 'yw, sx, wy' else fs for fs in flist]
     tdf = df[(df.zf <= maxscore) & (df.zf >= minscore)]
     if 'sg' in dir():
         pb.reload(sg)
