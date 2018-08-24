@@ -15,31 +15,49 @@ import pyex_ptt as ptt
 # import warnings
 # warnings.simplefilter('error')
 
+shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
+shandong_level = [20, 30, 40, 50, 60, 70, 80, 90, 100]
+zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+# estimate: std=9, mean=55
+shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+# estimate: std=12-15, mean=70
+beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+# estimate: std=12-15, mean=70
+tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
-def usemodel(name='shandong', df=None, field_list='',
-             maxscore=100, minscore=0, 
+
+def usemodel(name='shandong',
+             df=None,
+             field_list='',
+             maxscore=100,
+             minscore=0,
              decimals=0,
-             percent_approx_method='nearmin'
+             approx_method='nearmin'
              ):
     """
-    :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
+    :param name: str, in ['shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
+                          'zscore', 'tscore', 'tlinear']
     :param df: input dataframe
     :param field_list: score fields list in input dataframe
+    :param maxscore: max value in raw score
+    :param minscore: min value in raw score
     :param decimals: output score decimals
-    :param percent_approx_method: maxmin, minmax, near
-    :return: model, object of ScoreTransformModel
+    :param approx_method: maxmin, minmax, nearmin, nearmax
+    :return: model
     """
-    # valid name to use model
-    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tscore, zscore, tlinear'
+
+    # valid name
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, ' \
+               'tscore, zscore, tlinear'
 
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
-            scoredf = pd.DataFrame(df)
+            input_data = pd.DataFrame(df)
         else:
             print('no score dataframe!')
             return
     else:
-        scoredf = df
+        input_data = df
     if isinstance(field_list, str):
         field_list = [field_list]
     elif not isinstance(field_list, list):
@@ -57,7 +75,6 @@ def usemodel(name='shandong', df=None, field_list='',
         # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
         #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
         #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
-        #                        not real, but approximate normal distribution
         # according to std
         #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
         #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
@@ -68,51 +85,45 @@ def usemodel(name='shandong', df=None, field_list='',
         #   cdf(40) = 0.0991            as std=15.54375
         #   cdf(30) = 0.0268            as std=15.54375
         #   cdf(20) = 0.0050            as std=15.54375
-        # -------------------------------------------------------------------------------------------------------------
+        # ---------------------------------------------------------------------------------------------------------
         #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
         #   std/points      20      30         40        50        60      70         80        90         100
         #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
         #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
         #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
-        # -------------------------------------------------------------------------------------------------------------
+        # ---------------------------------------------------------------------------------------------------------
         # on the whole, fitting is approximate fine
         # p1: std scope in 15.54 - 15.95
-        # p2: cut percent at 20, 100 is a little big
+        # p2: cut percent at 20, 100 is a little big, std would be reduced
         # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
-        # p4: max count at 60 estimated to [norm.pdf(0)=0.398942]/(sigma:pdf(50-60)=4.091)*0.24*total_number
-        #     0.0234 * total_number
+        # p4: max frequency at 60 estimation:
+        #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
+        #     percentage in all  : pga = pg60*0.24 = 0.023404
+        #     frequecy estimation: 0.0234 * total_number
         #     200,000-->4680,   300,000 --> 7020
-
-        rawpoints_sd = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
-        stdpoints_sd = [20, 30, 40, 50, 60, 70, 80, 90, 100]
-        low_rawscore = minscore
 
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_score_decimals = 0
-        pltmodel.set_data(input_data=scoredf,
+        pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_percent_list=rawpoints_sd,
-                                output_score_points_list=stdpoints_sd,
+        pltmodel.set_parameters(input_score_percent_list=shandong_ratio,
+                                output_score_points_list=shandong_level,
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
-                                approximate_mode=percent_approx_method,
-                                minimum_raw_score_cutout=low_rawscore,
+                                approx_mode=approx_method,
+                                use_minscore_as_start_endpoint=True,
                                 decimals=decimals
                                 )
         pltmodel.run()
-
-        # pltmodel.report()
-        # pltmodel.plot('raw')   # plot raw score figure, else 'std', 'model'
         return pltmodel
 
     if name == 'zhejiang':
         # estimate: std = 14, mean=70
-        zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
         level_score_table = [100-x*3 for x in range(21)]
         m = LevelScore()
         m.model_name = 'zhejiang'
-        m.set_data(input_data=scoredf, field_list=field_list)
+        m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=maxscore,
                          minscore=minscore,
                          level_ratio_table=zhejiang_ratio,
@@ -121,13 +132,11 @@ def usemodel(name='shandong', df=None, field_list='',
         return m
 
     if name == 'shanghai':
-        # estimate: std=9, mean=55
-        level_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
         level_score = [70-j*3 for j in range(11)]
         m = LevelScore()
         m.model_name = 'shanghai'
-        m.set_data(input_data=scoredf, field_list=field_list)
-        m.set_parameters(level_ratio_table=level_ratio,
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=shanghai_ratio,
                          level_score_table=level_score,
                          maxscore=maxscore,
                          minscore=minscore)
@@ -135,13 +144,11 @@ def usemodel(name='shandong', df=None, field_list='',
         return m
 
     if name == 'beijing':
-        # estimate: std=12-15, mean=70
-        level_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
         level_score = [100-j*3 for j in range(21)]
         m = LevelScore()
         m.model_name = 'beijing'
-        m.set_data(input_data=scoredf, field_list=field_list)
-        m.set_parameters(level_ratio_table=level_ratio,
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=beijing_ratio,
                          level_score_table=level_score,
                          maxscore=maxscore,
                          minscore=minscore)
@@ -149,13 +156,11 @@ def usemodel(name='shandong', df=None, field_list='',
         return m
     
     if name == 'tianjin':
-        # estimate: std=12-15, mean=70
-        level_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
         level_score = [100-j*3 for j in range(21)]
         m = LevelScore()
         m.model_name = 'tianjin'
-        m.set_data(input_data=scoredf, field_list=field_list)
-        m.set_parameters(level_ratio_table=level_ratio,
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=tianjin_ratio,
                          level_score_table=level_score,
                          maxscore=maxscore,
                          minscore=minscore)
@@ -165,7 +170,7 @@ def usemodel(name='shandong', df=None, field_list='',
     if name == 'zscore':
         zm = Zscore()
         zm.model_name = name
-        zm.set_data(input_data=scoredf, field_list=field_list)
+        zm.set_data(input_data=input_data, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
@@ -173,7 +178,7 @@ def usemodel(name='shandong', df=None, field_list='',
     if name == 'tscore':
         tm = Tscore()
         tm.model_name = name
-        tm.set_data(input_data=scoredf, field_list=field_list)
+        tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
@@ -181,7 +186,7 @@ def usemodel(name='shandong', df=None, field_list='',
     if name == 'tlinear':
         tm = TscoreLinear()
         tm.model_name = name
-        tm.set_data(input_data=scoredf, field_list=field_list)
+        tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
         tm.run()
         tm.report()
@@ -189,15 +194,20 @@ def usemodel(name='shandong', df=None, field_list='',
 
 
 # Score Transform Model Interface
+# Abstract class
 class ScoreTransformModel(object):
     """
     转换分数是原始分数通过特定模型到预定义标准分数量表的映射结果。
-    本模块转换分数模型：
+    基于该类的子类（转换分数模型）：
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
         T分数线性模型（TscoreLinear),
-        标准九分数模型(L9score)
-        分段线性转换分数山东省新高考改革转换分数模型（PltScore）
+        等级分数模型(LevelScore)
+        山东省新高考转换分数模型（PltScore）（分段线性转换分数）
+        param model_name, type==str
+        param input_data: raw score data, type==datafrmae
+        param field_list: fields in input_data, assign somr subjects score to transform
+        param output_data: transform score data, type==dataframe
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
@@ -254,7 +264,7 @@ class ScoreTransformModel(object):
         elif mode.lower() == 'raw':
             self.__plot_raw_score()
         else:
-            print('error mode={}, use valid mode: out or raw'.format(mode))
+            print('error mode={}, valid mode: out or raw'.format(mode))
             return False
         return True
 
@@ -283,18 +293,20 @@ class ScoreTransformModel(object):
         return
 
 
-# model for linear score transform on some intervals
+# piecewise linear transform model
 class PltScore(ScoreTransformModel):
     """
     PltModel:
-    use linear standardscore transform from raw-score intervals
-    to united score intervals
-        # set model score percentages and endpoints
-        # we get a near normal distribution
-        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
-        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
-        #                        test std=15.950713502        at 30    Zcdf(-30/std)=0.03
-        #                        not real, but approximate normal distribution
+    linear transform from raw-score to level-score at each intervals divided by preset ratios
+    set ratio and intervals according to norm distribution property
+    get a near normal distribution
+
+    # for ratio = [3, 7, 16, 24, 24, 16, 7, 3] & level = [20, 30, ..., 100]
+    # following is estimation to std:
+        # according to percent
+        #   test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #   test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #   test std=15.950713502      at 30    Zcdf(-30/std)=0.03
         # according to std
         #   cdf(100)= 0.99496 as std=15.54375, 0.9939 as std=15.9507
         #   cdf(90) = 0.970(9)79656 as std=15.9507135,  0.972718 as std=15.606,  0.9731988 as std=15.54375
@@ -305,16 +317,16 @@ class PltScore(ScoreTransformModel):
         #   cdf(40) = 0.0991 as std=15.54375
         #   cdf(30) = 0.0268 as std=15.54375
         #   cdf(20) = 0.0050 as std=15.54375
-        # p1: std scope in 15.5-16
-        # p2: cut percent at 20, 100 is a little big
-        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+        # some problems:
+        #   p1: std scope in 15.5-16
+        #   p2: cut percent at 20, 100 is a little big, so std is reduced
+        #   p3: percent at 30,40 is a bit larger than normal according to std=15.54375
         # on the whole, fitting is approximate fine
     """
 
     def __init__(self):
         # intit input_df, input_output_data, output_df, model_name
         super(PltScore, self).__init__('plt')
-        # self.model_name = 'plt'  # 'Pieceise Linear Transform Model'
 
         # new properties for linear segment stdscore
         self.input_score_percentage_points = []
@@ -322,8 +334,8 @@ class PltScore(ScoreTransformModel):
         self.output_score_decimals = 4
 
         # parameters
-        self.approximate_mode = 'minmax'
-        self.use_minscore_as_rawscore_start_endpoint = None
+        self.approx_mode = 'minmax'
+        self.use_minscore_as_rawscore_start_endpoint = True
 
         # result
         self.segtable = pd.DataFrame()
@@ -358,16 +370,17 @@ class PltScore(ScoreTransformModel):
                        output_score_points_list=None,
                        input_score_min=0,
                        input_score_max=150,
-                       approximate_mode='minmax',
-                       minimum_raw_score_cutout=None,
+                       approx_mode='minmax',
+                       use_minscore_as_start_endpoint=True,
                        decimals=None):
         """
         :param input_score_percent_list: ratio points for raw score interval
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param approximate_mode:  minmax, maxmin, nearmin, nearmax
-        :param minimum_raw_score_cutout: lowest endpoint for raw score
+        :param approx_mode:  minmax, maxmin, nearmin, nearmax
+        :param use_minscore_as_start_endpoint: set low endpoint for raw score, default None for using real minvalue
+        :param decimals: decimal digit number to remain in result data
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
@@ -383,8 +396,8 @@ class PltScore(ScoreTransformModel):
             self.input_score_min = input_score_min
         if isinstance(input_score_max, int):
             self.input_score_max = input_score_max
-        self.approximate_mode = approximate_mode
-        self.use_minscore_as_rawscore_start_endpoint = minimum_raw_score_cutout
+        self.approx_mode = approx_mode
+        self.use_minscore_as_rawscore_start_endpoint = use_minscore_as_start_endpoint
 
     def check_parameter(self):
         if not self.field_list:
@@ -469,6 +482,7 @@ class PltScore(ScoreTransformModel):
         print('-'*50)
         # run end
 
+    # from current formula in result_coeff
     def __get_plt_score(self, x):
         for i in range(1, len(self.output_score_points)):
             if x <= self.result_input_data_points[i]:
@@ -503,7 +517,7 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            self.result_input_data_points = self.__get_raw_score_points(field, self.approximate_mode)
+            self.result_input_data_points = self.__get_raw_score_points(field, self.approx_mode)
         else:
             print('score field({}) not in output_dataframe!'.format(field))
             print('must be in {}'.format(self.input_data.columns.values))
@@ -520,10 +534,10 @@ class PltScore(ScoreTransformModel):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
-        if self.use_minscore_as_rawscore_start_endpoint is not None:
-            score_points = [self.input_score_min]   # [min(self.segtable['seg'][self.segtable[field+'_count']>0])]
+        if self.use_minscore_as_rawscore_start_endpoint:
+            score_points = [self.input_score_min]
         else:
-            score_points = [min(self.segtable['seg'][self.segtable[field+'_count']>0])]
+            score_points = [min(self.segtable['seg'][self.segtable[field+'_count'] > 0])]
 
         lastpercent = 0
         lastseg = self.input_score_min
@@ -611,15 +625,15 @@ class PltScore(ScoreTransformModel):
         # create report
         self._create_report()
 
-    def get_plt_score_from_formula(self, fs, x):
-        if fs not in self.field_list:
-            print('invalid field name {} not in {}'.format(fs, self.field_list))
-        raw_points = self.result_dict[fs]['input_score_points']
-        coeff = self.result_dict[fs]['coeff']
+    def get_plt_score_from_formula(self, field, x):
+        if field not in self.field_list:
+            print('invalid field name {} not in {}'.format(field, self.field_list))
+        raw_points = self.result_dict[field]['input_score_points']
+        coeff = self.result_dict[field]['coeff']
         for i, v in enumerate(raw_points):
             if x <= v:
-                plt = coeff[i+1][0]*(x-raw_points[i-1])+coeff[2]
-
+                return coeff[i+1][0]*(x-raw_points[i-1])+coeff[2]
+        return -1
 
     @staticmethod
     def round45i(v: float, dec=0):
@@ -658,8 +672,6 @@ class PltScore(ScoreTransformModel):
     def __plotmodel(self):
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.rcParams.update({'font.size': 8})
-        plen = len(self.result_input_data_points)
-        flen = len(self.field_list)
         for i, fs in enumerate(self.field_list):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
@@ -724,9 +736,9 @@ class PltScore(ScoreTransformModel):
             out_points = [(self.output_score_points[i-1], self.output_score_points[i])
                           for i in range(1, len(input_points))]
             cross_points = []
-            for i in range(len(raw_points)):
-                if (out_points[i][0]-raw_points[i][0]) * (out_points[i][1]-raw_points[i][1]) < 0:
-                    a, b, c = result['coeff'][i+1]
+            for j in range(len(raw_points)):
+                if (out_points[j][0]-raw_points[j][0]) * (out_points[j][1]-raw_points[j][1]) < 0:
+                    a, b, c = result['coeff'][j+1]
                     cross_points.append(round((a*b-c)/(a-1), 1))
             plt.xlim(input_points[0], input_points[-1])
             plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
@@ -742,16 +754,17 @@ class PltScore(ScoreTransformModel):
         plt.show()
         return
 
+    # from formula
+    # def get_plt_score(self, fs, x):
+    #     coeff = self.result_dict[fs]['coeff']
+    #     input_points = self.result_dict[fs]['input_score_points']
+    #     for i in range(1, len(self.output_score_points)):
+    #         if x <= input_points[i]:
+    #             y = coeff[i][0] * (x - coeff[i][1]) + coeff[i][2]
+    #             return self.round45i(y, self.output_score_decimals)
+    #     return -1
+
     def print_segtable(self):
-        def get_plt_score(fs, x):
-            coeff = self.result_dict[fs]['coeff']
-            input_points = self.result_dict[fs]['input_score_points']
-            for i in range(1, len(self.output_score_points)):
-                if x <= input_points[i]:
-                    y = coeff[i][0] * \
-                        (x - coeff[i][1]) + coeff[i][2]
-                    return self.round45i(y, self.output_score_decimals)
-            return -1
 
         fs_list = ['seg']
         for ffs in self.field_list:
@@ -763,7 +776,8 @@ class PltScore(ScoreTransformModel):
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, 4))
             if '_plt' in fs:
-                df.loc[:, fs] = df['seg'].apply(lambda x: get_plt_score(fs[0:fs.index('_')], x))
+                df.loc[:, fs] = df['seg'].apply(
+                    lambda x: self.get_plt_score_from_formula(fs[0:fs.index('_')], x))
         print(ptt.make_page(df=df[fs_list],
                             title='level score table for {}'.format(self.model_name),
                             pagelines=self.input_score_max+1))
@@ -836,7 +850,7 @@ class Zscore(ScoreTransformModel):
             df.loc[:, sf+'_zscore'] = df[sf + '_zscore'].replace(self._segtable.seg.values,
                                                                  self._segtable[sf+'_zscore'].values)
             self.output_data = df
-            print('zscore transoform finished with {} consumed'.format(round(time.clock()-st,2)))
+            print('zscore transoform finished with {} consumed'.format(round(time.clock()-st, 2)))
 
     def _calczscoretable(self, sf):
         if sf+'_percent' in self._segtable.columns.values:
@@ -1060,12 +1074,12 @@ class LevelScore(ScoreTransformModel):
     """
     def __init__(self):
         super().__init__('level')
+        __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 
         self.input_score_max = 100
         self.input_score_min = 0
-        zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]   # zhejiang ratio
-        self.level_ratio_table = [sum(zhejiang_ratio[0:j+1])*0.01
-                                  for j in range(len(zhejiang_ratio))]
+        self.level_ratio_table = [sum(__zhejiang_ratio[0:j+1])*0.01
+                                  for j in range(len(__zhejiang_ratio))]
         self.level_score_table = [100-x*3 for x in range(len(self.level_ratio_table))]
         self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
@@ -1084,7 +1098,8 @@ class LevelScore(ScoreTransformModel):
             print('error field_list: {}'.format(field_list))
 
     def set_parameters(self,
-                       maxscore=None, minscore=None,
+                       maxscore=None,
+                       minscore=None,
                        level_ratio_table=None,
                        level_score_table=None):
         if isinstance(maxscore, int):
@@ -1100,6 +1115,8 @@ class LevelScore(ScoreTransformModel):
         if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
             self.level_ratio_table = [1-sum(level_ratio_table[0:j+1])*0.01
                                       for j in range(len(level_ratio_table))]
+            if sum(level_ratio_table) != 100:
+                print('ratio table is wrong, sum is not 100! sum={}'.format(sum(level_ratio_table)))
         if isinstance(level_score_table, list) or isinstance(level_score_table, tuple):
             self.level_score_table = level_score_table
         if len(self.level_ratio_table) != len(self.level_score_table):
@@ -1109,16 +1126,9 @@ class LevelScore(ScoreTransformModel):
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
 
     def run(self):
-        if len(self.field_list) > 0:
-            # if (self.input_score_max < max([max(self.input_data[f]) for f in self.field_list])) | \
-            #         (self.input_score_min > min([min(self.input_data[f]) for f in self.field_list])):
-            #     print('error: maxscore/minscore is lower/larger than max(field) to transform score!')
-            #     return
-            pass
-        else:
+        if len(self.field_list) == 0:
             print('to set field_list first!')
             return
-        # import py2ee_lib as pl
         seg = ps.SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
