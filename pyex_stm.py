@@ -16,10 +16,11 @@ import pyex_ptt as ptt
 # warnings.simplefilter('error')
 
 
-def use(name='shandong', df=None, field_list='',
-        maxscore=100, minscore=0, decimals=0,
-        percent_approx_method='nearmin'
-        ):
+def usemodel(name='shandong', df=None, field_list='',
+             maxscore=100, minscore=0, 
+             decimals=0,
+             percent_approx_method='nearmin'
+             ):
     """
     :param name: str, from ['plt', 'zscore', 'tscore', 'tlinear', 'l9']
     :param df: input dataframe
@@ -29,7 +30,7 @@ def use(name='shandong', df=None, field_list='',
     :return: model, object of ScoreTransformModel
     """
     # valid name to use model
-    name_set = 'zhejiang, shanghai, shandong, beijing, tscore, zscore, tlinear'
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tscore, zscore, tlinear'
 
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
@@ -139,6 +140,20 @@ def use(name='shandong', df=None, field_list='',
         level_score = [100-j*3 for j in range(21)]
         m = LevelScore()
         m.model_name = 'beijing'
+        m.set_data(input_data=scoredf, field_list=field_list)
+        m.set_parameters(level_ratio_table=level_ratio,
+                         level_score_table=level_score,
+                         maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+    
+    if name == 'tianjin':
+        # estimate: std=12-15, mean=70
+        level_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+        level_score = [100-j*3 for j in range(21)]
+        m = LevelScore()
+        m.model_name = 'tianjin'
         m.set_data(input_data=scoredf, field_list=field_list)
         m.set_parameters(level_ratio_table=level_ratio,
                          level_score_table=level_score,
@@ -743,7 +758,7 @@ class PltScore(ScoreTransformModel):
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
             fs_list += [ffs+'_plt']
-        df = self.segtable.copy()
+        df = self.segtable
         for fs in fs_list:
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, 4))
