@@ -21,9 +21,9 @@ def get_cjfun():
             if not os.path.isfile(_path+'g'+fs+'wk.csv'):
                 continue
             datawk.append(pd.read_csv(_path+'g'+fs+'wk.csv', index_col=0, low_memory=False,
-                                      dtype={'ksh': str}))
+                                      dtype={'kl': str}))
             datalk.append(pd.read_csv(_path+'g'+fs+'lk.csv', index_col=0, low_memory=False,
-                                      dtype={'ksh': str}))
+                                      dtype={'kl': str}))
     # print(datawk, datalk)
 
     def get_cj(year='15', kl='wk'):
@@ -40,11 +40,12 @@ def get_cjfun():
                 df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 11 * 10, 0))
             elif fs == 'sw':
                 df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 9 * 10, 0))
-        df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
+        # df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
                           ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else \
                                (df['wln'] + df['hxn'] + df['swn']))
-        df = df.drop('ksh', axis=1)
+        # if 'ksh' in df.columns:
+        #     df = df.drop('ksh', axis=1)
         return df
 
     return get_cj

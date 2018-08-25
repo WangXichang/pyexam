@@ -8,15 +8,21 @@ import numpy as np
 import time
 
 
-# test SegTable
-def test():
+# guid to use pyex_seg
+def helpdoc():
+    print(SegTable.__doc__)
+    print(helpexp.__doc__)
+
+
+# test SegTable and show some example
+def helpexp():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
     expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8, ]})
     seg = SegTable()
     seg.set_data(expdf, expdf.columns.values)
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=True)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=True, display=True)
     seg.run()
     print(seg.output_data)
          seg      sf_count  sf_sum  sf_percent  sf_count3
@@ -28,7 +34,7 @@ def test():
     0    3         8         17    1.000000         12  # including 0, 1 which below 3
     ------------------------------------------------------------------------------
     # avoid to count records below segmin if segalldata = False
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=True)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=False, display=True)
     seg.run()
     print(seg.output_data)
          seg     sf_count  sf_sum   sf_percent      sf_count3
@@ -39,6 +45,7 @@ def test():
     1    4         4          9     0.600000         -1
     0    3         6         15     1.000000         10  # excluding 0, 1
     """
+
     expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8]})
     print('example dataframe')
     print('='*80)
@@ -46,14 +53,14 @@ def test():
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=True, display=False)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=True, display=False)
     seg.run()
     print('='*80)
     seg.show_parameters()
     print(seg.output_data)
 
     # special step, start, no all data
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, segalldata=False, display=False)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=False, display=False)
     seg.run()
     print('\n')
     print('='*80)
@@ -85,10 +92,11 @@ def test():
     print('='*80)
     seg.show_parameters()
     print(seg.output_data)
-    print('\n--- get result using [(df.sf_list > 0) | (df.seg.isin([segmax, segmin])] ---')
-    print(seg.output_data[(seg.output_data.sf_list > 0) | seg.output_data.seg.isin([7, 1])])
+    print('\n--- get result use: (df.sf_list > 0) | (df.seg.isin(range(segmin, segmax+1)) ---')
+    print(seg.output_data[seg.output_data.sf_list > 0])
+    print(seg.output_data[seg.output_data.sf_count2 > 0])
 
-    return seg
+    return
 
 
 class SegTable(object):
@@ -106,35 +114,40 @@ class SegTable(object):
                    用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
                    字段的类型应为可计算类型，如int,float.
 
-    设置参数：最高分值，最低分值，分段距离， 分数顺序， 累加分值范围外数据， 关闭计算过程显示
-    set_parameters（segmax, segmin, segstep, segsort, segalldata, display）
-        segmax: int,  maxvalue for segment, default=150输出分段表中分数段的最大值
-        segmin: int, minvalue for segment, default=0。输出分段表中分数段的最小值
+    设置参数：最高分值，最低分值，分段距离，分段开始值，分数顺序，指定分段值列表， 使用指定分段列表，使用所有数据， 关闭计算过程显示信息
+    set_parameters（segmax, segmin, segstep, segstart, segsort, seglist, useseglist, usealldata, display）
+        segmax: int, maxvalue for segment, default=150
+                输出分段表中分数段的最大值
+        segmin: int, minvalue for segment, default=0。
+                输出分段表中分数段的最小值
         segstep: int, levels for segment value, default=1
-                 分段间隔，用于生成n-分段表（五分一段的分段表）
-        segStart:int, start seg score to count
-                 开始进行分段计算的分值
-        seglist: list, used to create set value
-                 使用给定的列表产生分段表，列表中为分段点分数值
-        seglistuse: bool, use or not use seglist to create seg value
-                 是否使用给定列表产生分段值
+                分段间隔，用于生成n-分段表（五分一段的分段表）
+        segstart:int, start seg score to count
+                进行分段计算的起始值
         segsort: str, 'a' for ascending order or 'd' for descending order, default='d' (seg order on descending)
-                 输出结果中分段值得排序方式，descending:从大到小， ascending：从小到大
-                 排序模式的设置影响累计数和百分比的意义。
-        segalldata: bool, True: consider all score , the numbers outside are added to segmin or segmax
+                输出结果中分段值得排序方式，d: 从大到小， a：从小到大
+                排序模式的设置影响累计数和百分比的意义。
+        seglist: list, used to create set value
+                 使用给定的列表产生分段表，列表中为分段点值
+        useseglist: bool, use or not use seglist to create seg value
+                 是否使用给定列表产生分段值
+        usealldata: bool, True: consider all score , the numbers outside are added to segmin or segmax
                  False: only consider score in [segmin, segmax] , abort the others records
                  default=False.
                  考虑最大和最小值之外的分数记录，高于的segmax的分数计数加入segmax分数段，
                  低于segmin分数值的计数加入segmin分数段
         display: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
-
-    运行计算，产生输出数据, calculate and create output data
+    output_data: 输出分段数据
+            seg: seg value
+        [field]: field name in field_list
+        [field]_count: number at the seg
+        [field]_sum: cumsum number at the seg
+        [field]_percent: percentage at the seg
+        [field]_count[step]: count field for step != 1
+        [field]_list: count field for assigned seglist when use seglist
+    运行，产生输出数据, calculate and create output data
     run()
-
-    运行结果：分段计算结果（DataFrame),包含字段seg(分数段), [segfield]_count(本段人数）, [segfield]_sum(累计人数)
-              [segfield]_percent(百分数，在顺序中排在其前的人数）
-    output_data: dataframe with field 'seg, segfield_count, segfield_sum, segfield_percent'
 
     应用举例
     example:
@@ -142,15 +155,15 @@ class SegTable(object):
         seg = sg.SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
-        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', segalldata=True, display=True)
+        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
         seg.run()
         seg.plot()
         print(seg.output_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
-        1)根据segalldata确定是否在设定的区间范围内计算分数值
-          segalldata=True时抛弃不在范围内的记录项
-          segalldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
+        1)根据usealldata确定是否在设定的区间范围内计算分数值
+          usealldata=True时抛弃不在范围内的记录项
+          usealldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
           segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
           segalldata is used to include or exclude data outside [segmin, segmax]
 
@@ -174,13 +187,13 @@ class SegTable(object):
         self.__segFields = []
         # parameter for model
         self.__segList = []
-        self.__segListUse = False
+        self.__useseglist = False
         self.__segStart = 100
         self.__segStep = 1
         self.__segMax = 150
         self.__segMin = 0
         self.__segSort = 'd'
-        self.__segAlldata = True
+        self.__usealldata = True
         self.__display = True
         # result data
         self.__output_dataframe = None
@@ -217,11 +230,11 @@ class SegTable(object):
 
     @property
     def seglistuse(self):
-        return self.__segListUse
+        return self.__useseglist
 
     @seglistuse.setter
     def seglistuse(self, seglistuse):
-        self.__segListUse = seglistuse
+        self.__useseglist = seglistuse
 
     @property
     def segstart(self):
@@ -265,11 +278,11 @@ class SegTable(object):
 
     @property
     def segalldata(self):
-        return self.__segAlldata
+        return self.__usealldata
 
     @segalldata.setter
     def segalldata(self, datamode):
-        self.__segAlldata = datamode
+        self.__usealldata = datamode
 
     @property
     def display(self):
@@ -296,9 +309,9 @@ class SegTable(object):
             segstart=None,
             segstep=None,
             seglist=None,
-            seglistuse=None,
             segsort=None,
-            segalldata=None,
+            useseglist=None,
+            usealldata=None,
             display=None):
         set_str = ''
         if isinstance(segmax, int):
@@ -314,9 +327,9 @@ class SegTable(object):
             if segsort.lower() in ['d', 'a', 'D', 'A']:
                 set_str += 'set segsort to {}'.format(segsort) + '\n'
                 self.__segSort = segsort
-        if isinstance(segalldata, bool):
-            set_str += 'set segalldata to {}'.format(segalldata) + '\n'
-            self.__segAlldata = segalldata
+        if isinstance(usealldata, bool):
+            set_str += 'set segalldata to {}'.format(usealldata) + '\n'
+            self.__usealldata = usealldata
         if isinstance(display, bool):
             set_str += 'set display to {}'.format(display) + '\n'
             self.__display = display
@@ -326,28 +339,29 @@ class SegTable(object):
         if isinstance(seglist, list):
             set_str += 'set seglist to {}'.format(seglist) + '\n'
             self.__segList = seglist
-        if isinstance(seglistuse, bool):
-            set_str += 'set seglistuse to {}'.format(seglistuse) + '\n'
-            self.__segListUse = seglistuse
+        if isinstance(useseglist, bool):
+            set_str += 'set seglistuse to {}'.format(useseglist) + '\n'
+            self.__useseglist = useseglist
         if display:
             print(set_str)
         self.__check()
-        # self.show_parameters()
+        if display:
+            self.show_parameters()
 
     def show_parameters(self):
         print('------ seg parameters ------')
-        print('   seg list use:{0}'.format(self.__segListUse, self.__segList))
-        print('       seg list:{1}'.format(self.__segListUse, self.__segList))
+        print('   seg list use:{0}'.format(self.__useseglist, self.__segList))
+        print('       seg list:{1}'.format(self.__useseglist, self.__segList))
         print('      max value:{}'.format(self.__segMax))
         print('      min value:{}'.format(self.__segMin))
         print('    start value:{}'.format(self.__segStart))
         print('     step value:{}'.format(self.__segStep))
         print('      sort mode:{}'.format('d (descending)' if self.__segSort in ['d', 'D'] else 'a (ascending)'))
-        print('       all data:{}'.format(self.__segAlldata))
+        print('       all data:{}'.format(self.__usealldata))
         print('        display:{}'.format(self.__display))
         print('-' * 28)
 
-    def help(self):
+    def helpdoc(self):
         print(self.__doc__)
 
     def __check(self):
@@ -362,22 +376,20 @@ class SegTable(object):
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        # #if (self.__segStart < self.__segMin) | (self.__segStart > self.__segMax):
-        # #    print('error: segstart({}) is too small or big!'.format(self.__segStart))
-        #     return False
         if not isinstance(self.field_list, list):
             if isinstance(self.field_list, str):
                 self.field_list = [self.field_list]
             else:
                 print('error: segfields type({}) error.'.format(type(self.field_list)))
                 return False
+
         for f in self.field_list:
             if f not in self.input_data.columns:
                 print("error: field('{}') is not in input_data fields({})".
                       format(f, self.input_data.columns.values))
                 return False
-        if not isinstance(self.__segAlldata, bool):
-            print('error: segalldata({}) is not bool type!'.format(self.__segAlldata))
+        if not isinstance(self.__usealldata, bool):
+            print('error: segalldata({}) is not bool type!'.format(self.__usealldata))
             return False
         return True
 
@@ -387,30 +399,25 @@ class SegTable(object):
             return
         # create output dataframe with segstep = 1
         if self.__display:
-           print('seg calculation start ...')
+            print('seg calculation start ...')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
-        if  self.__segSort in ['d', 'D']:
+        if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
-            # tempdf.fillna(-1)
             self.input_data.loc[:, f] = tempdf[f].apply(round45i)
-            # tempdf[f] = tempdf[f].apply(round)
-            # self.input_data = tempdf
 
             # count seg_count in [segmin, segmax]
             r = self.input_data.groupby(f)[f].count()
             fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
             self.__output_dataframe.loc[:, f+'_count'] = fcount_list
-            # self.__output_dataframe.loc[:, f + '_count'] = self.__output_dataframe['seg'].\
-            #     apply(lambda x: np.int64(r[x]) if x in r.index else 0)
-            # if self.__display:
-            #     print('segments count finished count ' + f, ' use time:{}'.format(time.clock() - sttime))
+            if self.__display:
+                print('finished count(' + f, ') use time:{}'.format(time.clock() - sttime))
 
             # add outside scope number to segmin, segmax
-            if self.__segAlldata:
+            if self.__usealldata:
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = \
                     r[r.index <= self.__segMin].sum()
                 self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = \
@@ -418,7 +425,7 @@ class SegTable(object):
 
             # calculate cumsum field
             self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
-            if self.__segListUse:
+            if self.__useseglist:
                 self.__output_dataframe[f + '_list_sum'] = self.__output_dataframe[f + '_count'].cumsum()
 
             # calculate percent field
@@ -435,7 +442,7 @@ class SegTable(object):
                 self.__run_special_step(f)
 
             # use seglist
-            if self.__segListUse:
+            if self.__useseglist:
                 if len(self.__segList) > 0:
                     self.__run_seg_list(f)
 
@@ -506,7 +513,7 @@ class SegTable(object):
         for index, row in self.__output_dataframe.iterrows():
             curseg = np.int64(row['seg'])
             # cumsum
-            if self.__segAlldata | (minpoint <= curseg <= maxpoint):
+            if self.__usealldata | (minpoint <= curseg <= maxpoint):
                 cum += row[f + '_count']
                 list_sum += row[f+'_count']
                 self.__output_dataframe.loc[index, f+'_list_sum'] = np.int64(list_sum)
@@ -520,7 +527,7 @@ class SegTable(object):
                 else:
                     lastindex = index
             elif cur_row == rownum:
-                if self.__segAlldata:
+                if self.__usealldata:
                     self.__output_dataframe.loc[lastindex, segcountname] += np.int64(cum)
             cur_row += 1
 
@@ -582,7 +589,8 @@ def cross_seg(df,    # source dataframe
     seglen = dfseg['seg'].count()
     for sv, step in zip(dfseg['seg'], range(seglen)):
         if (step % display_step == 0) | (step == seglen-1):
-            print('=' * int((step+1)/seglen * 30) + '>>' + f'{float_str((step+1)/seglen, 1, 2)}')
+            print('=' * int((step+1)/seglen * 30) + '>>' +
+                  f'{float_str((step+1)/seglen, 1, 2)}')
         for vfv in vfseglist:
             segcount = df.loc[(df[keyf] >= sv) & (df[vf] >= vfv), vf].count()
             vfseg[vfv].append(segcount)
@@ -605,8 +613,9 @@ def int_str(x, d):
     fstr = '{:'+str(d)+'d}'
     return fstr.format(x)
 
+
 def round45i(v, dec=0):
     if not isinstance(v, float):
         return v
     u = int(v * 10**dec*10)
-    return (int(u/10) + (1 if v >0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec
+    return (int(u/10) + (1 if v > 0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec

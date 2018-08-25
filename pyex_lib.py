@@ -52,7 +52,7 @@ def exp_norm_table(size=400, std=1, mean=0, stdnum=4):
     varset = [mean + interval[0] + v*step for v in range(size+1)]
     cdflist = [stats.norm.cdf(v) for v in varset]
     pdflist = [stats.norm.pdf(v) for v in varset]
-    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf':pdflist})
+    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf': pdflist})
     return ndf
 
 
@@ -77,12 +77,12 @@ def report_describe(dataframe, decdigits=4):
         kurtosis
     """
 
-    def fun_list2str(listvalue, getdecdigits):
-        return ''.join([('{:' + '1.' + str(getdecdigits)+'f}  ').format(fun_round45i(x, getdecdigits)) for x in listvalue])
+    def fun_list2str(listvalue, decimal):
+        return ''.join([('{:' + '1.' + str(decimal) + 'f}  ').
+                       format(fun_round45i(x, decimal)) for x in listvalue])
 
-    def fun_list2sqrt2str(listvalue, getdecdigits):
-        # return ''.join([('{:1.'+str(getdecdigits)+'f}  ').format(round(np.sqrt(x), getdecdigits)) for x in listvalue])
-        return fun_list2str([np.sqrt(x) for x in listvalue], getdecdigits)
+    def fun_list2sqrt2str(listvalue, decimal):
+        return fun_list2str([np.sqrt(x) for x in listvalue], decimal)
 
     pr = [[stats.pearsonr(dataframe[x], dataframe[y])[0]
            for x in dataframe.columns] for y in dataframe.columns]
@@ -257,12 +257,12 @@ def read_large_csv(f, display=False):
 
     reader = pd.read_csv(f, sep=',', iterator=True)
     loop = True
-    chunkSize = 100000
+    chunk_size = 100000
     chunks = []
     start = time.time()
     while loop:
         try:
-            chunk = reader.get_chunk(chunkSize)
+            chunk = reader.get_chunk(chunk_size)
             chunks.append(chunk)
         except StopIteration:
             loop = False

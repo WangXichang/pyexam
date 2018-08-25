@@ -15,17 +15,16 @@ import pyex_ptt as ptt
 # import warnings
 # warnings.simplefilter('error')
 
+# constant data
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
 shandong_level = [20, 30, 40, 50, 60, 70, 80, 90, 100]
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-# estimate: std=9, mean=55
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-# estimate: std=12-15, mean=70
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-# estimate: std=12-15, mean=70
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
+# interface to use model for some typical application
 def usemodel(name='shandong',
              df=None,
              field_list='',
@@ -35,8 +34,7 @@ def usemodel(name='shandong',
              approx_method='nearmin'
              ):
     """
-    :param name: str, in ['shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
-                          'zscore', 'tscore', 'tlinear']
+    :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: input dataframe
     :param field_list: score fields list in input dataframe
     :param maxscore: max value in raw score
@@ -191,6 +189,55 @@ def usemodel(name='shandong',
         tm.run()
         tm.report()
         return tm
+
+
+def plot_model_ratio():
+    plt.figure('model ratio distribution')
+    plt.rcParams.update({'font.size': 16})
+    plt.subplot(231)
+    plt.bar(range(8), [shandong_ratio[j] - shandong_ratio[j - 1] for j in range(1, 9)])
+    plt.title('shandong model')
+
+    plt.subplot(232)
+    plt.bar(range(11), [shanghai_ratio[-j-1] for j in range(11)])
+    plt.title('shanghai model')
+
+    plt.subplot(233)
+    plt.bar(range(21), [zhejiang_ratio[-j-1] for j in range(len(zhejiang_ratio))])
+    plt.title('zhejiang model')
+
+    plt.subplot(234)
+    plt.bar(range(21), [beijing_ratio[-j-1] for j in range(len(beijing_ratio))])
+    plt.title('beijing model')
+
+    plt.subplot(235)
+    plt.bar(range(21), [tianjin_ratio[-j-1] for j in range(len(tianjin_ratio))])
+    plt.title('tianjin model')
+
+
+def report_mean_median_mode(df, field_list, with_zero=False):
+    from scipy.stats import mode
+    from numpy import mean, median
+    for field in field_list:
+        if not with_zero:
+            st = (mean(df[df[field] > 0][field]),
+                  median(df[df[field] > 0][field]),
+                  mode(df[df[field] > 0][field])[0][0],
+                  mode(df[df[field] > 0][field])[1][0])
+            print('field:{}(not with zero) '
+                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.format(
+                  field, st[0], st[1], st[2], st[3]
+                  ))
+        else:
+            st = (
+                mean(df[field]),
+                median(df[field]),
+                mode(df[field])[0][0],
+                mode(df[field])[1][0])
+            print('field:{}(with zero) '
+                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.format(
+                  field, st[0], st[1], st[2], st[3]
+                  ))
 
 
 # Score Transform Model Interface
@@ -550,7 +597,13 @@ class PltScore(ScoreTransformModel):
                 score_points += [thisseg]
                 break
             if mode in 'minmax, maxmin':
-                if p > cur_input_score_ratio:
+                if p == cur_input_score_ratio:
+                    if (row['seg'] == 0) & (mode == 'maxmin') & (index < self.input_score_max):
+                        pass
+                    else:
+                        score_points.append(thisseg)
+                        percent_loc += 1
+                else:
                     score_points += [lastseg] if mode == 'minmax' else [thisseg]
                     percent_loc += 1
             elif mode in 'nearmax, nearmin, near':
@@ -625,15 +678,20 @@ class PltScore(ScoreTransformModel):
         # create report
         self._create_report()
 
-    def get_plt_score_from_formula(self, field, x):
+    def get_plt_score_from_formula(self, field, x, decimal=0):
         if field not in self.field_list:
             print('invalid field name {} not in {}'.format(field, self.field_list))
-        raw_points = self.result_dict[field]['input_score_points']
         coeff = self.result_dict[field]['coeff']
-        for i, v in enumerate(raw_points):
-            if x <= v:
-                return coeff[i+1][0]*(x-raw_points[i-1])+coeff[2]
-        return -1
+        maxkey = len(coeff)
+        result = -1
+        for i in range(1, maxkey+1):
+            if x < coeff[i][1]:
+                result = self.round45i(coeff[i-1][0]*(x-coeff[i-1][1]) + coeff[i-1][2], decimal)
+                break
+            if i == maxkey:
+                result = self.round45i(coeff[i][0]*(x-coeff[i][1]) + coeff[i][2], decimal)
+        result = min(self.input_score_max, result)
+        return result
 
     @staticmethod
     def round45i(v: float, dec=0):
