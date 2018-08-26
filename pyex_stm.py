@@ -125,7 +125,9 @@ def usemodel(name='shandong',
         m.set_parameters(maxscore=maxscore,
                          minscore=minscore,
                          level_ratio_table=zhejiang_ratio,
-                         level_score_table=level_score_table)
+                         level_score_table=level_score_table,
+                         approx_method = approx_method
+                         )
         m.run()
         return m
 
@@ -1133,6 +1135,7 @@ class LevelScore(ScoreTransformModel):
     def __init__(self):
         super().__init__('level')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+        self.approx_method_set = 'minmax, maxmin, nearmax, nearmin, near'
 
         self.input_score_max = 100
         self.input_score_min = 0
@@ -1141,6 +1144,7 @@ class LevelScore(ScoreTransformModel):
         self.level_score_table = [100-x*3 for x in range(len(self.level_ratio_table))]
         self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+        self.approx_method = 'near'
 
         self.segtable = None
         self.output_data = None
@@ -1159,7 +1163,8 @@ class LevelScore(ScoreTransformModel):
                        maxscore=None,
                        minscore=None,
                        level_ratio_table=None,
-                       level_score_table=None):
+                       level_score_table=None,
+                       approx_method=None):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
                 if maxscore >= max([max(self.input_data[f]) for f in self.field_list]):
@@ -1182,6 +1187,8 @@ class LevelScore(ScoreTransformModel):
             print(self.level_ratio_table, '\n', self.level_score_table)
         self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+        if approx_method in self.approx_method_set:
+            self.approx_method = approx_method
 
     def run(self):
         if len(self.field_list) == 0:
