@@ -39,8 +39,8 @@ def getzy():
 class Finder:
     def __init__(self):
         self.path = 'f:/studies/lqdata/'
-        self.td16p1 = None
-        self.td16p2 = None
+        self.td16bk1 = None
+        self.td16bk2 = None
         self.td17bk = None
         self.td16zk = None
         self.td17zk = None
@@ -56,15 +56,15 @@ class Finder:
         self.load_data()
 
     def load_data(self):
-        self.td16p1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',',
+        self.td16bk1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
-        self.td16p1 = self.td16p1.fillna(0)
-        self.td16p1.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td16bk1 = self.td16bk1.fillna(0)
+        self.td16bk1.astype(dtype={'wkpos': int, 'lkpos': int})
 
-        self.td16p2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',',
+        self.td16bk2 = pd.read_csv(self.path+'td2016pc2_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
-        self.td16p2 = self.td16p2.fillna(0)
-        self.td16p2.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td16bk2 = self.td16bk2.fillna(0)
+        self.td16bk2.astype(dtype={'wkpos': int, 'lkpos': int})
 
         self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
@@ -133,11 +133,11 @@ class Finder:
         # df1, df2, df3 = None, None, None
         if cc == 'bk':
             print('2016p1---')
-            df1 = self.td16p1[self.td16p1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+            df1 = self.td16bk1[self.td16bk1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
             print(ptt.make_page(df1, '2016p1'))
             print('2016p2---')
-            df2 = self.td16p2[self.td16p2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+            df2 = self.td16bk2[self.td16bk2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(ptt.make_page(df2, '2016p2'))
             print('2017bk---')
@@ -160,10 +160,10 @@ class Finder:
         align = dict() if align is None else align
         if cc == 'bk':
             # print('2016pc1---')
-            df1 = self.get_df_from_pos(self.td16p1, lowpos=low, highpos=high, posfield=posfield,
+            df1 = self.get_df_from_pos(self.td16bk1, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             # print('2016pc2---')
-            df2 = self.get_df_from_pos(self.td16p2, lowpos=low, highpos=high, posfield=posfield,
+            df2 = self.get_df_from_pos(self.td16bk2, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             # print('2017---')
             df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
