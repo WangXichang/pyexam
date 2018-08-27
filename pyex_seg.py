@@ -195,6 +195,7 @@ class SegTable(object):
         self.__segSort = 'd'
         self.__usealldata = True
         self.__display = True
+        self.__percent_decimal = 8
         # result data
         self.__output_dataframe = None
         # run status
@@ -429,11 +430,10 @@ class SegTable(object):
                 self.__output_dataframe[f + '_list_sum'] = self.__output_dataframe[f + '_count'].cumsum()
 
             # calculate percent field
-            # if self.__display:
-            #     print('segments count finished cumsum ' + f, ' use time:{0}'.format(time.clock() - sttime))
             maxsum = max(max(self.output_data[f + '_sum']), 1)     # avoid divided by 0 in percent computing
             self.__output_dataframe[f + '_percent'] = \
-                self.__output_dataframe[f + '_sum'].apply(lambda x: x / maxsum)
+                self.__output_dataframe[f + '_sum'].\
+                    apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 

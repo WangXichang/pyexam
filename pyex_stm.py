@@ -126,7 +126,7 @@ def usemodel(name='shandong',
                          minscore=minscore,
                          level_ratio_table=zhejiang_ratio,
                          level_score_table=level_score_table,
-                         approx_method = approx_method
+                         approx_method=approx_method
                          )
         m.run()
         return m
@@ -227,9 +227,8 @@ def report_mean_median_mode(df, field_list, with_zero=False):
                   mode(df[df[field] > 0][field])[0][0],
                   mode(df[df[field] > 0][field])[1][0])
             print('field:{}(not with zero) '
-                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.format(
-                  field, st[0], st[1], st[2], st[3]
-                  ))
+                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.
+                  format(field, st[0], st[1], st[2], st[3]))
         else:
             st = (
                 mean(df[field]),
@@ -237,9 +236,8 @@ def report_mean_median_mode(df, field_list, with_zero=False):
                 mode(df[field])[0][0],
                 mode(df[field])[1][0])
             print('field:{}(with zero) '
-                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.format(
-                  field, st[0], st[1], st[2], st[3]
-                  ))
+                  'mean={:.2f}, median={:.2f}, mode={} modecount={}'.
+                  format(field, st[0], st[1], st[2], st[3]))
 
 
 # Score Transform Model Interface
@@ -270,7 +268,7 @@ class ScoreTransformModel(object):
         self.output_score_decimals = 0
         self.output_report_doc = ''
 
-        self.sys_pricision_decimals = 6  #
+        self.sys_pricision_decimals = 6
 
     def set_data(self, input_data=None, field_list=None):
         raise NotImplementedError()
@@ -380,7 +378,7 @@ class PltScore(ScoreTransformModel):
         # new properties for linear segment stdscore
         self.input_score_percentage_points = []
         self.output_score_points = []
-        self.output_score_decimals = 4
+        self.output_score_decimals = 0
 
         # parameters
         self.approx_mode = 'minmax'
@@ -825,7 +823,7 @@ class PltScore(ScoreTransformModel):
     #     return -1
 
     def print_segtable(self):
-
+        seg_decimal_digit = 8
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
@@ -834,7 +832,7 @@ class PltScore(ScoreTransformModel):
         df = self.segtable
         for fs in fs_list:
             if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, 4))
+                df[fs] = df[fs].apply(lambda x: round(x, seg_decimal_digit))
             if '_plt' in fs:
                 df.loc[:, fs] = df['seg'].apply(
                     lambda x: self.get_plt_score_from_formula(fs[0:fs.index('_')], x))
@@ -1205,14 +1203,22 @@ class LevelScore(ScoreTransformModel):
         self.__calc_level_table()
         self.output_data = self.input_data[self.field_list]
         self.report_doc = {}
+        dtt = self.segtable
         for sf in self.field_list:
             dft = self.output_data.copy()
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
+            dft[sf+'_percent'] = dft[sf+'_percent'].apply(
+                lambda x: x if x in dtt['seg'] else -1)
             dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf + '_level'].values)
+            dft[sf+'_level'] = dft[sf+'_level'].apply(
+                lambda x: x if x in self.level_no else -1)
             dft.loc[:, sf+'_level_score'] = \
-                dft.loc[:, sf+'_level'].apply(lambda x: self.level_score_table[int(x)-1])
+                dft.loc[:, sf+'_level'].\
+                    apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
+            # format to int
+            dft = dft.astype({sf+'_level':int, sf+'_level_score': int})
             self.output_data = dft
             level_max = self.segtable.groupby(sf+'_level')['seg'].max()
             level_min = self.segtable.groupby(sf+'_level')['seg'].min()
@@ -1278,7 +1284,17 @@ class LevelScore(ScoreTransformModel):
         df = self.segtable.copy()
         for fs in fs_list:
             if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, 6))
+                df[fs] = df[fs].apply(lambda x: round(x, 8))
         print(ptt.make_page(df=df[fs_list],
                             title='level score table for {}'.format(self.model_name),
                             pagelines=self.input_score_max+1))
+
+
+class LevelScoreTao(ScoreTransformModel):
+    """
+    Level Score model from Tao BaiQiang
+    high_level = rawscore().head(totalnum*0.01).mean
+    intervals = [minscore, high_level*1/50], ..., [high_level, max_score]
+    """
+    def __init__(self):
+        super().__init__('level')
