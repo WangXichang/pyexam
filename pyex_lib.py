@@ -144,7 +144,7 @@ def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
     return df
 
 
-def fun_round45_dep(v: float, i=0):
+def fun_round45_dep(v, i=0):
     vl = str(v).split('.')
     sign = -1 if v < 0 else 1
     if len(vl) == 2:
@@ -165,7 +165,7 @@ def fun_round45_dep(v: float, i=0):
     return int(v)
 
 
-def fun_round45i(v: float, dec=0):
+def fun_round45i(v, dec=0):
     u = int(v * 10**dec*10)
     return (int(u/10) + (1 if v > 0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec
 
@@ -177,7 +177,7 @@ def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
         plt.plot([x, x], [0, stats.norm.pdf((x-mean)/std)], '--')
         plt.text(x, -0.015, '{:.4f}'.format(stats.norm.cdf((x-mean)/std)))
     plt.plot([start, end], [0, 0], '--')
-    plt.xlabel('std={:.4}'.format(std))
+    plt.xlabel('std={:.4f}'.format(std))
     return
 
 

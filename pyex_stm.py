@@ -1278,7 +1278,7 @@ class LevelScore(ScoreTransformModel):
         df = self.segtable.copy()
         for fs in fs_list:
             if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, 4))
+                df[fs] = df[fs].apply(lambda x: round(x, 6))
         print(ptt.make_page(df=df[fs_list],
                             title='level score table for {}'.format(self.model_name),
                             pagelines=self.input_score_max+1))
