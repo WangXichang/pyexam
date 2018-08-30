@@ -654,14 +654,14 @@ class PltScore(ScoreTransformModel):
             return False
 
         for i in range(1, len(self.output_score_points)):
-            if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**6:
+            if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**8:
                 print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
                 return False
             if self.result_input_data_points[i] - self.result_input_data_points[i - 1] > 0:
-                if i < len(self.output_score_points) -1:
+                if i < len(self.output_score_points) - 1:
                     # [xi, x(i+1) - 1] -> [yi, y(i+1) - 1]
-                    coff = (self.output_score_points[i] - self.output_score_points[i - 1]-1) / \
-                           (self.result_input_data_points[i] - self.result_input_data_points[i - 1]-1)
+                    coff = (self.output_score_points[i] - 1 - self.output_score_points[i - 1]) / \
+                           (self.result_input_data_points[i] - 1 - self.result_input_data_points[i - 1])
                 else:
                     # [xi, xmax] -> [yi, ymax]
                     coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
@@ -1227,7 +1227,7 @@ class LevelScore(ScoreTransformModel):
                 dft.loc[:, sf+'_level'].\
                     apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
             # format to int
-            dft = dft.astype({sf+'_level':int, sf+'_level_score': int})
+            dft = dft.astype({sf+'_level': int, sf+'_level_score': int})
             self.output_data = dft
             level_max = self.segtable.groupby(sf+'_level')['seg'].max()
             level_min = self.segtable.groupby(sf+'_level')['seg'].min()
