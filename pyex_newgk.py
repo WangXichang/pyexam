@@ -1,6 +1,6 @@
 # -*- utf-8 -*-
 
-from numpy import std, mean, var
+# from numpy import std, mean, var
 import pandas as pd
 import os
 from itertools import combinations as cb
@@ -42,8 +42,8 @@ def get_cjfun():
                 df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 9 * 10, 0))
         # df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
-                          ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else \
-                               (df['wln'] + df['hxn'] + df['swn']))
+                          ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else
+                           (df['wln'] + df['hxn'] + df['swn']))
         # if 'ksh' in df.columns:
         #     df = df.drop('ksh', axis=1)
         return df
@@ -66,7 +66,8 @@ def desc_score_segtable_plot(df, kl='wk', minscore=500, maxscore=600):
     print(tdf[flist].describe())
     return dfo
 
-def desc_score_seg_var(df, kl='wk', year='15', minscore=300, maxscore=400, step=50):
+
+def desc_score_seg_var(df, kl='wk', year='15', minscore=400, maxscore=650, step=50):
     flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
         ['yw', 'sx', 'wy', 'wl', 'hx', 'sw']
     flist = [fs+'n' if fs not in ['yw', 'sx', 'wy'] else fs for fs in flist] + ['zf']
