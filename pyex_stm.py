@@ -6,8 +6,8 @@ import pandas as pd
 # import numpy as np
 import copy
 import time
-import pyex_seg as ps
-import pyex_lib as pl
+import pyex_seg as pseg
+import pyex_lib as plib
 import scipy.stats as sts
 import seaborn as sbn
 import pyex_ptt as ptt
@@ -15,10 +15,12 @@ import pyex_ptt as ptt
 # import warnings
 # warnings.simplefilter('error')
 
+
 # constant data
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
 shandong_level = [21, 31, 41, 51, 61, 71, 81, 91, 100]
 # shandong_level = [20, 30, 40, 50, 60, 70, 80, 90, 100]
+
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
@@ -31,8 +33,8 @@ def usemodel(name='shandong',
              field_list='',
              maxscore=100,
              minscore=0,
-             decimals=0,
-             approx_method='nearmin'
+             decimal=0,
+             approx_method='near'
              ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -40,13 +42,13 @@ def usemodel(name='shandong',
     :param field_list: score fields list in input dataframe
     :param maxscore: max value in raw score
     :param minscore: min value in raw score
-    :param decimals: output score decimals
+    :param decimal: output score decimal digits
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
 
     # valid name
-    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, ' \
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
 
     if type(df) != pd.DataFrame:
@@ -103,7 +105,7 @@ def usemodel(name='shandong',
 
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
-        pltmodel.output_score_decimals = 0
+        pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=shandong_ratio,
@@ -112,7 +114,7 @@ def usemodel(name='shandong',
                                 input_score_min=minscore,
                                 approx_mode=approx_method,
                                 use_minscore_as_start_endpoint=True,
-                                decimals=decimals
+                                decimals=decimal
                                 )
         pltmodel.run()
         return pltmodel
@@ -164,6 +166,16 @@ def usemodel(name='shandong',
         m.set_parameters(level_ratio_table=tianjin_ratio,
                          level_score_table=level_score,
                          maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+
+    if name == 'tao':
+        m = LevelScoreTao()
+        m.level_num = 50
+        m.set_data(input_data=input_data,
+                   field_list=field_list)
+        m.set_parameters(maxscore=maxscore,
                          minscore=minscore)
         m.run()
         return m
@@ -266,7 +278,7 @@ class ScoreTransformModel(object):
         self.input_score_max = 100
 
         self.output_data = pd.DataFrame()
-        self.output_score_decimals = 0
+        self.output_data_decimal = 0
         self.output_report_doc = ''
 
         self.sys_pricision_decimals = 6
@@ -379,7 +391,7 @@ class PltScore(ScoreTransformModel):
         # new properties for linear segment stdscore
         self.input_score_percentage_points = []
         self.output_score_points = []
-        self.output_score_decimals = 0
+        self.output_data_decimal = 0
 
         # parameters
         self.approx_mode = 'minmax'
@@ -437,7 +449,7 @@ class PltScore(ScoreTransformModel):
             print('the number of input score points is not same as output score points!')
             return
         if isinstance(decimals, int):
-            self.output_score_decimals = decimals
+            self.output_data_decimal = decimals
         self.input_score_percentage_points = input_score_percent_list
         self.output_score_points = output_score_points_list
         if isinstance(input_score_min, int):
@@ -504,7 +516,7 @@ class PltScore(ScoreTransformModel):
             # transform score
             print('   begin calculating ...')
             df2 = self.output_data
-            score_list = df2[fs].apply(self.__get_plt_score, self.output_score_decimals)
+            score_list = df2[fs].apply(self.__get_plt_score, self.output_data_decimal)
             self.output_data.loc[:, (fs + '_plt')] = score_list
             self._create_report(fs)
             print('   merge dataframe ...')
@@ -536,7 +548,7 @@ class PltScore(ScoreTransformModel):
             if x <= self.result_input_data_points[i]:
                 y = self.result_coeff[i][0] * \
                     (x - self.result_coeff[i][1]) + self.result_coeff[i][2]
-                return self.round45i(y, self.output_score_decimals)
+                return self.round45i(y, self.output_data_decimal)
         return -1
 
     def __get_formula(self, field):
@@ -683,7 +695,7 @@ class PltScore(ScoreTransformModel):
             return
         # transform score
         self.output_data.loc[:, scorefieldname + '_plt'] = \
-            self.input_data[scorefieldname].apply(self.__get_plt_score)  # , self.output_score_decimals)
+            self.input_data[scorefieldname].apply(self.__get_plt_score)  # , self.output_data_decimal)
         # create report
         self._create_report()
 
@@ -828,7 +840,7 @@ class PltScore(ScoreTransformModel):
     #     for i in range(1, len(self.output_score_points)):
     #         if x <= input_points[i]:
     #             y = coeff[i][0] * (x - coeff[i][1]) + coeff[i][2]
-    #             return self.round45i(y, self.output_score_decimals)
+    #             return self.round45i(y, self.output_data_decimal)
     #     return -1
 
     def print_segtable(self):
@@ -872,7 +884,7 @@ class Zscore(ScoreTransformModel):
         self.__currentfield = None
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = pl.exp_norm_table(self._samplesize, stdnum=4)
+        self._normtable = plib.exp_norm_table(self._samplesize, stdnum=4)
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
     def set_data(self, input_data=None, field_list=None):
@@ -937,7 +949,7 @@ class Zscore(ScoreTransformModel):
     @staticmethod
     def __get_segtable(df, maxscore, minscore, scorefieldnamelist):
         """no sort problem in this segtable usage"""
-        seg = ps.SegTable()
+        seg = pseg.SegTable()
         seg.set_data(df, scorefieldnamelist)
         seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='ascending')
         seg.run()
@@ -1025,7 +1037,7 @@ class Tscore(ScoreTransformModel):
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
             print('    fields:', self.field_list)
-            pl.report_describe(
+            plib.report_describe(
                 self.input_data[self.field_list])
             print('-'*50)
         else:
@@ -1034,7 +1046,7 @@ class Tscore(ScoreTransformModel):
             out_fields = [f+'_tscore' for f in self.field_list]
             print('T-score desc:')
             print('    fields:', out_fields)
-            pl.report_describe(
+            plib.report_describe(
                 self.output_data[out_fields])
             print('-'*50)
         else:
@@ -1109,13 +1121,13 @@ class TscoreLinear(ScoreTransformModel):
         print('-' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_describe(self.input_data)
+            plib.report_describe(self.input_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            pl.report_describe(self.output_data)
+            plib.report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1158,7 +1170,8 @@ class LevelScore(ScoreTransformModel):
         self.report_doc = ''
 
     def set_data(self, input_data=None, field_list=None):
-        self.input_data = input_data
+        if isinstance(input_data, pd.DataFrame):
+            self.input_data = input_data
         if isinstance(field_list, list):
             self.field_list = field_list
         elif isinstance(field_list, str):
@@ -1201,7 +1214,7 @@ class LevelScore(ScoreTransformModel):
         if len(self.field_list) == 0:
             print('to set field_list first!')
             return
-        seg = ps.SegTable()
+        seg = pseg.SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
@@ -1224,8 +1237,7 @@ class LevelScore(ScoreTransformModel):
             dft[sf+'_level'] = dft[sf+'_level'].apply(
                 lambda x: x if x in self.level_no else -1)
             dft.loc[:, sf+'_level_score'] = \
-                dft.loc[:, sf+'_level'].\
-                    apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
+                dft.loc[:, sf+'_level'].apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
             # format to int
             dft = dft.astype({sf+'_level': int, sf+'_level_score': int})
             self.output_data = dft
@@ -1254,13 +1266,13 @@ class LevelScore(ScoreTransformModel):
         print('=' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            pl.report_describe(self.input_data[self.field_list])
+            plib.report_describe(self.input_data[self.field_list])
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.segtable) == pd.DataFrame:
             print('raw,Level score desc:')
-            pl.report_describe(self.output_data)
+            plib.report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1304,6 +1316,109 @@ class LevelScoreTao(ScoreTransformModel):
     Level Score model from Tao BaiQiang
     high_level = rawscore().head(totalnum*0.01).mean
     intervals = [minscore, high_level*1/50], ..., [high_level, max_score]
+    以原始分值切分，形成的分值相当于等距合并，粒度直接增加
+    实质上失去了等级分数的意义
+    本模型仍然存在高分区过度合并问题
     """
+
     def __init__(self):
         super().__init__('level')
+        self.model_name = 'taobaiqiang'
+
+        self.level_num = 50
+        self.input_score_max = 100
+        self.input_score_min = 0
+        self.max_ratio = 0.01  # 1%
+
+        self.level_no = [x for x in range(self.level_num+1)]
+        self.segtable = None
+        self.level_dist_dict = {}  # fs: list, from max to min
+        self.output_data = pd.DataFrame()
+
+    def set_data(self, input_data=None, field_list=None):
+        if isinstance(input_data, pd.DataFrame):
+            self.input_data = input_data
+        if isinstance(field_list, list) or isinstance(field_list, tuple):
+            self.field_list = field_list
+
+    def set_parameters(self,
+                       maxscore=None,
+                       minscore=None,
+                       level_num=None,
+                       ):
+        if isinstance(maxscore, int):
+            if len(self.field_list) > 0:
+                if maxscore >= max([max(self.input_data[f]) for f in self.field_list]):
+                    self.input_score_max = maxscore
+                else:
+                    print('error: maxscore is too little to transform score!')
+            else:
+                print('to set field_list first!')
+        if isinstance(minscore, int):
+            self.input_score_min = minscore
+        if isinstance(level_num, int):
+            self.level_num = level_num
+        self.level_no = [x for x in range(self.level_num+1)]
+
+    def run(self):
+        self.run_create_level_dist_list()
+        self.run_create_output_data()
+
+    def run_create_level_dist_list(self):
+        # approx_method = 'near'
+        seg = pseg.SegTable()
+        seg.set_parameters(segmax=self.input_score_max,
+                           segmin=self.input_score_min,
+                           segsort='d')
+        seg.set_data(self.input_data,
+                     self.field_list)
+        seg.run()
+        self.segtable = seg.output_data
+        for fs in self.field_list:
+            lastpercent = 0
+            lastseg = self.input_score_max
+            for ind, row in self.segtable.iterrows():
+                curpercent = row[fs + '_percent']
+                curseg = row['seg']
+                if row[fs+'_percent'] > self.max_ratio:
+                    if curpercent - self.max_ratio > self.max_ratio - lastpercent:
+                        max_score = lastseg
+                    else:
+                        max_score = curseg
+                    max_point = self.input_data[self.input_data[fs] >= max_score][fs].mean()
+                    # print(fs, max_score, curseg, lastseg)
+                    self.level_dist_dict.update({fs: plib.fun_round45i(max_point/self.level_num, 8)})
+                    break
+                lastpercent = curpercent
+                lastseg = curseg
+            # for lev in range(self.level_num):
+            #     self.level_point_dict[fs].append(max_point - max_point/self.level_num * (lev+1))
+
+    def run_create_output_data(self):
+        self.output_data = self.input_data.copy()
+        for fs in self.field_list:
+            dt = self.output_data
+            dt.loc[:, fs+'_level'] = dt[fs].apply(lambda x: self.run__get_level_score(fs, x))
+            dt2 = self.segtable
+            dt2.loc[:, fs+'_level'] = dt2['seg'].apply(lambda x: self.run__get_level_score(fs, x))
+
+    def run__get_level_score(self, fs, x):
+        if x == 0:
+            return x
+        level_dist = self.level_dist_dict[fs]
+        for i in range(self.level_num):
+            minx = i * level_dist
+            maxx = (i+1) * level_dist if i < self.level_num-1 else self.input_score_max
+            if minx < x <= maxx:
+                return i+1
+        return -1
+
+    def plot(self, mode='raw'):
+        pass
+
+    def report(self):
+        pass
+
+    def print_segtable(self):
+        print(ptt.make_mpage(self.segtable))
+
