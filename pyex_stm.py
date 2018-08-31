@@ -214,19 +214,19 @@ def plot_model_ratio():
     plt.title('shandong model')
 
     plt.subplot(232)
-    plt.bar(range(11), [shanghai_ratio[-j-1] for j in range(11)])
+    plt.bar(range(11, 0, -1), [shanghai_ratio[-j-1] for j in range(11)])
     plt.title('shanghai model')
 
     plt.subplot(233)
-    plt.bar(range(21), [zhejiang_ratio[-j-1] for j in range(len(zhejiang_ratio))])
+    plt.bar(range(21,0, -1), [zhejiang_ratio[-j-1] for j in range(len(zhejiang_ratio))])
     plt.title('zhejiang model')
 
     plt.subplot(234)
-    plt.bar(range(21), [beijing_ratio[-j-1] for j in range(len(beijing_ratio))])
+    plt.bar(range(21, 0, -1), [beijing_ratio[-j-1] for j in range(len(beijing_ratio))])
     plt.title('beijing model')
 
     plt.subplot(235)
-    plt.bar(range(21), [tianjin_ratio[-j-1] for j in range(len(tianjin_ratio))])
+    plt.bar(range(21, 0, -1), [tianjin_ratio[-j-1] for j in range(len(tianjin_ratio))])
     plt.title('tianjin model')
 
 
@@ -1417,7 +1417,7 @@ class LevelScoreTao(ScoreTransformModel):
         pass
 
     def report(self):
-        pass
+        plib.report_describe(self.output_data[[f+'_level' for f in self.field_list]])
 
     def print_segtable(self):
         print(ptt.make_mpage(self.segtable))
