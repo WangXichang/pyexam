@@ -218,7 +218,7 @@ def plot_model_ratio():
     plt.title('shanghai model')
 
     plt.subplot(233)
-    plt.bar(range(21,0, -1), [zhejiang_ratio[-j-1] for j in range(len(zhejiang_ratio))])
+    plt.bar(range(21, 0, -1), [zhejiang_ratio[-j-1] for j in range(len(zhejiang_ratio))])
     plt.title('zhejiang model')
 
     plt.subplot(234)
@@ -1329,14 +1329,15 @@ class LevelScoreTao(ScoreTransformModel):
         self.input_score_max = 100
         self.input_score_min = 0
         self.max_ratio = 0.01  # 1%
+        self.input_data = pd.DataFrame()
 
         self.level_no = [x for x in range(self.level_num+1)]
         self.segtable = None
         self.level_dist_dict = {}  # fs: list, from max to min
         self.output_data = pd.DataFrame()
 
-    def set_data(self, input_data=None, field_list=None):
-        if isinstance(input_data, pd.DataFrame):
+    def set_data(self, input_data=pd.DataFrame(), field_list=None):
+        if len(input_data) > 0:
             self.input_data = input_data
         if isinstance(field_list, list) or isinstance(field_list, tuple):
             self.field_list = field_list
@@ -1395,12 +1396,12 @@ class LevelScoreTao(ScoreTransformModel):
             #     self.level_point_dict[fs].append(max_point - max_point/self.level_num * (lev+1))
 
     def run_create_output_data(self):
-        self.output_data = self.input_data.copy()
+        dt = copy.deepcopy(self.input_data[self.field_list])
         for fs in self.field_list:
-            dt = self.output_data
             dt.loc[:, fs+'_level'] = dt[fs].apply(lambda x: self.run__get_level_score(fs, x))
             dt2 = self.segtable
             dt2.loc[:, fs+'_level'] = dt2['seg'].apply(lambda x: self.run__get_level_score(fs, x))
+            self.output_data = dt
 
     def run__get_level_score(self, fs, x):
         if x == 0:
