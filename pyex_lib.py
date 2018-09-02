@@ -8,6 +8,8 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import copy
+import random
 from scipy import stats
 from statsmodels.stats.diagnostic import lillifors
 
@@ -271,3 +273,39 @@ def read_large_csv(f, display=False):
     if display:
         print('use time:{}'.format(time.time()-start))
     return df
+
+def ex_set_place(df: pd.DataFrame, field_list=(),
+                 ascending=False, rand_ascending=False,
+                 display=False):
+    if display:
+        print('calculating place...')
+    dt = copy.deepcopy(df)
+    dt_len = len(dt)
+    for fs in field_list:
+        if display:
+            print('calculate field:{}'.format(fs))
+
+        rand_list = [x for x in range(1, dt_len+1)]
+        random.shuffle(rand_list)
+        dt.loc[:, fs+'_rand'] = rand_list
+        dt = dt.sort_values([fs, fs+'_rand'], ascending=ascending)
+        if not rand_ascending:
+            dt[fs+'_rand'] = dt[fs+'_rand'].apply(lambda x: dt_len - x + 1)
+
+        pltemp = []
+        # pltemp_rand = copy.copy(rand_list)
+        # sorted(pltemp_rand, reverse=False)
+        last_sv = dt.head(1)[fs].values[0]
+        last_pl = 1
+        for fi, svi in enumerate(dt[fs].values):
+            if svi == last_sv:
+                pltemp.append(last_pl)
+            else:
+                pltemp.append(fi+1)
+                last_pl = fi + 1
+            last_sv = svi
+            # pltemp_rand.append(fi+1)
+        dt.loc[:, fs+'_place'] = pltemp
+        dt.loc[:, fs+'_place_rand'] = [x+1 for x in range(dt_len)]  # pltemp_rand
+
+    return dt
