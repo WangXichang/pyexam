@@ -289,12 +289,11 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
         random.shuffle(rand_list)
         dt.loc[:, fs+'_rand'] = rand_list
         dt = dt.sort_values([fs, fs+'_rand'], ascending=ascending)
+        # random is random, no for order
         if not rand_ascending:
             dt[fs+'_rand'] = dt[fs+'_rand'].apply(lambda x: dt_len - x + 1)
 
         pltemp = []
-        # pltemp_rand = copy.copy(rand_list)
-        # sorted(pltemp_rand, reverse=False)
         last_sv = dt.head(1)[fs].values[0]
         last_pl = 1
         for fi, svi in enumerate(dt[fs].values):
@@ -304,8 +303,7 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
                 pltemp.append(fi+1)
                 last_pl = fi + 1
             last_sv = svi
-            # pltemp_rand.append(fi+1)
         dt.loc[:, fs+'_place'] = pltemp
-        dt.loc[:, fs+'_place_rand'] = [x+1 for x in range(dt_len)]  # pltemp_rand
+        dt.loc[:, fs+'_place_exact'] = [x+1 for x in range(dt_len)]  # pltemp_exact with random order
 
     return dt
