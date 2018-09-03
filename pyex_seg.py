@@ -9,13 +9,13 @@ import time
 
 
 # guid to use pyex_seg
-def helpdoc():
+def help_doc():
     print(SegTable.__doc__)
-    print(helpexp.__doc__)
+    print(help_exp.__doc__)
 
 
 # test SegTable and show some example
-def helpexp():
+def help_exp():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
@@ -104,7 +104,8 @@ class SegTable(object):
     * 计算pandas.DataFrame中分数字段的分段人数表
     * segment table for score dataframe
     * version1.01, 2018-06-21
-    * from 0917-2017
+    * version1.02, 2018-08-31
+    * from 09-17-2017
 
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
     set_data(input_data:DataFrame, field_list:list)

@@ -4,12 +4,24 @@
 import pandas as pd
 import os
 from itertools import combinations as cb
-import pyex_seg as sg
+import numpy as np
 import importlib as pb
 import scipy.stats as stt
 import matplotlib.pyplot as plt
 import pyex_lib as pl
 import pyex_ptt as ptt
+import pyex_seg as sg
+
+
+# constant data
+shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
+shandong_level = [21, 31, 41, 51, 61, 71, 81, 91, 100]
+# shandong_level = [20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
 def get_cjfun():
@@ -478,3 +490,28 @@ class StmStats(object):
             print('{}:{}-{} output score result:\n {}'.format(modelname, y, 'lk', rwdesc))
 
         return r_zj
+
+
+def report_newgk_mean_std():
+    """
+    mean = (Sigma: xi * pi)
+    std  = (Sigma: xi**2 * pi) - mean**2
+    :return:
+    """
+    def get_mean_std(ratio_list, start=100, step=3):
+        mean = sum([(start - step*j)*x/100 for j, x in enumerate(ratio_list)])
+        std2 = sum([(start - step*j)**2 * x/100 for j, x in enumerate(ratio_list)])
+        return mean, round(np.sqrt(std2 - mean**2), 2)
+
+    stats_dict = {}
+    stats_dict.update({'zhejiang': get_mean_std(zhejiang_ratio)})
+    stats_dict.update({'shanghai': get_mean_std(shanghai_ratio, start=70)})
+    stats_dict.update({'beijing': get_mean_std(beijing_ratio)})
+    stats_dict.update({'tianjin': get_mean_std(tianjin_ratio)})
+    ver_coeff = {'zhejiang': 100/60,
+                 'shanghai': 100/30,
+                 'beijing': 100/60,
+                 'tianjin': 100/60}
+    for k in stats_dict:
+        print('{}: mean={:.2f}, std={:.2f}, std100={:.2f}'.
+              format(k, stats_dict[k][0], stats_dict[k][1], ver_coeff[k]*stats_dict[k][1]))

@@ -3,7 +3,7 @@
 
 import matplotlib.pyplot as plt
 import pandas as pd
-# import numpy as np
+import numpy as np
 import copy
 import time
 import pyex_seg as pseg
