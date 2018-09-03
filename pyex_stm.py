@@ -1333,7 +1333,7 @@ class LevelScoreTao(ScoreTransformModel):
 
         self.level_no = [x for x in range(self.level_num+1)]
         self.segtable = None
-        self.level_dist_dict = {}  # fs: list, from max to min
+        self.level_dist_dict = {}  # fs: level_list, from max to min
         self.output_data = pd.DataFrame()
 
     def set_data(self, input_data=pd.DataFrame(), field_list=None):
