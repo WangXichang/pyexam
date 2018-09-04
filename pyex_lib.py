@@ -200,34 +200,31 @@ def test_norm(data):
     # 样本数小于50用Shapiro-Wilk算法检验正态分布性
     if len(data) < 50:
         p_value = stats.shapiro(data)[1]
+        print("use shapiro: p_value={}".format(p_value))
         if p_value < 0.05:
-            print("use shapiro:")
             print("data are not normal distributed")
             return False
         else:
-            print("use shapiro:")
             print("data are normal distributed")
             return True
 
     if 300 >= len(data) >= 50:
         p_value = lillifors(data)[1]
+        print("use lilifors: p_value={}".format(p_value))
         if p_value < 0.05:
-            print("use lillifors:")
             print("data are not normal distributed")
             return False
         else:
-            print("use lillifors:")
             print("data are normal distributed")
             return True
 
     if len(data) > 300:
         p_value = stats.kstest(data, 'norm')[1]
+        print("use kstest: p_value={}".format(p_value))
         if p_value < 0.05:
-            print("use kstest:")
             print("data are not normal distributed")
             return False
         else:
-            print("use kstest:")
             print("data are normal distributed")
             return True
 

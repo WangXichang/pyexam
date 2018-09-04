@@ -16,7 +16,6 @@ import pyex_seg as sg
 # constant data
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
 shandong_level = [21, 31, 41, 51, 61, 71, 81, 91, 100]
-# shandong_level = [20, 30, 40, 50, 60, 70, 80, 90, 100]
 
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
