@@ -6,6 +6,7 @@
 import time
 import os
 import matplotlib.pyplot as plt
+import seaborn as sbn
 import pandas as pd
 import numpy as np
 import copy
@@ -273,8 +274,23 @@ def read_large_csv(f, display=False):
 
 
 def ex_set_place(df: pd.DataFrame, field_list=(),
+                 suffix_field_list=(),
                  ascending=False, rand_ascending=False,
                  display=False):
+    """
+    calculate place by some score field
+    add score after decimal dot by using suffix fields  in suffix_field_list in order
+    place order is set by ascending = False/True
+    same place is reset by rand number with rand_ascending=False/True
+    :param df: input dataframe
+    :param field_list: place field name list
+    :param suffix_field_list: composite some score fields in assigned field
+    :param ascending:  place order
+    :param rand_ascending: random number order
+    :param display: display some messages in running procedure
+    :return: output dataframe
+    """
+
     if display:
         print('calculating place...')
     dt = copy.deepcopy(df)
@@ -282,19 +298,32 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
     for fs in field_list:
         if display:
             print('calculate field:{}'.format(fs))
-
+        if len(suffix_field_list) > 0:
+            if fs+'_suff' in dt.columns:
+                dt.drop(fs+'_suff')
+            dt.loc[:, fs+'_suff'] = ['{:3d}.'.format(int(x)) for x in dt[fs]]
+            for fsf in suffix_field_list:
+                dt.loc[:, fs+'_suff'] = dt[fs+'_suff'] + df[fsf].apply(lambda x: '{:3d}'.format(int(x)))
         rand_list = [x for x in range(1, dt_len+1)]
         random.shuffle(rand_list)
         dt.loc[:, fs+'_rand'] = rand_list
-        dt = dt.sort_values([fs, fs+'_rand'], ascending=ascending)
+        # use suffix fields
+        if len(suffix_field_list) == 0:
+            dt = dt.sort_values([fs, fs+'_rand'], ascending=ascending)
+        else:
+            dt = dt.sort_values([fs+'_suff', fs + '_rand'], ascending=ascending)
+
         # random is random, no for order
         if not rand_ascending:
             dt[fs+'_rand'] = dt[fs+'_rand'].apply(lambda x: dt_len - x + 1)
 
+        if display:
+            print('calculate place...')
         pltemp = []
         last_sv = dt.head(1)[fs].values[0]
         last_pl = 1
-        for fi, svi in enumerate(dt[fs].values):
+        place_field = fs if len(suffix_field_list) == 0 else fs+'_suff'
+        for fi, svi in enumerate(dt[place_field].values):
             if svi == last_sv:
                 pltemp.append(last_pl)
             else:
@@ -305,3 +334,25 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
         dt.loc[:, fs+'_place_exact'] = [x+1 for x in range(dt_len)]  # pltemp_exact with random order
 
     return dt
+
+
+def report_mean_median_mode(df, field_list, with_zero=False, display=True):
+    from scipy.stats import mode
+    from numpy import mean, median
+    stname = ('mean', 'median', 'mode')
+    for field in field_list:
+        dft = df[df[field] > 0][field] if not with_zero else df[field]
+        st = (mean(dft),
+              median(dft),
+              mode(dft)[0][0],
+              mode(dft)[1][0])
+        print('field:{}(with {} zero) '
+              'mean={:.2f}, median={:.2f}, mode={} modecount={}'.
+              format(field, 'no' if not with_zero else 'all',
+                     st[0], st[1], st[2], st[3]))
+        if display:
+            plt.figure()
+            sbn.distplot(dft)
+            for i in range(3):
+                plt.plot([st[i], st[i]], [0, 1], '--')
+                plt.text(st[i], 0.001*(i+1), stname[i])

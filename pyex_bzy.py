@@ -5,15 +5,15 @@ import numpy as np
 import pandas as pd
 import importlib as imp
 import pyex_ptt as ptt
-import bk18
+import pyex_bzy_exp
 
 
 def getzyfun():
     zy = getzy()
 
     def find():
-        imp.reload(bk18)
-        bk18.find(zy)
+        imp.reload(pyex_bzy_exp)
+        pyex_bzy_exp.find(zy)
         return
 
     return find
