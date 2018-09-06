@@ -273,9 +273,11 @@ def read_large_csv(f, display=False):
     return df
 
 
-def ex_set_place(df: pd.DataFrame, field_list=(),
-                 suffix_field_list=(),
-                 ascending=False, rand_ascending=False,
+def exfun_set_place(df: pd.DataFrame, field_list=(),
+                 suffscore_field_list=(),
+                 rand_field='',
+                 score_ascending=False,
+                 rand_ascending=True,
                  display=False):
     """
     calculate place by some score field
@@ -284,9 +286,9 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
     same place is reset by rand number with rand_ascending=False/True
     :param df: input dataframe
     :param field_list: place field name list
-    :param suffix_field_list: composite some score fields in assigned field
-    :param ascending:  place order
-    :param rand_ascending: random number order
+    :param suffscore_field_list: composite some score fields in assigned field
+    :param score_ascending:  place order by score field
+    :param rand_ascending: order by random number
     :param display: display some messages in running procedure
     :return: output dataframe
     """
@@ -298,31 +300,33 @@ def ex_set_place(df: pd.DataFrame, field_list=(),
     for fs in field_list:
         if display:
             print('calculate field:{}'.format(fs))
-        if len(suffix_field_list) > 0:
+        if len(suffscore_field_list) > 0:
             if fs+'_suff' in dt.columns:
                 dt.drop(fs+'_suff')
             dt.loc[:, fs+'_suff'] = ['{:3d}.'.format(int(x)) for x in dt[fs]]
-            for fsf in suffix_field_list:
+            for fsf in suffscore_field_list:
                 dt.loc[:, fs+'_suff'] = dt[fs+'_suff'] + df[fsf].apply(lambda x: '{:3d}'.format(int(x)))
-        rand_list = [x for x in range(1, dt_len+1)]
-        random.shuffle(rand_list)
-        dt.loc[:, fs+'_rand'] = rand_list
-        # use suffix fields
-        if len(suffix_field_list) == 0:
-            dt = dt.sort_values([fs, fs+'_rand'], ascending=ascending)
-        else:
-            dt = dt.sort_values([fs+'_suff', fs + '_rand'], ascending=ascending)
+        f_rand = rand_field
+        if len(rand_field) == 0:
+            rand_list = [x for x in range(1, dt_len+1)]
+            random.shuffle(rand_list)
+            dt.loc[:, fs+'_rand'] = rand_list
+            f_rand = fs+'_rand'
 
-        # random is random, no for order
-        if not rand_ascending:
-            dt[fs+'_rand'] = dt[fs+'_rand'].apply(lambda x: dt_len - x + 1)
+        # use suffix fields
+        if len(suffscore_field_list) == 0:
+            dt = dt.sort_values([fs, f_rand],
+                                ascending=[score_ascending, rand_ascending])
+        else:
+            dt = dt.sort_values([fs+'_suff', f_rand],
+                                ascending=[score_ascending, rand_ascending])
 
         if display:
             print('calculate place...')
         pltemp = []
         last_sv = dt.head(1)[fs].values[0]
         last_pl = 1
-        place_field = fs if len(suffix_field_list) == 0 else fs+'_suff'
+        place_field = fs if len(suffscore_field_list) == 0 else fs + '_suff'
         for fi, svi in enumerate(dt[place_field].values):
             if svi == last_sv:
                 pltemp.append(last_pl)
