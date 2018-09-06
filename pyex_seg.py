@@ -409,10 +409,10 @@ class SegTable(object):
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
-            self.input_data.loc[:, f] = tempdf[f].apply(round45i)
+            tempdf.loc[:, f] = tempdf[f].apply(round45i)
 
             # count seg_count in [segmin, segmax]
-            r = self.input_data.groupby(f)[f].count()
+            r = tempdf.groupby(f)[f].count()
             fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
             self.__output_dataframe.loc[:, f+'_count'] = fcount_list
             if self.__display:
