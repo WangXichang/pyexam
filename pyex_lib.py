@@ -185,11 +185,11 @@ def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
 
 
 # 正态分布测试
-def test_norm(data):
+def test_norm(data, p_value=0.05):
     # 20<样本数<50用normal test算法检验正态分布性
     if 20 < len(data) < 50:
         p_value = stats.normaltest(data)[1]
-        if p_value < 0.05:
+        if p_value < p_value:
             print("use normaltest")
             print("data are not normal distributed")
             return False
@@ -202,7 +202,7 @@ def test_norm(data):
     if len(data) < 50:
         p_value = stats.shapiro(data)[1]
         print("use shapiro: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -212,7 +212,7 @@ def test_norm(data):
     if 300 >= len(data) >= 50:
         p_value = lillifors(data)[1]
         print("use lilifors: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -222,7 +222,7 @@ def test_norm(data):
     if len(data) > 300:
         p_value = stats.kstest(data, 'norm')[1]
         print("use kstest: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -237,9 +237,9 @@ def test_list_norm(list_groups):
         # 正态性检验
         status = test_norm(group)
         if status is False:
-            print('the {}-th var is not normal var'.format(gi))
+            print('the {}-th is not normal var'.format(gi))
         else:
-            print('the {}-th var is normal var'.format(gi))
+            print('the {}-th is normal var'.format(gi))
         result.append(status)
     return result
 
