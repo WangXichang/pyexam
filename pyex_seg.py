@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
+import copy
 
 
 # guid to use pyex_seg
@@ -406,6 +407,7 @@ class SegTable(object):
         if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
+        outdf = self.__output_dataframe.copy()
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
@@ -414,26 +416,26 @@ class SegTable(object):
             # count seg_count in [segmin, segmax]
             r = tempdf.groupby(f)[f].count()
             fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
-            self.__output_dataframe.loc[:, f+'_count'] = fcount_list
+
+            outdf.loc[:, f+'_count'] = fcount_list
             if self.__display:
                 print('finished count(' + f, ') use time:{}'.format(time.clock() - sttime))
 
             # add outside scope number to segmin, segmax
             if self.__usealldata:
-                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMin, f + '_count'] = \
+                outdf.loc[outdf.seg == self.__segMin, f + '_count'] = \
                     r[r.index <= self.__segMin].sum()
-                self.__output_dataframe.loc[self.__output_dataframe.seg == self.__segMax, f + '_count'] = \
+                outdf.loc[outdf.seg == self.__segMax, f + '_count'] = \
                     r[r.index >= self.__segMax].sum()
 
             # calculate cumsum field
-            self.__output_dataframe[f + '_sum'] = self.__output_dataframe[f + '_count'].cumsum()
+            outdf[f + '_sum'] = outdf[f + '_count'].cumsum()
             if self.__useseglist:
-                self.__output_dataframe[f + '_list_sum'] = self.__output_dataframe[f + '_count'].cumsum()
+                outdf[f + '_list_sum'] = outdf[f + '_count'].cumsum()
 
             # calculate percent field
-            maxsum = max(max(self.output_data[f + '_sum']), 1)     # avoid divided by 0 in percent computing
-            self.__output_dataframe[f + '_percent'] = \
-                self.__output_dataframe[f + '_sum'].\
+            maxsum = max(max(outdf[f + '_sum']), 1)     # avoid divided by 0 in percent computing
+            outdf[f + '_percent'] = outdf[f + '_sum'].\
                     apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
@@ -451,6 +453,7 @@ class SegTable(object):
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
             print('=== end')
         self.__runsuccess = True
+        self.__output_dataframe = outdf
         return
 
     def __run_special_step(self, field: str):
