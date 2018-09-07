@@ -15,6 +15,24 @@ from scipy import stats
 from statsmodels.stats.diagnostic import lillifors
 
 
+def help_doc():
+    print("""
+    types in this modul:
+    fun_ : universal functions
+        round45i(v, dec)
+        float2str(v, intlen, declen)
+        int2str(v, dec)
+        round45_dep(v, dec)
+    exp_... : create some exmples dataset
+        norm_norm_data(mean, std, maxvalue, minvalue, size)
+        norm_table(size, std, mean, stdnum)
+    report_... : describe some info to dataset
+           describe(df, dec)
+    exfun_... : some functions for examination data processing
+          set_place(df, with_zero, )
+    """)
+
+
 def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
@@ -60,7 +78,7 @@ def exp_norm_table(size=400, std=1, mean=0, stdnum=4):
 
 
 # use scipy.stats descibe report dataframe info
-def report_describe(dataframe, decdigits=4):
+def report_describe(df, decimal=4):
     """
     report statistic describe of a dataframe, with decimal digits = decnum
     峰度（Kurtosis）与偏态（Skewness）是量测数据正态分布特性的两个指标。
@@ -87,24 +105,24 @@ def report_describe(dataframe, decdigits=4):
     def fun_list2sqrt2str(listvalue, decimal):
         return fun_list2str([np.sqrt(x) for x in listvalue], decimal)
 
-    pr = [[stats.pearsonr(dataframe[x], dataframe[y])[0]
-           for x in dataframe.columns] for y in dataframe.columns]
-    sd = stats.describe(dataframe)
-    cv = dataframe.cov()
+    pr = [[stats.pearsonr(df[x], df[y])[0]
+           for x in df.columns] for y in df.columns]
+    sd = stats.describe(df)
+    cv = df.cov()
     print('\trecords: ', sd.nobs)
     print('\tpearson recorrelation:')
-    for i in range(len(dataframe.columns)):
+    for i in range(len(df.columns)):
         print('\t', fun_list2str(pr[i], 4))
     print('\tcovariance matrix:')
     for j in range(len(cv)):
         print('\t', fun_list2str(cv.iloc[j, :], 4))
     print('\tmin : ', fun_list2str(sd.minmax[0], 4))
     print('\tmax : ', fun_list2str(sd.minmax[1], 4))
-    print('\tmean: ', fun_list2str(sd.mean, decdigits))
-    print('\tvar : ', fun_list2str(sd.variance, decdigits))
-    print('\tstd : ', fun_list2sqrt2str(sd.variance, decdigits))
-    print('\tskewness: ', fun_list2str(sd.skewness, decdigits))
-    print('\tkurtosis: ', fun_list2str(sd.kurtosis, decdigits))
+    print('\tmean: ', fun_list2str(sd.mean, decimal))
+    print('\tvar : ', fun_list2str(sd.variance, decimal))
+    print('\tstd : ', fun_list2sqrt2str(sd.variance, decimal))
+    print('\tskewness: ', fun_list2str(sd.skewness, decimal))
+    print('\tkurtosis: ', fun_list2str(sd.kurtosis, decimal))
     dict = {'record': sd.nobs,
             'max': sd.minmax[1],
             'min': sd.minmax[0],
@@ -118,19 +136,14 @@ def report_describe(dataframe, decdigits=4):
     return dict
 
 
-def plot_pearson_relation(x, y):
-    plt.scatter(x, y)
-    return stats.pearsonr(x, y)[0]
-
-
-def fun_float2str(x, intlen, declen):
-    x = fun_round45i(x, declen)
+def fun_float2str(v, intlen, declen):
+    v = fun_round45i(v, declen)
     fs = '{:'+str(intlen+declen+1)+'.'+str(declen)+'f}'
-    return fs.format(x)
+    return fs.format(v)
 
 
-def fun_int2str(x, dec):
-    return ('{:'+str(dec)+'d}').format(x)
+def fun_int2str(v, decimal):
+    return ('{:' + str(decimal) + 'd}').format(v)
 
 
 def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
@@ -168,9 +181,9 @@ def fun_round45_dep(v, i=0):
     return int(v)
 
 
-def fun_round45i(v, dec=0):
-    u = int(v * 10**dec*10)
-    return (int(u/10) + (1 if v > 0 else -1))/10**dec if (abs(u) % 10 >= 5) else int(u/10)/10**dec
+def fun_round45i(v, decimal=0):
+    u = int(v * 10 ** decimal * 10)
+    return (int(u/10) + (1 if v > 0 else -1)) / 10 ** decimal if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** decimal
 
 
 def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
@@ -185,11 +198,11 @@ def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
 
 
 # 正态分布测试
-def test_norm(data):
+def test_norm(data, p_value=0.05):
     # 20<样本数<50用normal test算法检验正态分布性
     if 20 < len(data) < 50:
         p_value = stats.normaltest(data)[1]
-        if p_value < 0.05:
+        if p_value < p_value:
             print("use normaltest")
             print("data are not normal distributed")
             return False
@@ -202,7 +215,7 @@ def test_norm(data):
     if len(data) < 50:
         p_value = stats.shapiro(data)[1]
         print("use shapiro: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -212,7 +225,7 @@ def test_norm(data):
     if 300 >= len(data) >= 50:
         p_value = lillifors(data)[1]
         print("use lilifors: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -222,7 +235,7 @@ def test_norm(data):
     if len(data) > 300:
         p_value = stats.kstest(data, 'norm')[1]
         print("use kstest: p_value={}".format(p_value))
-        if p_value < 0.05:
+        if p_value < p_value:
             print("data are not normal distributed")
             return False
         else:
@@ -237,14 +250,14 @@ def test_list_norm(list_groups):
         # 正态性检验
         status = test_norm(group)
         if status is False:
-            print('the {}-th var is not normal var'.format(gi))
+            print('the {}-th is not normal var'.format(gi))
         else:
-            print('the {}-th var is normal var'.format(gi))
+            print('the {}-th is normal var'.format(gi))
         result.append(status)
     return result
 
 
-def read_large_csv(f, display=False):
+def fun_read_large_csv(f, display=False):
     if f is str:
         if not os.path.isfile(f):
             if display:
