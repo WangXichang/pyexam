@@ -191,8 +191,8 @@ class Xuanke():
         self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
         self.km_ccname = ['地理', '化学', '历史', '生物', '物理', '政治']
         self.xk_km_cb = cb(self.km_pinyin1, 3)
-        self.xk_comb_ccname = [''.join([self.km_ccname[self.km_pinyin1.index(s)] for s in k])
-                               for k in self.xk_km_cb]
+        self.xk_comb_ccname = {''.join(k): ''.join([self.km_ccname[self.km_pinyin1.index(s)] for s in k])
+                               for k in self.xk_km_cb}
 
         self.dc = None
         self.dzy = None
@@ -208,13 +208,21 @@ class Xuanke():
         self.load_data_military()
 
         self.xk_zy_total = sum(self.dzy[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
-        self.xk_comb_percent = {k: self.xk_comb_dict[k]/self.xk_zy_total
+        self.xk_zy_total_benke = sum(self.dzy_benke[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
+        self.xk_comb_percent = {k: pl.uf_round45i(self.xk_comb_dict[k]/self.xk_zy_total*100, 2)
                                 for k in self.xk_comb_dict}
+        self.xk_comb_percent_benke = {k: pl.uf_round45i(self.xk_comb_dict_benke[k]/self.xk_zy_total_benke*100, 2)
+                                      for k in self.xk_comb_dict_benke}
+
         self.xk_comb_df = pd.DataFrame({'xkset': list(self.xk_comb_dict.keys()),
-                                        'xkcount': list(self.xk_comb_dict.values()),
-                                        'xkpercent': list(self.xk_comb_percent.values())})
-        self.xk_comb_df.astype({'xkcount': int})
-        self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
+                                        'xksetname': [self.xk_comb_ccname[k] for k in self.xk_comb_dict.keys()],
+                                        'xkcount': [int(x) for x in self.xk_comb_dict.values()],
+                                        'xkpercent': list(self.xk_comb_percent.values()),
+                                        'xkcount_b': [int(x) for x in self.xk_comb_dict_benke.values()],
+                                        'xkpercent_b': list(self.xk_comb_percent_benke.values()),
+                                        })
+        # self.xk_comb_df = self.xk_comb_df.astype({'xkcount': int})
+        # self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
 
     def load_data(self):
         self.dc = pd.read_csv('d:/work/newgk/gkdata/xk/xk_zyclass_zycount.txt')
@@ -230,34 +238,8 @@ class Xuanke():
         dzy = dzy.fillna(0)
         self.dzy = dzy
 
-        zyfield=list(dzy.columns.values)
-        zyfield.remove('zyclass')
-        zy_xk_series = dzy[zyfield].sum()
-        self.xk_comb_dict = {}
-        self.xk_km_cb = cb(self.km_pinyin1, 3)
-        for xs in self.xk_km_cb:
-            zynum = zy_xk_series['xk0']
-            xss = ''.join(xs)
-            for t in zy_xk_series.index:
-                if '_' not in t:
-                    continue
-                xktype = t[0:t.find('_')]
-                xksubs = t[t.find('_')+1:]
-                if xktype in 'xk1,xk2,xk3':
-                    # print(xksubs, xss)
-                    if xksubs in xss:
-                        # print(xss,t,zy_xk_series[t])
-                        zynum += zy_xk_series[t]
-                elif xktype in 'xk21, xk31':
-                    if len(set(xs) & set(xksubs)) > 0:
-                        # print(xs, t, zy_xk_series[t])
-                        zynum += zy_xk_series[t]
-                self.xk_comb_dict.update({xss: zynum})
-            # print('km-{} zycount={}'.format(xs, zynum))
-        self.xk_comb_centage_list = \
-            [(x, pl.uf_round45i(self.xk_comb_dict[x]/34210*100,2)) for x in self.xk_comb_dict]
-
         dzyp = dzy[dzy.zyclass < '50']  # benke
+        zyfield=list(dzy.columns.values)
         self.zy_xk_series_bk = dzyp[zyfield].sum()
         self.field_dict = {
             'xk1': [x for x in dzy.columns if 'xk1_' in x],
@@ -287,6 +269,37 @@ class Xuanke():
 
         self.xk_count_zk = [x-y for x,y in zip(self.xk_count, self.xk_count_bk)]
         self.zyclass_count_zk = [x-y for x,y in zip(self.zyclass_count, self.zyclass_count_bk)]
+
+        self.xk_comb_dict = self.count_kmset_zycount(self.dzy)
+        self.xk_comb_dict_benke = self.count_kmset_zycount(self.dzy_benke)
+
+    def count_kmset_zycount(self, zydf):
+        # count zy number for kmset
+        zyfield=list(zydf.columns.values)
+        zyfield.remove('zyclass')
+        zy_xk_series = zydf[zyfield].sum()
+        xk_comb_dict = {}
+        self.xk_km_cb = cb(self.km_pinyin1, 3)
+        for xs in self.xk_km_cb:
+            zynum = zy_xk_series['xk0']
+            xss = ''.join(xs)
+            for t in zy_xk_series.index:
+                if '_' not in t:
+                    continue
+                xktype = t[0:t.find('_')]
+                xksubs = t[t.find('_')+1:]
+                if xktype in 'xk1,xk2,xk3':
+                    # print(xksubs, xss)
+                    if xksubs in xss:
+                        # print(xss,t,zy_xk_series[t])
+                        zynum += zy_xk_series[t]
+                elif xktype in 'xk21, xk31':
+                    if len(set(xs) & set(xksubs)) > 0:
+                        # print(xs, t, zy_xk_series[t])
+                        zynum += zy_xk_series[t]
+                xk_comb_dict.update({xss: zynum})
+            # print('km-{} zycount={}'.format(xs, zynum))
+        return xk_comb_dict
 
     def load_data_military(self):
         self.df_xk_junshi = pd.read_csv('d:/work/newgk/gkdata/xk/xk_junshi2020.csv')
