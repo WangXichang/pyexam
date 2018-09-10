@@ -18,7 +18,7 @@ from statsmodels.stats.diagnostic import lillifors
 def help_doc():
     print("""
     types in this modul:
-    fun_ : universal functions
+    uf_ : universal functions
         round45i(v, dec)
         float2str(v, intlen, declen)
         int2str(v, dec)
@@ -28,7 +28,7 @@ def help_doc():
         norm_table(size, std, mean, stdnum)
     report_... : describe some info to dataset
            describe(df, dec)
-    exfun_... : some functions for examination data processing
+    exuf_... : some functions for examination data processing
           set_place(df, with_zero, )
     """)
 
@@ -45,7 +45,7 @@ def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=
     # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
     #                           for _ in range(size)]})
     df = pd.DataFrame({'sv': [max(minvalue,
-                                  min(fun_round45i(x, decimal) if decimal > 0 else int(fun_round45i(x, decimal)),
+                                  min(uf_round45i(x, decimal) if decimal > 0 else int(uf_round45i(x, decimal)),
                                       maxvalue))
                               for x in np.random.normal(mean, std, size)]})
     return df
@@ -98,12 +98,12 @@ def report_describe(df, decimal=4):
         kurtosis
     """
 
-    def fun_list2str(listvalue, decimal):
+    def uf_list2str(listvalue, decimal):
         return ''.join([('{:' + '1.' + str(decimal) + 'f}  ').
-                       format(fun_round45i(x, decimal)) for x in listvalue])
+                       format(uf_round45i(x, decimal)) for x in listvalue])
 
-    def fun_list2sqrt2str(listvalue, decimal):
-        return fun_list2str([np.sqrt(x) for x in listvalue], decimal)
+    def uf_list2sqrt2str(listvalue, decimal):
+        return uf_list2str([np.sqrt(x) for x in listvalue], decimal)
 
     pr = [[stats.pearsonr(df[x], df[y])[0]
            for x in df.columns] for y in df.columns]
@@ -112,17 +112,17 @@ def report_describe(df, decimal=4):
     print('\trecords: ', sd.nobs)
     print('\tpearson recorrelation:')
     for i in range(len(df.columns)):
-        print('\t', fun_list2str(pr[i], 4))
+        print('\t', uf_list2str(pr[i], 4))
     print('\tcovariance matrix:')
     for j in range(len(cv)):
-        print('\t', fun_list2str(cv.iloc[j, :], 4))
-    print('\tmin : ', fun_list2str(sd.minmax[0], 4))
-    print('\tmax : ', fun_list2str(sd.minmax[1], 4))
-    print('\tmean: ', fun_list2str(sd.mean, decimal))
-    print('\tvar : ', fun_list2str(sd.variance, decimal))
-    print('\tstd : ', fun_list2sqrt2str(sd.variance, decimal))
-    print('\tskewness: ', fun_list2str(sd.skewness, decimal))
-    print('\tkurtosis: ', fun_list2str(sd.kurtosis, decimal))
+        print('\t', uf_list2str(cv.iloc[j, :], 4))
+    print('\tmin : ', uf_list2str(sd.minmax[0], 4))
+    print('\tmax : ', uf_list2str(sd.minmax[1], 4))
+    print('\tmean: ', uf_list2str(sd.mean, decimal))
+    print('\tvar : ', uf_list2str(sd.variance, decimal))
+    print('\tstd : ', uf_list2sqrt2str(sd.variance, decimal))
+    print('\tskewness: ', uf_list2str(sd.skewness, decimal))
+    print('\tkurtosis: ', uf_list2str(sd.kurtosis, decimal))
     dict = {'record': sd.nobs,
             'max': sd.minmax[1],
             'min': sd.minmax[0],
@@ -136,31 +136,31 @@ def report_describe(df, decimal=4):
     return dict
 
 
-def fun_float2str(v, intlen, declen):
-    v = fun_round45i(v, declen)
+def uf_float2str(v, intlen, declen):
+    v = uf_round45i(v, declen)
     fs = '{:'+str(intlen+declen+1)+'.'+str(declen)+'f}'
     return fs.format(v)
 
 
-def fun_int2str(v, decimal):
+def uf_int2str(v, decimal):
     return ('{:' + str(decimal) + 'd}').format(v)
 
 
-def df_format_digit2str(dfsource, intlen=2, declen=4, strlen=8):
+def uf_df_digit2str(dfsource, intlen=2, declen=4, strlen=8):
     df = dfsource[[dfsource.columns[0]]]
     fdinfo = dfsource.dtypes
     for fs in fdinfo.index:
         if fdinfo[fs] in [np.float, np.float16, np.float32, np.float64]:
-            df[fs+'_f'] = dfsource[fs].apply(lambda x: fun_float2str(x, intlen, declen))
+            df[fs+'_f'] = dfsource[fs].apply(lambda x: uf_float2str(x, intlen, declen))
         elif fdinfo[fs] in [np.int, np.int8, np.int16, np.int32, np.int64]:
-            df[fs+'_f'] = dfsource[fs].apply(lambda x: fun_int2str(x, 6))
+            df[fs+'_f'] = dfsource[fs].apply(lambda x: uf_int2str(x, 6))
         elif fdinfo[fs] in [str]:
             df[fs+'_f'] = dfsource[fs].apply(lambda x: x.rjust(strlen))
     df.sort_index(axis=1)
     return df
 
 
-def fun_round45_dep(v, i=0):
+def uf_round45_dep(v, i=0):
     vl = str(v).split('.')
     sign = -1 if v < 0 else 1
     if len(vl) == 2:
@@ -181,7 +181,7 @@ def fun_round45_dep(v, i=0):
     return int(v)
 
 
-def fun_round45i(v, decimal=0):
+def uf_round45i(v, decimal=0):
     u = int(v * 10 ** decimal * 10)
     return (int(u/10) + (1 if v > 0 else -1)) / 10 ** decimal if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** decimal
 
@@ -198,13 +198,13 @@ def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
 
 
 # 正态分布测试
-def test_norm(data, p_value=0.05):
+def uf_test_norm(data, p_value=0.05):
     # 20<样本数<50用normal test算法检验正态分布性
     if 20 < len(data) < 50:
-        p_value = stats.normaltest(data)[1]
-        if p_value < p_value:
+        p_value0 = stats.normaltest(data)[1]
+        if p_value0 < p_value:
             print("use normaltest")
-            print("data are not normal distributed")
+            print("data are not normal distributed: p={}<{}".format(p_value0, p_value))
             return False
         else:
             print("use normaltest")
@@ -213,42 +213,42 @@ def test_norm(data, p_value=0.05):
 
     # 样本数小于50用Shapiro-Wilk算法检验正态分布性
     if len(data) < 50:
-        p_value = stats.shapiro(data)[1]
-        print("use shapiro: p_value={}".format(p_value))
-        if p_value < p_value:
-            print("data are not normal distributed")
+        p_value0 = stats.shapiro(data)[1]
+        print("use shapiro: p_value={}".format(p_value0))
+        if p_value0 < p_value:
+            print("data are not normal distributed: p={} < {}".format(p_value0, p_value))
             return False
         else:
-            print("data are normal distributed")
+            print("data are normal distributed: p={} > {}".format(p_value0, p_value))
             return True
 
     if 300 >= len(data) >= 50:
-        p_value = lillifors(data)[1]
-        print("use lilifors: p_value={}".format(p_value))
-        if p_value < p_value:
-            print("data are not normal distributed")
+        p_value0 = lillifors(data)[1]
+        print("use lilifors: p_value={}".format(p_value0))
+        if p_value0 < p_value:
+            print("data are not normal distributed: p={} < {}".format(p_value0, p_value))
             return False
         else:
-            print("data are normal distributed")
+            print("data are normal distributed:: p={} > {}".format(p_value0, p_value))
             return True
 
     if len(data) > 300:
-        p_value = stats.kstest(data, 'norm')[1]
+        p_value0 = stats.kstest(data, 'norm')[1]
         print("use kstest: p_value={}".format(p_value))
-        if p_value < p_value:
-            print("data are not normal distributed")
+        if p_value0 < p_value:
+            print("data are not normal distributed: p={} < {}".format(p_value0, p_value))
             return False
         else:
-            print("data are normal distributed")
+            print("data are normal distributed: p={} > {}".format(p_value0, p_value))
             return True
 
 
 # 对所有样本组进行正态性检验
-def test_list_norm(list_groups):
+def uf_test_norm_dataset_list(dataset_list, p_value=0.01):
     result = []
-    for gi, group in enumerate(list_groups):
+    for gi, dataset in enumerate(dataset_list):
         # 正态性检验
-        status = test_norm(group)
+        status = uf_test_norm(dataset, p_value)
         if status is False:
             print('the {}-th is not normal var'.format(gi))
         else:
@@ -257,7 +257,7 @@ def test_list_norm(list_groups):
     return result
 
 
-def fun_read_large_csv(f, display=False):
+def uf_read_large_csv(f, display=False):
     if f is str:
         if not os.path.isfile(f):
             if display:
@@ -286,7 +286,7 @@ def fun_read_large_csv(f, display=False):
     return df
 
 
-def exfun_set_place(df: pd.DataFrame, field_list=(),
+def exuf_set_place(df: pd.DataFrame, field_list=(),
                  suffscore_field_list=(),
                  rand_field='',
                  score_ascending=False,
