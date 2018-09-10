@@ -46,11 +46,11 @@ def get_cjfun():
         df = datawk[yeari] if kl == 'wk' else datalk[yeari]
         for fs in flist:
             if fs not in ['wl', 'sw']:
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x, 0))
             elif fs == 'wl':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 11 * 10, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 11 * 10, 0))
             elif fs == 'sw':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 9 * 10, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 9 * 10, 0))
         # df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
                           ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else
