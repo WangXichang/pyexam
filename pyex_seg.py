@@ -545,28 +545,28 @@ class SegTable(object):
         for sf in self.field_list:
             step += 1
             legendlist.append(sf)
-            plt.figure('seg table figure({})'.
+            plt.figure('segtable figure({})'.
                        format('Descending' if self.__segSort in 'aA' else 'Ascending'))
             plt.subplot(221)
             plt.hist(self.input_data[sf], 20)
-            plt.title('raw data histogram')
+            plt.title('histogram')
             if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.subplot(222)
             plt.plot(self.output_data.seg, self.output_data[sf+'_count'])
             if step == len(self.field_list):
                 plt.legend(legendlist)
-            plt.title('seg -- count')
+            plt.title('distribution')
             plt.xlim([self.__segMin, self.__segMax])
             plt.subplot(223)
             plt.plot(self.output_data.seg, self.output_data[sf + '_sum'])
-            plt.title('seg -- cumsum')
+            plt.title('cumsum')
             plt.xlim([self.__segMin, self.__segMax])
             if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.subplot(224)
             plt.plot(self.output_data.seg, self.output_data[sf + '_percent'])
-            plt.title('seg -- percent')
+            plt.title('percentage')
             plt.xlim([self.__segMin, self.__segMax])
             if step == len(self.field_list):
                 plt.legend(legendlist)
