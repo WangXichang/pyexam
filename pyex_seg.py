@@ -576,46 +576,56 @@ class SegTable(object):
 
 
 # shanghai li proposed 2018.4
-def cross_seg(df,    # source dataframe
+def cross_seg(df,  # source dataframe
               keyf,  # key field to calculate segment
-              vf,  # cross field, calculate count for >=keyf_seg & >=vf_seg
-              vfseglist=(40, 50, 60, 70, 80, 90, 100)  # segment for cross field
+              cross_field,  # cross field, calculate count for >=keyf_seg & >=vf_seg
+              cf_seg_list=(40, 50, 60, 70, 80, 90, 100),  # segment for cross field
+              keyf_max=150,
+              keyf_min=0
               ):
+    """
+    交叉表指在某关键列（字段）的分段基础上计算其他有关列（字段）的分段（交叉统计字段）计数值
+    :param df: 源数据框
+    :param keyf: 关键分段字段
+    :param cross_field: 交叉统计计数字段
+    :param cf_seg_list: 关键字段分段值列表
+    :param keyf_max: max value for keyf
+    :param keyf_min: min value for keyf
+    :return:
+    """
     display_step = 20
     segmodel = SegTable()
     segmodel.set_data(df, keyf)
-    segmodel.set_parameters(segmax=max(df[keyf]))
+    segmodel.set_parameters(segmax=keyf_max,
+                            segmin=keyf_min)
     segmodel.run()
     dfseg = segmodel.output_data
     dfcount = dfseg[keyf+'_sum'].tail(1).values[0]
-    vfseg = {x: [] for x in vfseglist}
-    vfper = {x: [] for x in vfseglist}
+    vfseg = {x: [] for x in cf_seg_list}
+    vfper = {x: [] for x in cf_seg_list}
     seglen = dfseg['seg'].count()
     for sv, step in zip(dfseg['seg'], range(seglen)):
         if (step % display_step == 0) | (step == seglen-1):
             print('=' * int((step+1)/seglen * 30) + '>>' +
                   f'{float_str((step+1)/seglen, 1, 2)}')
-        for vfv in vfseglist:
-            segcount = df.loc[(df[keyf] >= sv) & (df[vf] >= vfv), vf].count()
+        for vfv in cf_seg_list:
+            segcount = df.loc[(df[keyf] >= sv) & (df[cross_field] >= vfv), cross_field].count()
             vfseg[vfv].append(segcount)
             vfper[vfv].append(segcount/dfcount)
-    for vs in vfseglist:
-        dfseg[vf + str(vs) + '_sum'] = vfseg[vs]
-        dfseg[vf + str(vs) + '_percent'] = vfper[vs]
+    for vs in cf_seg_list:
+        dfseg.loc[:, cross_field + '_' + str(vs) + '_sum'] = vfseg[vs]
+        dfseg.loc[:, cross_field + '_' + str(vs) + '_percent'] = vfper[vs]
     return dfseg
 
 
 def float_str(x, d1, d2):
-    d1 = d1 + d2 + 1
-    # return f'%{d1}.{d2}f' % x
-    fstr = '{:'+str(d1)+'.'+str(d2)+'}'
-    return fstr.format(x)
+    return ('{:'+str(d1+d2+1)+'.'+str(d2)+'}').format(x)
+    # return fs.format(x)
 
 
 def int_str(x, d):
     # return f'%{d}d' % x
-    fstr = '{:'+str(d)+'d}'
-    return fstr.format(x)
+    return ('{:'+str(d)+'d}').format(x)
 
 
 def round45i(v, dec=0):
