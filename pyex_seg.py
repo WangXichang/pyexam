@@ -440,6 +440,7 @@ class SegTable(object):
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
+            self.__output_dataframe = outdf.copy()
             # special seg step
             if self.__segStep > 1:
                 self.__run_special_step(f)
@@ -587,7 +588,7 @@ def cross_seg(df,  # source dataframe
     交叉表指在某关键列（字段）的分段基础上计算其他有关列（字段）的分段（交叉统计字段）计数值
     :param df: 源数据框
     :param keyf: 关键分段字段
-    :param cross_field: 交叉统计计数字段
+    :param cross_field: 交叉统计计数字段，列+ 最低分数
     :param cf_seg_list: 关键字段分段值列表
     :param keyf_max: max value for keyf
     :param keyf_min: min value for keyf
