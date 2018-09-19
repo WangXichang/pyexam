@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
-import copy
+# import copy
 
 
 # guid to use pyex_seg
@@ -54,14 +54,14 @@ def help_exp():
 
     seg = SegTable()
     seg.set_data(expdf, ['sf'])
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=True, display=False)
+    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=0, usealldata=True, display=False)
     seg.run()
     print('='*80)
     seg.show_parameters()
     print(seg.output_data)
 
     # special step, start, no all data
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=False, display=False)
+    seg.set_parameters(segstep=3, segstart=8, segmax=7, segmin=0, usealldata=False, display=False)
     seg.run()
     print('\n')
     print('='*80)
@@ -82,22 +82,22 @@ def help_exp():
     print(seg.output_data)
 
     # change parameters to run to get new result
-    seg.seglistuse = True
-    seg.seglist = [7, 5, 3]
-    seg.segsort = 'd'
-    seg.segstart = 2
+    seg.useseglist = True
+    seg.seglist = [7, 4, 3, 1]
+    seg.segstart = 5
     seg.segmax = 7
+    seg.segsort = 'd'
     seg.display = False
     seg.run()
     print('\n')
     print('='*80)
     seg.show_parameters()
     print(seg.output_data)
-    print('\n--- get result use: (df.sf_list > 0) | (df.seg.isin(range(segmin, segmax+1)) ---')
-    print(seg.output_data[seg.output_data.sf_list > 0])
-    print(seg.output_data[seg.output_data.sf_count2 > 0])
+    print('\n--- get result use: (df.sf_list_sum > 0) | (df.seg.isin(range(segmin, segmax+1)) ---')
+    print(seg.output_data[seg.output_data.sf_list > 0][['seg', 'sf_list', 'sf_list_sum']])
+    print(seg.output_data[seg.output_data.sf_count2 > 0][['seg', 'sf_count2', 'sf_sum']])
 
-    return
+    return seg
 
 
 class SegTable(object):
@@ -201,7 +201,7 @@ class SegTable(object):
         # result data
         self.__output_dataframe = None
         # run status
-        self.__runsuccess = False
+        self.__run_completed = False
 
     @property
     def output_data(self):
@@ -232,12 +232,12 @@ class SegTable(object):
         self.__segList = seglist
 
     @property
-    def seglistuse(self):
+    def useseglist(self):
         return self.__useseglist
 
-    @seglistuse.setter
-    def seglistuse(self, seglistuse):
-        self.__useseglist = seglistuse
+    @useseglist.setter
+    def useseglist(self, useseglist):
+        self.__useseglist = useseglist
 
     @property
     def segstart(self):
@@ -353,14 +353,14 @@ class SegTable(object):
 
     def show_parameters(self):
         print('------ seg parameters ------')
-        print('   seg list use:{0}'.format(self.__useseglist, self.__segList))
-        print('       seg list:{1}'.format(self.__useseglist, self.__segList))
-        print('      max value:{}'.format(self.__segMax))
-        print('      min value:{}'.format(self.__segMin))
-        print('    start value:{}'.format(self.__segStart))
-        print('     step value:{}'.format(self.__segStep))
-        print('      sort mode:{}'.format('d (descending)' if self.__segSort in ['d', 'D'] else 'a (ascending)'))
-        print('       all data:{}'.format(self.__usealldata))
+        print('    use seglist:{0}'.format(self.__useseglist, self.__segList))
+        print('        seglist:{1}'.format(self.__useseglist, self.__segList))
+        print('       maxvalue:{}'.format(self.__segMax))
+        print('       minvalue:{}'.format(self.__segMin))
+        print('       segstart:{}'.format(self.__segStart))
+        print('        segstep:{}'.format(self.__segStep))
+        print('        segsort:{}'.format('d (descending)' if self.__segSort in ['d', 'D'] else 'a (ascending)'))
+        print('     usealldata:{}'.format(self.__usealldata))
         print('        display:{}'.format(self.__display))
         print('-' * 28)
 
@@ -407,7 +407,7 @@ class SegTable(object):
         if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
-        outdf = self.__output_dataframe.copy()
+        outdf = self.__output_dataframe
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
@@ -435,12 +435,12 @@ class SegTable(object):
 
             # calculate percent field
             maxsum = max(max(outdf[f + '_sum']), 1)     # avoid divided by 0 in percent computing
-            outdf[f + '_percent'] = outdf[f + '_sum'].\
-                    apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
+            outdf[f + '_percent'] = \
+                outdf[f + '_sum'].apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
-            self.__output_dataframe = outdf.copy()
+            # self.__output_dataframe = outdf.copy()
             # special seg step
             if self.__segStep > 1:
                 self.__run_special_step(f)
@@ -453,7 +453,7 @@ class SegTable(object):
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
             print('=== end')
-        self.__runsuccess = True
+        self.__run_completed = True
         self.__output_dataframe = outdf
         return
 
@@ -537,7 +537,7 @@ class SegTable(object):
             cur_row += 1
 
     def plot(self):
-        if not self.__runsuccess:
+        if not self.__run_completed:
             if self.__display:
                 print('result is not created, please run!')
             return
