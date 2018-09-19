@@ -15,7 +15,7 @@ tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
 # interface to use model for some typical application
-def usemodel(name='shandong',
+def stmmodel(name='shandong',
              df=None,
              field_list='',
              maxscore=100,
