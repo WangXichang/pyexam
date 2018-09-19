@@ -35,16 +35,19 @@ def help_exp():
     0    3         8         17    1.000000         12  # including 0, 1 which below 3
     ------------------------------------------------------------------------------
     # avoid to count records below segmin if segalldata = False
-    seg.set_parameters(segstep=3, segstart=8, segmax=8, segmin=3, usealldata=False, display=True)
+    seg.set_parameters(segstep=3, segstart=8, segmax=7, segmin=0, usealldata=False, display=True)
     seg.run()
     print(seg.output_data)
-         seg     sf_count  sf_sum   sf_percent      sf_count3
-    5    8         2          2     0.133333          2
-    4    7         1          3     0.200000         -1
-    3    6         1          4     0.266667         -1
-    2    5         1          5     0.333333          3
-    1    4         4          9     0.600000         -1
-    0    3         6         15     1.000000         10  # excluding 0, 1
+    ----------------------------
+       seg  sf_count  sf_sum  sf_percent  sf_count3
+    0    7         1       1    0.066667          1  # excluding 8, 8
+    1    6         1       2    0.133333         -1
+    2    5         1       3    0.200000          2
+    3    4         4       7    0.466667         -1
+    4    3         6      13    0.866667         -1
+    5    2         0      13    0.866667         10
+    6    1         1      14    0.933333         -1
+    7    0         1      15    1.000000          2
     """
 
     expdf = pd.DataFrame({'sf': [1, 0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 6, 7, 8, 8]})
