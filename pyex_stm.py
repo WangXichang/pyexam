@@ -485,10 +485,17 @@ class PltScore(ScoreTransformModel):
     def _create_report(self, field=''):
         self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1], x[2])
                                for x in self.result_coeff.values()]
-        self.output_report_doc = '---<< score field: {} >>---\n'.format(field)
-        self.output_report_doc += 'input score percentage: {}\n'.format(self.input_score_percentage_points)
-        self.output_report_doc += 'input score  endpoints: {}\n'.format(self.result_input_data_points)
-        self.output_report_doc += 'output score endpoints: {}\n'.format(self.output_score_points)
+        self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
+        self.output_report_doc += 'input score percentage: {}\n'.\
+            format(self.input_score_percentage_points)
+        inmax = max(self.result_input_data_points)
+        self.output_report_doc += 'input score  endpoints: {}\n'.\
+            format([(int(x), int(y-1 if y < inmax else y)) for x, y in zip(self.result_input_data_points[:-1],
+                                           self.result_input_data_points[1:])])
+        outmax = max(self.output_score_points)
+        self.output_report_doc += 'output score endpoints: {}\n'.\
+            format([(x, y-1 if y<outmax else y) for x, y in zip(self.output_score_points[:-1],
+                                           self.output_score_points[1:])])
         for i, fs in enumerate(self.result_formula):
             if i == 0:
                 self.output_report_doc += '    transform formulas: {}\n'.format(fs)
@@ -535,20 +542,38 @@ class PltScore(ScoreTransformModel):
             # 分段线性转换模型
             # plt.subplot(132)
             plt.figure(fs+'_plt')
-            plt.title(u'分段线性正态转换模型')
+            plt.title(u'转换模型')
             plt.xlim(input_points[0], input_points[-1])
             plt.ylim(self.output_score_points[0], self.output_score_points[-1])
-            plt.plot(input_points, self.output_score_points)
+            # plt.plot(input_points, self.output_score_points)
             # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
             plt.rcParams.update({'font.size': 8})
             # plt.text(95, 16, '100')
             plt.xlabel(u'原始分数')
             plt.ylabel(u'转换分数')
-            # plt.rcParams.update({'font.size': 8})
-            for p, q in zip(input_points, self.output_score_points):
-                plt.plot([p, p], [0, q], '--')
-                plt.plot([0, p], [q, q], '--')
-                plt.text(p, self.output_score_points[0]-2, '{}'.format(int(p)))
+            in_max = max(input_points)
+            ou_max = max(self.output_score_points)
+            input_sec = [(input_points[i],
+                          input_points[i+1]-1 if input_points[i+1] != in_max else in_max)
+                         for i in range(len(input_points)-1)]
+            output_sec = [(self.output_score_points[i],
+                           self.output_score_points[i+1]-1 if self.output_score_points[i+1] != ou_max else
+                           ou_max)
+                          for i in range(len(input_points)-1)]
+            # for p, q in zip(input_points, self.output_score_points):
+            #     plt.plot([p, p], [0, q], '--')
+            #     plt.plot([0, p], [q, q], '--')
+            #     plt.text(p, self.output_score_points[0]-2, '{}'.format(int(p)))
+            # print(input_sec)
+            # print(output_sec)
+            for p, q in zip(input_sec, output_sec):
+                plt.plot(p, q)
+                plt.plot([p[0], p[0]], [0, q[0]], '--')
+                plt.plot([p[1], p[1]], [0, q[1]], '--')
+                plt.plot([0, p[0]], [q[0], q[0]], '--')
+                plt.plot([0, p[1]], [q[1], q[1]], '--')
+                plt.text(p[0], 20, '{}'.format(int(p[0])))
+                plt.text(p[1], 20, '{}'.format(int(p[1])))
 
             # plt score
             # plt.subplot(133)

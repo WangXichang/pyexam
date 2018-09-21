@@ -1,7 +1,6 @@
 # -*- utf-8 -*-
 import pandas as pd
 import matplotlib.pyplot as plt
-from pyex_stm import PltScore, LevelScore, LevelScoreTao, Tscore, Zscore, TscoreLinear
 # import pyex_stm as stm
 
 
@@ -33,7 +32,10 @@ def stmmodel(name='shandong',
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
-
+    import importlib as pb
+    import pyex_stm as stm
+    pb.reload(stm)
+    # from pyex_stm import PltScore, LevelScore, LevelScoreTao, Tscore, Zscore, TscoreLinear
     # valid name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
@@ -90,7 +92,7 @@ def stmmodel(name='shandong',
         #     frequecy estimation: 0.0234 * total_number
         #     200,000-->4680,   300,000 --> 7020
 
-        pltmodel = PltScore()
+        pltmodel = stm.PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
@@ -109,7 +111,7 @@ def stmmodel(name='shandong',
     if name == 'zhejiang':
         # estimate: std = 14, mean=70
         level_score_table = [100 - x * 3 for x in range(21)]
-        m = LevelScore()
+        m = stm.LevelScore()
         m.model_name = 'zhejiang'
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=maxscore,
@@ -123,7 +125,7 @@ def stmmodel(name='shandong',
 
     if name == 'shanghai':
         level_score = [70 - j * 3 for j in range(11)]
-        m = LevelScore()
+        m = stm.LevelScore()
         m.model_name = 'shanghai'
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(level_ratio_table=shanghai_ratio,
@@ -135,7 +137,7 @@ def stmmodel(name='shandong',
 
     if name == 'beijing':
         level_score = [100 - j * 3 for j in range(21)]
-        m = LevelScore()
+        m = stm.LevelScore()
         m.model_name = 'beijing'
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(level_ratio_table=beijing_ratio,
@@ -147,7 +149,7 @@ def stmmodel(name='shandong',
 
     if name == 'tianjin':
         level_score = [100 - j * 3 for j in range(21)]
-        m = LevelScore()
+        m = stm.LevelScore()
         m.model_name = 'tianjin'
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(level_ratio_table=tianjin_ratio,
@@ -158,7 +160,7 @@ def stmmodel(name='shandong',
         return m
 
     if name == 'tao':
-        m = LevelScoreTao()
+        m = stm.LevelScoreTao()
         m.level_num = 50
         m.set_data(input_data=input_data,
                    field_list=field_list)
@@ -168,7 +170,7 @@ def stmmodel(name='shandong',
         return m
 
     if name == 'zscore':
-        zm = Zscore()
+        zm = stm.Zscore()
         zm.model_name = name
         zm.set_data(input_data=input_data, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
@@ -176,7 +178,7 @@ def stmmodel(name='shandong',
         zm.report()
         return zm
     if name == 'tscore':
-        tm = Tscore()
+        tm = stm.Tscore()
         tm.model_name = name
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
@@ -184,7 +186,7 @@ def stmmodel(name='shandong',
         tm.report()
         return tm
     if name == 'tlinear':
-        tm = TscoreLinear()
+        tm = stm.TscoreLinear()
         tm.model_name = name
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(input_score_max=100, input_score_min=0)
