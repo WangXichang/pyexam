@@ -16,6 +16,236 @@ import pyex_ptt as ptt
 # warnings.simplefilter('error')
 
 
+# some constants for models
+shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
+shandong_level = [21, 31, 41, 51, 61, 71, 81, 91, 100]
+zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+
+
+def help_doc():
+    print("""
+    module function and class:
+    function
+       stmmodel: 调用有关模型的接口函数，
+          通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          可以计算山东、上海、浙江、北京、天津、陶百强模型的转换分数
+          也可以计算Z分数、T分数和线性转换T分数（name='zscore'/'tscore'/'tlinear'）
+       plot_model_distribution: 
+          各方案按照比例转换后分数后的分布直方图
+    class 
+       PltScore: 分段线性转换模型, 山东省新高考改革使用
+    class LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用
+    class Zscore: Z分数转换模型
+    class Tscore: T分数转换模型
+    """)
+
+
+# interface to use model for some typical application
+def stmmodel(name='shandong',
+             df=None,
+             field_list='',
+             maxscore=100,
+             minscore=0,
+             decimal=0,
+             approx_method='near'
+             ):
+    """
+    :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
+    :param df: input dataframe
+    :param field_list: score fields list in input dataframe
+    :param maxscore: max value in raw score
+    :param minscore: min value in raw score
+    :param decimal: output score decimal digits
+    :param approx_method: maxmin, minmax, nearmin, nearmax
+    :return: model
+    """
+    # constant data
+    # valid name
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
+               'tscore, zscore, tlinear'
+
+    if type(df) != pd.DataFrame:
+        if type(df) == pd.Series:
+            input_data = pd.DataFrame(df)
+        else:
+            print('no score dataframe!')
+            return
+    else:
+        input_data = df
+    if isinstance(field_list, str):
+        field_list = [field_list]
+    elif not isinstance(field_list, list):
+        print('invalid field_list!')
+        return
+
+    if name not in name_set:
+        print('invalid name, not in {}'.format(name_set))
+        return
+
+    # shandong new project score model
+    if name == 'shandong':
+        # set model score percentages and endpoints
+        # get approximate normal distribution
+        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
+        # according to std
+        #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
+        #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
+        #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
+        #   cdf(70) = 0.0.73999999697   as std=15.54375
+        #   cdf(60) = 0.0
+        #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
+        #   cdf(40) = 0.0991            as std=15.54375
+        #   cdf(30) = 0.0268            as std=15.54375
+        #   cdf(20) = 0.0050            as std=15.54375
+        # ---------------------------------------------------------------------------------------------------------
+        #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
+        #   std/points      20      30         40        50        60      70         80        90         100
+        #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
+        #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
+        #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
+        # ---------------------------------------------------------------------------------------------------------
+        # on the whole, fitting is approximate fine
+        # p1: std scope in 15.54 - 15.95
+        # p2: cut percent at 20, 100 is a little big, std would be reduced
+        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+        # p4: max frequency at 60 estimation:
+        #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
+        #     percentage in all  : pga = pg60*0.24 = 0.023404
+        #     frequecy estimation: 0.0234 * total_number
+        #     200,000-->4680,   300,000 --> 7020
+
+        pltmodel = PltScore()
+        pltmodel.model_name = 'shandong'
+        pltmodel.output_data_decimal = 0
+        pltmodel.set_data(input_data=input_data,
+                          field_list=field_list)
+        pltmodel.set_parameters(input_score_percent_list=shandong_ratio,
+                                output_score_points_list=shandong_level,
+                                input_score_max=maxscore,
+                                input_score_min=minscore,
+                                approx_mode=approx_method,
+                                use_minscore_as_start_endpoint=True,
+                                decimals=decimal
+                                )
+        pltmodel.run()
+        return pltmodel
+
+    if name == 'zhejiang':
+        # estimate: std = 14, mean=70
+        level_score_table = [100 - x * 3 for x in range(21)]
+        m = LevelScore()
+        m.model_name = 'zhejiang'
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(maxscore=maxscore,
+                         minscore=minscore,
+                         level_ratio_table=zhejiang_ratio,
+                         level_score_table=level_score_table,
+                         approx_method=approx_method
+                         )
+        m.run()
+        return m
+
+    if name == 'shanghai':
+        level_score = [70 - j * 3 for j in range(11)]
+        m = LevelScore()
+        m.model_name = 'shanghai'
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=shanghai_ratio,
+                         level_score_table=level_score,
+                         maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+
+    if name == 'beijing':
+        level_score = [100 - j * 3 for j in range(21)]
+        m = LevelScore()
+        m.model_name = 'beijing'
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=beijing_ratio,
+                         level_score_table=level_score,
+                         maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+
+    if name == 'tianjin':
+        level_score = [100 - j * 3 for j in range(21)]
+        m = LevelScore()
+        m.model_name = 'tianjin'
+        m.set_data(input_data=input_data, field_list=field_list)
+        m.set_parameters(level_ratio_table=tianjin_ratio,
+                         level_score_table=level_score,
+                         maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+
+    if name == 'tao':
+        m = LevelScoreTao()
+        m.level_num = 50
+        m.set_data(input_data=input_data,
+                   field_list=field_list)
+        m.set_parameters(maxscore=maxscore,
+                         minscore=minscore)
+        m.run()
+        return m
+
+    if name == 'zscore':
+        zm = Zscore()
+        zm.model_name = name
+        zm.set_data(input_data=input_data, field_list=field_list)
+        zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
+        zm.run()
+        zm.report()
+        return zm
+    if name == 'tscore':
+        tm = Tscore()
+        tm.model_name = name
+        tm.set_data(input_data=input_data, field_list=field_list)
+        tm.set_parameters(rawscore_max=150, rawscore_min=0)
+        tm.run()
+        tm.report()
+        return tm
+    if name == 'tlinear':
+        tm = TscoreLinear()
+        tm.model_name = name
+        tm.set_data(input_data=input_data, field_list=field_list)
+        tm.set_parameters(input_score_max=100, input_score_min=0)
+        tm.run()
+        tm.report()
+        return tm
+
+
+def plot_model_distribution():
+    plt.figure('model ratio distribution')
+    plt.rcParams.update({'font.size': 16})
+    plt.subplot(231)
+    plt.bar(range(8), [shandong_ratio[j] - shandong_ratio[j - 1] for j in range(1, 9)])
+    plt.title('shandong model')
+
+    plt.subplot(232)
+    plt.bar(range(11, 0, -1), [shanghai_ratio[-j - 1] for j in range(11)])
+    plt.title('shanghai model')
+
+    plt.subplot(233)
+    plt.bar(range(21, 0, -1), [zhejiang_ratio[-j - 1] for j in range(len(zhejiang_ratio))])
+    plt.title('zhejiang model')
+
+    plt.subplot(234)
+    plt.bar(range(21, 0, -1), [beijing_ratio[-j - 1] for j in range(len(beijing_ratio))])
+    plt.title('beijing model')
+
+    plt.subplot(235)
+    plt.bar(range(21, 0, -1), [tianjin_ratio[-j - 1] for j in range(len(tianjin_ratio))])
+    plt.title('tianjin model')
+
+
 # Score Transform Model Interface
 # Abstract class
 class ScoreTransformModel(object):
@@ -527,18 +757,67 @@ class PltScore(ScoreTransformModel):
 
             # disp distribution with input_points label
             # plt.subplot(131)
-            plt.figure(fs+'_raw')
-            plt.yticks([])
-            input_points_count = self.segtable[self.segtable.seg.isin(
-                input_points)][fs+'_count'].values
-            # plt.plot(self.segtable['seg'], self.segtable[fs+'_count'])
-            sbn.distplot(self.input_data[fs])
-            # plt.rcParams.update({'font.size': 8})
-            plt.xlabel(u'原始分数')
-            for p, q in zip(input_points, input_points_count):
-                plt.plot([p, p], [0, 0.1], '--')
-                plt.text(p, -0.001, '{}'.format(int(p)))
+            # plt.figure(fs+'_raw')
+            # plt.yticks([])
+            # input_points_count = self.segtable[self.segtable.seg.isin(
+            #     input_points)][fs+'_count'].values
+            # # plt.plot(self.segtable['seg'], self.segtable[fs+'_count'])
+            # sbn.distplot(self.input_data[fs])
+            # # plt.rcParams.update({'font.size': 8})
+            # plt.xlabel(u'原始分数')
+            # for p, q in zip(input_points, input_points_count):
+            #     plt.plot([p, p], [0, 0.1], '--')
+            #     plt.text(p, -0.001, '{}'.format(int(p)))
 
+            # 分段线性转换模型
+            # plt.subplot(132)
+            plt.figure(fs+'_plt')
+            plt.title(u'转换模型')
+            plt.xlim(input_points[0], input_points[-1])
+            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
+            # plt.plot(input_points, self.output_score_points)
+            # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
+            plt.rcParams.update({'font.size': 8})
+            # plt.text(95, 16, '100')
+            plt.xlabel(u'原始分数')
+            plt.ylabel(u'转换分数')
+            in_max = max(input_points)
+            ou_max = max(self.output_score_points)
+            input_sec = [(input_points[i],
+                          input_points[i+1]-1 if input_points[i+1] != in_max else in_max)
+                         for i in range(len(input_points)-1)]
+            output_sec = [(self.output_score_points[i],
+                           self.output_score_points[i+1]-1 if self.output_score_points[i+1] != ou_max else
+                           ou_max)
+                          for i in range(len(input_points)-1)]
+            ymin = self.output_score_points[0]
+            for p, q in zip(input_sec, output_sec):
+                plt.plot(p, q)
+                plt.plot([p[0], p[0]], [0, q[0]], '--')
+                plt.plot([p[1], p[1]], [0, q[1]], '--')
+                plt.plot([0, p[0]], [q[0], q[0]], '--')
+                plt.plot([0, p[1]], [q[1], q[1]], '--')
+                plt.text(p[0], ymin-1, '{}'.format(int(p[0])))
+                plt.text(p[1], ymin-1, '{}'.format(int(p[1])))
+            plt.plot((0, in_max), (0, in_max))
+
+            # # plt score
+            # # plt.subplot(133)
+            # plt.figure(fs+'_out')
+            # plt.yticks([])
+            # sbn.distplot(self.output_data[fs+'_plt'])
+            # plt.xlabel(u'转换分数')
+
+        plt.show()
+        return
+
+    # use model only
+    def __plotshift(self):
+        plt.rcParams['font.sans-serif'] = ['SimHei']
+        plt.rcParams.update({'font.size': 8})
+        for i, fs in enumerate(self.field_list):
+            result = self.result_dict[fs]
+            input_points = result['input_score_points']
             # 分段线性转换模型
             # plt.subplot(132)
             plt.figure(fs+'_plt')
@@ -574,18 +853,11 @@ class PltScore(ScoreTransformModel):
                 plt.plot([0, p[1]], [q[1], q[1]], '--')
                 plt.text(p[0], 20, '{}'.format(int(p[0])))
                 plt.text(p[1], 20, '{}'.format(int(p[1])))
-
-            # plt score
-            # plt.subplot(133)
-            plt.figure(fs+'_out')
-            plt.yticks([])
-            sbn.distplot(self.output_data[fs+'_plt'])
-            plt.xlabel(u'转换分数')
-
+            plt.plot((0, in_max), (0, in_max))
         plt.show()
-        return
 
-    def __plotshift(self):
+    # deprecated
+    def __plotshift2(self):
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plen = len(self.result_input_data_points)
         flen = len(self.field_list)
@@ -620,16 +892,6 @@ class PltScore(ScoreTransformModel):
                     plt.text(p, p-2, '({})'.format(p))
         plt.show()
         return
-
-    # from formula
-    # def get_plt_score(self, fs, x):
-    #     coeff = self.result_dict[fs]['coeff']
-    #     input_points = self.result_dict[fs]['input_score_points']
-    #     for i in range(1, len(self.output_score_points)):
-    #         if x <= input_points[i]:
-    #             y = coeff[i][0] * (x - coeff[i][1]) + coeff[i][2]
-    #             return self.round45i(y, self.output_data_decimal)
-    #     return -1
 
     def print_segtable(self):
         seg_decimal_digit = 8
