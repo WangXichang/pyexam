@@ -545,6 +545,8 @@ class PltScore(ScoreTransformModel):
         return -1
 
     def __get_formula(self, field):
+
+        # step-prepare
         # check format
         if type(self.input_data) != pd.DataFrame:
             print('no dataset given!')
@@ -587,11 +589,6 @@ class PltScore(ScoreTransformModel):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
-        # the lowest end of inscore_points
-        # if self.use_minscore_as_rawscore_start_endpoint:
-        #     score_points = [self.input_score_min]
-        # else:
-        #     score_points = [min(self.input_data[field])]
 
         score_points = [self.input_score_min]
         lastpercent = 0
@@ -650,14 +647,14 @@ class PltScore(ScoreTransformModel):
             lastpercent = p
         return score_points
 
+    # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
+    # coeff = (y2-y1-1)/(x2 -x1)
     def __getcoeff(self):
-        # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
-        # coeff = (y2-y1-1)/(x2 -x1)
-
+        # check length of input_points and output_points
         if len(self.result_input_data_points) != len(self.output_score_points):
             print('error score points: {}'.format(self.result_input_data_points))
             return False
-
+        # calculate coeff
         for i in range(1, len(self.output_score_points)):
             if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**8:
                 print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
@@ -678,7 +675,6 @@ class PltScore(ScoreTransformModel):
             x1 = self.result_input_data_points[i - 1]
             coff = self.round45i(coff, self.sys_pricision_decimals)
             self.result_coeff[i] = [coff, x1, y1]
-
         return True
 
     def __pltrun(self, scorefieldname):
@@ -692,6 +688,7 @@ class PltScore(ScoreTransformModel):
         # create report
         self._create_report()
 
+    # get score from formula
     def get_plt_score_from_formula(self, field, x, decimal=0):
         if field not in self.field_list:
             print('invalid field name {} not in {}'.format(field, self.field_list))
@@ -736,15 +733,13 @@ class PltScore(ScoreTransformModel):
     def report(self):
         print(self.output_report_doc)
 
-    def plot(self, mode='raw'):
+    def plot(self, mode='model'):
         if mode not in ['raw', 'out', 'model', 'shift']:
             print('valid mode is: raw, out, model,shift')
             # print('mode:model describe the differrence of input and output score.')
             return
         if mode == 'model':
             self.__plotmodel()
-        elif mode == 'shift':
-            self.__plotshift()
         elif not super().plot(mode):
             print('mode {} is invalid'.format(mode))
 
@@ -752,33 +747,14 @@ class PltScore(ScoreTransformModel):
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.rcParams.update({'font.size': 8})
         for i, fs in enumerate(self.field_list):
+            # 分段线性转换模型
             result = self.result_dict[fs]
             input_points = result['input_score_points']
-
-            # disp distribution with input_points label
-            # plt.subplot(131)
-            # plt.figure(fs+'_raw')
-            # plt.yticks([])
-            # input_points_count = self.segtable[self.segtable.seg.isin(
-            #     input_points)][fs+'_count'].values
-            # # plt.plot(self.segtable['seg'], self.segtable[fs+'_count'])
-            # sbn.distplot(self.input_data[fs])
-            # # plt.rcParams.update({'font.size': 8})
-            # plt.xlabel(u'原始分数')
-            # for p, q in zip(input_points, input_points_count):
-            #     plt.plot([p, p], [0, 0.1], '--')
-            #     plt.text(p, -0.001, '{}'.format(int(p)))
-
-            # 分段线性转换模型
-            # plt.subplot(132)
             plt.figure(fs+'_plt')
             plt.title(u'转换模型')
             plt.xlim(input_points[0], input_points[-1])
             plt.ylim(self.output_score_points[0], self.output_score_points[-1])
-            # plt.plot(input_points, self.output_score_points)
-            # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
             plt.rcParams.update({'font.size': 8})
-            # plt.text(95, 16, '100')
             plt.xlabel(u'原始分数')
             plt.ylabel(u'转换分数')
             in_max = max(input_points)
@@ -797,21 +773,17 @@ class PltScore(ScoreTransformModel):
                 plt.plot([p[1], p[1]], [0, q[1]], '--')
                 plt.plot([0, p[0]], [q[0], q[0]], '--')
                 plt.plot([0, p[1]], [q[1], q[1]], '--')
-                plt.text(p[0], ymin-1, '{}'.format(int(p[0])))
-                plt.text(p[1], ymin-1, '{}'.format(int(p[1])))
+                for x in p:
+                    if x not in [0, in_max]:
+                        plt.text(x, ymin+0.3, '{}'.format(int(x)))
+                for y in q:
+                    if y != ou_max:
+                        plt.text(0.3, y, '{}'.format(int(y)))
             plt.plot((0, in_max), (0, in_max))
-
-            # # plt score
-            # # plt.subplot(133)
-            # plt.figure(fs+'_out')
-            # plt.yticks([])
-            # sbn.distplot(self.output_data[fs+'_plt'])
-            # plt.xlabel(u'转换分数')
-
         plt.show()
         return
 
-    # use model only
+    # deprecated
     def __plotshift(self):
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.rcParams.update({'font.size': 8})
@@ -839,12 +811,6 @@ class PltScore(ScoreTransformModel):
                            self.output_score_points[i+1]-1 if self.output_score_points[i+1] != ou_max else
                            ou_max)
                           for i in range(len(input_points)-1)]
-            # for p, q in zip(input_points, self.output_score_points):
-            #     plt.plot([p, p], [0, q], '--')
-            #     plt.plot([0, p], [q, q], '--')
-            #     plt.text(p, self.output_score_points[0]-2, '{}'.format(int(p)))
-            # print(input_sec)
-            # print(output_sec)
             for p, q in zip(input_sec, output_sec):
                 plt.plot(p, q)
                 plt.plot([p[0], p[0]], [0, q[0]], '--')
