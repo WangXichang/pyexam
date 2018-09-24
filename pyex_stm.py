@@ -18,7 +18,7 @@ import pyex_ptt as ptt
 
 # some constants for models
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
-shandong_level = [21, 31, 41, 51, 61, 71, 81, 91, 100]
+shandong_level = [21, 30, 40, 50, 60, 70, 80, 90, 100]
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
@@ -537,11 +537,15 @@ class PltScore(ScoreTransformModel):
 
     # from current formula in result_coeff
     def __get_plt_score(self, x):
-        for i in range(1, len(self.output_score_points)):
-            if x <= self.result_input_data_points[i]:
-                y = self.result_coeff[i][0] * \
-                    (x - self.result_coeff[i][1]) + self.result_coeff[i][2]
-                return self.round45i(y, self.output_data_decimal)
+        for f in self.result_coeff.values():
+            # print(f)
+            if f[1][0] <= x <= f[1][1]:
+                return f[0]*(x - f[1][0]) + f[2][0]
+        # for i in range(1, len(self.output_score_points)):
+        #     if x <= self.result_input_data_points[i]:
+        #         y = self.result_coeff[i][0] * \
+        #             (x - self.result_coeff[i][1]) + self.result_coeff[i][2]
+        #         return self.round45i(y, self.output_data_decimal)
         return -1
 
     def __get_formula(self, field):
@@ -655,26 +659,41 @@ class PltScore(ScoreTransformModel):
             print('error score points: {}'.format(self.result_input_data_points))
             return False
         # calculate coeff
-        for i in range(1, len(self.output_score_points)):
-            if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**8:
-                print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
-                return False
-            if self.result_input_data_points[i] - self.result_input_data_points[i - 1] > 0:
-                if i < len(self.output_score_points) - 1:
-                    # [xi, x(i+1) - 1] -> [yi, y(i+1) - 1]
-                    coff = (self.output_score_points[i] - 1 - self.output_score_points[i - 1]) / \
-                           (self.result_input_data_points[i] - 1 - self.result_input_data_points[i - 1])
-                else:
-                    # [xi, xmax] -> [yi, ymax]
-                    coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
-                           (self.result_input_data_points[i] - self.result_input_data_points[i - 1])
-            else:
-                print('input score points[{0} - {1}] error!'.format(i-1, i))
-                coff = -1
-            y1 = self.output_score_points[i - 1]
-            x1 = self.result_input_data_points[i - 1]
-            coff = self.round45i(coff, self.sys_pricision_decimals)
-            self.result_coeff[i] = [coff, x1, y1]
+        in_points = self.result_input_data_points
+        xp = [(int(x1)+1 if x1 > min(in_points) else x1, int(x2))
+              for x1, x2 in zip(in_points[:-1], in_points[1:])]
+        y_points = self.output_score_points
+        yp = [(int(y1)+1 if y1 > min(y_points) else y1, int(y2))
+              for y1, y2 in zip(y_points[:-1], y_points[1:])]
+        for i, p in enumerate(zip(xp, yp)):
+            coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
+            self.result_coeff.update({i: [coeff, p[0], p[1]]})
+
+        # for i in range(1, len(self.output_score_points)):
+        #     # error: distance between neigbor poits is too small
+        #     if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**8:
+        #         print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
+        #         return False
+        #     # order is right
+        #     if self.result_input_data_points[i] - self.result_input_data_points[i - 1] > 0:
+        #         if i < len(self.output_score_points) - 1:
+        #             # [xi, x(i+1) - 1] -> [yi, y(i+1) - 1]
+        #             # coff = (yi+1 - (yi +1))/(xi+1 - (xi +1))
+        #             # y = coff * (x - (xi + 1)) + (yi + 1)
+        #             coff = (self.output_score_points[i] - self.output_score_points[i - 1]-1) / \
+        #                    (self.result_input_data_points[i] - self.result_input_data_points[i - 1]-1)
+        #         else:
+        #             # [xi, xmax] -> [yi, ymax]
+        #             coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
+        #                    (self.result_input_data_points[i] - self.result_input_data_points[i - 1])
+        #     # order is wrong
+        #     else:
+        #         print('input score points[{0} - {1}] error!'.format(i-1, i))
+        #         coff = -1
+        #     y1 = self.output_score_points[i - 1]+1
+        #     x1 = self.result_input_data_points[i - 1]
+        #     coff = self.round45i(coff, self.sys_pricision_decimals)
+        #     self.result_coeff[i] = [coff, x1, y1]
         return True
 
     def __pltrun(self, scorefieldname):
@@ -693,16 +712,20 @@ class PltScore(ScoreTransformModel):
         if field not in self.field_list:
             print('invalid field name {} not in {}'.format(field, self.field_list))
         coeff = self.result_dict[field]['coeff']
-        maxkey = len(coeff)
-        result = -1
-        for i in range(1, maxkey+1):
-            if x < coeff[i][1]:
-                result = self.round45i(coeff[i-1][0]*(x-coeff[i-1][1]) + coeff[i-1][2], decimal)
-                break
-            if i == maxkey:
-                result = self.round45i(coeff[i][0]*(x-coeff[i][1]) + coeff[i][2], decimal)
-        result = min(self.input_score_max, result)
-        return result
+        for cf in coeff.values():
+            if cf[1][0] <= x <= cf[1][1]:
+                return cf[0]*(x - cf[1][0]) + cf[2][0]
+
+        # maxkey = len(coeff)
+        # result = -1
+        # for i in range(1, maxkey+1):
+        #     if x < coeff[i][1]:
+        #         result = self.round45i(coeff[i-1][0]*(x-coeff[i-1][1]) + coeff[i-1][2], decimal)
+        #         break
+        #     if i == maxkey:
+        #         result = self.round45i(coeff[i][0]*(x-coeff[i][1]) + coeff[i][2], decimal)
+        # result = min(self.input_score_max, result)
+        # return result
 
     @staticmethod
     def round45i(v: float, dec=0):
@@ -710,19 +733,17 @@ class PltScore(ScoreTransformModel):
         return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
 
     def _create_report(self, field=''):
-        self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1], x[2])
+        self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1][0], x[2][0])
                                for x in self.result_coeff.values()]
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
             format(self.input_score_percentage_points)
         inmax = max(self.result_input_data_points)
         self.output_report_doc += 'input score  endpoints: {}\n'.\
-            format([(int(x), int(y-1 if y < inmax else y)) for x, y in zip(self.result_input_data_points[:-1],
-                                           self.result_input_data_points[1:])])
+            format([x[1] for x in self.result_coeff.values()])
         outmax = max(self.output_score_points)
         self.output_report_doc += 'output score endpoints: {}\n'.\
-            format([(x, y-1 if y<outmax else y) for x, y in zip(self.output_score_points[:-1],
-                                           self.output_score_points[1:])])
+            format([x[2] for x in self.result_coeff.values()])
         for i, fs in enumerate(self.result_formula):
             if i == 0:
                 self.output_report_doc += '    transform formulas: {}\n'.format(fs)
