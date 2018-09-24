@@ -1,19 +1,18 @@
 # -*- utf-8 -*-
 
+# version 2018-09-24
+# revised for discontinuous points
+# separate from pyex_lib, pyex_seg
+# only rely on pyex_ptt
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import copy
 import time
-import pyex_seg as pseg
-import pyex_lib as plib
 import scipy.stats as sts
 import seaborn as sbn
 import pyex_ptt as ptt
-
-# import warnings
-# warnings.simplefilter('error')
 
 
 # some constants for models
@@ -28,6 +27,7 @@ tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 def help_doc():
     print("""
     module function and class:
+    
     function
        stmmodel: 调用有关模型的接口函数，
           通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
@@ -35,11 +35,15 @@ def help_doc():
           也可以计算Z分数、T分数和线性转换T分数（name='zscore'/'tscore'/'tlinear'）
        plot_model_distribution: 
           各方案按照比例转换后分数后的分布直方图
+       round45i: 四舍五入函数
+       exp_norm_table: 根据均值和标准差数生成正态分布表
+    
     class 
        PltScore: 分段线性转换模型, 山东省新高考改革使用
-    class LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用
-    class Zscore: Z分数转换模型
-    class Tscore: T分数转换模型
+       LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用
+       Zscore: Z分数转换模型
+       Tscore: T分数转换模型
+       SegTable: 计算分段表模型
     """)
 
 
@@ -476,8 +480,8 @@ class PltScore(ScoreTransformModel):
 
         # calculate seg table
         print('--- start calculating segtable ---')
-        import pyex_seg as psg
-        seg = psg.SegTable()
+        # import pyex_seg as psg
+        seg = SegTable()
         seg.set_data(input_data=self.input_data, field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
                            segmin=self.input_score_min,
@@ -540,12 +544,7 @@ class PltScore(ScoreTransformModel):
         for f in self.result_coeff.values():
             # print(f)
             if f[1][0] <= x <= f[1][1]:
-                return f[0]*(x - f[1][0]) + f[2][0]
-        # for i in range(1, len(self.output_score_points)):
-        #     if x <= self.result_input_data_points[i]:
-        #         y = self.result_coeff[i][0] * \
-        #             (x - self.result_coeff[i][1]) + self.result_coeff[i][2]
-        #         return self.round45i(y, self.output_data_decimal)
+                return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
         return -1
 
     def __get_formula(self, field):
@@ -668,69 +667,28 @@ class PltScore(ScoreTransformModel):
         for i, p in enumerate(zip(xp, yp)):
             coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
             self.result_coeff.update({i: [coeff, p[0], p[1]]})
-
-        # for i in range(1, len(self.output_score_points)):
-        #     # error: distance between neigbor poits is too small
-        #     if (self.result_input_data_points[i] - self.result_input_data_points[i - 1]) < 0.1**8:
-        #         print('input score percent is not differrentiable or error order,{}-{}'.format(i, i-1))
-        #         return False
-        #     # order is right
-        #     if self.result_input_data_points[i] - self.result_input_data_points[i - 1] > 0:
-        #         if i < len(self.output_score_points) - 1:
-        #             # [xi, x(i+1) - 1] -> [yi, y(i+1) - 1]
-        #             # coff = (yi+1 - (yi +1))/(xi+1 - (xi +1))
-        #             # y = coff * (x - (xi + 1)) + (yi + 1)
-        #             coff = (self.output_score_points[i] - self.output_score_points[i - 1]-1) / \
-        #                    (self.result_input_data_points[i] - self.result_input_data_points[i - 1]-1)
-        #         else:
-        #             # [xi, xmax] -> [yi, ymax]
-        #             coff = (self.output_score_points[i] - self.output_score_points[i - 1]) / \
-        #                    (self.result_input_data_points[i] - self.result_input_data_points[i - 1])
-        #     # order is wrong
-        #     else:
-        #         print('input score points[{0} - {1}] error!'.format(i-1, i))
-        #         coff = -1
-        #     y1 = self.output_score_points[i - 1]+1
-        #     x1 = self.result_input_data_points[i - 1]
-        #     coff = self.round45i(coff, self.sys_pricision_decimals)
-        #     self.result_coeff[i] = [coff, x1, y1]
         return True
 
-    def __pltrun(self, scorefieldname):
+    def recreate_plt_score(self, scorefieldname):
         # create formula
         if not self.__get_formula(scorefieldname):
             print('fail to initializing !')
             return
         # transform score
         self.output_data.loc[:, scorefieldname + '_plt'] = \
-            self.input_data[scorefieldname].apply(self.__get_plt_score)  # , self.output_data_decimal)
+            self.input_data[scorefieldname].apply(self.__get_plt_score)
         # create report
         self._create_report()
 
     # get score from formula
-    def get_plt_score_from_formula(self, field, x, decimal=0):
+    def get_plt_score_from_formula(self, field, x):
         if field not in self.field_list:
             print('invalid field name {} not in {}'.format(field, self.field_list))
         coeff = self.result_dict[field]['coeff']
         for cf in coeff.values():
             if cf[1][0] <= x <= cf[1][1]:
-                return cf[0]*(x - cf[1][0]) + cf[2][0]
-
-        # maxkey = len(coeff)
-        # result = -1
-        # for i in range(1, maxkey+1):
-        #     if x < coeff[i][1]:
-        #         result = self.round45i(coeff[i-1][0]*(x-coeff[i-1][1]) + coeff[i-1][2], decimal)
-        #         break
-        #     if i == maxkey:
-        #         result = self.round45i(coeff[i][0]*(x-coeff[i][1]) + coeff[i][2], decimal)
-        # result = min(self.input_score_max, result)
-        # return result
-
-    @staticmethod
-    def round45i(v: float, dec=0):
-        u = int(v * 10 ** dec * 10)
-        return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
+                return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                                self.output_data_decimal)
 
     def _create_report(self, field=''):
         self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1][0], x[2][0])
@@ -765,118 +723,40 @@ class PltScore(ScoreTransformModel):
             print('mode {} is invalid'.format(mode))
 
     def __plotmodel(self):
-        plt.rcParams['font.sans-serif'] = ['SimHei']
-        plt.rcParams.update({'font.size': 8})
-        for i, fs in enumerate(self.field_list):
-            # 分段线性转换模型
-            result = self.result_dict[fs]
-            input_points = result['input_score_points']
-            plt.figure(fs+'_plt')
-            plt.title(u'转换模型')
-            plt.xlim(input_points[0], input_points[-1])
-            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
-            plt.rcParams.update({'font.size': 8})
-            plt.xlabel(u'原始分数')
-            plt.ylabel(u'转换分数')
-            in_max = max(input_points)
-            ou_max = max(self.output_score_points)
-            input_sec = [(input_points[i],
-                          input_points[i+1]-1 if input_points[i+1] != in_max else in_max)
-                         for i in range(len(input_points)-1)]
-            output_sec = [(self.output_score_points[i],
-                           self.output_score_points[i+1]-1 if self.output_score_points[i+1] != ou_max else
-                           ou_max)
-                          for i in range(len(input_points)-1)]
-            ymin = self.output_score_points[0]
-            for p, q in zip(input_sec, output_sec):
-                plt.plot(p, q)
-                plt.plot([p[0], p[0]], [0, q[0]], '--')
-                plt.plot([p[1], p[1]], [0, q[1]], '--')
-                plt.plot([0, p[0]], [q[0], q[0]], '--')
-                plt.plot([0, p[1]], [q[1], q[1]], '--')
-                for x in p:
-                    if x not in [0, in_max]:
-                        plt.text(x, ymin+0.3, '{}'.format(int(x)))
-                for y in q:
-                    if y != ou_max:
-                        plt.text(0.3, y, '{}'.format(int(y)))
-            plt.plot((0, in_max), (0, in_max))
-        plt.show()
-        return
-
-    # deprecated
-    def __plotshift(self):
+        # 分段线性转换模型
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.rcParams.update({'font.size': 8})
         for i, fs in enumerate(self.field_list):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
-            # 分段线性转换模型
-            # plt.subplot(132)
-            plt.figure(fs+'_plt')
-            plt.title(u'转换模型')
-            plt.xlim(input_points[0], input_points[-1])
-            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
-            # plt.plot(input_points, self.output_score_points)
-            # plt.plot([input_points[0], input_points[-1]], [input_points[0], input_points[-1]])
-            plt.rcParams.update({'font.size': 8})
-            # plt.text(95, 16, '100')
-            plt.xlabel(u'原始分数')
-            plt.ylabel(u'转换分数')
             in_max = max(input_points)
             ou_max = max(self.output_score_points)
-            input_sec = [(input_points[i],
-                          input_points[i+1]-1 if input_points[i+1] != in_max else in_max)
-                         for i in range(len(input_points)-1)]
-            output_sec = [(self.output_score_points[i],
-                           self.output_score_points[i+1]-1 if self.output_score_points[i+1] != ou_max else
-                           ou_max)
-                          for i in range(len(input_points)-1)]
-            for p, q in zip(input_sec, output_sec):
-                plt.plot(p, q)
-                plt.plot([p[0], p[0]], [0, q[0]], '--')
-                plt.plot([p[1], p[1]], [0, q[1]], '--')
-                plt.plot([0, p[0]], [q[0], q[0]], '--')
-                plt.plot([0, p[1]], [q[1], q[1]], '--')
-                plt.text(p[0], 20, '{}'.format(int(p[0])))
-                plt.text(p[1], 20, '{}'.format(int(p[1])))
-            plt.plot((0, in_max), (0, in_max))
-        plt.show()
+            ymin = min(self.output_score_points)
 
-    # deprecated
-    def __plotshift2(self):
-        plt.rcParams['font.sans-serif'] = ['SimHei']
-        plen = len(self.result_input_data_points)
-        flen = len(self.field_list)
-        for i, fs in enumerate(self.field_list):
-            plt.subplot(str(1)+str(flen)+str(i))
-            plt.rcParams.update({'font.size': 20})
-            plt.title(u'分段线性转换模型({})'.format(fs))
-            plt.rcParams.update({'font.size': 16})
-            plt.xlabel(u'原始分数')
-            plt.rcParams.update({'font.size': 16})
-            plt.ylabel(u'转换分数')
-            result = self.result_dict[fs]
-            input_points = result['input_score_points']
-            raw_points = [(input_points[i-1], input_points[i]) for i in range(1, len(input_points))]
-            out_points = [(self.output_score_points[i-1], self.output_score_points[i])
-                          for i in range(1, len(input_points))]
-            cross_points = []
-            for j in range(len(raw_points)):
-                if (out_points[j][0]-raw_points[j][0]) * (out_points[j][1]-raw_points[j][1]) < 0:
-                    a, b, c = result['coeff'][j+1]
-                    cross_points.append(round((a*b-c)/(a-1), 1))
+            plt.figure(fs+'_plt')
+            plt.title(u'转换模型({})'.format(fs))
             plt.xlim(input_points[0], input_points[-1])
-            plt.ylim(self.output_score_points[0], self.output_score_points[plen - 1])
-            plt.plot(input_points, self.output_score_points)
-            plt.plot([input_points[0], input_points[-1]],
-                     [input_points[0], input_points[-1]]
-                     )
-            if len(cross_points) > 0:
-                for p in cross_points:
-                    plt.plot([p, p], [0, p], '--')
-                    plt.rcParams.update({'font.size': 12})
-                    plt.text(p, p-2, '({})'.format(p))
+            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
+            plt.rcParams.update({'font.size': 8})
+            plt.xlabel(u'原始分数')
+            plt.ylabel(u'转换分数')
+
+            formula=self.result_dict[fs]['coeff']
+            for cf in formula.values():
+                x = cf[1]
+                y = cf[2]
+                plt.plot(x, y)
+                for i in [0, 1]:
+                    plt.plot([x[i], x[i]], [0, y[i]], '--')
+                    plt.plot([0, x[i]], [y[i], y[i]], '--')
+                for xx in x:
+                    if xx not in [0, in_max]:
+                        plt.text(xx, ymin-2, '{}'.format(int(xx)))
+                for yy in y:
+                    if yy not in self.output_score_points[1:]:
+                        plt.text(-2, yy, '{}'.format(int(yy)))
+            plt.plot((0, in_max), (0, in_max))
+
         plt.show()
         return
 
@@ -921,7 +801,7 @@ class Zscore(ScoreTransformModel):
         self.__currentfield = None
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = plib.exp_norm_table(self._samplesize, stdnum=4)
+        self._normtable = exp_norm_table(self._samplesize, stdnum=4)
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
     def set_data(self, input_data=None, field_list=None):
@@ -986,7 +866,7 @@ class Zscore(ScoreTransformModel):
     @staticmethod
     def __get_segtable(df, maxscore, minscore, scorefieldnamelist):
         """no sort problem in this segtable usage"""
-        seg = pseg.SegTable()
+        seg = SegTable()
         seg.set_data(df, scorefieldnamelist)
         seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='ascending')
         seg.run()
@@ -1074,7 +954,7 @@ class Tscore(ScoreTransformModel):
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
             print('    fields:', self.field_list)
-            plib.report_describe(
+            report_describe(
                 self.input_data[self.field_list])
             print('-'*50)
         else:
@@ -1083,7 +963,7 @@ class Tscore(ScoreTransformModel):
             out_fields = [f+'_tscore' for f in self.field_list]
             print('T-score desc:')
             print('    fields:', out_fields)
-            plib.report_describe(
+            report_describe(
                 self.output_data[out_fields])
             print('-'*50)
         else:
@@ -1158,13 +1038,13 @@ class TscoreLinear(ScoreTransformModel):
         print('-' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            plib.report_describe(self.input_data)
+            report_describe(self.input_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            plib.report_describe(self.output_data)
+            report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1251,7 +1131,7 @@ class LevelScore(ScoreTransformModel):
         if len(self.field_list) == 0:
             print('to set field_list first!')
             return
-        seg = pseg.SegTable()
+        seg = SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
@@ -1303,13 +1183,13 @@ class LevelScore(ScoreTransformModel):
         print('=' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            plib.report_describe(self.input_data[self.field_list])
+            report_describe(self.input_data[self.field_list])
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.segtable) == pd.DataFrame:
             print('raw,Level score desc:')
-            plib.report_describe(self.output_data)
+            report_describe(self.output_data)
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1404,7 +1284,7 @@ class LevelScoreTao(ScoreTransformModel):
 
     def run_create_level_dist_list(self):
         # approx_method = 'near'
-        seg = pseg.SegTable()
+        seg = SegTable()
         seg.set_parameters(segmax=self.input_score_max,
                            segmin=self.input_score_min,
                            segsort='d')
@@ -1425,7 +1305,7 @@ class LevelScoreTao(ScoreTransformModel):
                         max_score = curseg
                     max_point = self.input_data[self.input_data[fs] >= max_score][fs].mean()
                     # print(fs, max_score, curseg, lastseg)
-                    self.level_dist_dict.update({fs: plib.fun_round45i(max_point/self.level_num, 8)})
+                    self.level_dist_dict.update({fs: round45i(max_point/self.level_num, 8)})
                     break
                 lastpercent = curpercent
                 lastseg = curseg
@@ -1455,8 +1335,592 @@ class LevelScoreTao(ScoreTransformModel):
         pass
 
     def report(self):
-        plib.report_describe(self.output_data[[f+'_level' for f in self.field_list]])
+        report_describe(self.output_data[[f+'_level' for f in self.field_list]])
 
     def print_segtable(self):
         print(ptt.make_mpage(self.segtable))
 
+
+# version 1.0.1 2018-09-24
+class SegTable(object):
+    """
+    * 计算pandas.DataFrame中分数字段的分段人数表
+    * segment table for score dataframe
+    * version1.01, 2018-06-21
+    * version1.02, 2018-08-31
+    * from 09-17-2017
+
+    输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
+    set_data(input_data:DataFrame, field_list:list)
+        input_data: input dataframe, with a value fields(int,float) to calculate segment table
+                用于计算分段表的数据表，类型为pandas.DataFrmae
+        field_list: list, field names used to calculate seg table, empty for calculate all fields
+                   用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
+                   字段的类型应为可计算类型，如int,float.
+
+    设置参数：最高分值，最低分值，分段距离，分段开始值，分数顺序，指定分段值列表， 使用指定分段列表，使用所有数据， 关闭计算过程显示信息
+    set_parameters（segmax, segmin, segstep, segstart, segsort, seglist, useseglist, usealldata, display）
+        segmax: int, maxvalue for segment, default=150
+                输出分段表中分数段的最大值
+        segmin: int, minvalue for segment, default=0。
+                输出分段表中分数段的最小值
+        segstep: int, levels for segment value, default=1
+                分段间隔，用于生成n-分段表（五分一段的分段表）
+        segstart:int, start seg score to count
+                进行分段计算的起始值
+        segsort: str, 'a' for ascending order or 'd' for descending order, default='d' (seg order on descending)
+                输出结果中分段值得排序方式，d: 从大到小， a：从小到大
+                排序模式的设置影响累计数和百分比的意义。
+        seglist: list, used to create set value
+                 使用给定的列表产生分段表，列表中为分段点值
+        useseglist: bool, use or not use seglist to create seg value
+                 是否使用给定列表产生分段值
+        usealldata: bool, True: consider all score , the numbers outside are added to segmin or segmax
+                 False: only consider score in [segmin, segmax] , abort the others records
+                 default=False.
+                 考虑最大和最小值之外的分数记录，高于的segmax的分数计数加入segmax分数段，
+                 低于segmin分数值的计数加入segmin分数段
+        display: bool, True: display run() message include time consume, False: close display message in run()
+                  打开（True）或关闭（False）在运行分段统计过程中的显示信息
+    output_data: 输出分段数据
+            seg: seg value
+        [field]: field name in field_list
+        [field]_count: number at the seg
+        [field]_sum: cumsum number at the seg
+        [field]_percent: percentage at the seg
+        [field]_count[step]: count field for step != 1
+        [field]_list: count field for assigned seglist when use seglist
+    运行，产生输出数据, calculate and create output data
+    run()
+
+    应用举例
+    example:
+        import pyex_seg as sg
+        seg = SegTable()
+        df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
+        seg.set_data(df, ['sf'])
+        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
+        seg.run()
+        seg.plot()
+        print(seg.output_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+
+    Note:
+        1)根据usealldata确定是否在设定的区间范围内计算分数值
+          usealldata=True时抛弃不在范围内的记录项
+          usealldata=False则将高于segmax的统计数加到segmax，低于segmin的统计数加到segmin
+          segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
+          segalldata is used to include or exclude data outside [segmin, segmax]
+
+        2)分段字段的类型为整数或浮点数（实数）
+          field_list type is digit, for example: int or float
+
+        3)可以单独设置数据(input_data),字段列表（field_list),各项参数（segmax, segmin, segsort,segalldata, segmode)
+          如，seg.field_list = ['score_1', 'score_2'];
+              seg.segmax = 120
+          重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
+          便于在计算期间调整模型。
+          by usting property mode, rawdata, scorefields, parameters can be setted individually
+        4) 当设置大于1分的分段分值X时， 会在结果DataFrame中生成一个字段[segfiled]_countX，改字段中不需要计算的分段
+          值设为-1。
+          when segstep > 1, will create field [segfield]_countX, X=str(segstep), no used value set to -1 in this field
+    """
+
+    def __init__(self):
+        # raw data
+        self.__input_dataframe = None
+        self.__segFields = []
+        # parameter for model
+        self.__segList = []
+        self.__useseglist = False
+        self.__segStart = 100
+        self.__segStep = 1
+        self.__segMax = 150
+        self.__segMin = 0
+        self.__segSort = 'd'
+        self.__usealldata = True
+        self.__display = True
+        self.__percent_decimal = 8
+        # result data
+        self.__output_dataframe = None
+        # run status
+        self.__run_completed = False
+
+    @property
+    def output_data(self):
+        return self.__output_dataframe
+
+    @property
+    def input_data(self):
+        return self.__input_dataframe
+
+    @input_data.setter
+    def input_data(self, df):
+        self.__input_dataframe = df
+
+    @property
+    def field_list(self):
+        return self.__segFields
+
+    @field_list.setter
+    def field_list(self, field_list):
+        self.__segFields = field_list
+
+    @property
+    def seglist(self):
+        return self.__segList
+
+    @seglist.setter
+    def seglist(self, seglist):
+        self.__segList = seglist
+
+    @property
+    def useseglist(self):
+        return self.__useseglist
+
+    @useseglist.setter
+    def useseglist(self, useseglist):
+        self.__useseglist = useseglist
+
+    @property
+    def segstart(self):
+        return self.__segStart
+
+    @segstart.setter
+    def segstart(self, segstart):
+        self.__segStart = segstart
+
+    @property
+    def segmax(self):
+        return self.__segMax
+
+    @segmax.setter
+    def segmax(self, segvalue):
+        self.__segMax = segvalue
+
+    @property
+    def segmin(self):
+        return self.__segMin
+
+    @segmin.setter
+    def segmin(self, segvalue):
+        self.__segMin = segvalue
+
+    @property
+    def segsort(self):
+        return self.__segSort
+
+    @segsort.setter
+    def segsort(self, sort_mode):
+        self.__segSort = sort_mode
+
+    @property
+    def segstep(self):
+        return self.__segStep
+
+    @segstep.setter
+    def segstep(self, segstep):
+        self.__segStep = segstep
+
+    @property
+    def segalldata(self):
+        return self.__usealldata
+
+    @segalldata.setter
+    def segalldata(self, datamode):
+        self.__usealldata = datamode
+
+    @property
+    def display(self):
+        return self.__display
+
+    @display.setter
+    def display(self, display):
+        self.__display = display
+
+    def set_data(self, input_data, field_list=None):
+        self.input_data = input_data
+        if type(field_list) == str:
+            field_list = [field_list]
+        if (not isinstance(field_list, list)) & isinstance(input_data, pd.DataFrame):
+            self.field_list = input_data.columns.values
+        else:
+            self.field_list = field_list
+        self.__check()
+
+    def set_parameters(
+            self,
+            segmax=None,
+            segmin=None,
+            segstart=None,
+            segstep=None,
+            seglist=None,
+            segsort=None,
+            useseglist=None,
+            usealldata=None,
+            display=None):
+        set_str = ''
+        if isinstance(segmax, int):
+            self.__segMax = segmax
+            set_str += 'set segmax to {}'.format(segmax) + '\n'
+        if isinstance(segmin, int):
+            self.__segMin = segmin
+            set_str += 'set segmin to {}'.format(segmin) + '\n'
+        if isinstance(segstep, int):
+            self.__segStep = segstep
+            set_str += 'set segstep to {}'.format(segstep) + '\n'
+        if isinstance(segsort, str):
+            if segsort.lower() in ['d', 'a', 'D', 'A']:
+                set_str += 'set segsort to {}'.format(segsort) + '\n'
+                self.__segSort = segsort
+        if isinstance(usealldata, bool):
+            set_str += 'set segalldata to {}'.format(usealldata) + '\n'
+            self.__usealldata = usealldata
+        if isinstance(display, bool):
+            set_str += 'set display to {}'.format(display) + '\n'
+            self.__display = display
+        if isinstance(segstart, int):
+            set_str += 'set segstart to {}'.format(segstart) + '\n'
+            self.__segStart = segstart
+        if isinstance(seglist, list):
+            set_str += 'set seglist to {}'.format(seglist) + '\n'
+            self.__segList = seglist
+        if isinstance(useseglist, bool):
+            set_str += 'set seglistuse to {}'.format(useseglist) + '\n'
+            self.__useseglist = useseglist
+        if display:
+            print(set_str)
+        self.__check()
+        if display:
+            self.show_parameters()
+
+    def show_parameters(self):
+        print('------ seg parameters ------')
+        print('    use seglist:{0}'.format(self.__useseglist, self.__segList))
+        print('        seglist:{1}'.format(self.__useseglist, self.__segList))
+        print('       maxvalue:{}'.format(self.__segMax))
+        print('       minvalue:{}'.format(self.__segMin))
+        print('       segstart:{}'.format(self.__segStart))
+        print('        segstep:{}'.format(self.__segStep))
+        print('        segsort:{}'.format('d (descending)' if self.__segSort in ['d', 'D'] else 'a (ascending)'))
+        print('     usealldata:{}'.format(self.__usealldata))
+        print('        display:{}'.format(self.__display))
+        print('-' * 28)
+
+    def helpdoc(self):
+        print(self.__doc__)
+
+    def __check(self):
+        if isinstance(self.__input_dataframe, pd.Series):
+            self.__input_dataframe = pd.DataFrame(self.__input_dataframe)
+        if not isinstance(self.__input_dataframe, pd.DataFrame):
+            print('error: raw score data is not ready!')
+            return False
+        if self.__segMax <= self.__segMin:
+            print('error: segmax({}) is not greater than segmin({})!'.format(self.__segMax, self.__segMin))
+            return False
+        if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
+            print('error: segstep({}) is too small or big!'.format(self.__segStep))
+            return False
+        if not isinstance(self.field_list, list):
+            if isinstance(self.field_list, str):
+                self.field_list = [self.field_list]
+            else:
+                print('error: segfields type({}) error.'.format(type(self.field_list)))
+                return False
+
+        for f in self.field_list:
+            if f not in self.input_data.columns:
+                print("error: field('{}') is not in input_data fields({})".
+                      format(f, self.input_data.columns.values))
+                return False
+        if not isinstance(self.__usealldata, bool):
+            print('error: segalldata({}) is not bool type!'.format(self.__usealldata))
+            return False
+        return True
+
+    def run(self):
+        sttime = time.clock()
+        if not self.__check():
+            return
+        # create output dataframe with segstep = 1
+        if self.__display:
+            print('seg calculation start ...')
+        seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
+        if self.__segSort in ['d', 'D']:
+            seglist = sorted(seglist, reverse=True)
+        self.__output_dataframe = pd.DataFrame({'seg': seglist})
+        outdf = self.__output_dataframe
+        for f in self.field_list:
+            # calculate preliminary group count
+            tempdf = self.input_data
+            tempdf.loc[:, f] = tempdf[f].apply(round45i)
+
+            # count seg_count in [segmin, segmax]
+            r = tempdf.groupby(f)[f].count()
+            fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
+
+            outdf.loc[:, f+'_count'] = fcount_list
+            if self.__display:
+                print('finished count(' + f, ') use time:{}'.format(time.clock() - sttime))
+
+            # add outside scope number to segmin, segmax
+            if self.__usealldata:
+                outdf.loc[outdf.seg == self.__segMin, f + '_count'] = \
+                    r[r.index <= self.__segMin].sum()
+                outdf.loc[outdf.seg == self.__segMax, f + '_count'] = \
+                    r[r.index >= self.__segMax].sum()
+
+            # calculate cumsum field
+            outdf[f + '_sum'] = outdf[f + '_count'].cumsum()
+            if self.__useseglist:
+                outdf[f + '_list_sum'] = outdf[f + '_count'].cumsum()
+
+            # calculate percent field
+            maxsum = max(max(outdf[f + '_sum']), 1)     # avoid divided by 0 in percent computing
+            outdf[f + '_percent'] = \
+                outdf[f + '_sum'].apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
+            if self.__display:
+                print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
+
+            # self.__output_dataframe = outdf.copy()
+            # special seg step
+            if self.__segStep > 1:
+                self.__run_special_step(f)
+
+            # use seglist
+            if self.__useseglist:
+                if len(self.__segList) > 0:
+                    self.__run_seg_list(f)
+
+        if self.__display:
+            print('segments count total consumed time:{}'.format(time.clock()-sttime))
+            print('=== end')
+        self.__run_completed = True
+        self.__output_dataframe = outdf
+        return
+
+    def __run_special_step(self, field: str):
+        """
+        processing count for step > 1
+        :param field: for seg stepx
+        :return: field_countx in output_data
+        """
+        f = field
+        segcountname = f + '_count{0}'.format(self.__segStep)
+        self.__output_dataframe[segcountname] = np.int64(-1)
+        curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
+        curpoint = self.__segStart
+        if self.__segSort.lower() == 'd':
+            while curpoint+curstep > self.__segMax:
+                curpoint += curstep
+        else:
+            while curpoint+curstep < self.__segMin:
+                curpoint += curstep
+        # curpoint = self.__segStart
+        cum = 0
+        for index, row in self.__output_dataframe.iterrows():
+            cum += row[f + '_count']
+            curseg = np.int64(row['seg'])
+            if curseg in [self.__segMax, self.__segMin]:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                if (self.__segStart <= self.__segMin) | (self.__segStart >= self.__segMax):
+                    curpoint += curstep
+                continue
+            if curseg in [self.__segStart, curpoint]:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                curpoint += curstep
+
+    def __run_seg_list(self, field):
+        """
+        use special step list to create seg
+        calculating based on field_count
+        :param field:
+        :return:
+        """
+        f = field
+        segcountname = f + '_list'
+        self.__output_dataframe[segcountname] = np.int64(-1)
+        segpoint = sorted(self.__segList) \
+            if self.__segSort.lower() == 'a' \
+            else sorted(self.__segList)[::-1]
+        # curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
+        # curpoint = self.__segStart
+        cum = 0
+        pos = 0
+        curpoint = segpoint[pos]
+        rownum = len(self.__output_dataframe)
+        cur_row = 0
+        lastindex = 0
+        maxpoint = max(self.__segList)
+        minpoint = min(self.__segList)
+        list_sum = 0
+        self.__output_dataframe.loc[:, f+'_list_sum'] = 0
+        for index, row in self.__output_dataframe.iterrows():
+            curseg = np.int64(row['seg'])
+            # cumsum
+            if self.__usealldata | (minpoint <= curseg <= maxpoint):
+                cum += row[f + '_count']
+                list_sum += row[f+'_count']
+                self.__output_dataframe.loc[index, f+'_list_sum'] = np.int64(list_sum)
+            # set to seg count, only set seg in seglist
+            if curseg == curpoint:
+                self.__output_dataframe.loc[index, segcountname] = np.int64(cum)
+                cum = 0
+                if pos < len(segpoint)-1:
+                    pos += 1
+                    curpoint = segpoint[pos]
+                else:
+                    lastindex = index
+            elif cur_row == rownum:
+                if self.__usealldata:
+                    self.__output_dataframe.loc[lastindex, segcountname] += np.int64(cum)
+            cur_row += 1
+
+    def plot(self):
+        if not self.__run_completed:
+            if self.__display:
+                print('result is not created, please run!')
+            return
+        legendlist = []
+        step = 0
+        for sf in self.field_list:
+            step += 1
+            legendlist.append(sf)
+            plt.figure('segtable figure({})'.
+                       format('Descending' if self.__segSort in 'aA' else 'Ascending'))
+            plt.subplot(221)
+            plt.hist(self.input_data[sf], 20)
+            plt.title('histogram')
+            if step == len(self.field_list):
+                plt.legend(legendlist)
+            plt.subplot(222)
+            plt.plot(self.output_data.seg, self.output_data[sf+'_count'])
+            if step == len(self.field_list):
+                plt.legend(legendlist)
+            plt.title('distribution')
+            plt.xlim([self.__segMin, self.__segMax])
+            plt.subplot(223)
+            plt.plot(self.output_data.seg, self.output_data[sf + '_sum'])
+            plt.title('cumsum')
+            plt.xlim([self.__segMin, self.__segMax])
+            if step == len(self.field_list):
+                plt.legend(legendlist)
+            plt.subplot(224)
+            plt.plot(self.output_data.seg, self.output_data[sf + '_percent'])
+            plt.title('percentage')
+            plt.xlim([self.__segMin, self.__segMax])
+            if step == len(self.field_list):
+                plt.legend(legendlist)
+            plt.show()
+
+# SegTable class end
+
+
+def round45i(v: float, dec=0):
+    u = int(v * 10 ** dec * 10)
+    return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
+
+
+# use scipy.stats descibe report dataframe info
+def report_describe(df, decimal=4):
+    """
+    report statistic describe of a dataframe, with decimal digits = decnum
+    峰度（Kurtosis）与偏态（Skewness）是量测数据正态分布特性的两个指标。
+    峰度衡量数据分布的平坦度（flatness）。尾部大的数据分布峰度值较大。正态分布的峰度值为3。
+        Kurtosis = 1/N * Sigma(Xi-Xbar)**4 / (1/N * Sigma(Xi-Xbar)**2)**2
+    偏态量度对称性。0 是标准对称性正态分布。右（正）偏态表明平均值大于中位数，反之为左（负）偏态。
+        Skewness = 1/N * Sigma(Xi-Xbar)**3 / (1/N * Sigma(Xi-Xbar)**2)**3/2
+    :param
+        dataframe: pandas DataFrame, raw data
+        decnum: decimal number in report print
+    :return(print)
+        records
+        min,max
+        mean
+        variance
+        skewness
+        kurtosis
+    """
+
+    def uf_list2str(listvalue, decimal):
+        return ''.join([('{:' + '1.' + str(decimal) + 'f}  ').
+                       format(round45i(x, decimal)) for x in listvalue])
+
+    def uf_list2sqrt2str(listvalue, decimal):
+        return uf_list2str([np.sqrt(x) for x in listvalue], decimal)
+
+    pr = [[sts.pearsonr(df[x], df[y])[0]
+           for x in df.columns] for y in df.columns]
+    sd = sts.describe(df)
+    cv = df.cov()
+    print('\trecords: ', sd.nobs)
+    print('\tpearson recorrelation:')
+    for i in range(len(df.columns)):
+        print('\t', uf_list2str(pr[i], 4))
+    print('\tcovariance matrix:')
+    for j in range(len(cv)):
+        print('\t', uf_list2str(cv.iloc[j, :], 4))
+    print('\tmin : ', uf_list2str(sd.minmax[0], 4))
+    print('\tmax : ', uf_list2str(sd.minmax[1], 4))
+    print('\tmean: ', uf_list2str(sd.mean, decimal))
+    print('\tvar : ', uf_list2str(sd.variance, decimal))
+    print('\tstd : ', uf_list2sqrt2str(sd.variance, decimal))
+    print('\tskewness: ', uf_list2str(sd.skewness, decimal))
+    print('\tkurtosis: ', uf_list2str(sd.kurtosis, decimal))
+    dict = {'record': sd.nobs,
+            'max': sd.minmax[1],
+            'min': sd.minmax[0],
+            'mean': sd.mean,
+            'var': sd.variance,
+            'cov': cv,
+            'cor': pr,
+            'skewness': sd.skewness,
+            'kurtosis': sd.kurtosis,
+            }
+    return dict
+
+
+def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
+    """
+    生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
+    create a score dataframe with fields 'score', used to test some application
+    :parameter
+        mean: 均值， std:标准差， maxvalue:最大值， minvalue:最小值， size:样本数
+    :return
+        DataFrame, columns = {'sv'}
+    """
+    # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
+    #                           for _ in range(size)]})
+    df = pd.DataFrame({'sv': [max(minvalue,
+                                  min(round45i(x, decimal) if decimal > 0 else int(round45i(x, decimal)),
+                                      maxvalue))
+                              for x in np.random.normal(mean, std, size)]})
+    return df
+
+
+# create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
+def exp_norm_table(size=400, std=1, mean=0, stdnum=4):
+    """
+    function
+        生成正态分布量表
+        create normal distributed data(pdf,cdf) with preset std,mean,samples size
+        变量区间： [-stdNum * std, std * stdNum]
+        interval: [-stdNum * std, std * stdNum]
+    parameter
+        变量取值数 size: variable value number for create normal distributed PDF and CDF
+        分布标准差  std:  standard difference
+        分布均值   mean: mean value
+        标准差数 stdnum: used to define data range [-std*stdNum, std*stdNum]
+    return
+        DataFrame: 'sv':stochastic variable value,
+                  'pdf': pdf value, 'cdf': cdf value
+    """
+    interval = [mean - std * stdnum, mean + std * stdnum]
+    step = (2 * std * stdnum) / size
+    varset = [mean + interval[0] + v*step for v in range(size+1)]
+    cdflist = [sts.norm.cdf(v) for v in varset]
+    pdflist = [sts.norm.pdf(v) for v in varset]
+    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf': pdflist})
+    return ndf
