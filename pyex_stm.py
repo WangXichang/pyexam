@@ -696,10 +696,10 @@ class PltScore(ScoreTransformModel):
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
             format(self.input_score_percentage_points)
-        inmax = max(self.result_input_data_points)
+        # inmax = max(self.result_input_data_points)
+        # outmax = max(self.output_score_points)
         self.output_report_doc += 'input score  endpoints: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
-        outmax = max(self.output_score_points)
         self.output_report_doc += 'output score endpoints: {}\n'.\
             format([x[2] for x in self.result_coeff.values()])
         for i, fs in enumerate(self.result_formula):
@@ -730,7 +730,7 @@ class PltScore(ScoreTransformModel):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
             in_max = max(input_points)
-            ou_max = max(self.output_score_points)
+            # ou_max = max(self.output_score_points)
             ymin = min(self.output_score_points)
 
             plt.figure(fs+'_plt')
@@ -741,14 +741,14 @@ class PltScore(ScoreTransformModel):
             plt.xlabel(u'原始分数')
             plt.ylabel(u'转换分数')
 
-            formula=self.result_dict[fs]['coeff']
+            formula = self.result_dict[fs]['coeff']
             for cf in formula.values():
                 x = cf[1]
                 y = cf[2]
                 plt.plot(x, y)
-                for i in [0, 1]:
-                    plt.plot([x[i], x[i]], [0, y[i]], '--')
-                    plt.plot([0, x[i]], [y[i], y[i]], '--')
+                for j in [0, 1]:
+                    plt.plot([x[j], x[j]], [0, y[j]], '--')
+                    plt.plot([0, x[j]], [y[j], y[j]], '--')
                 for xx in x:
                     if xx not in [0, in_max]:
                         plt.text(xx, ymin-2, '{}'.format(int(xx)))
@@ -788,7 +788,7 @@ class Zscore(ScoreTransformModel):
     output data:
     output_data = result score with raw score field name + '_z'
     """
-    HighPrecise = 0.9999999
+    # HighPrecise = 0.9999999
     MinError = 0.1 ** 9
 
     def __init__(self):
