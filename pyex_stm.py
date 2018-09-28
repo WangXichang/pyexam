@@ -515,7 +515,7 @@ class PltScore(ScoreTransformModel):
             df2 = self.output_data
             score_list = df2[fs].apply(self.__get_plt_score, self.output_data_decimal)
             self.output_data.loc[:, (fs + '_plt')] = score_list
-            self._create_report(fs)
+            self.__get_report_doc(fs)
             print('   merge dataframe ...')
             if i == 0:
                 result_dataframe = self.input_data.merge(self.output_data[[fs+'_plt']],
@@ -669,35 +669,14 @@ class PltScore(ScoreTransformModel):
             self.result_coeff.update({i: [coeff, p[0], p[1]]})
         return True
 
-    def recreate_plt_score(self, scorefieldname):
-        # create formula
-        if not self.__get_formula(scorefieldname):
-            print('fail to initializing !')
-            return
-        # transform score
-        self.output_data.loc[:, scorefieldname + '_plt'] = \
-            self.input_data[scorefieldname].apply(self.__get_plt_score)
-        # create report
-        self._create_report()
-
-    # get score from formula
-    def get_plt_score_from_formula(self, field, x):
-        if field not in self.field_list:
-            print('invalid field name {} not in {}'.format(field, self.field_list))
-        coeff = self.result_dict[field]['coeff']
-        for cf in coeff.values():
-            if cf[1][0] <= x <= cf[1][1]:
-                return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
-                                self.output_data_decimal)
-
-    def _create_report(self, field=''):
-        self.result_formula = ['{0}*(x-{1})+{2}'.format(x[0], x[1][0], x[2][0])
+    def __get_report_doc(self, field=''):
+        self.result_formula = ['{0}*(x-{1})+{2}'.
+                                   format(round45i(x[0], 16),
+                                          x[1][0], x[2][0])
                                for x in self.result_coeff.values()]
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
             format(self.input_score_percentage_points)
-        # inmax = max(self.result_input_data_points)
-        # outmax = max(self.output_score_points)
         self.output_report_doc += 'input score  endpoints: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
         self.output_report_doc += 'output score endpoints: {}\n'.\
@@ -708,6 +687,33 @@ class PltScore(ScoreTransformModel):
             else:
                 self.output_report_doc += '                        {}\n'.format(fs)
         self.output_report_doc += '---'*30 + '\n\n'
+
+    # calculate single field from raw score to plt_score
+    def rerun_at_field(self, rawscore_field):
+        if rawscore_field not in self.field_list:
+            print('field:{} not in field_list:{}'.format(rawscore_field, self.field_list))
+            return
+        # recreate formula
+        if not self.__get_formula(rawscore_field):
+            print('create formula fail!')
+            return
+        # transform score
+        if not isinstance(self.output_data, pd.DataFrame):
+            self.output_data = self.input_data.copy(deep=True)
+        self.output_data.loc[:, rawscore_field + '_plt'] = \
+            self.input_data[rawscore_field].apply(self.__get_plt_score)
+        # create report
+        self.__get_report_doc()
+
+    # get score from formula
+    def get_plt_score_from_formula(self, field, x):
+        if field not in self.field_list:
+            print('invalid field name {} not in {}'.format(field, self.field_list))
+        coeff = self.result_dict[field]['coeff']
+        for cf in coeff.values():
+            if cf[1][0] <= x <= cf[1][1]:
+                return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                                self.output_data_decimal)
 
     def report(self):
         print(self.output_report_doc)
