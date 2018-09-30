@@ -17,7 +17,7 @@ import pyex_ptt as ptt
 
 # some constants for models
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
-shandong_level = [21, 30, 40, 50, 60, 70, 80, 90, 100]
+shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
@@ -129,7 +129,7 @@ def stmmodel(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=shandong_ratio,
-                                output_score_points_list=shandong_level,
+                                output_score_points_list=shandong_interval,
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
                                 approx_mode=approx_method,
@@ -442,7 +442,7 @@ class PltScore(ScoreTransformModel):
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
-        if len(input_score_percent_list) != len(output_score_points_list):
+        if len(input_score_percent_list) != len(output_score_points_list)+1:
             print('the number of input score points is not same as output score points!')
             return
         if isinstance(decimals, int):
@@ -560,7 +560,7 @@ class PltScore(ScoreTransformModel):
         if not self.input_score_percentage_points:
             print('no score interval percent given!')
             return False
-        if len(self.input_score_percentage_points) != len(self.output_score_points):
+        if len(self.input_score_percentage_points) != len(self.output_score_points)+1:
             print('score interval for rawscore and stdscore is not same!')
             print(self.output_score_points, self.input_score_percentage_points)
             return False
@@ -577,13 +577,13 @@ class PltScore(ScoreTransformModel):
             print('-- get input score endpoints ...')
             self.result_input_data_points = self.__get_raw_score_points(field, self.approx_mode)
         else:
-            print('score field({}) not in output_dataframe!'.format(field))
-            print('must be in {}'.format(self.input_data.columns.values))
+            print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
+            print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
             return False
 
         # step 2
         # calculate Coefficients
-        if not self.__getcoeff():
+        if not self.__get_coeff():
             return False
 
         return True
@@ -652,27 +652,26 @@ class PltScore(ScoreTransformModel):
 
     # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
     # coeff = (y2-y1-1)/(x2 -x1)
-    def __getcoeff(self):
+    def __get_coeff(self):
         # check length of input_points and output_points
-        if len(self.result_input_data_points) != len(self.output_score_points):
+        if len(self.result_input_data_points) != len(self.output_score_points)+1:
             print('error score points: {}'.format(self.result_input_data_points))
             return False
         # calculate coeff
-        in_points = self.result_input_data_points
-        xp = [(int(x1)+1 if x1 > min(in_points) else x1, int(x2))
-              for x1, x2 in zip(in_points[:-1], in_points[1:])]
-        y_points = self.output_score_points
-        yp = [(int(y1)+1 if y1 > min(y_points) else y1, int(y2))
-              for y1, y2 in zip(y_points[:-1], y_points[1:])]
+        x_points = self.result_input_data_points
+        x_min = min(x_points)
+        xp = [(int(x1)+1 if x1 > x_min else x1, int(x2))
+              for x1, x2 in zip(x_points[:-1], x_points[1:])]
+        yp = self.output_score_points
+        # yp = [(int(y1), int(y2)-1 if y2 < y_max else int(y2))
+        #       for y1, y2 in zip(y_points[:-1], y_points[1:])]
         for i, p in enumerate(zip(xp, yp)):
             coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
             self.result_coeff.update({i: [coeff, p[0], p[1]]})
         return True
 
     def __get_report_doc(self, field=''):
-        self.result_formula = ['{0}*(x-{1})+{2}'.
-                                   format(round45i(x[0], 16),
-                                          x[1][0], x[2][0])
+        self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(x[0], 16), x[1][0], x[2][0])
                                for x in self.result_coeff.values()]
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
@@ -736,16 +735,18 @@ class PltScore(ScoreTransformModel):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
             in_max = max(input_points)
-            # ou_max = max(self.output_score_points)
-            ymin = min(self.output_score_points)
+            ou_min = min([min(p) for p in self.output_score_points])
+            ou_max = max([max(p) for p in self.output_score_points])
 
             plt.figure(fs+'_plt')
+            plt.rcParams.update({'font.size': 10})
             plt.title(u'转换模型({})'.format(fs))
-            plt.xlim(input_points[0], input_points[-1])
-            plt.ylim(self.output_score_points[0], self.output_score_points[-1])
-            plt.rcParams.update({'font.size': 8})
-            plt.xlabel(u'原始分数')
+            plt.xlim(min(input_points), max(input_points))
+            plt.ylim(ou_min, ou_max)
+            plt.xlabel(u'\n原始分数')
             plt.ylabel(u'转换分数')
+            plt.xticks([])
+            plt.yticks([])
 
             formula = self.result_dict[fs]['coeff']
             for cf in formula.values():
@@ -755,12 +756,10 @@ class PltScore(ScoreTransformModel):
                 for j in [0, 1]:
                     plt.plot([x[j], x[j]], [0, y[j]], '--')
                     plt.plot([0, x[j]], [y[j], y[j]], '--')
-                for xx in x:
-                    if xx not in [0, in_max]:
-                        plt.text(xx, ymin-2, '{}'.format(int(xx)))
-                for yy in y:
-                    if yy not in self.output_score_points[1:]:
-                        plt.text(-2, yy, '{}'.format(int(yy)))
+                for j, xx in enumerate(x):
+                    plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
+                for j, yy in enumerate(y):
+                    plt.text(1, yy-2 if j == 1 else yy, '{}'.format(int(yy)))
             plt.plot((0, in_max), (0, in_max))
 
         plt.show()
