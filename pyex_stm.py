@@ -5,6 +5,7 @@
 # separate from pyex_lib, pyex_seg
 # only rely on pyex_ptt
 
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -28,17 +29,20 @@ def help_doc():
     print("""
     module function and class:
     
-    function
-       stmmodel: 调用有关模型的接口函数，
+    [function]
+       stm: 
+          调用各个模型的接口函数，
           通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
           可以计算山东、上海、浙江、北京、天津、陶百强模型的转换分数
           也可以计算Z分数、T分数和线性转换T分数（name='zscore'/'tscore'/'tlinear'）
        plot_model_distribution: 
           各方案按照比例转换后分数后的分布直方图
-       round45i: 四舍五入函数
-       exp_norm_table: 根据均值和标准差数生成正态分布表
+       round45i: 
+          四舍五入函数
+       exp_norm_table: 
+          根据均值和标准差数生成正态分布表
     
-    class 
+    [class] 
        PltScore: 分段线性转换模型, 山东省新高考改革使用
        LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用
        Zscore: Z分数转换模型
@@ -48,17 +52,17 @@ def help_doc():
 
 
 # interface to use model for some typical application
-def stmmodel(name='shandong',
-             df=None,
-             field_list='',
-             maxscore=100,
-             minscore=0,
-             decimal=0,
-             approx_method='near'
-             ):
+def stm(name='shandong',
+        df=None,
+        field_list='',
+        maxscore=100,
+        minscore=0,
+        decimal=0,
+        approx_method='near'
+        ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
-    :param df: input dataframe
+    :param df: dataframe, input data
     :param field_list: score fields list in input dataframe
     :param maxscore: max value in raw score
     :param minscore: min value in raw score
@@ -66,11 +70,13 @@ def stmmodel(name='shandong',
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
-    # constant data
-    # valid name
+    # check name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
-
+    if name not in name_set:
+        print('invalid name, not in {}'.format(name_set))
+        return
+    # check input data
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
             input_data = pd.DataFrame(df)
@@ -79,17 +85,14 @@ def stmmodel(name='shandong',
             return
     else:
         input_data = df
+    # check field_list
     if isinstance(field_list, str):
         field_list = [field_list]
     elif not isinstance(field_list, list):
         print('invalid field_list!')
         return
 
-    if name not in name_set:
-        print('invalid name, not in {}'.format(name_set))
-        return
-
-    # shandong new project score model
+    # shandong score model
     if name == 'shandong':
         # set model score percentages and endpoints
         # get approximate normal distribution
@@ -208,6 +211,7 @@ def stmmodel(name='shandong',
         zm.run()
         zm.report()
         return zm
+
     if name == 'tscore':
         tm = Tscore()
         tm.model_name = name
@@ -216,6 +220,7 @@ def stmmodel(name='shandong',
         tm.run()
         tm.report()
         return tm
+
     if name == 'tlinear':
         tm = TscoreLinear()
         tm.model_name = name
@@ -500,9 +505,8 @@ class PltScore(ScoreTransformModel):
             # create output_data by filter from df
             _filter = '(df.{0}>={1}) & (df.{2}<={3})'.\
                       format(fs, self.input_score_min, fs, self.input_score_max)
-            print('   filter created: [{}]'.format(_filter))
+            print('   use filter: [{}]'.format(_filter))
             df = self.input_data
-            # df2 = df[eval(_filter)][[fs]]
             self.output_data = df[eval(_filter)][[fs]]
 
             # get fomula
@@ -670,9 +674,7 @@ class PltScore(ScoreTransformModel):
         return True
 
     def __get_report_doc(self, field=''):
-        self.result_formula = ['{0}*(x-{1})+{2}'.
-                                   format(round45i(x[0], 16),
-                                          x[1][0], x[2][0])
+        self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(x[0], 16), x[1][0], x[2][0])
                                for x in self.result_coeff.values()]
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
@@ -780,9 +782,12 @@ class PltScore(ScoreTransformModel):
             if '_plt' in fs:
                 df.loc[:, fs] = df['seg'].apply(
                     lambda x: self.get_plt_score_from_formula(fs[0:fs.index('_')], x))
-        print(ptt.make_page(df=df[fs_list],
-                            title='level score table for {}'.format(self.model_name),
-                            pagelines=self.input_score_max+1))
+        if 'ptt' in locals() or 'ptt' in globals():
+            print(ptt.make_page(df=df[fs_list],
+                                title='level score table for {}'.format(self.model_name),
+                                pagelines=self.input_score_max+1))
+        else:
+            print(df[fs_list])
 
 
 class Zscore(ScoreTransformModel):
