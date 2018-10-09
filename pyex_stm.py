@@ -166,7 +166,7 @@ def stm(name='shandong',
         return m
 
     if name == 'shanghai':
-        #● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
+        # ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
 
         level_score = [70 - j * 3 for j in range(11)]
         m = LevelScore()
