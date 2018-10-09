@@ -70,6 +70,14 @@ def stm(name='shandong',
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
+    """
+      基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
+      ● 浙江21等级方案  均值71.26，  标准差13.75，   	  归一值22.93
+      ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
+      ● 北京21等级方案  均值72.16，  标准差13.64， 	  归一值22.73
+      ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
+      ● 山东正态方案    均值60，     标准差15.6-9,      归一值19.5     
+    """
     # check name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
@@ -143,7 +151,7 @@ def stm(name='shandong',
         return pltmodel
 
     if name == 'zhejiang':
-        # estimate: std = 14, mean=70
+        #      ● 浙江21等级方案  均值71.26，  标准差13.75，   	  归一值22.93
         level_score_table = [100 - x * 3 for x in range(21)]
         m = LevelScore()
         m.model_name = 'zhejiang'
@@ -158,6 +166,8 @@ def stm(name='shandong',
         return m
 
     if name == 'shanghai':
+        #● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
+
         level_score = [70 - j * 3 for j in range(11)]
         m = LevelScore()
         m.model_name = 'shanghai'
@@ -170,6 +180,8 @@ def stm(name='shandong',
         return m
 
     if name == 'beijing':
+        #      ● 北京21等级方案  均值72.16，  标准差13.64， 	  归一值22.73
+
         level_score = [100 - j * 3 for j in range(21)]
         m = LevelScore()
         m.model_name = 'beijing'
@@ -182,6 +194,8 @@ def stm(name='shandong',
         return m
 
     if name == 'tianjin':
+        # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
+
         level_score = [100 - j * 3 for j in range(21)]
         m = LevelScore()
         m.model_name = 'tianjin'
@@ -1243,7 +1257,8 @@ class LevelScore(ScoreTransformModel):
 class LevelScoreTao(ScoreTransformModel):
     """
     Level Score model from Tao BaiQiang
-    high_level = rawscore().head(totalnum*0.01).mean
+    top_group = df.sort_values(field,ascending=False).head(int(df.count(0)[field]*0.01))[[field]]
+    high_level = top_group[field].describe().loc['mean', field]
     intervals = [minscore, high_level*1/50], ..., [high_level, max_score]
     以原始分值切分，形成的分值相当于等距合并，粒度直接增加
     实质上失去了等级分数的意义
