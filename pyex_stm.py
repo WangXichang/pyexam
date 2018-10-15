@@ -411,6 +411,7 @@ class PltScore(ScoreTransformModel):
 
         # parameters
         self.approx_mode = 'minmax'
+        self.score_order = 'descending'  # ascending or a / descending or d
         self.use_minscore_as_rawscore_start_endpoint = True
 
         # result
@@ -447,6 +448,7 @@ class PltScore(ScoreTransformModel):
                        input_score_min=0,
                        input_score_max=150,
                        approx_mode='minmax',
+                       score_order='descending',
                        use_minscore_as_start_endpoint=True,
                        decimals=None):
         """
@@ -466,7 +468,8 @@ class PltScore(ScoreTransformModel):
             return
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
-        self.input_score_percentage_points = input_score_percent_list
+        self.input_score_percentage_points = \
+            input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
         self.output_score_points = output_score_points_list
         if isinstance(input_score_min, int):
             self.input_score_min = input_score_min
@@ -504,7 +507,7 @@ class PltScore(ScoreTransformModel):
         seg.set_data(input_data=self.input_data, field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
                            segmin=self.input_score_min,
-                           segsort='a',
+                           segsort='a' if self.score_order in 'ascending, a' else 'd',
                            segstep=1,
                            display=False)
         seg.run()
