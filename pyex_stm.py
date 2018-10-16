@@ -470,7 +470,8 @@ class PltScore(ScoreTransformModel):
             self.output_data_decimal = decimals
         self.input_score_percentage_points = \
             input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
-        self.output_score_points = output_score_points_list
+        self.output_score_points = \
+            output_score_points_list if score_order in 'descending, d' else output_score_points_list[::-1]
         if isinstance(input_score_min, int):
             self.input_score_min = input_score_min
         if isinstance(input_score_max, int):
