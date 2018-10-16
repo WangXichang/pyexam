@@ -17,7 +17,7 @@ import pyex_ptt as ptt
 
 
 # some constants for models
-shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
+shandong_ratio = [.03, .07, .16, .24, .24, .16, .07, 0.03]
 shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
@@ -463,19 +463,27 @@ class PltScore(ScoreTransformModel):
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
-        if len(input_score_percent_list) != len(output_score_points_list)+1:
+        if len(input_score_percent_list) != len(output_score_points_list):
             print('the number of input score points is not same as output score points!')
             return
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
-        self.input_score_percentage_points = \
-            input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
-        self.output_score_points = \
-            output_score_points_list if score_order in 'descending, d' else output_score_points_list[::-1]
+
+        input_p = input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
+        self.input_score_percentage_points = [0] + [sum(input_p[0:x+1]) for x in range(len(input_p))]
+
+        if score_order in 'descending, d':
+            out_pt = output_score_points_list[::-1]
+            self.output_score_points = [x[::-1] for x in out_pt]
+        else:
+            self.output_score_points = output_score_points_list
+
         if isinstance(input_score_min, int):
             self.input_score_min = input_score_min
+
         if isinstance(input_score_max, int):
             self.input_score_max = input_score_max
+
         self.approx_mode = approx_mode
         self.use_minscore_as_rawscore_start_endpoint = use_minscore_as_start_endpoint
 
@@ -586,9 +594,9 @@ class PltScore(ScoreTransformModel):
             print('score interval for rawscore and stdscore is not same!')
             print(self.output_score_points, self.input_score_percentage_points)
             return False
-        if self.output_score_points != sorted(self.output_score_points):
-            print('stdscore points is not in order!')
-            return False
+        # if self.output_score_points != sorted(self.output_score_points):
+        #     print('stdscore points is not in order!')
+        #     return False
         if sum([0 if (x <= 1) & (x >= 0) else 1 for x in self.input_score_percentage_points]) > 0:
             print('raw score interval percent is not percent value !\n', self.input_score_percentage_points)
             return False
@@ -614,10 +622,10 @@ class PltScore(ScoreTransformModel):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
-
-        score_points = [self.input_score_min]
+        input_score_real_max = max(self.input_data[field])
+        score_points = [self.input_score_min] if self.score_order in 'ascending, a' else [input_score_real_max]
         lastpercent = 0
-        lastseg = self.input_score_min
+        lastseg = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
         percent_loc = 1
         for index, row in self.segtable.iterrows():
             p = row[field+'_percent']
@@ -681,20 +689,32 @@ class PltScore(ScoreTransformModel):
             return False
         # calculate coeff
         x_points = self.result_input_data_points
-        x_min = min(x_points)
-        xp = [(int(x1)+1 if x1 > x_min else x1, int(x2))
-              for x1, x2 in zip(x_points[:-1], x_points[1:])]
+        if self.score_order in 'ascending, a':
+            step = 1
+            xp = [(int(p[0]), int(p[1])+(step if i < len(x_points)-1 else 0))
+                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
+        else:
+            step = -1
+            xp = [(int(p[0]) + (step if i > 0 else 0), int(p[1]))
+                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         yp = self.output_score_points
-        # yp = [(int(y1), int(y2)-1 if y2 < y_max else int(y2))
-        #       for y1, y2 in zip(y_points[:-1], y_points[1:])]
         for i, p in enumerate(zip(xp, yp)):
-            coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
-            self.result_coeff.update({i: [coeff, p[0], p[1]]})
+            if self.score_order in 'ascending, a':
+                coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
+                self.result_coeff.update({i: [coeff, p[0], p[1]]})
+            else:
+                coeff = (p[1][0] - p[1][1]) / (p[0][0] - p[0][1])
+                self.result_coeff.update({i: [coeff, p[0], p[1]]})
         return True
 
     def __get_report_doc(self, field=''):
-        self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(x[0], 16), x[1][0], x[2][0])
-                               for x in self.result_coeff.values()]
+        if self.score_order in 'ascending, a':
+            self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(f[0], 6), f[1][0], f[2][0])
+                                   for f in self.result_coeff.values()]
+        else:
+            self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(f[0], 6), f[1][1], f[2][1])
+                                   for f in self.result_coeff.values()]
+
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
         self.output_report_doc += 'input score percentage: {}\n'.\
             format(self.input_score_percentage_points)
@@ -710,7 +730,7 @@ class PltScore(ScoreTransformModel):
         self.output_report_doc += '---'*30 + '\n\n'
 
     # calculate single field from raw score to plt_score
-    def rerun_at_field(self, rawscore_field):
+    def recalculate_at_field(self, rawscore_field):
         if rawscore_field not in self.field_list:
             print('field:{} not in field_list:{}'.format(rawscore_field, self.field_list))
             return
@@ -732,9 +752,14 @@ class PltScore(ScoreTransformModel):
             print('invalid field name {} not in {}'.format(field, self.field_list))
         coeff = self.result_dict[field]['coeff']
         for cf in coeff.values():
-            if cf[1][0] <= x <= cf[1][1]:
-                return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
-                                self.output_data_decimal)
+            if self.score_order in 'ascending, a':
+                if cf[1][0] <= x <= cf[1][1]:
+                    return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                                    self.output_data_decimal)
+            else:
+                if cf[1][0] >= x >= cf[1][1]:
+                    return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                                    self.output_data_decimal)
 
     def report(self):
         print(self.output_report_doc)
