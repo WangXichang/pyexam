@@ -53,6 +53,15 @@ def help_doc():
        Tscore: T分数转换模型
        SegTable: 计算分段表模型
     """)
+    # some analysis on level score model in new Gaokao
+    """
+    基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
+    ● 浙江21等级方案   均值71.26，  标准差13.75,      归一值22.93
+    ● 上海11等级方案   均值55，     标准差8.75,       归一值29.17
+    ● 北京21等级方案   均值72.16，  标准差13.64,      归一值22.73
+    ● 天津21等级方案   均值72.94，  标准差14.36,      归一值23.94
+    ● 山东正态方案     均值60，     标准差15.6-9,     归一值19.5     
+    """
 
 
 # interface to use model for some typical application
@@ -74,15 +83,6 @@ def stm(name='shandong',
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
-    help_text = \
-        """
-      基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
-      ● 浙江21等级方案  均值71.26，  标准差13.75，   	  归一值22.93
-      ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
-      ● 北京21等级方案  均值72.16，  标准差13.64， 	  归一值22.73
-      ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
-      ● 山东正态方案    均值60，     标准差15.6-9,      归一值19.5     
-        """
     # check name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
@@ -107,38 +107,6 @@ def stm(name='shandong',
 
     # shandong score model
     if name == 'shandong':
-        # set model score percentages and endpoints
-        # get approximate normal distribution
-        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
-        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
-        #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
-        # according to std
-        #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
-        #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
-        #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
-        #   cdf(70) = 0.0.73999999697   as std=15.54375
-        #   cdf(60) = 0.0
-        #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
-        #   cdf(40) = 0.0991            as std=15.54375
-        #   cdf(30) = 0.0268            as std=15.54375
-        #   cdf(20) = 0.0050            as std=15.54375
-        # ---------------------------------------------------------------------------------------------------------
-        #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
-        #   std/points      20      30         40        50        60      70         80        90         100
-        #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
-        #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
-        #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
-        # ---------------------------------------------------------------------------------------------------------
-        # on the whole, fitting is approximate fine
-        # p1: std scope in 15.54 - 15.95
-        # p2: cut percent at 20, 100 is a little big, std would be reduced
-        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
-        # p4: max frequency at 60 estimation:
-        #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
-        #     percentage in all  : pga = pg60*0.24 = 0.023404
-        #     frequecy estimation: 0.0234 * total_number
-        #     200,000-->4680,   300,000 --> 7020
-
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
@@ -149,6 +117,7 @@ def stm(name='shandong',
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
                                 approx_mode=approx_method,
+                                score_order='descending',
                                 decimals=decimal
                                 )
         pltmodel.run()
@@ -403,12 +372,43 @@ class PltScore(ScoreTransformModel):
         #   p3: percent at 30,40 is a bit larger than normal according to std=15.54375
         # on the whole, fitting is approximate fine
     """
+    # set model score percentages and endpoints
+    # get approximate normal distribution
+    # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+    #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+    #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
+    # according to std
+    #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
+    #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
+    #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
+    #   cdf(70) = 0.0.73999999697   as std=15.54375
+    #   cdf(60) = 0.0
+    #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
+    #   cdf(40) = 0.0991            as std=15.54375
+    #   cdf(30) = 0.0268            as std=15.54375
+    #   cdf(20) = 0.0050            as std=15.54375
+    # ---------------------------------------------------------------------------------------------------------
+    #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
+    #   std/points      20      30         40        50        60      70         80        90         100
+    #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
+    #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
+    #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
+    # ---------------------------------------------------------------------------------------------------------
+    # on the whole, fitting is approximate fine
+    # p1: std scope in 15.54 - 15.95
+    # p2: cut percent at 20, 100 is a little big, std would be reduced
+    # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+    # p4: max frequency at 60 estimation:
+    #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
+    #     percentage in all  : pga = pg60*0.24 = 0.023404
+    #     peak frequency estimation: 0.0234 * total_number
+    #     200,000-->4680,   300,000 --> 7020
 
     def __init__(self):
         # intit input_df, input_output_data, output_df, model_name
         super(PltScore, self).__init__('plt')
 
-        # new properties for linear segment stdscore
+        # new properties for shandong model
         self.input_score_percentage_points = []
         self.output_score_points = []
         self.output_data_decimal = 0
@@ -489,6 +489,7 @@ class PltScore(ScoreTransformModel):
             self.input_score_max = input_score_max
 
         self.approx_mode = approx_mode
+        self.score_order = score_order
 
     def check_parameter(self):
         if not self.field_list:
@@ -502,7 +503,6 @@ class PltScore(ScoreTransformModel):
             print('len is 0 or not same for raw score percent and std score points list!')
             return False
         return True
-
     # --------------data and parameters setting end
 
     def run(self):
@@ -616,6 +616,21 @@ class PltScore(ScoreTransformModel):
             return False
         return True
 
+    def __get_formula_para(self):
+        # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
+        # coefficient = (y2-y1)/(x2 -x1)
+
+        # calculate coefficient
+        x_points = self.result_input_data_points
+        step = 1 if self.score_order in 'ascending, a' else -1
+        xp = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
+              for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
+        yp = self.output_score_points
+        for i, p in enumerate(zip(xp, yp)):
+            c = abs((p[1][1] - p[1][0]) / (p[0][1] - p[0][0]))
+            self.result_coeff.update({i: [c, p[0], p[1]]})
+        return True
+
     def __get_raw_score_points(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
@@ -680,26 +695,6 @@ class PltScore(ScoreTransformModel):
             seg_last = seg_cur
             percent_last_value = p
         return score_points
-
-    def __get_formula_para(self):
-        # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
-        # coefficient = (y2-y1)/(x2 -x1)
-
-        # calculate coefficient
-        x_points = self.result_input_data_points
-        if self.score_order in 'ascending, a':
-            step = 1
-            xp = [(int(p[0]), int(p[1])+(step if i < len(x_points)-1 else 0))
-                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
-        else:
-            step = -1
-            xp = [(int(p[0]) + (step if i > 0 else 0), int(p[1]))
-                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
-        yp = self.output_score_points
-        for i, p in enumerate(zip(xp, yp)):
-            c = abs((p[1][1] - p[1][0]) / (p[0][1] - p[0][0]))
-            self.result_coeff.update({i: [c, p[0], p[1]]})
-        return True
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
