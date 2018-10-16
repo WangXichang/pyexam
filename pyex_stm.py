@@ -70,14 +70,15 @@ def stm(name='shandong',
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
-    """
+    help_text = \
+        """
       基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
       ● 浙江21等级方案  均值71.26，  标准差13.75，   	  归一值22.93
       ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
       ● 北京21等级方案  均值72.16，  标准差13.64， 	  归一值22.73
       ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
       ● 山东正态方案    均值60，     标准差15.6-9,      归一值19.5     
-    """
+        """
     # check name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
@@ -144,7 +145,6 @@ def stm(name='shandong',
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
                                 approx_mode=approx_method,
-                                use_minscore_as_start_endpoint=True,
                                 decimals=decimal
                                 )
         pltmodel.run()
@@ -449,7 +449,6 @@ class PltScore(ScoreTransformModel):
                        input_score_max=150,
                        approx_mode='minmax',
                        score_order='descending',
-                       use_minscore_as_start_endpoint=True,
                        decimals=None):
         """
         :param input_score_percent_list: ratio points for raw score interval
@@ -457,7 +456,6 @@ class PltScore(ScoreTransformModel):
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
         :param approx_mode:  minmax, maxmin, nearmin, nearmax
-        :param use_minscore_as_start_endpoint: set low endpoint for raw score, default None for using real minvalue
         :param decimals: decimal digit number to remain in result data
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
@@ -470,7 +468,7 @@ class PltScore(ScoreTransformModel):
             self.output_data_decimal = decimals
 
         input_p = input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
-        self.input_score_percentage_points = [0] + [sum(input_p[0:x+1]) for x in range(len(input_p))]
+        self.input_score_percentage_points = [sum(input_p[0:x+1]) for x in range(len(input_p))]
 
         if score_order in 'descending, d':
             out_pt = output_score_points_list[::-1]
@@ -485,7 +483,6 @@ class PltScore(ScoreTransformModel):
             self.input_score_max = input_score_max
 
         self.approx_mode = approx_mode
-        self.use_minscore_as_rawscore_start_endpoint = use_minscore_as_start_endpoint
 
     def check_parameter(self):
         if not self.field_list:
@@ -578,29 +575,6 @@ class PltScore(ScoreTransformModel):
         return -1
 
     def __get_formula(self, field):
-
-        # step-prepare
-        # check format
-        if type(self.input_data) != pd.DataFrame:
-            print('no dataset given!')
-            return False
-        if not self.output_score_points:
-            print('no standard score interval points given!')
-            return False
-        if not self.input_score_percentage_points:
-            print('no score interval percent given!')
-            return False
-        if len(self.input_score_percentage_points) != len(self.output_score_points)+1:
-            print('score interval for rawscore and stdscore is not same!')
-            print(self.output_score_points, self.input_score_percentage_points)
-            return False
-        # if self.output_score_points != sorted(self.output_score_points):
-        #     print('stdscore points is not in order!')
-        #     return False
-        if sum([0 if (x <= 1) & (x >= 0) else 1 for x in self.input_score_percentage_points]) > 0:
-            print('raw score interval percent is not percent value !\n', self.input_score_percentage_points)
-            return False
-
         # step 1
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
@@ -610,84 +584,81 @@ class PltScore(ScoreTransformModel):
             print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
             print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
             return False
-
         # step 2
         # calculate Coefficients
-        if not self.__get_coeff():
+        if not self.__get_formula_para():
             return False
-
         return True
 
     def __get_raw_score_points(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
+
         input_score_real_max = max(self.input_data[field])
         score_points = [self.input_score_min] if self.score_order in 'ascending, a' else [input_score_real_max]
-        lastpercent = 0
-        lastseg = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
-        percent_loc = 1
+
+        percent_last_value = -1
+        seg_last = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
+        percent_cur_pos = 0     # first is 0
+        percent_num = len(self.input_score_percentage_points)
         for index, row in self.segtable.iterrows():
             p = row[field+'_percent']
-            thisseg = row['seg']
-            cur_input_score_ratio = self.input_score_percentage_points[percent_loc]
-            if (p == 1) | (percent_loc == len(self.input_score_percentage_points)):
-                score_points += [thisseg]
+            seg_cur = row['seg']
+            cur_input_score_ratio = self.input_score_percentage_points[percent_cur_pos]
+            if (p == 1) | (percent_cur_pos == percent_num):
+                score_points += [seg_cur]
                 break
             if mode in 'minmax, maxmin':
                 if p == cur_input_score_ratio:
                     if (row['seg'] == 0) & (mode == 'minmax') & (index < self.input_score_max):
                         pass
                     else:
-                        score_points.append(thisseg)
-                        percent_loc += 1
+                        score_points.append(seg_cur)
+                        percent_cur_pos += 1
                 elif p > cur_input_score_ratio:
-                    score_points.append(lastseg if mode == 'minmax' else thisseg)
-                    percent_loc += 1
+                    score_points.append(seg_last if mode == 'minmax' else seg_cur)
+                    percent_cur_pos += 1
             if mode in 'nearmax, nearmin, near':
                 if p > cur_input_score_ratio:
-                    if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - lastpercent):
+                    if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - percent_last_value):
                         # thispercent is near to p
-                        score_points.append(thisseg)
-                    elif (p-cur_input_score_ratio) > abs(cur_input_score_ratio - lastpercent):
+                        score_points.append(seg_cur)
+                    elif (p-cur_input_score_ratio) > abs(cur_input_score_ratio - percent_last_value):
                         # lastpercent is near to p
-                        score_points.append(lastseg)
+                        score_points.append(seg_last)
                     else:
                         # two dist is equal, to set nearmin if near
                         if mode == 'nearmax':
-                            score_points.append(thisseg)
+                            score_points.append(seg_cur)
                         else:
-                            score_points.append(lastseg)
-                    percent_loc += 1
+                            score_points.append(seg_last)
+                    percent_cur_pos += 1
                 elif p == cur_input_score_ratio:
                     # some percent is same as input_ratio
                     nextpercent = -1
-                    if thisseg < self.input_score_max:  # max(self.segtable.seg):
-                        nextpercent = self.segtable['seg'].loc[thisseg + 1]
+                    if seg_cur < self.input_score_max:  # max(self.segtable.seg):
+                        nextpercent = self.segtable['seg'].loc[seg_cur + 1]
                     if p == nextpercent:
                         continue
                     # next is not same
-                    if p == lastpercent:
+                    if p == percent_last_value:
                         # two percent is 0
                         if mode == 'nearmax':
-                            score_points += [thisseg]
+                            score_points += [seg_cur]
                         else:  # nearmin
-                            score_points += [lastseg]
+                            score_points += [seg_last]
                     else:
-                        score_points += [thisseg]
-                    percent_loc += 1
-            lastseg = thisseg
-            lastpercent = p
+                        score_points += [seg_cur]
+                    percent_cur_pos += 1
+            seg_last = seg_cur
+            percent_last_value = p
         return score_points
 
     # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
-    # coeff = (y2-y1-1)/(x2 -x1)
-    def __get_coeff(self):
-        # check length of input_points and output_points
-        if len(self.result_input_data_points) != len(self.output_score_points)+1:
-            print('error score points: {}'.format(self.result_input_data_points))
-            return False
-        # calculate coeff
+    # coefficient = (y2-y1)/(x2 -x1)
+    def __get_formula_para(self):
+        # calculate coefficient
         x_points = self.result_input_data_points
         if self.score_order in 'ascending, a':
             step = 1
@@ -699,12 +670,8 @@ class PltScore(ScoreTransformModel):
                   for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         yp = self.output_score_points
         for i, p in enumerate(zip(xp, yp)):
-            if self.score_order in 'ascending, a':
-                coeff = (p[1][1] - p[1][0]) / (p[0][1] - p[0][0])
-                self.result_coeff.update({i: [coeff, p[0], p[1]]})
-            else:
-                coeff = (p[1][0] - p[1][1]) / (p[0][0] - p[0][1])
-                self.result_coeff.update({i: [coeff, p[0], p[1]]})
+            c = abs((p[1][1] - p[1][0]) / (p[0][1] - p[0][0]))
+            self.result_coeff.update({i: [c, p[0], p[1]]})
         return True
 
     def __get_report_doc(self, field=''):
@@ -754,11 +721,11 @@ class PltScore(ScoreTransformModel):
         for cf in coeff.values():
             if self.score_order in 'ascending, a':
                 if cf[1][0] <= x <= cf[1][1]:
-                    return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                    return round45i(cf[0] * (x - cf[1][0]) + cf[2][0],
                                     self.output_data_decimal)
             else:
                 if cf[1][0] >= x >= cf[1][1]:
-                    return round45i(cf[0]*(x - cf[1][0]) + cf[2][0],
+                    return round45i(cf[0] * (x - cf[1][1]) + cf[2][1],
                                     self.output_data_decimal)
 
     def report(self):
@@ -790,30 +757,34 @@ class PltScore(ScoreTransformModel):
             plt.title(u'转换模型({})'.format(fs))
             plt.xlim(min(input_points), max(input_points))
             plt.ylim(ou_min, ou_max)
-            plt.xlabel(u'\n原始分数')
+            plt.xlabel(u'\n\n\n原始分数')
             plt.ylabel(u'转换分数')
             plt.xticks([])
             plt.yticks([])
 
             formula = self.result_dict[fs]['coeff']
-            for cf in formula.values():
-                x = cf[1]
-                y = cf[2]
+            for cfi, cf in enumerate(formula.values()):
+                x = cf[1] if self.score_order in 'ascending, a' else cf[1][::-1]
+                y = cf[2] if self.score_order in 'ascending, a' else cf[2][::-1]
                 plt.plot(x, y)
                 for j in [0, 1]:
                     plt.plot([x[j], x[j]], [0, y[j]], '--')
                     plt.plot([0, x[j]], [y[j], y[j]], '--')
                 for j, xx in enumerate(x):
-                    plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
+                    # if cfi == 0:
+                    #     plt.text(xx-3, ou_min-2, '{}'.format(int(xx)))
+                    # else:
+                    plt.text(xx-1 if j == 1 else xx+1, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
-                    plt.text(1, yy-2 if j == 1 else yy, '{}'.format(int(yy)))
+                    plt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
+            # y = x for signing score shift
             plt.plot((0, in_max), (0, in_max))
 
         plt.show()
         return
 
     def print_segtable(self):
-        seg_decimal_digit = 8
+        # seg_decimal_digit = 8
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
@@ -821,11 +792,15 @@ class PltScore(ScoreTransformModel):
             fs_list += [ffs+'_plt']
         df = self.segtable
         for fs in fs_list:
+            # format percent to fixed precision for print
             if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, seg_decimal_digit))
+                df[fs] = df[fs].apply(lambda x: round(x, self.sys_pricision_decimals))
+            # get plt score in segtable
             if '_plt' in fs:
+                fs_name = fs[0:fs.index('_')]
                 df.loc[:, fs] = df['seg'].apply(
-                    lambda x: self.get_plt_score_from_formula(fs[0:fs.index('_')], x))
+                    lambda x: self.get_plt_score_from_formula(fs_name, x))
+        # use ptt from pyex_ptt if available
         if 'ptt' in locals() or 'ptt' in globals():
             print(ptt.make_page(df=df[fs_list],
                                 title='level score table for {}'.format(self.model_name),
