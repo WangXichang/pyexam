@@ -14,6 +14,10 @@ import time
 import scipy.stats as sts
 import seaborn as sbn
 import pyex_ptt as ptt
+import warnings
+
+
+warnings.filterwarnings('ignore')
 
 
 # some constants for models
@@ -456,6 +460,8 @@ class PltScore(ScoreTransformModel):
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
         :param approx_mode:  minmax, maxmin, nearmin, nearmax
+        :param score_order: search ratio points from high score to low score if 'descending' or
+                            low to high if 'descending'
         :param decimals: decimal digit number to remain in result data
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
@@ -532,7 +538,7 @@ class PltScore(ScoreTransformModel):
             df = self.input_data
             self.output_data = df[eval(_filter)][[fs]]
 
-            # get fomula
+            # get formula
             if not self.__get_formula(fs):
                 print('fail to initializing !')
                 return
@@ -540,8 +546,7 @@ class PltScore(ScoreTransformModel):
             # transform score
             print('   begin calculating ...')
             df2 = self.output_data
-            score_list = df2[fs].apply(self.__get_plt_score, self.output_data_decimal)
-            self.output_data.loc[:, (fs + '_plt')] = score_list
+            df2.loc[:, (fs + '_plt')] = df2[fs].apply(self.__get_plt_score)
             self.__get_report_doc(fs)
             print('   merge dataframe ...')
             if i == 0:
@@ -566,12 +571,33 @@ class PltScore(ScoreTransformModel):
         print('-'*50)
         # run end
 
+    # calculate single field from raw score to plt_score
+    def run_at_field(self, rawscore_field):
+        if rawscore_field not in self.field_list:
+            print('field:{} not in field_list:{}'.format(rawscore_field, self.field_list))
+            return
+        # recreate formula
+        if not self.__get_formula(rawscore_field):
+            print('create formula fail!')
+            return
+        # transform score
+        if not isinstance(self.output_data, pd.DataFrame):
+            self.output_data = self.input_data.copy(deep=True)
+        self.output_data.loc[:, rawscore_field + '_plt'] = \
+            self.input_data[rawscore_field].apply(self.__get_plt_score)
+        # create report
+        self.__get_report_doc()
+
     # from current formula in result_coeff
     def __get_plt_score(self, x):
         for f in self.result_coeff.values():
             # print(f)
-            if f[1][0] <= x <= f[1][1]:
-                return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
+            if self.score_order in 'ascending, a':
+                if f[1][0] <= x <= f[1][1]:
+                    return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
+            else:
+                if f[1][0] >= x >= f[1][1]:
+                    return round45i(f[0]*(x - f[1][1]) + f[2][1], self.output_data_decimal)
         return -1
 
     def __get_formula(self, field):
@@ -655,9 +681,10 @@ class PltScore(ScoreTransformModel):
             percent_last_value = p
         return score_points
 
-    # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
-    # coefficient = (y2-y1)/(x2 -x1)
     def __get_formula_para(self):
+        # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
+        # coefficient = (y2-y1)/(x2 -x1)
+
         # calculate coefficient
         x_points = self.result_input_data_points
         if self.score_order in 'ascending, a':
@@ -696,24 +723,6 @@ class PltScore(ScoreTransformModel):
                 self.output_report_doc += '                        {}\n'.format(fs)
         self.output_report_doc += '---'*30 + '\n\n'
 
-    # calculate single field from raw score to plt_score
-    def recalculate_at_field(self, rawscore_field):
-        if rawscore_field not in self.field_list:
-            print('field:{} not in field_list:{}'.format(rawscore_field, self.field_list))
-            return
-        # recreate formula
-        if not self.__get_formula(rawscore_field):
-            print('create formula fail!')
-            return
-        # transform score
-        if not isinstance(self.output_data, pd.DataFrame):
-            self.output_data = self.input_data.copy(deep=True)
-        self.output_data.loc[:, rawscore_field + '_plt'] = \
-            self.input_data[rawscore_field].apply(self.__get_plt_score)
-        # create report
-        self.__get_report_doc()
-
-    # get score from formula
     def get_plt_score_from_formula(self, field, x):
         if field not in self.field_list:
             print('invalid field name {} not in {}'.format(field, self.field_list))
@@ -727,6 +736,7 @@ class PltScore(ScoreTransformModel):
                 if cf[1][0] >= x >= cf[1][1]:
                     return round45i(cf[0] * (x - cf[1][1]) + cf[2][1],
                                     self.output_data_decimal)
+        return -1
 
     def report(self):
         print(self.output_report_doc)
@@ -774,7 +784,7 @@ class PltScore(ScoreTransformModel):
                     # if cfi == 0:
                     #     plt.text(xx-3, ou_min-2, '{}'.format(int(xx)))
                     # else:
-                    plt.text(xx-1 if j == 1 else xx+1, ou_min-2, '{}'.format(int(xx)))
+                    plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
                     plt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
             # y = x for signing score shift
@@ -783,7 +793,7 @@ class PltScore(ScoreTransformModel):
         plt.show()
         return
 
-    def print_segtable(self):
+    def report_segtable(self):
         # seg_decimal_digit = 8
         fs_list = ['seg']
         for ffs in self.field_list:
