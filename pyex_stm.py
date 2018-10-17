@@ -1857,7 +1857,8 @@ class SegTable(object):
 
 def round45i(v: float, dec=0):
     u = int(v * 10 ** dec * 10)
-    return (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
+    r = (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
+    return int(r) if dec <= 0 else r
 
 
 # use scipy.stats descibe report dataframe info
