@@ -1,9 +1,9 @@
 # -*- utf-8 -*-
 
 # version 2018-09-24
-# revised for discontinuous points
+# revised for shandong interval linear transform
 # separate from pyex_lib, pyex_seg
-# only rely on pyex_ptt
+# use pyex_ptt if import
 
 
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ import copy
 import time
 import scipy.stats as sts
 import seaborn as sbn
-import pyex_ptt as ptt
+# import pyex_ptt as ptt
 import warnings
 
 
@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 # some constants for models
 shandong_ratio = [.03, .07, .16, .24, .24, .16, .07, 0.03]
 shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]    # from high level to low level
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
@@ -34,7 +34,7 @@ def help_doc():
     module function and class:
     
     [function]
-       stm: 
+       call: 
           调用各个模型的接口函数，
           通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
           可以计算山东、上海、浙江、北京、天津、陶百强模型的转换分数
@@ -65,14 +65,14 @@ def help_doc():
 
 
 # interface to use model for some typical application
-def stm(name='shandong',
-        df=None,
-        field_list='',
-        maxscore=100,
-        minscore=0,
-        decimal=0,
-        approx_method='near'
-        ):
+def call(name='shandong',
+         df=None,
+         field_list='',
+         maxscore=100,
+         minscore=0,
+         decimal=0,
+         approx_method='near'
+         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: dataframe, input data
@@ -222,7 +222,7 @@ def plot_model_distribution():
     plt.figure('model ratio distribution')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
-    plt.bar(range(8), [shandong_ratio[j] - shandong_ratio[j - 1] for j in range(1, 9)])
+    plt.bar(range(1, 9), [shandong_ratio[j]*100 for j in range(8)])
     plt.title('shandong model')
 
     plt.subplot(232)
@@ -705,8 +705,9 @@ class PltScore(ScoreTransformModel):
                                    for f in self.result_coeff.values()]
 
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
+        plist = self.input_score_percentage_points
         self.output_report_doc += 'input score percentage: {}\n'.\
-            format(self.input_score_percentage_points)
+            format([round45i(plist[j]-plist[j-1], 2) for j in range(1, len(plist))])
         self.output_report_doc += 'input score  endpoints: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
         self.output_report_doc += 'output score endpoints: {}\n'.\
