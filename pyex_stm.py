@@ -71,7 +71,10 @@ def call(name='shandong',
          maxscore=100,
          minscore=0,
          decimal=0,
-         approx_method='near'
+         approx_method='near',
+         ratio=None,
+         level_diff=3,
+         level_max=100
          ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -107,12 +110,13 @@ def call(name='shandong',
 
     # shandong score model
     if name == 'shandong':
+        ratio = shandong_ratio
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_percent_list=shandong_ratio,
+        pltmodel.set_parameters(input_score_percent_list=ratio,
                                 output_score_points_list=shandong_interval,
                                 input_score_max=maxscore,
                                 input_score_min=minscore,
@@ -123,60 +127,42 @@ def call(name='shandong',
         pltmodel.run()
         return pltmodel
 
-    if name == 'zhejiang':
-        #      ● 浙江21等级方案  均值71.26，  标准差13.75，   	  归一值22.93
-        level_score_table = [100 - x * 3 for x in range(21)]
+    if name in 'zhejiang, shanghai, beijing, tiangjin, tao':
+        if name == 'zhejiang':
+            # ● 浙江21等级方案  均值71.26，  标准差13.75，   	 归一值22.93
+            ratio_list = zhejiang_ratio
+            level_score = [100 - j * level_diff for j in range(len(ratio_list))]
+        elif name == 'shanghai':
+            # ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
+            ratio_list = shanghai_ratio
+            level_score = [70 - j * level_diff for j in range(len(ratio_list))]
+        elif name == 'beijing':
+            # ● 北京21等级方案  均值72.16，  标准差13.64， 	 归一值22.73
+            ratio_list = beijing_ratio
+            level_score = [100 - j * level_diff for j in range(len(ratio_list))]
+        elif name == 'tianjin':
+            # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
+            ratio_list = tianjin_ratio
+            level_score = [100 - j * level_diff for j in range(len(ratio_list))]
+        elif isinstance(name, str) and (isinstance(ratio, tuple), isinstance(ratio, list)):
+            # 类似浙江模型 similar to Zhejiang
+            ratio_list = ratio
+            level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
+        else:
+            ratio_list = []
+            level_score = []
+            print('invalid model name:{}'.format(name))
+            return
+
         m = LevelScore()
-        m.model_name = 'zhejiang'
+        m.model_name = name
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=maxscore,
                          minscore=minscore,
-                         level_ratio_table=zhejiang_ratio,
-                         level_score_table=level_score_table,
+                         level_ratio_table=ratio_list,
+                         level_score_table=level_score,
                          approx_method=approx_method
                          )
-        m.run()
-        return m
-
-    if name == 'shanghai':
-        # ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
-
-        level_score = [70 - j * 3 for j in range(11)]
-        m = LevelScore()
-        m.model_name = 'shanghai'
-        m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(level_ratio_table=shanghai_ratio,
-                         level_score_table=level_score,
-                         maxscore=maxscore,
-                         minscore=minscore)
-        m.run()
-        return m
-
-    if name == 'beijing':
-        #      ● 北京21等级方案  均值72.16，  标准差13.64， 	  归一值22.73
-
-        level_score = [100 - j * 3 for j in range(21)]
-        m = LevelScore()
-        m.model_name = 'beijing'
-        m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(level_ratio_table=beijing_ratio,
-                         level_score_table=level_score,
-                         maxscore=maxscore,
-                         minscore=minscore)
-        m.run()
-        return m
-
-    if name == 'tianjin':
-        # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
-
-        level_score = [100 - j * 3 for j in range(21)]
-        m = LevelScore()
-        m.model_name = 'tianjin'
-        m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(level_ratio_table=tianjin_ratio,
-                         level_score_table=level_score,
-                         maxscore=maxscore,
-                         minscore=minscore)
         m.run()
         return m
 
@@ -807,12 +793,12 @@ class PltScore(ScoreTransformModel):
                 df.loc[:, fs] = df['seg'].apply(
                     lambda x: self.get_plt_score_from_formula(fs_name, x))
         # use ptt from pyex_ptt if available
-        if 'ptt' in locals() or 'ptt' in globals():
-            print(ptt.make_page(df=df[fs_list],
-                                title='level score table for {}'.format(self.model_name),
-                                pagelines=self.input_score_max+1))
-        else:
-            print(df[fs_list])
+        # if 'ptt' in locals() or 'ptt' in globals():
+        #     print(ptt.make_page(df=df[fs_list],
+        #                         title='level score table for {}'.format(self.model_name),
+        #                         pagelines=self.input_score_max+1))
+        # else:
+        print(df[fs_list])
 
 
 class Zscore(ScoreTransformModel):
@@ -1259,9 +1245,10 @@ class LevelScore(ScoreTransformModel):
         for fs in fs_list:
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, 8))
-        print(ptt.make_page(df=df[fs_list],
-                            title='level score table for {}'.format(self.model_name),
-                            pagelines=self.input_score_max+1))
+        # print(ptt.make_page(df=df[fs_list],
+        #                     title='level score table for {}'.format(self.model_name),
+        #                     pagelines=self.input_score_max+1))
+        print(df[fs_list])
 
 
 class LevelScoreTao(ScoreTransformModel):
@@ -1346,8 +1333,6 @@ class LevelScoreTao(ScoreTransformModel):
                     break
                 lastpercent = curpercent
                 lastseg = curseg
-            # for lev in range(self.level_num):
-            #     self.level_point_dict[fs].append(max_point - max_point/self.level_num * (lev+1))
 
     def run_create_output_data(self):
         dt = copy.deepcopy(self.input_data[self.field_list])
@@ -1375,7 +1360,8 @@ class LevelScoreTao(ScoreTransformModel):
         report_describe(self.output_data[[f+'_level' for f in self.field_list]])
 
     def print_segtable(self):
-        print(ptt.make_mpage(self.segtable))
+        # print(ptt.make_mpage(self.segtable))
+        print(self.segtable)
 
 
 # version 1.0.1 2018-09-24
