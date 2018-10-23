@@ -34,8 +34,8 @@ def help_doc():
     module function and class:
     
     [function]
-       call: 
-          调用各个模型的接口函数，
+       run_model:
+          运行各个模型的接口函数
           通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
           可以计算山东、上海、浙江、北京、天津、陶百强模型的转换分数
           也可以计算Z分数、T分数和线性转换T分数（name='zscore'/'tscore'/'tlinear'）
@@ -65,14 +65,14 @@ def help_doc():
 
 
 # interface to use model for some typical application
-def call(name='shandong',
-         df=None,
-         field_list='',
-         maxscore=100,
-         minscore=0,
-         decimal=0,
-         approx_method='near'
-         ):
+def run_model(name='shandong',
+              df=None,
+              field_list='',
+              maxscore=100,
+              minscore=0,
+              decimal=0,
+              approx_method='near'
+              ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: dataframe, input data
