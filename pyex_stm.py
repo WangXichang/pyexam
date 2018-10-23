@@ -21,12 +21,12 @@ warnings.filterwarnings('ignore')
 
 
 # some constants for models
-shandong_ratio = [.03, .07, .16, .24, .24, .16, .07, 0.03]
-shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]    # from high level to low level
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+shandong_ratio = [.03, .07, .16, .24, .24, .16, .07, 0.03]
+shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
 def help_doc():
@@ -68,30 +68,24 @@ def help_doc():
 def run_model(name='shandong',
               df=None,
               field_list='',
-              maxscore=100,
-              minscore=0,
-              decimal=0,
+              input_score_max=100,
+              input_score_min=0,
+              ratio=None,
+              level_diff=3,
+              level_max=100,
+              output_score_decimal=0,
               approx_method='near'
               ):
-def call(name='shandong',
-         df=None,
-         field_list='',
-         maxscore=100,
-         minscore=0,
-         decimal=0,
-         approx_method='near',
-         ratio=None,
-         level_diff=3,
-         level_max=100
-         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: dataframe, input data
     :param field_list: score fields list in input dataframe
-    :param maxscore: max value in raw score
-    :param minscore: min value in raw score
-    :param decimal: output score decimal digits
+    :param input_score_max: max value in raw score
+    :param input_score_min: min value in raw score
+    :param output_score_decimal: output score decimal digits
     :param approx_method: maxmin, minmax, nearmin, nearmax
+    :param level_diff: difference value between two neighbor level score
+    :param level_max: max value for level score
     :return: model
     """
     # check name
@@ -125,12 +119,12 @@ def call(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_percent_list=ratio,
-                                output_score_points_list=shandong_interval,
-                                input_score_max=maxscore,
-                                input_score_min=minscore,
+                                output_score_points_list=shandong_segment,
+                                input_score_max=input_score_max,
+                                input_score_min=input_score_min,
                                 approx_mode=approx_method,
                                 score_order='descending',
-                                decimals=decimal
+                                decimals=output_score_decimal
                                 )
         pltmodel.run()
         return pltmodel
@@ -157,16 +151,14 @@ def call(name='shandong',
             ratio_list = ratio
             level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
         else:
-            ratio_list = []
-            level_score = []
             print('invalid model name:{}'.format(name))
             return
 
         m = LevelScore()
         m.model_name = name
         m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(maxscore=maxscore,
-                         minscore=minscore,
+        m.set_parameters(maxscore=input_score_max,
+                         minscore=input_score_min,
                          level_ratio_table=ratio_list,
                          level_score_table=level_score,
                          approx_method=approx_method
@@ -179,8 +171,8 @@ def call(name='shandong',
         m.level_num = 50
         m.set_data(input_data=input_data,
                    field_list=field_list)
-        m.set_parameters(maxscore=maxscore,
-                         minscore=minscore)
+        m.set_parameters(maxscore=input_score_max,
+                         minscore=input_score_min)
         m.run()
         return m
 
@@ -456,7 +448,7 @@ class PltScore(ScoreTransformModel):
         :param approx_mode:  minmax, maxmin, nearmin, nearmax
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
-        :param decimals: decimal digit number to remain in result data
+        :param decimals: decimal digit number to remain in output score
         """
         if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
@@ -621,7 +613,8 @@ class PltScore(ScoreTransformModel):
               for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         yp = self.output_score_points
         for i, p in enumerate(zip(xp, yp)):
-            c = abs((p[1][1] - p[1][0]) / (p[0][1] - p[0][0]))
+            v = p[0][1] - p[0][0]
+            c = abs((p[1][1] - p[1][0]) / (1 if v == 0 else v))
             self.result_coeff.update({i: [c, p[0], p[1]]})
         return True
 
