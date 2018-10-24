@@ -1103,16 +1103,17 @@ class LevelScore(ScoreTransformModel):
 
         self.input_score_max = 100
         self.input_score_min = 0
-        self.level_ratio_table = [sum(__zhejiang_ratio[0:j+1])*0.01
+        self.ratio_grade_table = [sum(__zhejiang_ratio[0:j + 1]) * 0.01
                                   for j in range(len(__zhejiang_ratio))]
-        self.level_score_table = [100-x*3 for x in range(len(self.level_ratio_table))]
-        self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
+        self.level_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
+        self.level_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
         self.approx_method = 'near'
 
         self.segtable = None
         self.output_data = None
         self.report_doc = ''
+        self.result_dict = dict()
 
     def set_data(self, input_data=None, field_list=None):
         if isinstance(input_data, pd.DataFrame):
@@ -1141,16 +1142,16 @@ class LevelScore(ScoreTransformModel):
         if isinstance(minscore, int):
             self.input_score_min = minscore
         if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
-            self.level_ratio_table = [1-sum(level_ratio_table[0:j+1])*0.01
+            self.ratio_grade_table = [1 - sum(level_ratio_table[0:j + 1]) * 0.01
                                       for j in range(len(level_ratio_table))]
             if sum(level_ratio_table) != 100:
                 print('ratio table is wrong, sum is not 100! sum={}'.format(sum(level_ratio_table)))
         if isinstance(level_score_table, list) or isinstance(level_score_table, tuple):
             self.level_score_table = level_score_table
-        if len(self.level_ratio_table) != len(self.level_score_table):
+        if len(self.ratio_grade_table) != len(self.level_score_table):
             print('error level data set, ratio/score table is not same length!')
-            print(self.level_ratio_table, '\n', self.level_score_table)
-        self.level_no = [x for x in range(1, len(self.level_ratio_table)+1)]
+            print(self.ratio_grade_table, '\n', self.level_score_table)
+        self.level_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
         if approx_method in self.approx_method_set:
             self.approx_method = approx_method
@@ -1196,10 +1197,14 @@ class LevelScore(ScoreTransformModel):
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
                 apply(lambda x: self.__percent_map_level(1-x))
             self.segtable.astype({sf+'_level': int})
+            level_table = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[np.max, np.min])
+            self.result_dict.update({sf: [(idx, level_table.loc[idx, ('amax', 'seg')],
+                                           level_table.loc[idx, ('amin', 'seg')])
+                                          for idx in level_table.index]})
 
     def __percent_map_level(self, p):
         p_start = 0 if self.level_order == 'a' else 1
-        for j, r in enumerate(self.level_ratio_table):
+        for j, r in enumerate(self.ratio_grade_table):
             logic = (p_start <= p <= r) if self.level_order == 'a' else (p_start >= p >= r)
             if logic:
                 return self.level_no[j]
@@ -1207,26 +1212,20 @@ class LevelScore(ScoreTransformModel):
         return self.level_no[-1]
 
     def report(self):
-        print('Level-score transform report')
+        print('Level-score Transform Report')
+        p_ = False
+        for sf in self.field_list:
+            if p_:
+                print('-' * 50)
+                p_ = True
+            else:
+                print('=' * 50)
+            print('field [{}] level interval:'.format(sf))
+            for k in self.result_dict[sf]:
+                print('    {no}: ({imax},{imin})'.format(no=str(k[0]).rjust(2),
+                                                         imax=str(k[1]).rjust(3),
+                                                         imin=str(k[2]).rjust(3)))
         print('=' * 50)
-        if type(self.input_data) == pd.DataFrame:
-            print('raw score desc:')
-            report_describe(self.input_data[self.field_list])
-            print('-'*50)
-        else:
-            print('output score data is not ready!')
-        if type(self.segtable) == pd.DataFrame:
-            print('raw,Level score desc:')
-            report_describe(self.output_data)
-            print('-'*50)
-        else:
-            print('output score data is not ready!')
-        print('data fields in rawscore:{}'.format(self.field_list))
-        print('-' * 50)
-        print('parameters:')
-        print('\tmax score in raw score:{}'.format(self.input_score_max))
-        print('\tmin score in raw score:{}'.format(self.input_score_min))
-        print('-' * 50)
 
     def plot(self, mode='raw'):
         super().plot(mode)
