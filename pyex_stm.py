@@ -311,9 +311,14 @@ class ScoreTransformModel(object):
         labelstr = 'Output Score '
         for fs in self.field_list:
             plt.figure(fs)
-            if fs+'_plt' in self.output_data.columns:  # find sf_outscore field
-                sbn.distplot(self.output_data[fs+'_plt'])
-                plt.title(labelstr+fs)
+        if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
+            sbn.distplot(self.output_data[fs + '_plt'])
+            plt.title(labelstr + fs)
+        elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
+            sbn.distplot(self.output_data[fs + '_level'])
+            plt.title(labelstr + fs)
+        else:
+            print('mode=out only for plt and level model!')
         return
 
     def __plot_raw_score(self):
