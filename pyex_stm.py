@@ -70,7 +70,7 @@ def run_model(name='shandong',
               field_list='',
               input_score_max=100,
               input_score_min=0,
-              ratio=None,
+              level_ratio=None,
               level_diff=3,
               level_max=100,
               output_score_decimal=0,
@@ -82,6 +82,7 @@ def run_model(name='shandong',
     :param field_list: score fields list in input dataframe
     :param input_score_max: max value in raw score
     :param input_score_min: min value in raw score
+    :param level_ratio: ratio list used to create intervals of raw score for each level
     :param output_score_decimal: output score decimal digits
     :param approx_method: maxmin, minmax, nearmin, nearmax
     :param level_diff: difference value between two neighbor level score
@@ -112,13 +113,13 @@ def run_model(name='shandong',
 
     # shandong score model
     if name == 'shandong':
-        ratio = shandong_ratio
+        level_ratio = shandong_ratio
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_percent_list=ratio,
+        pltmodel.set_parameters(input_score_percent_list=level_ratio,
                                 output_score_points_list=shandong_segment,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
@@ -129,7 +130,8 @@ def run_model(name='shandong',
         pltmodel.run()
         return pltmodel
 
-    if name in 'zhejiang, shanghai, beijing, tiangjin, tao':
+    # ratio level score project, use model LevelScore
+    if (name in 'zhejiang, shanghai, beijing, tianjin') or (level_ratio is not None):
         if name == 'zhejiang':
             # ● 浙江21等级方案  均值71.26，  标准差13.75，   	 归一值22.93
             ratio_list = zhejiang_ratio
@@ -146,9 +148,9 @@ def run_model(name='shandong',
             # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
             ratio_list = tianjin_ratio
             level_score = [100 - j * level_diff for j in range(len(ratio_list))]
-        elif isinstance(name, str) and (isinstance(ratio, tuple), isinstance(ratio, list)):
+        elif isinstance(level_ratio, tuple) or isinstance(level_ratio, list):
             # 类似浙江模型 similar to Zhejiang
-            ratio_list = ratio
+            ratio_list = level_ratio
             level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
         else:
             print('invalid model name:{}'.format(name))
@@ -311,14 +313,14 @@ class ScoreTransformModel(object):
         labelstr = 'Output Score '
         for fs in self.field_list:
             plt.figure(fs)
-        if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
-            sbn.distplot(self.output_data[fs + '_plt'])
-            plt.title(labelstr + fs)
-        elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
-            sbn.distplot(self.output_data[fs + '_level'])
-            plt.title(labelstr + fs)
-        else:
-            print('mode=out only for plt and level model!')
+            if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs + '_plt'])
+                plt.title(labelstr + fs)
+            elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs + '_level'])
+                plt.title(labelstr + fs)
+            else:
+                print('mode=out only for plt and level model!')
         return
 
     def __plot_raw_score(self):
@@ -755,7 +757,7 @@ class PltScore(ScoreTransformModel):
             plt.title(u'转换模型({})'.format(fs))
             plt.xlim(min(input_points), max(input_points))
             plt.ylim(ou_min, ou_max)
-            plt.xlabel(u'\n\n\n原始分数')
+            plt.xlabel(u'\n原始分数')
             plt.ylabel(u'转换分数')
             plt.xticks([])
             plt.yticks([])
@@ -1160,6 +1162,8 @@ class LevelScore(ScoreTransformModel):
         if len(self.field_list) == 0:
             print('to set field_list first!')
             return
+        print("--- Level Score Transform Start ---")
+        t0 = time.time()
         seg = SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
@@ -1173,6 +1177,7 @@ class LevelScore(ScoreTransformModel):
         self.report_doc = {}
         dtt = self.segtable
         for sf in self.field_list:
+            print('transform score at field:{} ...'.format(sf))
             dft = self.output_data.copy()
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
@@ -1191,16 +1196,18 @@ class LevelScore(ScoreTransformModel):
             level_min = self.segtable.groupby(sf+'_level')['seg'].min()
             self.report_doc.update({sf: ['level({}):{}-{}'.format(j+1, x[0], x[1])
                                          for j, x in enumerate(zip(level_max, level_min))]})
+        print('used time:{:6.4f}'.format(time.time()-t0))
+        print('---Level Score Transform End---')
 
     def __calc_level_table(self):
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
                 apply(lambda x: self.__percent_map_level(1-x))
             self.segtable.astype({sf+'_level': int})
-            level_table = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[np.max, np.min])
-            self.result_dict.update({sf: [(idx, level_table.loc[idx, ('amax', 'seg')],
-                                           level_table.loc[idx, ('amin', 'seg')])
-                                          for idx in level_table.index]})
+            pt = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[max, min])
+            self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
+                                          for idx in pt.index]}
+                                    )
 
     def __percent_map_level(self, p):
         p_start = 0 if self.level_order == 'a' else 1
@@ -1217,14 +1224,13 @@ class LevelScore(ScoreTransformModel):
         for sf in self.field_list:
             if p_:
                 print('-' * 50)
-                p_ = True
             else:
                 print('=' * 50)
-            print('field [{}] level interval:'.format(sf))
+                p_ = True
+            print('<<{}>> Level No: Raw_Score_Range'.format(sf))
             for k in self.result_dict[sf]:
-                print('    {no}: ({imax},{imin})'.format(no=str(k[0]).rjust(2),
-                                                         imax=str(k[1]).rjust(3),
-                                                         imin=str(k[2]).rjust(3)))
+                print('    Level {no:>2}: [{int_min:>3},{int_max:>3}]'.
+                      format(no=str(k[0]), int_min=k[1][0], int_max=k[1][1]))
         print('=' * 50)
 
     def plot(self, mode='raw'):
@@ -1240,7 +1246,7 @@ class LevelScore(ScoreTransformModel):
     def check_data(self):
         return super().check_data()
 
-    def print_segtable(self):
+    def report_segtable(self):
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
@@ -1672,7 +1678,7 @@ class SegTable(object):
             return
         # create output dataframe with segstep = 1
         if self.__display:
-            print('seg calculation start ...')
+            print('---seg calculation start---')
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
         if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
@@ -1722,7 +1728,7 @@ class SegTable(object):
 
         if self.__display:
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
-            print('=== end')
+            print('---seg calculation end---')
         self.__run_completed = True
         self.__output_dataframe = outdf
         return
