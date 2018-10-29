@@ -68,11 +68,11 @@ def help_doc():
 def run_model(name='shandong',
               df=None,
               field_list='',
-              input_score_max=100,
-              input_score_min=0,
               ratio=None,
               level_diff=3,
               level_max=100,
+              input_score_max=None,
+              input_score_min=None,
               output_score_decimal=0,
               approx_method='near'
               ):
@@ -250,7 +250,7 @@ class ScoreTransformModel(object):
         self.input_data = pd.DataFrame()
         self.field_list = []
         self.input_score_min = 0
-        self.input_score_max = 100
+        self.input_score_max = 150
 
         self.output_data = pd.DataFrame()
         self.output_data_decimal = 0
@@ -311,14 +311,14 @@ class ScoreTransformModel(object):
         labelstr = 'Output Score '
         for fs in self.field_list:
             plt.figure(fs)
-        if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
-            sbn.distplot(self.output_data[fs + '_plt'])
-            plt.title(labelstr + fs)
-        elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
-            sbn.distplot(self.output_data[fs + '_level'])
-            plt.title(labelstr + fs)
-        else:
-            print('mode=out only for plt and level model!')
+            if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs + '_plt'])
+                plt.title(labelstr + fs)
+            elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs + '_level'])
+                plt.title(labelstr + fs)
+            else:
+                print('mode=out only for plt and level model!')
         return
 
     def __plot_raw_score(self):
@@ -440,8 +440,8 @@ class PltScore(ScoreTransformModel):
     def set_parameters(self,
                        input_score_percent_list=None,
                        output_score_points_list=None,
-                       input_score_min=0,
-                       input_score_max=150,
+                       input_score_min=None,
+                       input_score_max=None,
                        approx_mode='minmax',
                        score_order='descending',
                        decimals=None):
@@ -473,11 +473,13 @@ class PltScore(ScoreTransformModel):
         else:
             self.output_score_points = output_score_points_list
 
-        if isinstance(input_score_min, int):
-            self.input_score_min = input_score_min
-
-        if isinstance(input_score_max, int):
-            self.input_score_max = input_score_max
+        # if isinstance(input_score_min, int):
+        #     self.input_score_min = input_score_min
+        #
+        # if isinstance(input_score_max, int):
+        #     self.input_score_max = input_score_max
+        self.input_score_min = input_score_min
+        self.input_score_max = input_score_max
 
         self.approx_mode = approx_mode
         self.score_order = score_order
@@ -503,16 +505,23 @@ class PltScore(ScoreTransformModel):
         if not super().run():
             return
 
+        if self.input_score_max is None:
+            self.input_score_max = max([self.input_data[fs].max() for fs in self.field_list])
+        if self.input_score_min is None:
+            self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
+
         # calculate seg table
         print('--- start calculating segtable ---')
         # import pyex_seg as psg
         seg = SegTable()
-        seg.set_data(input_data=self.input_data, field_list=self.field_list)
+        seg.set_data(input_data=self.input_data,
+                     field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
                            segmin=self.input_score_min,
                            segsort='a' if self.score_order in 'ascending, a' else 'd',
                            segstep=1,
-                           display=False)
+                           display=False,
+                           usealldata=False)
         seg.run()
         self.segtable = seg.output_data
 
