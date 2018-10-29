@@ -647,7 +647,7 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            self.result_input_data_points = self.__get_raw_score_points(field, self.approx_mode)
+            self.result_input_data_points = self.__get_raw_score_from_ratio(field, self.approx_mode)
         else:
             print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
             print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
@@ -674,7 +674,7 @@ class PltScore(ScoreTransformModel):
             self.result_coeff.update({i: [c, p[0], p[1]]})
         return True
 
-    def __get_raw_score_points(self, field, mode='minmax'):
+    def __get_raw_score_from_ratio(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
             raise TypeError
@@ -682,15 +682,15 @@ class PltScore(ScoreTransformModel):
         input_score_real_max = max(self.input_data[field])
         score_points = [self.input_score_min] if self.score_order in 'ascending, a' else [input_score_real_max]
 
-        percent_last_value = -1
         seg_last = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
-        percent_cur_pos = 0     # first is 0
-        percent_num = len(self.input_score_percentage_cum)
+        ratio_last = -1
+        ratio_cur_pos = 0     # first is 0
+        ratio_num = len(self.input_score_percentage_cum)
         for index, row in self.segtable.iterrows():
             p = row[field+'_percent']
             seg_cur = row['seg']
-            cur_input_score_ratio = self.input_score_percentage_cum[percent_cur_pos]
-            if (p == 1) | (percent_cur_pos == percent_num):
+            cur_input_score_ratio = self.input_score_percentage_cum[ratio_cur_pos]
+            if (p == 1) | (ratio_cur_pos == ratio_num):
                 score_points += [seg_cur]
                 break
             if mode in 'minmax, maxmin':
@@ -699,16 +699,16 @@ class PltScore(ScoreTransformModel):
                         pass
                     else:
                         score_points.append(seg_cur)
-                        percent_cur_pos += 1
+                        ratio_cur_pos += 1
                 elif p > cur_input_score_ratio:
                     score_points.append(seg_last if mode == 'minmax' else seg_cur)
-                    percent_cur_pos += 1
+                    ratio_cur_pos += 1
             if mode in 'nearmax, nearmin, near':
                 if p > cur_input_score_ratio:
-                    if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - percent_last_value):
+                    if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - ratio_last):
                         # thispercent is near to p
                         score_points.append(seg_cur)
-                    elif (p-cur_input_score_ratio) > abs(cur_input_score_ratio - percent_last_value):
+                    elif (p-cur_input_score_ratio) > abs(cur_input_score_ratio - ratio_last):
                         # lastpercent is near to p
                         score_points.append(seg_last)
                     else:
@@ -717,7 +717,7 @@ class PltScore(ScoreTransformModel):
                             score_points.append(seg_cur)
                         else:
                             score_points.append(seg_last)
-                    percent_cur_pos += 1
+                    ratio_cur_pos += 1
                 elif p == cur_input_score_ratio:
                     # some percent is same as input_ratio
                     nextpercent = -1
@@ -726,7 +726,7 @@ class PltScore(ScoreTransformModel):
                     if p == nextpercent:
                         continue
                     # next is not same
-                    if p == percent_last_value:
+                    if p == ratio_last:
                         # two percent is 0
                         if mode == 'nearmax':
                             score_points += [seg_cur]
@@ -734,9 +734,9 @@ class PltScore(ScoreTransformModel):
                             score_points += [seg_last]
                     else:
                         score_points += [seg_cur]
-                    percent_cur_pos += 1
+                    ratio_cur_pos += 1
             seg_last = seg_cur
-            percent_last_value = p
+            ratio_last = p
         return score_points
 
     def __get_report_doc(self, field=''):
@@ -1225,7 +1225,7 @@ class LevelScore(ScoreTransformModel):
                            segsort=self.level_order)
         seg.run()
         self.segtable = seg.output_data
-        self.__calc_level_table()
+        self.__get_level_table_report()
         self.output_data = self.input_data[self.field_list]
         self.report_doc = {}
         dtt = self.segtable
@@ -1252,16 +1252,6 @@ class LevelScore(ScoreTransformModel):
         print('used time:{:6.4f}'.format(time.time()-t0))
         print('---Level Score Transform End---')
 
-    def __calc_level_table(self):
-        for sf in self.field_list:
-            self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
-                apply(lambda x: self.__percent_map_level(1-x))
-            self.segtable.astype({sf+'_level': int})
-            pt = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[max, min])
-            self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
-                                          for idx in pt.index]}
-                                    )
-
     def __percent_map_level(self, p):
         p_start = 0 if self.level_order == 'a' else 1
         for j, r in enumerate(self.ratio_grade_table):
@@ -1270,6 +1260,16 @@ class LevelScore(ScoreTransformModel):
                 return self.level_no[j]
             p_start = r
         return self.level_no[-1]
+
+    def __get_level_table_report(self):
+        for sf in self.field_list:
+            self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
+                apply(lambda x: self.__percent_map_level(1-x))
+            self.segtable.astype({sf+'_level': int})
+            pt = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[max, min])
+            self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
+                                          for idx in pt.index]}
+                                    )
 
     def report(self):
         print('Level-score Transform Report')
