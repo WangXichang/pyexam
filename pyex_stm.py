@@ -110,13 +110,13 @@ def run(name='shandong',
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: dataframe, input data
     :param field_list: score fields list in input dataframe
-    :param input_score_max: max value in raw score
-    :param input_score_min: min value in raw score
-    :param level_ratio: ratio list used to create intervals of raw score for each level
-    :param output_score_decimal: output score decimal digits
-    :param approx_method: maxmin, minmax, nearmin, nearmax
+    :param ratio: ratio list used to create intervals of raw score for each level
     :param level_diff: difference value between two neighbor level score
     :param level_max: max value for level score
+    :param input_score_max: max value in raw score
+    :param input_score_min: min value in raw score
+    :param output_score_decimal: output score decimal digits
+    :param approx_method: maxmin, minmax, nearmin, nearmax
     :return: model
     """
     # check name
@@ -163,6 +163,7 @@ def run(name='shandong',
     if name in 'zhejiang, shanghai, beijing, tiangjin':
         level_max = 100
         level_diff = 3
+        ratio_list = None
         if name == 'zhejiang':
             # ● 浙江21等级方案  均值71.26，  标准差13.75，   	 归一值22.93
             ratio_list = zhejiang_ratio
@@ -176,9 +177,7 @@ def run(name='shandong',
         elif name == 'tianjin':
             # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
             ratio_list = tianjin_ratio
-        elif isinstance(ratio, tuple) or isinstance(ratio, list):
-            # 类似浙江模型 similar to Zhejiang
-            ratio_list = ratio
+
         level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
 
         m = LevelScore()
@@ -250,7 +249,7 @@ def run(name='shandong',
         return m
 
 
-def plot_model_distribution():
+def plot():
     plt.figure('model ratio distribution')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
@@ -1037,8 +1036,7 @@ class Tscore(ScoreTransformModel):
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
             print('    fields:', self.field_list)
-            report_describe(
-                self.input_data[self.field_list])
+            print(self.input_data[self.field_list].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1046,8 +1044,7 @@ class Tscore(ScoreTransformModel):
             out_fields = [f+'_tscore' for f in self.field_list]
             print('T-score desc:')
             print('    fields:', out_fields)
-            report_describe(
-                self.output_data[out_fields])
+            print(self.output_data[out_fields].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1121,13 +1118,13 @@ class TscoreLinear(ScoreTransformModel):
         print('-' * 50)
         if type(self.input_data) == pd.DataFrame:
             print('raw score desc:')
-            report_describe(self.input_data)
+            print(self.input_data[[f for f in self.field_list]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            report_describe(self.output_data)
+            print(self.output_data[[f+'_tscore' for f in self.field_list]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1421,7 +1418,7 @@ class LevelScoreTao(ScoreTransformModel):
         pass
 
     def report(self):
-        report_describe(self.output_data[[f+'_level' for f in self.field_list]])
+        print(self.output_data[[f+'_level' for f in self.field_list]].describe())
 
     def print_segtable(self):
         # print(ptt.make_mpage(self.segtable))
@@ -1901,7 +1898,6 @@ class SegTable(object):
             if step == len(self.field_list):
                 plt.legend(legendlist)
             plt.show()
-
 # SegTable class end
 
 
@@ -1909,65 +1905,6 @@ def round45i(v: float, dec=0):
     u = int(v * 10 ** dec * 10)
     r = (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
     return int(r) if dec <= 0 else r
-
-
-# use scipy.stats descibe report dataframe info
-def report_describe(df, decimal=4):
-    """
-    report statistic describe of a dataframe, with decimal digits = decnum
-    峰度（Kurtosis）与偏态（Skewness）是量测数据正态分布特性的两个指标。
-    峰度衡量数据分布的平坦度（flatness）。尾部大的数据分布峰度值较大。正态分布的峰度值为3。
-        Kurtosis = 1/N * Sigma(Xi-Xbar)**4 / (1/N * Sigma(Xi-Xbar)**2)**2
-    偏态量度对称性。0 是标准对称性正态分布。右（正）偏态表明平均值大于中位数，反之为左（负）偏态。
-        Skewness = 1/N * Sigma(Xi-Xbar)**3 / (1/N * Sigma(Xi-Xbar)**2)**3/2
-    :param
-        dataframe: pandas DataFrame, raw data
-        decnum: decimal number in report print
-    :return(print)
-        records
-        min,max
-        mean
-        variance
-        skewness
-        kurtosis
-    """
-
-    def uf_list2str(listvalue, decimal):
-        return ''.join([('{:' + '1.' + str(decimal) + 'f}  ').
-                       format(round45i(x, decimal)) for x in listvalue])
-
-    def uf_list2sqrt2str(listvalue, decimal):
-        return uf_list2str([np.sqrt(x) for x in listvalue], decimal)
-
-    pr = [[sts.pearsonr(df[x], df[y])[0]
-           for x in df.columns] for y in df.columns]
-    sd = sts.describe(df)
-    cv = df.cov()
-    print('\trecords: ', sd.nobs)
-    print('\tpearson recorrelation:')
-    for i in range(len(df.columns)):
-        print('\t', uf_list2str(pr[i], 4))
-    print('\tcovariance matrix:')
-    for j in range(len(cv)):
-        print('\t', uf_list2str(cv.iloc[j, :], 4))
-    print('\tmin : ', uf_list2str(sd.minmax[0], 4))
-    print('\tmax : ', uf_list2str(sd.minmax[1], 4))
-    print('\tmean: ', uf_list2str(sd.mean, decimal))
-    print('\tvar : ', uf_list2str(sd.variance, decimal))
-    print('\tstd : ', uf_list2sqrt2str(sd.variance, decimal))
-    print('\tskewness: ', uf_list2str(sd.skewness, decimal))
-    print('\tkurtosis: ', uf_list2str(sd.kurtosis, decimal))
-    dict = {'record': sd.nobs,
-            'max': sd.minmax[1],
-            'min': sd.minmax[0],
-            'mean': sd.mean,
-            'var': sd.variance,
-            'cov': cv,
-            'cor': pr,
-            'skewness': sd.skewness,
-            'kurtosis': sd.kurtosis,
-            }
-    return dict
 
 
 def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
