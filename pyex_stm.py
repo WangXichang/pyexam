@@ -149,7 +149,7 @@ def run(name='shandong',
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_percent_list=ratio,
+        pltmodel.set_parameters(input_score_ratio_list=ratio,
                                 output_score_points_list=shandong_segment,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
@@ -446,7 +446,7 @@ class PltScore(ScoreTransformModel):
         super(PltScore, self).__init__('plt')
 
         # new properties for shandong model
-        self.input_score_percentage_cum = []
+        self.input_score_ratio_cum = []
         self.output_score_points = []
         self.output_data_decimal = 0
 
@@ -485,7 +485,7 @@ class PltScore(ScoreTransformModel):
             self.field_list = field_list
 
     def set_parameters(self,
-                       input_score_percent_list=None,
+                       input_score_ratio_list=None,
                        output_score_points_list=None,
                        input_score_min=None,
                        input_score_max=None,
@@ -493,7 +493,7 @@ class PltScore(ScoreTransformModel):
                        score_order='descending',
                        decimals=None):
         """
-        :param input_score_percent_list: ratio points for raw score interval
+        :param input_score_ratio_list: ratio points for raw score interval
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
@@ -502,17 +502,17 @@ class PltScore(ScoreTransformModel):
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
         """
-        if (type(input_score_percent_list) != list) | (type(output_score_points_list) != list):
+        if (type(input_score_ratio_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
-        if len(input_score_percent_list) != len(output_score_points_list):
+        if len(input_score_ratio_list) != len(output_score_points_list):
             print('the number of input score points is not same as output score points!')
             return
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
 
-        input_p = input_score_percent_list if score_order in 'descending, d' else input_score_percent_list[::-1]
-        self.input_score_percentage_cum = [sum(input_p[0:x + 1]) for x in range(len(input_p))]
+        input_p = input_score_ratio_list if score_order in 'descending, d' else input_score_ratio_list[::-1]
+        self.input_score_ratio_cum = [sum(input_p[0:x + 1]) for x in range(len(input_p))]
 
         if score_order in 'descending, d':
             out_pt = output_score_points_list[::-1]
@@ -530,11 +530,11 @@ class PltScore(ScoreTransformModel):
         if not self.field_list:
             print('no score field assign in field_list!')
             return False
-        if (type(self.input_score_percentage_cum) != list) | (type(self.output_score_points) != list):
+        if (type(self.input_score_ratio_cum) != list) | (type(self.output_score_points) != list):
             print('rawscorepoints or stdscorepoints is not list type!')
             return False
-        if (len(self.input_score_percentage_cum) != len(self.output_score_points)) | \
-                len(self.input_score_percentage_cum) == 0:
+        if (len(self.input_score_ratio_cum) != len(self.output_score_points)) | \
+                len(self.input_score_ratio_cum) == 0:
             print('len is 0 or not same for raw score percent and std score points list!')
             return False
         return True
@@ -685,11 +685,11 @@ class PltScore(ScoreTransformModel):
         seg_last = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
         ratio_last = -1
         ratio_cur_pos = 0     # first is 0
-        ratio_num = len(self.input_score_percentage_cum)
+        ratio_num = len(self.input_score_ratio_cum)
         for index, row in self.segtable.iterrows():
             p = row[field+'_percent']
             seg_cur = row['seg']
-            cur_input_score_ratio = self.input_score_percentage_cum[ratio_cur_pos]
+            cur_input_score_ratio = self.input_score_ratio_cum[ratio_cur_pos]
             if (p == 1) | (ratio_cur_pos == ratio_num):
                 score_points += [seg_cur]
                 break
@@ -748,7 +748,7 @@ class PltScore(ScoreTransformModel):
                                    for f in self.result_coeff.values()]
 
         self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
-        plist = self.input_score_percentage_cum
+        plist = self.input_score_ratio_cum
         self.output_report_doc += 'input score  mean, std: {}, {}\n'.\
             format(round45i(self.input_data[field].mean(), 2),
                    round45i(self.input_data[field].std(), 2))
