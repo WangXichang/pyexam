@@ -24,7 +24,7 @@ tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/work/newgk/gkdata/xj1517/']
+    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/18my_write/newgk/gkdata/xj1517/']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17']:
@@ -185,7 +185,7 @@ def plot_pie_xk():
 class Xuanke():
 
     def __init__(self):
-        self.xkfile = 'd:/work/newgk/gkdata/xk/xk_type_zycount.csv'
+        self.xkfile = 'd:/my_write/newgk/gkdata/xk/xk_type_zycount.csv'
         self.xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
         self.xk_label = ['0', '1', '2', '3', '1/2', '1/3']
         self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
@@ -225,7 +225,7 @@ class Xuanke():
         # self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
 
     def load_data(self):
-        self.dc = pd.read_csv('d:/work/newgk/gkdata/xk/xk_zyclass_zycount.txt')
+        self.dc = pd.read_csv('d:/my_write/newgk/gkdata/xk/xk_zyclass_zycount.txt')
         self.dc = self.dc.fillna(0)
         self.zyclass_name = [x for x in self.dc.zyclass if x not in ('total','ratio')]
         self.zyclass_name[0] = '00实验基地班'
