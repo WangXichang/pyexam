@@ -1305,8 +1305,39 @@ class LevelScore(ScoreTransformModel):
                 curr_ratio = self.ratio_grade_table[curr_level_no - 1]
                 curr_p = rv[sf+'_percent']
                 curr_seg = rv['seg']
-                if cumu_p + curr_p >= curr_ratio:
-                    pass
+                cumu_p += curr_p
+                if cumu_p >= curr_ratio:
+                    set_level_no = curr_level_no
+                    set_level_score = self.level_score_table[set_level_no - 1]
+                    new_no = False
+                    d1 = abs(curr_ratio - last_p)
+                    d2 = abs(curr_ratio - curr_p)
+                    if d1 < d2:
+                        if self.approx_method in 'minmax, near':
+                            set_seg = last_seg
+                            new_no = True
+                        else:
+                            set_seg = curr_seg
+                    elif d1 == d2:
+                        if self.approx_method in 'minmax, nearmin, minnear':
+                            set_seg = last_seg
+                            new_no = True
+                        else:
+                            set_seg = curr_seg
+                    else:  # d2 < d1
+                        if self.approx_method in 'maxmin, near':
+                            set_seg = curr_seg
+                        else:
+                            set_seg = last_seg
+                            new_no = True
+                    if new_no:
+                        set_index = ri
+                        curr_level_no += 1
+                    else:
+                        set_index = ri
+                    curr_level_score = self.level_score_table[curr_level_no-1]
+                    self.segtable.loc[set_index, sf+'_level'] = set_level_no
+                    self.segtable.loc[set_index, sf+'_level_score'] = set_level_score
 
 
     def report(self):
