@@ -1155,7 +1155,7 @@ class LevelScore(ScoreTransformModel):
 
         self.input_score_max = 100
         self.input_score_min = 0
-        self.ratio_grade_table = [sum(__zhejiang_ratio[0:j + 1]) * 0.01
+        self.ratio_grade_table = [round45i(sum(__zhejiang_ratio[0:j + 1]) * 0.01, 2)
                                   for j in range(len(__zhejiang_ratio))]
         self.level_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
         self.level_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
@@ -1288,11 +1288,23 @@ class LevelScore(ScoreTransformModel):
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].apply(lambda x: 1)
             self.segtable.astype({sf+'_level': int})
+            cumu_p = 0
             last_p = 0
+            last_seg = -1
             curr_p = 0
-            curr_ratio = 0
+            curr_seg = -1
+            curr_level_no = 1
+            max_level_no = max(self.level_no)
             for ri, rv in self.segtable.iterrows():
-                pass
+                if ri == self.segtable['seg'].count():
+                    pass
+                if curr_level_no == max_level_no:
+                    pass
+                curr_ratio = self.ratio_grade_table[curr_level_no - 1]
+                curr_p = rv[sf+'_percent']
+                curr_seg = rv['seg']
+                if cumu_p + curr_p >= curr_ratio:
+                    pass
 
 
     def report(self):
