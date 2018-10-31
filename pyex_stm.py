@@ -1285,64 +1285,50 @@ class LevelScore(ScoreTransformModel):
 
     # calculate level score by approx_method
     def get_level_map_by_approx(self):
+        self.ratio_grade_table = [1-x for x in self.ratio_grade_table]
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].apply(lambda x: 1)
             self.segtable.astype({sf+'_level': int})
-            cumu_p = 0
             last_p = 0
-            last_seg = -1
-            curr_p = 0
-            curr_seg = -1
-            curr_level_no = 1
-            max_level_no = max(self.level_no)
+            curr_level_no = self.level_no[0]
+            curr_level_ratio = self.ratio_grade_table[0]
+            curr_level_score = self.level_score_table[0]
+            max_count = self.segtable['seg'].count()
             for ri, rv in self.segtable.iterrows():
-                if rv[sf+'_percent'] == 1:
-                    self.segtable.loc[ri, sf+'_level'] = max_level_no
-                    self.segtable.loc[sf+'_level_score'] = \
-                        min(self.level_score_table) if self.level_order in 'd, descending' else \
-                        max(self.level_score_table)
+                self.segtable.loc[ri, sf + '_level'] = curr_level_no
+                self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
+                if rv[sf+'_percent'] == 1:  # set to end level and score
+                    self.segtable.loc[ri, sf+'_level'] = self.level_no[-1]
+                    self.segtable.loc[ri, sf+'_level_score'] = self.level_score_table[-1]
                     continue
-                curr_ratio = self.ratio_grade_table[curr_level_no - 1]
                 curr_p = rv[sf+'_percent']
-                curr_seg = rv['seg']
-                cumu_p += curr_p
-                if cumu_p >= curr_ratio:
-                    set_level_no = curr_level_no
-                    set_level_score = self.level_score_table[set_level_no - 1]
-                    curr_no_new = False
-                    d1 = abs(curr_ratio - last_p)
-                    d2 = abs(curr_ratio - curr_p)
+                if curr_p >= curr_level_ratio:
+                    curr_to_new_level = False
+                    d1 = abs(curr_level_ratio - last_p)
+                    d2 = abs(curr_level_ratio - curr_p)
                     if d1 < d2:
                         if self.approx_method in 'minmax, near':
-                            # set_seg = last_seg
-                             curr_no_new = True
-                        else:
-                            # set_seg = curr_seg
-                            pass
+                             curr_to_new_level = True
                     elif d1 == d2:
                         if self.approx_method in 'minmax, nearmin, minnear':
-                            # set_seg = last_seg
-                             curr_no_new = True
-                        else:
-                            # set_seg = curr_seg
-                            pass
+                             curr_to_new_level = True
                     else:  # d2 < d1
-                        if self.approx_method in 'maxmin, near':
-                            # set_seg = curr_seg
-                            pass
-                        else:
-                            # set_seg = last_seg
-                             curr_no_new = True
-                    if curr_no_new:
+                        if self.approx_method in 'minmax':
+                             curr_to_new_level = True
+                    if curr_to_new_level:
                         curr_level_no += 1
+                        curr_level_ratio = self.ratio_grade_table[curr_level_no-1]
                         curr_level_score = self.level_score_table[curr_level_no - 1]
                         self.segtable.loc[ri, sf + '_level'] = curr_level_no
                         self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
                     else:
-                        curr_level_score = self.level_score_table[curr_level_no-1]
                         self.segtable.loc[ri, sf+'_level'] = curr_level_no
                         self.segtable.loc[ri, sf+'_level_score'] = curr_level_score
-                        curr_level_no += 1
+                        if ri < max_count & self.segtable.loc[ri+1, sf+'_count'] > 0:
+                            curr_level_no += 1
+                            curr_level_ratio = self.ratio_grade_table[curr_level_no-1]
+                            curr_level_score = self.level_score_table[curr_level_no - 1]
+                last_p = curr_p
 
     def report(self):
         print('Level-score Transform Report')
