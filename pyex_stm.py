@@ -1309,36 +1309,40 @@ class LevelScore(ScoreTransformModel):
                 if cumu_p >= curr_ratio:
                     set_level_no = curr_level_no
                     set_level_score = self.level_score_table[set_level_no - 1]
-                    new_no = False
+                    curr_no_new = False
                     d1 = abs(curr_ratio - last_p)
                     d2 = abs(curr_ratio - curr_p)
                     if d1 < d2:
                         if self.approx_method in 'minmax, near':
-                            set_seg = last_seg
-                            new_no = True
+                            # set_seg = last_seg
+                             curr_no_new = True
                         else:
-                            set_seg = curr_seg
+                            # set_seg = curr_seg
+                            pass
                     elif d1 == d2:
                         if self.approx_method in 'minmax, nearmin, minnear':
-                            set_seg = last_seg
-                            new_no = True
+                            # set_seg = last_seg
+                             curr_no_new = True
                         else:
-                            set_seg = curr_seg
+                            # set_seg = curr_seg
+                            pass
                     else:  # d2 < d1
                         if self.approx_method in 'maxmin, near':
-                            set_seg = curr_seg
+                            # set_seg = curr_seg
+                            pass
                         else:
-                            set_seg = last_seg
-                            new_no = True
-                    if new_no:
-                        set_index = ri
+                            # set_seg = last_seg
+                             curr_no_new = True
+                    if curr_no_new:
                         curr_level_no += 1
+                        curr_level_score = self.level_score_table[curr_level_no - 1]
+                        self.segtable.loc[ri, sf + '_level'] = curr_level_no
+                        self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
                     else:
-                        set_index = ri
-                    curr_level_score = self.level_score_table[curr_level_no-1]
-                    self.segtable.loc[set_index, sf+'_level'] = set_level_no
-                    self.segtable.loc[set_index, sf+'_level_score'] = set_level_score
-
+                        curr_level_score = self.level_score_table[curr_level_no-1]
+                        self.segtable.loc[ri, sf+'_level'] = curr_level_no
+                        self.segtable.loc[ri, sf+'_level_score'] = curr_level_score
+                        curr_level_no += 1
 
     def report(self):
         print('Level-score Transform Report')
