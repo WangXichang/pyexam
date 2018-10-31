@@ -1275,7 +1275,7 @@ class LevelScore(ScoreTransformModel):
                                     )
 
     def __map_percent_to_level(self, p):
-        p_start = 0 if self.level_order == 'a' else 1
+        p_start = 0 if self.level_order in 'a, ascending' else 1
         for j, r in enumerate(self.ratio_grade_table):
             logic = (p_start <= p <= r) if self.level_order == 'a' else (p_start >= p >= r)
             if logic:
@@ -1284,7 +1284,7 @@ class LevelScore(ScoreTransformModel):
         return self.level_no[-1]
 
     # calculate level score by approx_method
-    def __get_level_map_by_approx(self):
+    def get_level_map_by_approx(self):
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].apply(lambda x: 1)
             self.segtable.astype({sf+'_level': int})
@@ -1296,10 +1296,12 @@ class LevelScore(ScoreTransformModel):
             curr_level_no = 1
             max_level_no = max(self.level_no)
             for ri, rv in self.segtable.iterrows():
-                if ri == self.segtable['seg'].count():
-                    pass
-                if curr_level_no == max_level_no:
-                    pass
+                if rv[sf+'_percent'] == 1:
+                    self.segtable.loc[ri, sf+'_level'] = max_level_no
+                    self.segtable.loc[sf+'_level_score'] = \
+                        min(self.level_score_table) if self.level_order in 'd, descending' else \
+                        max(self.level_score_table)
+                    continue
                 curr_ratio = self.ratio_grade_table[curr_level_no - 1]
                 curr_p = rv[sf+'_percent']
                 curr_seg = rv['seg']
