@@ -1194,17 +1194,18 @@ class LevelScore(ScoreTransformModel):
         if isinstance(minscore, int):
             self.input_score_min = minscore
         if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
-            self.ratio_grade_table = [1 - sum(level_ratio_table[0:j + 1]) * 0.01
+            self.ratio_grade_table = [round45i(1 - sum(level_ratio_table[0:j + 1]) * 0.01, 2)
                                       for j in range(len(level_ratio_table))]
             if sum(level_ratio_table) != 100:
-                print('ratio table is wrong, sum is not 100! sum={}'.format(sum(level_ratio_table)))
+                print('ratio table is wrong, sum:{} is not 100!'.format(sum(level_ratio_table)))
         if isinstance(level_score_table, list) or isinstance(level_score_table, tuple):
             self.level_score_table = level_score_table
         if len(self.ratio_grade_table) != len(self.level_score_table):
             print('error level data set, ratio/score table is not same length!')
             print(self.ratio_grade_table, '\n', self.level_score_table)
-        self.level_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
+        self.level_no = [x+1 for x in range(len(self.ratio_grade_table))]
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+        self.ratio_grade_table = [1] + self.ratio_grade_table
         if approx_method in self.approx_method_set:
             self.approx_method = approx_method
 
@@ -1226,7 +1227,8 @@ class LevelScore(ScoreTransformModel):
         self.segtable = seg.output_data
 
         # key step: create level score map list
-        self.__get_level_table()
+        # self.__get_level_table()
+        self.get_level_map_by_approx()  # new method by approx
 
         # make output_data by map
         self.output_data = self.input_data[self.field_list]
@@ -1235,15 +1237,18 @@ class LevelScore(ScoreTransformModel):
         for sf in self.field_list:
             print('transform score at field:{} ...'.format(sf))
             dft = self.output_data
+
             # get percent
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
-            dft[sf+'_percent'] = dft[sf+'_percent'].apply(
-                lambda x: x if x in dtt['seg'] else -1)
+            # dft[sf+'_percent'] = dft[sf+'_percent'].apply(
+                # lambda x: x if x in dtt['seg'] else -1)
+
             # get level no by map
             dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf + '_level'].values)
-            dft[sf+'_level'] = dft[sf+'_level'].apply(lambda x: x if x in self.level_no else -1)
+            # dft[sf+'_level'] = dft[sf+'_level'].apply(lambda x: x if x in self.level_no else -1)
+
             # get level score by map
             dft.loc[:, sf+'_level_score'] = \
                 dft.loc[:, sf+'_level'].apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
@@ -1259,6 +1264,9 @@ class LevelScore(ScoreTransformModel):
             level_min = self.segtable.groupby(sf+'_level')['seg'].min()
             self.report_doc.update({sf: ['level({}):{}-{}'.format(j+1, x[0], x[1])
                                          for j, x in enumerate(zip(level_max, level_min))]})
+            pt = pd.pivot_table(self.segtable, values='seg', index=sf + '_level', aggfunc=[max, min])
+            self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
+                                          for idx in pt.index]})
         # running end
         print('used time:{:6.4f}'.format(time.time()-t0))
         print('---Level Score Transform End---')
@@ -1275,23 +1283,23 @@ class LevelScore(ScoreTransformModel):
                                     )
 
     def __map_percent_to_level(self, p):
-        p_start = 0 if self.level_order in 'a, ascending' else 1
-        for j, r in enumerate(self.ratio_grade_table):
-            logic = (p_start <= p <= r) if self.level_order == 'a' else (p_start >= p >= r)
-            if logic:
+        # p_start = 0 if self.level_order in 'a, ascending' else 1
+        for j in range(len(self.ratio_grade_table)-1):
+            # logic = (p_start <= p <= r) if self.level_order in 'a, ascending' else (r <= p <= p_start)
+            if self.ratio_grade_table[j] >= p >= self.ratio_grade_table[j+1]:
                 return self.level_no[j]
-            p_start = r
+        print('percent:{} not found in {}'.format(p, self.ratio_grade_table))
         return self.level_no[-1]
 
     # calculate level score by approx_method
     def get_level_map_by_approx(self):
-        self.ratio_grade_table = [1-x for x in self.ratio_grade_table]
+        ratio_table = [1-x for x in self.ratio_grade_table[1:]]
         for sf in self.field_list:
             self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].apply(lambda x: 1)
             self.segtable.astype({sf+'_level': int})
             last_p = 0
             curr_level_no = self.level_no[0]
-            curr_level_ratio = self.ratio_grade_table[0]
+            curr_level_ratio = ratio_table[0]
             curr_level_score = self.level_score_table[0]
             max_count = self.segtable['seg'].count()
             for ri, rv in self.segtable.iterrows():
@@ -1317,7 +1325,7 @@ class LevelScore(ScoreTransformModel):
                              curr_to_new_level = True
                     if curr_to_new_level:
                         curr_level_no += 1
-                        curr_level_ratio = self.ratio_grade_table[curr_level_no-1]
+                        curr_level_ratio = ratio_table[curr_level_no-1]
                         curr_level_score = self.level_score_table[curr_level_no - 1]
                         self.segtable.loc[ri, sf + '_level'] = curr_level_no
                         self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
@@ -1326,9 +1334,11 @@ class LevelScore(ScoreTransformModel):
                         self.segtable.loc[ri, sf+'_level_score'] = curr_level_score
                         if ri < max_count & self.segtable.loc[ri+1, sf+'_count'] > 0:
                             curr_level_no += 1
-                            curr_level_ratio = self.ratio_grade_table[curr_level_no-1]
+                            curr_level_ratio = ratio_table[curr_level_no-1]
                             curr_level_score = self.level_score_table[curr_level_no - 1]
                 last_p = curr_p
+            if self.output_data_decimal == 0:
+                self.segtable = self.segtable.astype({sf+'_level_score': int})
 
     def report(self):
         print('Level-score Transform Report')
