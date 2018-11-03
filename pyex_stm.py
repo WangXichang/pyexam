@@ -1,20 +1,23 @@
 # -*- utf-8 -*-
 
-# version 2018-09-24
-# revised for shandong interval linear transform
-# separate from pyex_lib, pyex_seg
-# use pyex_ptt if import
+# from 2018-09-24
+# designed for zhejiang, ..., Tianjin
+# also for shandong interval linear transform
 
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
+# internal modules
 import copy
 import time
+import warnings
+
+# necessary modules
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# used in class Zscore
 import scipy.stats as sts
 import seaborn as sbn
-# import pyex_ptt as ptt
-import warnings
 
 
 warnings.filterwarnings('ignore')
