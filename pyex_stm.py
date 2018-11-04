@@ -8,6 +8,7 @@
 # internal modules
 import copy
 import time
+import os
 import warnings
 
 # necessary modules
@@ -337,6 +338,17 @@ class ScoreTransformModel(object):
             return False
         return True
 
+    def read_csv(self, filename, field_list):
+        if not os.path.isfile(filename):
+            print('{} not valid file name'.format(filename))
+            return
+        self.input_data = filename
+        flist = list(self.input_data.columns)
+        if sum([1 if f in flist else 0 for f in field_list]) == len(field_list):
+            self.field_list = field_list
+        else:
+            self.field_list = [fs for fs in flist if type(fs)]
+
     def report(self):
         raise NotImplementedError()
 
@@ -572,7 +584,7 @@ class PltScore(ScoreTransformModel):
 
         # transform score on each field
         self.result_dict = {}
-        result_dataframe = self.input_data[self.field_list]
+        result_dataframe = self.input_data
         result_report_save = ''
         for i, fs in enumerate(self.field_list):
             print(' --start transform score field: <<{}>>'.format(fs))
@@ -626,7 +638,7 @@ class PltScore(ScoreTransformModel):
             return
         # transform score
         if not isinstance(self.output_data, pd.DataFrame):
-            self.output_data = self.input_data.copy(deep=True)
+            self.output_data = self.input_data
         self.output_data.loc[:, rawscore_field + '_plt'] = \
             self.input_data[rawscore_field].apply(self.__get_plt_score)
         # create report
@@ -911,7 +923,7 @@ class Zscore(ScoreTransformModel):
         # check data and parameter in super
         if not super().run():
             return
-        self.output_data = self.input_data[self.field_list]
+        self.output_data = self.input_data
         self._segtable = self.__get_segtable(
             self.output_data,
             self.maxRawscore,
@@ -1106,7 +1118,7 @@ class TscoreLinear(ScoreTransformModel):
 
     def run(self):
         super().run()
-        self.output_data = self.input_data[self.field_list]
+        self.output_data = self.input_data
         for sf in self.field_list:
             rmean, rstd = self.output_data[[sf]].describe().loc[['mean', 'std']].values[:, 0]
             self.output_data[sf + '_zscore'] = \
@@ -1234,7 +1246,7 @@ class LevelScore(ScoreTransformModel):
         self.get_level_map_by_approx()  # new method by approx
 
         # make output_data by map
-        self.output_data = self.input_data[self.field_list]
+        self.output_data = self.input_data
         self.report_doc = {}
         dtt = self.segtable
         for sf in self.field_list:
