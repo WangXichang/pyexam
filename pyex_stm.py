@@ -39,28 +39,34 @@ def see():
     
     [function]
        run(name, df, field_list, ratio, level_max, level_diff, input_score_max, input_score_min,
-           output_score_decimal=0, approx_mode='near'):
-          运行各个模型的接口函数
+           output_score_decimal=0, approx_mode='near') 
+          运行各个模型的入口函数       
+          interface function
           通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
           可以计算山东、上海、浙江、北京、天津、陶百强模型
-          通过指定name = 'zscore'/'tscore'/'tlinear'
-          也可以计算Z分数、T分数、线性转换T分数
-          ---
-          interface function
           caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          通过指定name = 'zscore'/'tscore'/'tlinear'计算Z分数、T分数、线性转换T分数          
           caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
           ---
+          参数描述
           parameters specification:
           name: model name
-          df: input raw score data, type DataFrame of pandas
-          field_list: score field to calculate in df
-          ratio: ratio list including percent value for each interval of level score
-          level_max: max value of level score
-          level_diff: differentiao value of level score
-          input_score_max: raw score max value
-          input_score_min: raw score min value
-          output_score_decimal: level score precision, decimal digit number
-          approx_mode: how to approxmate score points of raw score for each ratio vlaue
+          df: input raw score data, type DataFrame of pandas 输入原始分数数据，类型为DataFrame
+          field_list: score field to calculate in df 计算转换分数的字段表
+          ratio: ratio list including percent value for each interval of level score 划分等级的比例表
+          level_max: max value of level score 最大等级分数
+          level_diff: differentiao value of level score 等级分差值
+          input_score_max: raw score max value 最大原始分数
+          input_score_min: raw score min value 最小原始分数
+          output_score_decimal: level score precision, decimal digit number 输出分数精度，小数位数
+          approx_mode: how to approxmate score points of raw score for each ratio vlaue 
+              目前设计的逼近策略有：
+              minmax: 小于中最大的值
+              maxmin: 大于中最小的值
+              near: 最近的值
+              nearmin: 最近值中最小的值， 等同于near
+              nearmax: 最近值中最大的值
+
           ---
           usage:
           import pyex_stm as stm
@@ -68,16 +74,22 @@ def see():
           result.report()
           result.output.head()
           
-       plot_model_distribution: 
+       plot() 
           各方案按照比例转换后分数后的分布直方图
           plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
-       round45i: 
+
+       round45i() 
           四舍五入函数
           function for rounding strictly at some decimal position
-       exp_norm_table: 
-          根据均值和标准差数生成正态分布表
-          creating norm data dataframe with assigned mean and standard deviation
-    
+
+       get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
+          生成具有标记刻度数、标准差、均值、标准差范围的正态分布表
+          create norm data dataframe with assigned scale, mean, standard deviation, std range
+        
+       get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6)
+          生成具有指定均值和标准差的数据样本集
+          create sample data set according to assigned mean and std value
+
     [class]
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
        LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
@@ -623,6 +635,23 @@ class PltScore(ScoreTransformModel):
         self.output_report_doc = result_report_save
         self.output_data = result_dataframe
 
+        # seg fs_plt in segtable
+        fs_list = ['seg']
+        for ffs in self.field_list:
+            fs_list += [ffs+'_count']
+            fs_list += [ffs+'_percent']
+            fs_list += [ffs+'_plt']
+        df = self.segtable
+        for fs in fs_list:
+            # format percent to fixed precision for print
+            if 'percent' in fs:
+                df[fs] = df[fs].apply(lambda x: round(x, self.sys_pricision_decimals))
+            # get plt score in segtable
+            if '_plt' in fs:
+                fs_name = fs[0:fs.index('_')]
+                df.loc[:, fs] = df['seg'].apply(
+                    lambda x: self.get_plt_score_from_formula(fs_name, x))
+
         print('used time:', time.time() - stime)
         print('-'*50)
         # run end
@@ -851,29 +880,18 @@ class PltScore(ScoreTransformModel):
         return
 
     def report_segtable(self):
-        # seg_decimal_digit = 8
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
             fs_list += [ffs+'_plt']
-        df = self.segtable
-        for fs in fs_list:
-            # format percent to fixed precision for print
-            if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, self.sys_pricision_decimals))
-            # get plt score in segtable
-            if '_plt' in fs:
-                fs_name = fs[0:fs.index('_')]
-                df.loc[:, fs] = df['seg'].apply(
-                    lambda x: self.get_plt_score_from_formula(fs_name, x))
         # use ptt from pyex_ptt if available
         # if 'ptt' in locals() or 'ptt' in globals():
         #     print(ptt.make_page(df=df[fs_list],
         #                         title='level score table for {}'.format(self.model_name),
         #                         pagelines=self.input_score_max+1))
         # else:
-        print(df[fs_list])
+        print(self.segtable[fs_list])
 
 
 class Zscore(ScoreTransformModel):
@@ -898,7 +916,7 @@ class Zscore(ScoreTransformModel):
         self.__currentfield = None
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = exp_norm_table(self._samplesize, stdnum=4)
+        self._normtable = get_norm_dist_table(self._samplesize, stdnum=4)
         self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
 
     def set_data(self, input_data=None, field_list=None):
@@ -1242,13 +1260,12 @@ class LevelScore(ScoreTransformModel):
         self.segtable = seg.output_data
 
         # key step: create level score map list
-        # self.__get_level_table()
+        # self.__get_level_table()  # depricated
         self.get_level_map_by_approx()  # new method by approx
 
         # make output_data by map
         self.output_data = self.input_data
         self.report_doc = {}
-        dtt = self.segtable
         for sf in self.field_list:
             print('transform score at field:{} ...'.format(sf))
             dft = self.output_data
@@ -1256,13 +1273,10 @@ class LevelScore(ScoreTransformModel):
             # get percent
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
-            # dft[sf+'_percent'] = dft[sf+'_percent'].apply(
-                # lambda x: x if x in dtt['seg'] else -1)
 
             # get level no by map
             dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
                 self.segtable['seg'].values, self.segtable[sf + '_level'].values)
-            # dft[sf+'_level'] = dft[sf+'_level'].apply(lambda x: x if x in self.level_no else -1)
 
             # get level score by map
             dft.loc[:, sf+'_level_score'] = \
@@ -1331,13 +1345,13 @@ class LevelScore(ScoreTransformModel):
                     d2 = abs(curr_level_ratio - curr_p)
                     if d1 < d2:
                         if self.approx_method in 'minmax, near':
-                             curr_to_new_level = True
+                            curr_to_new_level = True
                     elif d1 == d2:
                         if self.approx_method in 'minmax, nearmin, minnear':
-                             curr_to_new_level = True
+                            curr_to_new_level = True
                     else:  # d2 < d1
                         if self.approx_method in 'minmax':
-                             curr_to_new_level = True
+                            curr_to_new_level = True
                     if curr_to_new_level:
                         curr_level_no += 1
                         curr_level_ratio = ratio_table[curr_level_no-1]
@@ -1994,7 +2008,7 @@ def round45i(v: float, dec=0):
     return int(r) if dec <= 0 else r
 
 
-def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
+def get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
     create a score dataframe with fields 'score', used to test some application
@@ -2013,7 +2027,7 @@ def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=
 
 
 # create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
-def exp_norm_table(size=400, std=1, mean=0, stdnum=4):
+def get_norm_dist_table(size=400, std=1, mean=0, stdnum=4):
     """
     function
         生成正态分布量表
