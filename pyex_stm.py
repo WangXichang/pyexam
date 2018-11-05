@@ -29,7 +29,7 @@ zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-shandong_ratio = [.03, .07, .16, .24, .24, .16, .07, 0.03]
+shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
 shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
@@ -159,7 +159,7 @@ def run(name='shandong',
 
     # shandong score model
     if name == 'shandong':
-        ratio = shandong_ratio
+        ratio = [x*0.01 for x in shandong_ratio]
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
@@ -269,7 +269,7 @@ def plot():
     plt.figure('model ratio distribution')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
-    plt.bar(range(1, 9), [shandong_ratio[j]*100 for j in range(8)])
+    plt.bar(range(1, 9), [shandong_ratio[j] for j in range(8)])
     plt.title('shandong model')
 
     plt.subplot(232)
@@ -350,16 +350,14 @@ class ScoreTransformModel(object):
             return False
         return True
 
-    def read_csv(self, filename, field_list):
+    def read_input_data_from_csv(self, filename=''):
         if not os.path.isfile(filename):
             print('{} not valid file name'.format(filename))
             return
-        self.input_data = filename
-        flist = list(self.input_data.columns)
-        if sum([1 if f in flist else 0 for f in field_list]) == len(field_list):
-            self.field_list = field_list
-        else:
-            self.field_list = [fs for fs in flist if type(fs)]
+        self.input_data = pd.read_csv(filename)
+
+    def save_output_data_to_csv(self, filename):
+        self.output_data.to_csv(filename)
 
     def report(self):
         raise NotImplementedError()
@@ -483,7 +481,7 @@ class PltScore(ScoreTransformModel):
 
         # result
         self.seg_model = None
-        self.segtable = pd.DataFrame()
+        self.map_table = pd.DataFrame()
         self.result_input_data_points = []
         self.result_coeff = {}
         self.result_formula = ''
@@ -579,7 +577,7 @@ class PltScore(ScoreTransformModel):
             self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
 
         # calculate seg table
-        print('--- start calculating segtable ---')
+        print('--- start calculating map_table ---')
         # import pyex_seg as psg
         seg = SegTable()
         seg.set_data(input_data=self.input_data,
@@ -592,7 +590,7 @@ class PltScore(ScoreTransformModel):
                            usealldata=False)
         seg.run()
         self.seg_model = seg
-        self.segtable = seg.output_data
+        self.map_table = seg.output_data
 
         # transform score on each field
         self.result_dict = {}
@@ -635,18 +633,18 @@ class PltScore(ScoreTransformModel):
         self.output_report_doc = result_report_save
         self.output_data = result_dataframe
 
-        # seg fs_plt in segtable
+        # seg fs_plt in map_table
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
             fs_list += [ffs+'_plt']
-        df = self.segtable
+        df = self.map_table
         for fs in fs_list:
             # format percent to fixed precision for print
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, self.sys_pricision_decimals))
-            # get plt score in segtable
+            # get plt score in map_table
             if '_plt' in fs:
                 fs_name = fs[0:fs.index('_')]
                 df.loc[:, fs] = df['seg'].apply(
@@ -729,7 +727,7 @@ class PltScore(ScoreTransformModel):
         ratio_last = -1
         ratio_cur_pos = 0     # first is 0
         ratio_num = len(self.input_score_ratio_cum)
-        for index, row in self.segtable.iterrows():
+        for index, row in self.map_table.iterrows():
             p = row[field+'_percent']
             seg_cur = row['seg']
             cur_input_score_ratio = self.input_score_ratio_cum[ratio_cur_pos]
@@ -764,8 +762,8 @@ class PltScore(ScoreTransformModel):
                 elif p == cur_input_score_ratio:
                     # some percent is same as input_ratio
                     nextpercent = -1
-                    if seg_cur < self.input_score_max:  # max(self.segtable.seg):
-                        nextpercent = self.segtable['seg'].loc[seg_cur + 1]
+                    if seg_cur < self.input_score_max:  # max(self.map_table.seg):
+                        nextpercent = self.map_table['seg'].loc[seg_cur + 1]
                     if p == nextpercent:
                         continue
                     # next is not same
@@ -879,19 +877,13 @@ class PltScore(ScoreTransformModel):
         plt.show()
         return
 
-    def report_segtable(self):
+    def report_map_table(self):
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
             fs_list += [ffs+'_plt']
-        # use ptt from pyex_ptt if available
-        # if 'ptt' in locals() or 'ptt' in globals():
-        #     print(ptt.make_page(df=df[fs_list],
-        #                         title='level score table for {}'.format(self.model_name),
-        #                         pagelines=self.input_score_max+1))
-        # else:
-        print(self.segtable[fs_list])
+        print(self.map_table[fs_list])
 
 
 class Zscore(ScoreTransformModel):
@@ -912,7 +904,7 @@ class Zscore(ScoreTransformModel):
         self.stdNum = 3
         self.maxRawscore = 150
         self.minRawscore = 0
-        self._segtable = None
+        self._map_table = None
         self.__currentfield = None
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
@@ -942,7 +934,7 @@ class Zscore(ScoreTransformModel):
         if not super().run():
             return
         self.output_data = self.input_data
-        self._segtable = self.__get_segtable(
+        self._map_table = self.__get_map_table(
             self.output_data,
             self.maxRawscore,
             self.minRawscore,
@@ -953,20 +945,20 @@ class Zscore(ScoreTransformModel):
             self._calczscoretable(sf)
             df = self.output_data.copy()
             print('zscore calculating1...')
-            # new_score = [x if x in self._segtable.seg.values else -99 for x in df[sf]]
-            df.loc[:, sf+'_zscore'] = df[sf].apply(lambda x: x if x in self._segtable.seg.values else -999)
-            # df.loc[:, sf+'_zscore'] = new_score
+            df.loc[:, sf+'_zscore'] = \
+                df[sf].apply(lambda x: x if x in self._map_table.seg.values else -999)
             print('zscore calculating1...use time{}'.format(time.clock()-st))
             print('zscore calculating2...')
-            df.loc[:, sf+'_zscore'] = df[sf + '_zscore'].replace(self._segtable.seg.values,
-                                                                 self._segtable[sf+'_zscore'].values)
+            df.loc[:, sf+'_zscore'] = \
+                df[sf + '_zscore'].replace(self._map_table.seg.values,
+                                           self._map_table[sf+'_zscore'].values)
             self.output_data = df
             print('zscore transoform finished with {} consumed'.format(round(time.clock()-st, 2)))
 
     def _calczscoretable(self, sf):
-        if sf+'_percent' in self._segtable.columns.values:
-            self._segtable.loc[:, sf+'_zscore'] = \
-                self._segtable[sf+'_percent'].apply(self.__get_zscore_from_normtable)
+        if sf+'_percent' in self._map_table.columns.values:
+            self._map_table.loc[:, sf+'_zscore'] = \
+                self._map_table[sf+'_percent'].apply(self.__get_zscore_from_normtable)
         else:
             print('error: not found field{}+"_percent"!'.format(sf))
 
@@ -979,8 +971,8 @@ class Zscore(ScoreTransformModel):
         return max(-self.stdNum, min(y, self.stdNum))
 
     @staticmethod
-    def __get_segtable(df, maxscore, minscore, scorefieldnamelist):
-        """no sort problem in this segtable usage"""
+    def __get_map_table(df, maxscore, minscore, scorefieldnamelist):
+        """no sort problem in this map_table usage"""
         seg = SegTable()
         seg.set_data(df, scorefieldnamelist)
         seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='ascending')
@@ -1195,7 +1187,7 @@ class LevelScore(ScoreTransformModel):
         self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
         self.approx_method = 'near'
 
-        self.segtable = None
+        self.map_table = None
         self.output_data = None
         self.report_doc = ''
         self.result_dict = dict()
@@ -1257,7 +1249,7 @@ class LevelScore(ScoreTransformModel):
                            segmin=self.input_score_min,
                            segsort=self.level_order)
         seg.run()
-        self.segtable = seg.output_data
+        self.map_table = seg.output_data
 
         # key step: create level score map list
         # self.__get_level_table()  # depricated
@@ -1272,11 +1264,11 @@ class LevelScore(ScoreTransformModel):
 
             # get percent
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
-                self.segtable['seg'].values, self.segtable[sf+'_percent'].values)
+                self.map_table['seg'].values, self.map_table[sf+'_percent'].values)
 
             # get level no by map
             dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
-                self.segtable['seg'].values, self.segtable[sf + '_level'].values)
+                self.map_table['seg'].values, self.map_table[sf + '_level'].values)
 
             # get level score by map
             dft.loc[:, sf+'_level_score'] = \
@@ -1289,24 +1281,24 @@ class LevelScore(ScoreTransformModel):
             self.output_data = dft
 
             # save to report_doc
-            level_max = self.segtable.groupby(sf+'_level')['seg'].max()
-            level_min = self.segtable.groupby(sf+'_level')['seg'].min()
+            level_max = self.map_table.groupby(sf+'_level')['seg'].max()
+            level_min = self.map_table.groupby(sf+'_level')['seg'].min()
             self.report_doc.update({sf: ['level({}):{}-{}'.format(j+1, x[0], x[1])
                                          for j, x in enumerate(zip(level_max, level_min))]})
-            pt = pd.pivot_table(self.segtable, values='seg', index=sf + '_level', aggfunc=[max, min])
+            pt = pd.pivot_table(self.map_table, values='seg', index=sf + '_level', aggfunc=[max, min])
             self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
                                           for idx in pt.index]})
         # running end
         print('used time:{:6.4f}'.format(time.time()-t0))
         print('---Level Score Transform End---')
 
-    # make map seg_percent to level in segtable, used to calculate level score
+    # make map seg_percent to level in map_table, used to calculate level score
     def __get_level_table(self):
         for sf in self.field_list:
-            self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].\
+            self.map_table.loc[:, sf+'_level'] = self.map_table[sf+'_percent'].\
                 apply(lambda x: self.__map_percent_to_level(1 - x))
-            self.segtable.astype({sf+'_level': int})
-            pt = pd.pivot_table(self.segtable, values='seg', index=sf+'_level', aggfunc=[max, min])
+            self.map_table.astype({sf+'_level': int})
+            pt = pd.pivot_table(self.map_table, values='seg', index=sf+'_level', aggfunc=[max, min])
             self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
                                           for idx in pt.index]}
                                     )
@@ -1324,19 +1316,19 @@ class LevelScore(ScoreTransformModel):
     def get_level_map_by_approx(self):
         ratio_table = [1-x for x in self.ratio_grade_table[1:]]
         for sf in self.field_list:
-            self.segtable.loc[:, sf+'_level'] = self.segtable[sf+'_percent'].apply(lambda x: 1)
-            self.segtable.astype({sf+'_level': int})
+            self.map_table.loc[:, sf+'_level'] = self.map_table[sf+'_percent'].apply(lambda x: 1)
+            self.map_table.astype({sf+'_level': int})
             last_p = 0
             curr_level_no = self.level_no[0]
             curr_level_ratio = ratio_table[0]
             curr_level_score = self.level_score_table[0]
-            max_count = self.segtable['seg'].count()
-            for ri, rv in self.segtable.iterrows():
-                self.segtable.loc[ri, sf + '_level'] = curr_level_no
-                self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
+            max_count = self.map_table['seg'].count()
+            for ri, rv in self.map_table.iterrows():
+                self.map_table.loc[ri, sf + '_level'] = curr_level_no
+                self.map_table.loc[ri, sf + '_level_score'] = curr_level_score
                 if rv[sf+'_percent'] == 1:  # set to end level and score
-                    self.segtable.loc[ri, sf+'_level'] = self.level_no[-1]
-                    self.segtable.loc[ri, sf+'_level_score'] = self.level_score_table[-1]
+                    self.map_table.loc[ri, sf+'_level'] = self.level_no[-1]
+                    self.map_table.loc[ri, sf+'_level_score'] = self.level_score_table[-1]
                     continue
                 curr_p = rv[sf+'_percent']
                 if curr_p >= curr_level_ratio:
@@ -1356,18 +1348,18 @@ class LevelScore(ScoreTransformModel):
                         curr_level_no += 1
                         curr_level_ratio = ratio_table[curr_level_no-1]
                         curr_level_score = self.level_score_table[curr_level_no - 1]
-                        self.segtable.loc[ri, sf + '_level'] = curr_level_no
-                        self.segtable.loc[ri, sf + '_level_score'] = curr_level_score
+                        self.map_table.loc[ri, sf + '_level'] = curr_level_no
+                        self.map_table.loc[ri, sf + '_level_score'] = curr_level_score
                     else:
-                        self.segtable.loc[ri, sf+'_level'] = curr_level_no
-                        self.segtable.loc[ri, sf+'_level_score'] = curr_level_score
-                        if ri < max_count & self.segtable.loc[ri+1, sf+'_count'] > 0:
+                        self.map_table.loc[ri, sf+'_level'] = curr_level_no
+                        self.map_table.loc[ri, sf+'_level_score'] = curr_level_score
+                        if ri < max_count & self.map_table.loc[ri+1, sf+'_count'] > 0:
                             curr_level_no += 1
                             curr_level_ratio = ratio_table[curr_level_no-1]
                             curr_level_score = self.level_score_table[curr_level_no - 1]
                 last_p = curr_p
             if self.output_data_decimal == 0:
-                self.segtable = self.segtable.astype({sf+'_level_score': int})
+                self.map_table = self.map_table.astype({sf+'_level_score': int})
 
     def report(self):
         print('Level-score Transform Report')
@@ -1397,13 +1389,13 @@ class LevelScore(ScoreTransformModel):
     def check_data(self):
         return super().check_data()
 
-    def report_segtable(self):
+    def report_map_table(self):
         fs_list = ['seg']
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
             fs_list += [ffs+'_level']
-        df = self.segtable.copy()
+        df = self.map_table.copy()
         for fs in fs_list:
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, 8))
@@ -1435,7 +1427,7 @@ class LevelScoreTao(ScoreTransformModel):
         self.input_data = pd.DataFrame()
 
         self.level_no = [x for x in range(self.level_num+1)]
-        self.segtable = None
+        self.map_table = None
         self.level_dist_dict = {}  # fs: level_list, from max to min
         self.output_data = pd.DataFrame()
 
@@ -1477,11 +1469,11 @@ class LevelScoreTao(ScoreTransformModel):
         seg.set_data(self.input_data,
                      self.field_list)
         seg.run()
-        self.segtable = seg.output_data
+        self.map_table = seg.output_data
         for fs in self.field_list:
             lastpercent = 0
             lastseg = self.input_score_max
-            for ind, row in self.segtable.iterrows():
+            for ind, row in self.map_table.iterrows():
                 curpercent = row[fs + '_percent']
                 curseg = row['seg']
                 if row[fs+'_percent'] > self.max_ratio:
@@ -1500,7 +1492,7 @@ class LevelScoreTao(ScoreTransformModel):
         dt = copy.deepcopy(self.input_data[self.field_list])
         for fs in self.field_list:
             dt.loc[:, fs+'_level'] = dt[fs].apply(lambda x: self.run__get_level_score(fs, x))
-            dt2 = self.segtable
+            dt2 = self.map_table
             dt2.loc[:, fs+'_level'] = dt2['seg'].apply(lambda x: self.run__get_level_score(fs, x))
             self.output_data = dt
 
@@ -1521,9 +1513,9 @@ class LevelScoreTao(ScoreTransformModel):
     def report(self):
         print(self.output_data[[f+'_level' for f in self.field_list]].describe())
 
-    def print_segtable(self):
-        # print(ptt.make_mpage(self.segtable))
-        print(self.segtable)
+    def print_map_table(self):
+        # print(ptt.make_mpage(self.map_table))
+        print(self.map_table)
 
 
 # version 1.0.1 2018-09-24
@@ -1973,7 +1965,7 @@ class SegTable(object):
         for sf in self.field_list:
             step += 1
             legendlist.append(sf)
-            plt.figure('segtable figure({})'.
+            plt.figure('map_table figure({})'.
                        format('Descending' if self.__segSort in 'aA' else 'Ascending'))
             plt.subplot(221)
             plt.hist(self.input_data[sf], 20)
