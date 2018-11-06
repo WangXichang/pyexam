@@ -35,9 +35,9 @@ shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), 
 
 def see():
     print("""
-    module function and class:
+    module description 模块说明：
     
-    [function]
+    [function] 模块中的函数
        run(name, df, field_list, ratio, level_max, level_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near') 
           运行各个模型的入口函数       
@@ -79,9 +79,10 @@ def see():
           各方案按照比例转换后分数后的分布直方图
           plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
 
-       round45i() 
+       round45i(v: float, dec=0) 
           四舍五入函数
           function for rounding strictly at some decimal position
+          v 输入浮点数， dec：保留小数位数，缺省为0
 
        get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
           生成具有标记刻度数、标准差、均值、标准差范围的正态分布表
@@ -91,7 +92,7 @@ def see():
           生成具有指定均值和标准差的数据样本集
           create sample data set according to assigned mean and std value
 
-    [class]
+    [class] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
        LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
        Zscore: Z分数转换模型 zscore model
@@ -100,15 +101,6 @@ def see():
        SegTable: 计算分段表模型 segment table model
        TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
     """)
-    # some analysis on level score model in new Gaokao
-    """
-    基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
-    ● 浙江21等级方案   均值71.26，  标准差13.75,      归一值22.93
-    ● 上海11等级方案   均值55，     标准差8.75,       归一值29.17
-    ● 北京21等级方案   均值72.16，  标准差13.64,      归一值22.73
-    ● 天津21等级方案   均值72.94，  标准差14.36,      归一值23.94
-    ● 山东正态方案     均值60，     标准差15.6-9,     归一值19.5     
-    """
 
 
 # interface to use model for some typical application
@@ -358,9 +350,6 @@ class ScoreTransformModel(object):
         self.input_data = pd.read_csv(filename)
 
     def save_output_data_to_csv(self, filename):
-        self.output_data.to_csv(filename)
-
-    def save_csv(self, filename):
         self.output_data.to_csv(filename)
 
     def report(self):
