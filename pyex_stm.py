@@ -60,19 +60,20 @@ def see():
           input_score_min: raw score min value 最小原始分数
           output_score_decimal: level score precision, decimal digit number 输出分数精度，小数位数
           approx_mode: how to approxmate score points of raw score for each ratio vlaue 
-              目前设计的逼近策略有：
-              minmax: 小于中最大的值
-              maxmin: 大于中最小的值
-              near: 最近的值
-              nearmin: 最近值中最小的值， 等同于near
-              nearmax: 最近值中最大的值
+              目前设计的比例值逼近策略有(name=)：
+              'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
+              'maxmin': get score with max value in less 大于该比例值的分值中最小的值
+              'near':   get score with nearest ratio 最接近该比例值的分值（分值）
+              'minnear': get score with min value in near 最接近该比例值的分值中最小的值
+              'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
 
           ---
-          usage:
+          usage:调用方式
           import pyex_stm as stm
-          result = stm.run(name='shandong', df=data, field_list=['ls'])
-          result.report()
-          result.output.head()
+          m = stm.run(name='shandong', df=data, field_list=['ls']) 
+          m.report()
+          m.output.head()
+          m.save_output_data_to_csv
           
        plot() 
           各方案按照比例转换后分数后的分布直方图
@@ -132,7 +133,7 @@ def run(name='shandong',
     :param input_score_max: max value in raw score
     :param input_score_min: min value in raw score
     :param output_score_decimal: output score decimal digits
-    :param approx_method: maxmin, minmax, nearmin, nearmax
+    :param approx_method: maxmin, minmax, minnear, maxnear
     :return: model
     """
     # check name
@@ -361,6 +362,9 @@ class ScoreTransformModel(object):
         else:
             self.field_list = [fs for fs in flist if type(fs)]
 
+    def save_csv(self, filename):
+        self.output_data.to_csv(filename)
+
     def report(self):
         raise NotImplementedError()
 
@@ -523,7 +527,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param approx_mode:  minmax, maxmin, nearmin, nearmax
+        :param approx_mode:  minmax, maxmin, minnear, maxnear
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
@@ -718,7 +722,7 @@ class PltScore(ScoreTransformModel):
         return True
 
     def __get_raw_score_from_ratio(self, field, mode='minmax'):
-        if mode not in 'minmax, maxmin, nearmax, nearmin':
+        if mode not in 'minmax, maxmin, maxnear, minnear':
             print('error mode {} !'.format(mode))
             raise TypeError
 
@@ -746,7 +750,7 @@ class PltScore(ScoreTransformModel):
                 elif p > cur_input_score_ratio:
                     score_points.append(seg_last if mode == 'minmax' else seg_cur)
                     ratio_cur_pos += 1
-            if mode in 'nearmax, nearmin, near':
+            if mode in 'maxnear, minnear, near':
                 if p > cur_input_score_ratio:
                     if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - ratio_last):
                         # thispercent is near to p
@@ -755,8 +759,8 @@ class PltScore(ScoreTransformModel):
                         # lastpercent is near to p
                         score_points.append(seg_last)
                     else:
-                        # two dist is equal, to set nearmin if near
-                        if mode == 'nearmax':
+                        # two dist is equal, to set minnear if near
+                        if mode == 'maxnear':
                             score_points.append(seg_cur)
                         else:
                             score_points.append(seg_last)
@@ -771,9 +775,9 @@ class PltScore(ScoreTransformModel):
                     # next is not same
                     if p == ratio_last:
                         # two percent is 0
-                        if mode == 'nearmax':
+                        if mode == 'maxnear':
                             score_points += [seg_cur]
-                        else:  # nearmin
+                        else:  # minnear
                             score_points += [seg_last]
                     else:
                         score_points += [seg_cur]
@@ -1184,7 +1188,7 @@ class LevelScore(ScoreTransformModel):
     def __init__(self):
         super().__init__('level')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        self.approx_method_set = 'minmax, maxmin, nearmax, nearmin, near'
+        self.approx_method_set = 'minmax, maxmin, maxnear, minnear, near'
 
         self.input_score_max = 100
         self.input_score_min = 0
@@ -1347,7 +1351,7 @@ class LevelScore(ScoreTransformModel):
                         if self.approx_method in 'minmax, near':
                             curr_to_new_level = True
                     elif d1 == d2:
-                        if self.approx_method in 'minmax, nearmin, minnear':
+                        if self.approx_method in 'minmax, minnear, minnear':
                             curr_to_new_level = True
                     else:  # d2 < d1
                         if self.approx_method in 'minmax':
