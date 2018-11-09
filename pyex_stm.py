@@ -107,9 +107,9 @@ def see():
 def run(name='shandong',
         df=None,
         field_list='',
-        ratio=None,
+        ratio_list=None,
         level_diff=None,  # level_diff = 3 for zhejiang,shanghai,beijing,tianjin
-        level_max=None,   # level_max = 100 for zhejiang,shanghai,beijing,tianjin
+        level_max=None,  # level_max = 100 for zhejiang,shanghai,beijing,tianjin
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
@@ -119,7 +119,7 @@ def run(name='shandong',
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
     :param df: dataframe, input data
     :param field_list: score fields list in input dataframe
-    :param ratio: ratio list used to create intervals of raw score for each level
+    :param ratio_list: ratio list used to create intervals of raw score for each level
     :param level_diff: difference value between two neighbor level score
     :param level_max: max value for level score
     :param input_score_max: max value in raw score
@@ -152,13 +152,13 @@ def run(name='shandong',
 
     # shandong score model
     if name == 'shandong':
-        ratio = [x*0.01 for x in shandong_ratio]
+        ratio_list = [x * 0.01 for x in shandong_ratio]
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_ratio_list=ratio,
+        pltmodel.set_parameters(input_score_ratio_list=ratio_list,
                                 output_score_points_list=shandong_segment,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
@@ -240,10 +240,10 @@ def run(name='shandong',
 
     # other models by assigning ratio and level differential size
     if name.lower() not in 'zhejiang, shanghai, beijing, tiangjin, tao, zscore, tscore, tlinear':
-        if ratio is None or level_max is None or level_diff is None:
+        if ratio_list is None or level_max is None or level_diff is None:
             print('no ratio defined for any model!')
             return
-        ratio_list = ratio
+        ratio_list = ratio_list
         level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
         m = LevelScore()
         m.model_name = name
