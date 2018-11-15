@@ -688,7 +688,11 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            self.result_input_data_points = self.__get_raw_score_from_ratio(field, self.approx_mode)
+            points_list = self.__get_raw_score_from_ratio(field, self.approx_mode)
+            if len(points_list) > 0:  # error found if approx_method name
+                self.result_input_data_points = points_list
+            else:
+                return False
         else:
             print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
             print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
@@ -718,10 +722,12 @@ class PltScore(ScoreTransformModel):
     def __get_raw_score_from_ratio(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
-            raise TypeError
+            return []
 
-        input_score_real_max = max(self.input_data[field])
-        score_points = [self.input_score_min] if self.score_order in 'ascending, a' else [input_score_real_max]
+        input_score_points_for_ratio = \
+            [min(self.input_data[field])] \
+            if self.score_order in 'ascending, a' else \
+            [max(self.input_data[field])]
 
         seg_last = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
         ratio_last = -1
@@ -732,32 +738,32 @@ class PltScore(ScoreTransformModel):
             seg_cur = row['seg']
             cur_input_score_ratio = self.input_score_ratio_cum[ratio_cur_pos]
             if (p == 1) | (ratio_cur_pos == ratio_num):
-                score_points += [seg_cur]
+                input_score_points_for_ratio += [seg_cur]
                 break
             if mode in 'minmax, maxmin':
                 if p == cur_input_score_ratio:
                     if (row['seg'] == 0) & (mode == 'minmax') & (index < self.input_score_max):
                         pass
                     else:
-                        score_points.append(seg_cur)
+                        input_score_points_for_ratio.append(seg_cur)
                         ratio_cur_pos += 1
                 elif p > cur_input_score_ratio:
-                    score_points.append(seg_last if mode == 'minmax' else seg_cur)
+                    input_score_points_for_ratio.append(seg_last if mode == 'minmax' else seg_cur)
                     ratio_cur_pos += 1
             if mode in 'nearmax, nearmin, near':
                 if p > cur_input_score_ratio:
                     if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - ratio_last):
                         # thispercent is near to p
-                        score_points.append(seg_cur)
+                        input_score_points_for_ratio.append(seg_cur)
                     elif (p-cur_input_score_ratio) > abs(cur_input_score_ratio - ratio_last):
                         # lastpercent is near to p
-                        score_points.append(seg_last)
+                        input_score_points_for_ratio.append(seg_last)
                     else:
                         # two dist is equal, to set nearmin if near
                         if mode == 'nearmax':
-                            score_points.append(seg_cur)
+                            input_score_points_for_ratio.append(seg_cur)
                         else:
-                            score_points.append(seg_last)
+                            input_score_points_for_ratio.append(seg_last)
                     ratio_cur_pos += 1
                 elif p == cur_input_score_ratio:
                     # some percent is same as input_ratio
@@ -770,15 +776,15 @@ class PltScore(ScoreTransformModel):
                     if p == ratio_last:
                         # two percent is 0
                         if mode == 'nearmax':
-                            score_points += [seg_cur]
+                            input_score_points_for_ratio += [seg_cur]
                         else:  # nearmin
-                            score_points += [seg_last]
+                            input_score_points_for_ratio += [seg_last]
                     else:
-                        score_points += [seg_cur]
+                        input_score_points_for_ratio += [seg_cur]
                     ratio_cur_pos += 1
             seg_last = seg_cur
             ratio_last = p
-        return score_points
+        return input_score_points_for_ratio
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
