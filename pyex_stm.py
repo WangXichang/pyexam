@@ -33,7 +33,7 @@ shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
 shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
-def see():
+def help_doc():
     print("""
     module description 模块说明：
     
