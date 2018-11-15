@@ -35,9 +35,9 @@ shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), 
 
 def see():
     print("""
-    module function and class:
+    module description 模块说明：
     
-    [function]
+    [function] 模块中的函数
        run(name, df, field_list, ratio, level_max, level_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near') 
           运行各个模型的入口函数       
@@ -60,27 +60,29 @@ def see():
           input_score_min: raw score min value 最小原始分数
           output_score_decimal: level score precision, decimal digit number 输出分数精度，小数位数
           approx_mode: how to approxmate score points of raw score for each ratio vlaue 
-              目前设计的逼近策略有：
-              minmax: 小于中最大的值
-              maxmin: 大于中最小的值
-              near: 最近的值
-              nearmin: 最近值中最小的值， 等同于near
-              nearmax: 最近值中最大的值
+              目前设计的比例值逼近策略有(name=)：
+              'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
+              'maxmin': get score with max value in less 大于该比例值的分值中最小的值
+              'near':   get score with nearest ratio 最接近该比例值的分值（分值）
+              'minnear': get score with min value in near 最接近该比例值的分值中最小的值
+              'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
 
           ---
-          usage:
+          usage:调用方式
           import pyex_stm as stm
-          result = stm.run(name='shandong', df=data, field_list=['ls'])
-          result.report()
-          result.output.head()
+          m = stm.run(name='shandong', df=data, field_list=['ls']) 
+          m.report()
+          m.output.head()
+          m.save_output_data_to_csv
           
        plot() 
           各方案按照比例转换后分数后的分布直方图
           plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
 
-       round45i() 
+       round45i(v: float, dec=0) 
           四舍五入函数
           function for rounding strictly at some decimal position
+          v 输入浮点数， dec：保留小数位数，缺省为0
 
        get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
           生成具有标记刻度数、标准差、均值、标准差范围的正态分布表
@@ -90,7 +92,7 @@ def see():
           生成具有指定均值和标准差的数据样本集
           create sample data set according to assigned mean and std value
 
-    [class]
+    [class] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
        LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
        Zscore: Z分数转换模型 zscore model
@@ -99,15 +101,6 @@ def see():
        SegTable: 计算分段表模型 segment table model
        TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
     """)
-    # some analysis on level score model in new Gaokao
-    """
-    基于比例分布和正态拟合，对各等级分数均值及标准差的推算和估计：
-    ● 浙江21等级方案   均值71.26，  标准差13.75,      归一值22.93
-    ● 上海11等级方案   均值55，     标准差8.75,       归一值29.17
-    ● 北京21等级方案   均值72.16，  标准差13.64,      归一值22.73
-    ● 天津21等级方案   均值72.94，  标准差14.36,      归一值23.94
-    ● 山东正态方案     均值60，     标准差15.6-9,     归一值19.5     
-    """
 
 
 # interface to use model for some typical application
@@ -132,7 +125,7 @@ def run(name='shandong',
     :param input_score_max: max value in raw score
     :param input_score_min: min value in raw score
     :param output_score_decimal: output score decimal digits
-    :param approx_method: maxmin, minmax, nearmin, nearmax
+    :param approx_method: maxmin, minmax, minnear, maxnear
     :return: model
     """
     # check name
@@ -521,7 +514,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param approx_mode:  minmax, maxmin, nearmin, nearmax
+        :param approx_mode:  minmax, maxmin, minnear, maxnear
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
