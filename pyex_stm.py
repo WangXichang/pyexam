@@ -1,17 +1,14 @@
 # -*- utf-8 -*-
 
-# from 2018-09-24
-# designed for zhejiang, ..., Tianjin
+# 2018.09.24 -- 2018.11
+# designed for new High Test grade score model
 # also for shandong interval linear transform
 
 
-# internal modules
 import copy
 import time
 import os
 import warnings
-
-# necessary modules
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -25,12 +22,12 @@ warnings.filterwarnings('ignore')
 
 
 # some constants for models
-zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]    # from high level to low level
+zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]    # from high grade to low grade
 shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
-shandong_segment = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
 def help_doc():
@@ -38,7 +35,7 @@ def help_doc():
     module description 模块说明：
     
     [function] 模块中的函数
-       run(name, df, field_list, ratio, level_max, level_diff, input_score_max, input_score_min,
+       run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near') 
           运行各个模型的入口函数       
           interface function
@@ -53,12 +50,12 @@ def help_doc():
           name: model name
           df: input raw score data, type DataFrame of pandas 输入原始分数数据，类型为DataFrame
           field_list: score field to calculate in df 计算转换分数的字段表
-          ratio: ratio list including percent value for each interval of level score 划分等级的比例表
-          level_max: max value of level score 最大等级分数
-          level_diff: differentiao value of level score 等级分差值
+          ratio: ratio list including percent value for each interval of grade score 划分等级的比例表
+          grade_max: max value of grade score 最大等级分数
+          grade_diff: differentiao value of grade score 等级分差值
           input_score_max: raw score max value 最大原始分数
           input_score_min: raw score min value 最小原始分数
-          output_score_decimal: level score precision, decimal digit number 输出分数精度，小数位数
+          output_score_decimal: grade score precision, decimal digit number 输出分数精度，小数位数
           approx_mode: how to approxmate score points of raw score for each ratio vlaue 
               目前设计的比例值逼近策略有(name=)：
               'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
@@ -94,7 +91,7 @@ def help_doc():
 
     [class] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
-       LevelScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
+       GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
        Zscore: Z分数转换模型 zscore model
        Tscore: T分数转换模型 tscore model
        Tlinear: T分数线性转换模型 tscore model by linear transform mode
@@ -108,8 +105,8 @@ def run(name='shandong',
         df=None,
         field_list='',
         ratio_list=None,
-        level_diff=None,  # level_diff = 3 for zhejiang,shanghai,beijing,tianjin
-        level_max=None,  # level_max = 100 for zhejiang,shanghai,beijing,tianjin
+        grade_diff=None,
+        grade_max=None,
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
@@ -117,15 +114,26 @@ def run(name='shandong',
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
-    :param df: dataframe, input data
-    :param field_list: score fields list in input dataframe
-    :param ratio_list: ratio list used to create intervals of raw score for each level
-    :param level_diff: difference value between two neighbor level score
-    :param level_max: max value for level score
+                  default = 'shandong'
+    :param df: dataframe, input data, default = None
+    :param field_list: score fields list in input dataframe, default = None and set to digit fields in running
+    :param ratio_list: ratio list used to create intervals of raw score for each grade
+                        default = None, set to a list by name
+                        must be set to a list if name is not in module preassigned list
+                        must be set for new model
+    :param grade_diff: difference value between two neighbor grade score
+                        default = None, that will be set to 3 if name in 'zhejiang, shanghai, beijing, tianjin'
+                        must be set for new model
+    :param grade_max: max value for grade score
+                       default = None, will be set to 100 for zhejiang,shanghai,beijing,tianjin, shandong
+                       must be set for new model
     :param input_score_max: max value in raw score
+                       default = None, set to 150 in ScoreTransform, set to real max value in PltScore, GradeScore
     :param input_score_min: min value in raw score
+                       default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
-    :param approx_method: maxmin, minmax, minnear, maxnear
+                                  default = 0 for int score at output score
+    :param approx_method: maxmin, minmax, minnear, maxnear, default = 'near'
     :return: model
     """
     # check name
@@ -159,7 +167,7 @@ def run(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_ratio_list=ratio_list,
-                                output_score_points_list=shandong_segment,
+                                output_score_points_list=shandong_interval,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
                                 approx_mode=approx_method,
@@ -170,40 +178,36 @@ def run(name='shandong',
         return pltmodel
 
     if name in 'zhejiang, shanghai, beijing, tiangjin':
-        level_max = 100
-        level_diff = 3
+        grade_max = 100
+        grade_diff = 3
         ratio_list = None
         if name == 'zhejiang':
-            # ● 浙江21等级方案  均值71.26，  标准差13.75，   	 归一值22.93
             ratio_list = zhejiang_ratio
         elif name == 'shanghai':
-            level_max = 70
-            # ● 上海11等级方案  均值55，     标准差8.75，       归一值29.17
+            grade_max = 70
             ratio_list = shanghai_ratio
         elif name == 'beijing':
-            # ● 北京21等级方案  均值72.16，  标准差13.64， 	 归一值22.73
             ratio_list = beijing_ratio
         elif name == 'tianjin':
-            # ● 天津21等级方案  均值72.94，  标准差14.36，      归一值23.94
             ratio_list = tianjin_ratio
 
-        level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
+        grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
 
-        m = LevelScore()
+        m = GradeScore()
         m.model_name = name
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=input_score_max,
                          minscore=input_score_min,
-                         level_ratio_table=ratio_list,
-                         level_score_table=level_score,
+                         grade_ratio_table=ratio_list,
+                         grade_score_table=grade_score,
                          approx_method=approx_method
                          )
         m.run()
         return m
 
     if name == 'tao':
-        m = LevelScoreTao()
-        m.level_num = 50
+        m = GradeScoreTao()
+        m.grade_num = 50
         m.set_data(input_data=input_data,
                    field_list=field_list)
         m.set_parameters(maxscore=input_score_max,
@@ -233,25 +237,26 @@ def run(name='shandong',
         tm = TscoreLinear()
         tm.model_name = name
         tm.set_data(input_data=input_data, field_list=field_list)
-        tm.set_parameters(input_score_max=100, input_score_min=0)
+        tm.set_parameters(input_score_max=input_score_max,
+                          input_score_min=input_score_min)
         tm.run()
         tm.report()
         return tm
 
-    # other models by assigning ratio and level differential size
+    # other models by assigning ratio and grade differential size
     if name.lower() not in 'zhejiang, shanghai, beijing, tiangjin, tao, zscore, tscore, tlinear':
-        if ratio_list is None or level_max is None or level_diff is None:
+        if ratio_list is None or grade_max is None or grade_diff is None:
             print('no ratio defined for any model!')
             return
         ratio_list = ratio_list
-        level_score = [level_max - j * level_diff for j in range(len(ratio_list))]
-        m = LevelScore()
+        grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
+        m = GradeScore()
         m.model_name = name
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=input_score_max,
                          minscore=input_score_min,
-                         level_ratio_table=ratio_list,
-                         level_score_table=level_score,
+                         grade_ratio_table=ratio_list,
+                         grade_score_table=grade_score,
                          approx_method=approx_method
                          )
         m.run()
@@ -291,7 +296,7 @@ class ScoreTransformModel(object):
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
         T分数线性模型（TscoreLinear),
-        等级分数模型(LevelScore)
+        等级分数模型(GradeScore)
         山东省新高考转换分数模型（PltScore）（分段线性转换分数）
         param model_name, type==str
         param input_data: raw score data, type==datafrmae
@@ -377,11 +382,11 @@ class ScoreTransformModel(object):
             if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
                 sbn.distplot(self.output_data[fs + '_plt'])
                 plt.title(labelstr + fs)
-            elif fs + '_level' in self.output_data.columns:  # find sf_outscore field
-                sbn.distplot(self.output_data[fs + '_level'])
+            elif fs + '_grade' in self.output_data.columns:  # find sf_outscore field
+                sbn.distplot(self.output_data[fs + '_grade'])
                 plt.title(labelstr + fs)
             else:
-                print('mode=out only for plt and level model!')
+                print('mode=out only for plt and grade model!')
         return
 
     def __plot_raw_score(self):
@@ -400,11 +405,11 @@ class ScoreTransformModel(object):
 class PltScore(ScoreTransformModel):
     """
     PltModel:
-    linear transform from raw-score to level-score at each intervals divided by preset ratios
+    linear transform from raw-score to grade-score at each intervals divided by preset ratios
     set ratio and intervals according to norm distribution property
     get a near normal distribution
 
-    # for ratio = [3, 7, 16, 24, 24, 16, 7, 3] & level = [20, 30, ..., 100]
+    # for ratio = [3, 7, 16, 24, 24, 16, 7, 3] & grade = [20, 30, ..., 100]
     # following is estimation to std:
         # according to percent
         #   test std=15.54374977       at 50    Zcdf(-10/std)=0.26
@@ -1164,26 +1169,26 @@ class TscoreLinear(ScoreTransformModel):
         super().plot(mode)
 
 
-class LevelScore(ScoreTransformModel):
+class GradeScore(ScoreTransformModel):
     """
-    level score transform model
+    grade score transform model
     default set to zhejiang project:
-    level_ratio_table = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-    level_score_table = [100, 97, ..., 40]
-    level_order = 'd'   # d: from high to low, a: from low to high
+    grade_ratio_table = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+    grade_score_table = [100, 97, ..., 40]
+    grade_order = 'd'   # d: from high to low, a: from low to high
     """
     def __init__(self):
-        super().__init__('level')
+        super().__init__('grade')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
         self.approx_method_set = 'minmax, maxmin, nearmax, nearmin, near'
 
-        self.input_score_max = 100
+        self.input_score_max = 150
         self.input_score_min = 0
         self.ratio_grade_table = [round45i(sum(__zhejiang_ratio[0:j + 1]) * 0.01, 2)
                                   for j in range(len(__zhejiang_ratio))]
-        self.level_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
-        self.level_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
-        self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+        self.grade_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
+        self.grade_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
+        self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
         self.approx_method = 'near'
 
         self.map_table = None
@@ -1204,8 +1209,8 @@ class LevelScore(ScoreTransformModel):
     def set_parameters(self,
                        maxscore=None,
                        minscore=None,
-                       level_ratio_table=None,
-                       level_score_table=None,
+                       grade_ratio_table=None,
+                       grade_score_table=None,
                        approx_method=None):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
@@ -1217,18 +1222,18 @@ class LevelScore(ScoreTransformModel):
                 print('to set field_list first!')
         if isinstance(minscore, int):
             self.input_score_min = minscore
-        if isinstance(level_ratio_table, list) or isinstance(level_ratio_table, tuple):
-            self.ratio_grade_table = [round45i(1 - sum(level_ratio_table[0:j + 1]) * 0.01, 2)
-                                      for j in range(len(level_ratio_table))]
-            if sum(level_ratio_table) != 100:
-                print('ratio table is wrong, sum:{} is not 100!'.format(sum(level_ratio_table)))
-        if isinstance(level_score_table, list) or isinstance(level_score_table, tuple):
-            self.level_score_table = level_score_table
-        if len(self.ratio_grade_table) != len(self.level_score_table):
-            print('error level data set, ratio/score table is not same length!')
-            print(self.ratio_grade_table, '\n', self.level_score_table)
-        self.level_no = [x+1 for x in range(len(self.ratio_grade_table))]
-        self.level_order = 'd' if self.level_score_table[0] > self.level_score_table[-1] else 'a'
+        if isinstance(grade_ratio_table, list) or isinstance(grade_ratio_table, tuple):
+            self.ratio_grade_table = [round45i(1 - sum(grade_ratio_table[0:j + 1]) * 0.01, 2)
+                                      for j in range(len(grade_ratio_table))]
+            if sum(grade_ratio_table) != 100:
+                print('ratio table is wrong, sum:{} is not 100!'.format(sum(grade_ratio_table)))
+        if isinstance(grade_score_table, list) or isinstance(grade_score_table, tuple):
+            self.grade_score_table = grade_score_table
+        if len(self.ratio_grade_table) != len(self.grade_score_table):
+            print('error grade data set, ratio/score table is not same length!')
+            print(self.ratio_grade_table, '\n', self.grade_score_table)
+        self.grade_no = [x+1 for x in range(len(self.ratio_grade_table))]
+        self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
         self.ratio_grade_table = [1] + self.ratio_grade_table
         if approx_method in self.approx_method_set:
             self.approx_method = approx_method
@@ -1237,7 +1242,7 @@ class LevelScore(ScoreTransformModel):
         if len(self.field_list) == 0:
             print('to set field_list first!')
             return
-        print("--- Level Score Transform Start ---")
+        print("--- grade Score Transform Start ---")
         t0 = time.time()
 
         # create seg-percent map table
@@ -1246,13 +1251,13 @@ class LevelScore(ScoreTransformModel):
                      field_list=self.field_list)
         seg.set_parameters(segmax=self.input_score_max,
                            segmin=self.input_score_min,
-                           segsort=self.level_order)
+                           segsort=self.grade_order)
         seg.run()
         self.map_table = seg.output_data
 
-        # key step: create level score map list
-        # self.__get_level_table()  # depricated
-        self.get_level_map_by_approx()  # new method by approx
+        # key step: create grade score map list
+        # self.__get_grade_table()  # depricated
+        self.get_grade_map_by_approx()  # new method by approx
 
         # make output_data by map
         self.output_data = self.input_data
@@ -1265,103 +1270,103 @@ class LevelScore(ScoreTransformModel):
             dft[sf+'_percent'] = dft.loc[:, sf].replace(
                 self.map_table['seg'].values, self.map_table[sf+'_percent'].values)
 
-            # get level no by map
-            dft.loc[:, sf+'_level'] = dft.loc[:, sf].replace(
-                self.map_table['seg'].values, self.map_table[sf + '_level'].values)
+            # get grade no by map
+            dft.loc[:, sf+'_grade'] = dft.loc[:, sf].replace(
+                self.map_table['seg'].values, self.map_table[sf + '_grade'].values)
 
-            # get level score by map
-            dft.loc[:, sf+'_level_score'] = \
-                dft.loc[:, sf+'_level'].apply(lambda x: self.level_score_table[int(x)-1]if x > 0 else x)
+            # get grade score by map
+            dft.loc[:, sf+'_grade_score'] = \
+                dft.loc[:, sf+'_grade'].apply(lambda x: self.grade_score_table[int(x)-1]if x > 0 else x)
             if self.output_data_decimal == 0:
                 # format to int
-                dft = dft.astype({sf+'_level': int, sf+'_level_score': int})
+                dft = dft.astype({sf+'_grade': int, sf+'_grade_score': int})
 
             # save to output_data
             self.output_data = dft
 
             # save to report_doc
-            level_max = self.map_table.groupby(sf+'_level')['seg'].max()
-            level_min = self.map_table.groupby(sf+'_level')['seg'].min()
-            self.report_doc.update({sf: ['level({}):{}-{}'.format(j+1, x[0], x[1])
-                                         for j, x in enumerate(zip(level_max, level_min))]})
-            pt = pd.pivot_table(self.map_table, values='seg', index=sf + '_level', aggfunc=[max, min])
+            grade_max = self.map_table.groupby(sf+'_grade')['seg'].max()
+            grade_min = self.map_table.groupby(sf+'_grade')['seg'].min()
+            self.report_doc.update({sf: ['grade({}):{}-{}'.format(j+1, x[0], x[1])
+                                         for j, x in enumerate(zip(grade_max, grade_min))]})
+            pt = pd.pivot_table(self.map_table, values='seg', index=sf + '_grade', aggfunc=[max, min])
             self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
                                           for idx in pt.index]})
         # running end
         print('used time:{:6.4f}'.format(time.time()-t0))
-        print('---Level Score Transform End---')
+        print('---grade Score Transform End---')
 
-    # make map seg_percent to level in map_table, used to calculate level score
-    def __get_level_table(self):
+    # make map seg_percent to grade in map_table, used to calculate grade score
+    def __get_grade_table(self):
         for sf in self.field_list:
-            self.map_table.loc[:, sf+'_level'] = self.map_table[sf+'_percent'].\
-                apply(lambda x: self.__map_percent_to_level(1 - x))
-            self.map_table.astype({sf+'_level': int})
-            pt = pd.pivot_table(self.map_table, values='seg', index=sf+'_level', aggfunc=[max, min])
+            self.map_table.loc[:, sf+'_grade'] = self.map_table[sf+'_percent'].\
+                apply(lambda x: self.__map_percent_to_grade(1 - x))
+            self.map_table.astype({sf+'_grade': int})
+            pt = pd.pivot_table(self.map_table, values='seg', index=sf+'_grade', aggfunc=[max, min])
             self.result_dict.update({sf: [(idx, (pt.loc[idx, ('min', 'seg')], pt.loc[idx, ('max', 'seg')]))
                                           for idx in pt.index]}
                                     )
 
-    def __map_percent_to_level(self, p):
-        # p_start = 0 if self.level_order in 'a, ascending' else 1
+    def __map_percent_to_grade(self, p):
+        # p_start = 0 if self.grade_order in 'a, ascending' else 1
         for j in range(len(self.ratio_grade_table)-1):
-            # logic = (p_start <= p <= r) if self.level_order in 'a, ascending' else (r <= p <= p_start)
+            # logic = (p_start <= p <= r) if self.grade_order in 'a, ascending' else (r <= p <= p_start)
             if self.ratio_grade_table[j] >= p >= self.ratio_grade_table[j+1]:
-                return self.level_no[j]
+                return self.grade_no[j]
         print('percent:{} not found in {}'.format(p, self.ratio_grade_table))
-        return self.level_no[-1]
+        return self.grade_no[-1]
 
-    # calculate level score by approx_method
-    def get_level_map_by_approx(self):
+    # calculate grade score by approx_method
+    def get_grade_map_by_approx(self):
         ratio_table = [1-x for x in self.ratio_grade_table[1:]]
         for sf in self.field_list:
-            self.map_table.loc[:, sf+'_level'] = self.map_table[sf+'_percent'].apply(lambda x: 1)
-            self.map_table.astype({sf+'_level': int})
+            self.map_table.loc[:, sf+'_grade'] = self.map_table[sf+'_percent'].apply(lambda x: 1)
+            self.map_table.astype({sf+'_grade': int})
             last_p = 0
-            curr_level_no = self.level_no[0]
-            curr_level_ratio = ratio_table[0]
-            curr_level_score = self.level_score_table[0]
+            curr_grade_no = self.grade_no[0]
+            curr_grade_ratio = ratio_table[0]
+            curr_grade_score = self.grade_score_table[0]
             max_count = self.map_table['seg'].count()
             for ri, rv in self.map_table.iterrows():
-                self.map_table.loc[ri, sf + '_level'] = curr_level_no
-                self.map_table.loc[ri, sf + '_level_score'] = curr_level_score
-                if rv[sf+'_percent'] == 1:  # set to end level and score
-                    self.map_table.loc[ri, sf+'_level'] = self.level_no[-1]
-                    self.map_table.loc[ri, sf+'_level_score'] = self.level_score_table[-1]
+                self.map_table.loc[ri, sf + '_grade'] = curr_grade_no
+                self.map_table.loc[ri, sf + '_grade_score'] = curr_grade_score
+                if rv[sf+'_percent'] == 1:  # set to end grade and score
+                    self.map_table.loc[ri, sf+'_grade'] = self.grade_no[-1]
+                    self.map_table.loc[ri, sf+'_grade_score'] = self.grade_score_table[-1]
                     continue
                 curr_p = rv[sf+'_percent']
-                if curr_p >= curr_level_ratio:
-                    curr_to_new_level = False
-                    d1 = abs(curr_level_ratio - last_p)
-                    d2 = abs(curr_level_ratio - curr_p)
+                if curr_p >= curr_grade_ratio:
+                    curr_to_new_grade = False
+                    d1 = abs(curr_grade_ratio - last_p)
+                    d2 = abs(curr_grade_ratio - curr_p)
                     if d1 < d2:
                         if self.approx_method in 'minmax, near':
-                            curr_to_new_level = True
+                            curr_to_new_grade = True
                     elif d1 == d2:
                         if self.approx_method in 'minmax, nearmin, minnear':
-                            curr_to_new_level = True
+                            curr_to_new_grade = True
                     else:  # d2 < d1
                         if self.approx_method in 'minmax':
-                            curr_to_new_level = True
-                    if curr_to_new_level:
-                        curr_level_no += 1
-                        curr_level_ratio = ratio_table[curr_level_no-1]
-                        curr_level_score = self.level_score_table[curr_level_no - 1]
-                        self.map_table.loc[ri, sf + '_level'] = curr_level_no
-                        self.map_table.loc[ri, sf + '_level_score'] = curr_level_score
+                            curr_to_new_grade = True
+                    if curr_to_new_grade:
+                        curr_grade_no += 1
+                        curr_grade_ratio = ratio_table[curr_grade_no-1]
+                        curr_grade_score = self.grade_score_table[curr_grade_no - 1]
+                        self.map_table.loc[ri, sf + '_grade'] = curr_grade_no
+                        self.map_table.loc[ri, sf + '_grade_score'] = curr_grade_score
                     else:
-                        self.map_table.loc[ri, sf+'_level'] = curr_level_no
-                        self.map_table.loc[ri, sf+'_level_score'] = curr_level_score
+                        self.map_table.loc[ri, sf+'_grade'] = curr_grade_no
+                        self.map_table.loc[ri, sf+'_grade_score'] = curr_grade_score
                         if ri < max_count & self.map_table.loc[ri+1, sf+'_count'] > 0:
-                            curr_level_no += 1
-                            curr_level_ratio = ratio_table[curr_level_no-1]
-                            curr_level_score = self.level_score_table[curr_level_no - 1]
+                            curr_grade_no += 1
+                            curr_grade_ratio = ratio_table[curr_grade_no-1]
+                            curr_grade_score = self.grade_score_table[curr_grade_no - 1]
                 last_p = curr_p
             if self.output_data_decimal == 0:
-                self.map_table = self.map_table.astype({sf+'_level_score': int})
+                self.map_table = self.map_table.astype({sf+'_grade_score': int})
 
     def report(self):
-        print('Level-score Transform Report')
+        print('grade-score Transform Report')
         p_ = False
         for sf in self.field_list:
             if p_:
@@ -1369,9 +1374,9 @@ class LevelScore(ScoreTransformModel):
             else:
                 print('=' * 50)
                 p_ = True
-            print('<<{}>> Level No: Raw_Score_Range'.format(sf))
+            print('<<{}>> grade No: Raw_Score_Range'.format(sf))
             for k in self.result_dict[sf]:
-                print('    Level {no:>2}: [{int_min:>3},{int_max:>3}]'.
+                print('    grade {no:>2}: [{int_min:>3},{int_max:>3}]'.
                       format(no=str(k[0]), int_min=k[1][0], int_max=k[1][1]))
         print('=' * 50)
 
@@ -1393,41 +1398,41 @@ class LevelScore(ScoreTransformModel):
         for ffs in self.field_list:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
-            fs_list += [ffs+'_level']
+            fs_list += [ffs+'_grade']
         df = self.map_table.copy()
         for fs in fs_list:
             if 'percent' in fs:
                 df[fs] = df[fs].apply(lambda x: round(x, 8))
         # print(ptt.make_page(df=df[fs_list],
-        #                     title='level score table for {}'.format(self.model_name),
+        #                     title='grade score table for {}'.format(self.model_name),
         #                     pagelines=self.input_score_max+1))
         print(df[fs_list])
 
 
-class LevelScoreTao(ScoreTransformModel):
+class GradeScoreTao(ScoreTransformModel):
     """
-    Level Score model from Tao BaiQiang
+    grade Score model from Tao BaiQiang
     top_group = df.sort_values(field,ascending=False).head(int(df.count(0)[field]*0.01))[[field]]
-    high_level = top_group[field].describe().loc['mean', field]
-    intervals = [minscore, high_level*1/50], ..., [high_level, max_score]
+    high_grade = top_group[field].describe().loc['mean', field]
+    intervals = [minscore, high_grade*1/50], ..., [high_grade, max_score]
     以原始分值切分，形成的分值相当于等距合并，粒度直接增加
     实质上失去了等级分数的意义
     本模型仍然存在高分区过度合并问题
     """
 
     def __init__(self):
-        super().__init__('level')
+        super().__init__('grade')
         self.model_name = 'taobaiqiang'
 
-        self.level_num = 50
+        self.grade_num = 50
         self.input_score_max = 100
         self.input_score_min = 0
         self.max_ratio = 0.01  # 1%
         self.input_data = pd.DataFrame()
 
-        self.level_no = [x for x in range(self.level_num+1)]
+        self.grade_no = [x for x in range(self.grade_num+1)]
         self.map_table = None
-        self.level_dist_dict = {}  # fs: level_list, from max to min
+        self.grade_dist_dict = {}  # fs: grade_list, from max to min
         self.output_data = pd.DataFrame()
 
     def set_data(self, input_data=pd.DataFrame(), field_list=None):
@@ -1439,7 +1444,7 @@ class LevelScoreTao(ScoreTransformModel):
     def set_parameters(self,
                        maxscore=None,
                        minscore=None,
-                       level_num=None,
+                       grade_num=None,
                        ):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
@@ -1451,15 +1456,15 @@ class LevelScoreTao(ScoreTransformModel):
                 print('to set field_list first!')
         if isinstance(minscore, int):
             self.input_score_min = minscore
-        if isinstance(level_num, int):
-            self.level_num = level_num
-        self.level_no = [x for x in range(self.level_num+1)]
+        if isinstance(grade_num, int):
+            self.grade_num = grade_num
+        self.grade_no = [x for x in range(self.grade_num+1)]
 
     def run(self):
-        self.run_create_level_dist_list()
+        self.run_create_grade_dist_list()
         self.run_create_output_data()
 
-    def run_create_level_dist_list(self):
+    def run_create_grade_dist_list(self):
         # approx_method = 'near'
         seg = SegTable()
         seg.set_parameters(segmax=self.input_score_max,
@@ -1482,7 +1487,7 @@ class LevelScoreTao(ScoreTransformModel):
                         max_score = curseg
                     max_point = self.input_data[self.input_data[fs] >= max_score][fs].mean()
                     # print(fs, max_score, curseg, lastseg)
-                    self.level_dist_dict.update({fs: round45i(max_point/self.level_num, 8)})
+                    self.grade_dist_dict.update({fs: round45i(max_point/self.grade_num, 8)})
                     break
                 lastpercent = curpercent
                 lastseg = curseg
@@ -1490,18 +1495,18 @@ class LevelScoreTao(ScoreTransformModel):
     def run_create_output_data(self):
         dt = copy.deepcopy(self.input_data[self.field_list])
         for fs in self.field_list:
-            dt.loc[:, fs+'_level'] = dt[fs].apply(lambda x: self.run__get_level_score(fs, x))
+            dt.loc[:, fs+'_grade'] = dt[fs].apply(lambda x: self.run__get_grade_score(fs, x))
             dt2 = self.map_table
-            dt2.loc[:, fs+'_level'] = dt2['seg'].apply(lambda x: self.run__get_level_score(fs, x))
+            dt2.loc[:, fs+'_grade'] = dt2['seg'].apply(lambda x: self.run__get_grade_score(fs, x))
             self.output_data = dt
 
-    def run__get_level_score(self, fs, x):
+    def run__get_grade_score(self, fs, x):
         if x == 0:
             return x
-        level_dist = self.level_dist_dict[fs]
-        for i in range(self.level_num):
-            minx = i * level_dist
-            maxx = (i+1) * level_dist if i < self.level_num-1 else self.input_score_max
+        grade_dist = self.grade_dist_dict[fs]
+        for i in range(self.grade_num):
+            minx = i * grade_dist
+            maxx = (i+1) * grade_dist if i < self.grade_num-1 else self.input_score_max
             if minx < x <= maxx:
                 return i+1
         return -1
@@ -1510,7 +1515,7 @@ class LevelScoreTao(ScoreTransformModel):
         pass
 
     def report(self):
-        print(self.output_data[[f+'_level' for f in self.field_list]].describe())
+        print(self.output_data[[f+'_grade' for f in self.field_list]].describe())
 
     def print_map_table(self):
         # print(ptt.make_mpage(self.map_table))
@@ -1540,7 +1545,7 @@ class SegTable(object):
                 输出分段表中分数段的最大值
         segmin: int, minvalue for segment, default=0。
                 输出分段表中分数段的最小值
-        segstep: int, levels for segment value, default=1
+        segstep: int, grades for segment value, default=1
                 分段间隔，用于生成n-分段表（五分一段的分段表）
         segstart:int, start seg score to count
                 进行分段计算的起始值
