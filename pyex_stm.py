@@ -1,8 +1,78 @@
 # -*- utf-8 -*-
 
-# 2018.09.24 -- 2018.11
-# designed for new High Test grade score model
-# also for shandong interval linear transform
+
+"""
+    2018.09.24 -- 2018.11
+    designed for new High Test grade score model
+    also for shandong interval linear transform
+
+    stm module description stm模块说明：
+
+    [functions] 模块中的函数
+       run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
+           output_score_decimal=0, approx_mode='near')
+          运行各个模型的入口函数
+          interface function
+          通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          可以计算山东、上海、浙江、北京、天津、陶百强模型
+          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          通过指定name = 'zscore'/'tscore'/'tlinear'计算Z分数、T分数、线性转换T分数
+          caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
+          ---
+          参数描述
+          parameters specification:
+          name: model name
+          df: input raw score data, type DataFrame of pandas 输入原始分数数据，类型为DataFrame
+          field_list: score field to calculate in df 计算转换分数的字段表
+          ratio: ratio list including percent value for each interval of grade score 划分等级的比例表
+          grade_max: max value of grade score 最大等级分数
+          grade_diff: differentiao value of grade score 等级分差值
+          input_score_max: raw score max value 最大原始分数
+          input_score_min: raw score min value 最小原始分数
+          output_score_decimal: grade score precision, decimal digit number 输出分数精度，小数位数
+          approx_mode: how to approxmate score points of raw score for each ratio vlaue
+              目前设计的比例值逼近策略有(name=)：
+              'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
+              'maxmin': get score with max value in less 大于该比例值的分值中最小的值
+              'near':   get score with nearest ratio 最接近该比例值的分值（分值）
+              'minnear': get score with min value in near 最接近该比例值的分值中最小的值
+              'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
+
+          ---
+          usage:调用方式
+          >>> import pyex_stm as stm
+          >>> m = stm.run(name='shandong', df=data, field_list=['ls'])
+          >>> m.report()
+          >>> m.output.head()
+          >>> m.save_output_data_to_csv
+
+       plot()
+          山东、浙江、上海、北京、天津方案等级转换分数分布直方图
+          plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
+
+       round45i(v: float, dec=0)
+          四舍五入函数
+          function for rounding strictly at some decimal position
+          v 输入浮点数， dec：保留小数位数，缺省为0
+
+       get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
+          生成具有指定记录数（size=400）、标准差(std=1)、均值(mean=0)、截止标准差数（最小最大）(stdnum=4)的正态分布表
+          create norm data dataframe with assigned scale, mean, standard deviation, std range
+
+       get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6)
+          生成具有指定均值(mean=70)、标准差(std=10)、最大值(maxvalue=100)、最小值(minvalue=0)、
+          样本数(size=1000)、保留小数位（decimal=6）的数据样本集(pandas.DataFrame)
+          create sample data set according to assigned mean, std, maxvalue, minvalue, size, decimal
+
+    [classes] 模块中的类
+       PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
+       GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
+       TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
+       Zscore: Z分数转换模型 zscore model
+       Tscore: T分数转换模型 tscore model
+       Tlinear: T分数线性转换模型 tscore model by linear transform mode
+       SegTable: 计算分段表模型 segment table model
+    """
 
 
 import copy
@@ -21,83 +91,13 @@ import seaborn as sbn
 warnings.filterwarnings('ignore')
 
 
-# some constants for models
-zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]    # from high grade to low grade
-shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
-shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-
-
-def help_doc():
-    print("""
-    module description 模块说明：
-    
-    [function] 模块中的函数
-       run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
-           output_score_decimal=0, approx_mode='near') 
-          运行各个模型的入口函数       
-          interface function
-          通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
-          可以计算山东、上海、浙江、北京、天津、陶百强模型
-          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
-          通过指定name = 'zscore'/'tscore'/'tlinear'计算Z分数、T分数、线性转换T分数          
-          caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
-          ---
-          参数描述
-          parameters specification:
-          name: model name
-          df: input raw score data, type DataFrame of pandas 输入原始分数数据，类型为DataFrame
-          field_list: score field to calculate in df 计算转换分数的字段表
-          ratio: ratio list including percent value for each interval of grade score 划分等级的比例表
-          grade_max: max value of grade score 最大等级分数
-          grade_diff: differentiao value of grade score 等级分差值
-          input_score_max: raw score max value 最大原始分数
-          input_score_min: raw score min value 最小原始分数
-          output_score_decimal: grade score precision, decimal digit number 输出分数精度，小数位数
-          approx_mode: how to approxmate score points of raw score for each ratio vlaue 
-              目前设计的比例值逼近策略有(name=)：
-              'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
-              'maxmin': get score with max value in less 大于该比例值的分值中最小的值
-              'near':   get score with nearest ratio 最接近该比例值的分值（分值）
-              'minnear': get score with min value in near 最接近该比例值的分值中最小的值
-              'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
-
-          ---
-          usage:调用方式
-          import pyex_stm as stm
-          m = stm.run(name='shandong', df=data, field_list=['ls']) 
-          m.report()
-          m.output.head()
-          m.save_output_data_to_csv
-          
-       plot() 
-          各方案按照比例转换后分数后的分布直方图
-          plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
-
-       round45i(v: float, dec=0) 
-          四舍五入函数
-          function for rounding strictly at some decimal position
-          v 输入浮点数， dec：保留小数位数，缺省为0
-
-       get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
-          生成具有标记刻度数、标准差、均值、标准差范围的正态分布表
-          create norm data dataframe with assigned scale, mean, standard deviation, std range
-        
-       get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6)
-          生成具有指定均值和标准差的数据样本集
-          create sample data set according to assigned mean and std value
-
-    [class] 模块中的类
-       PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
-       GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
-       Zscore: Z分数转换模型 zscore model
-       Tscore: T分数转换模型 tscore model
-       Tlinear: T分数线性转换模型 tscore model by linear transform mode
-       SegTable: 计算分段表模型 segment table model
-       TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
-    """)
+# some constants for models: score grade ratio, shandong grade score interval
+const_zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+const_shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+const_beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+const_tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+const_shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
+const_shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
 # interface to use model for some typical application
@@ -160,14 +160,14 @@ def run(name='shandong',
 
     # shandong score model
     if name == 'shandong':
-        ratio_list = [x * 0.01 for x in shandong_ratio]
+        ratio_list = [x * 0.01 for x in const_shandong_ratio]
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_ratio_list=ratio_list,
-                                output_score_points_list=shandong_interval,
+                                output_score_points_list=const_shandong_interval,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
                                 approx_mode=approx_method,
@@ -182,14 +182,14 @@ def run(name='shandong',
         grade_diff = 3
         ratio_list = None
         if name == 'zhejiang':
-            ratio_list = zhejiang_ratio
+            ratio_list = const_zhejiang_ratio
         elif name == 'shanghai':
             grade_max = 70
-            ratio_list = shanghai_ratio
+            ratio_list = const_shanghai_ratio
         elif name == 'beijing':
-            ratio_list = beijing_ratio
+            ratio_list = const_beijing_ratio
         elif name == 'tianjin':
-            ratio_list = tianjin_ratio
+            ratio_list = const_tianjin_ratio
 
         grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
 
@@ -267,23 +267,23 @@ def plot():
     plt.figure('model ratio distribution')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
-    plt.bar(range(1, 9), [shandong_ratio[j] for j in range(8)])
+    plt.bar(range(1, 9), [const_shandong_ratio[j] for j in range(8)])
     plt.title('shandong model')
 
     plt.subplot(232)
-    plt.bar(range(11, 0, -1), [shanghai_ratio[-j - 1] for j in range(11)])
+    plt.bar(range(11, 0, -1), [const_shanghai_ratio[-j - 1] for j in range(11)])
     plt.title('shanghai model')
 
     plt.subplot(233)
-    plt.bar(range(21, 0, -1), [zhejiang_ratio[-j - 1] for j in range(len(zhejiang_ratio))])
+    plt.bar(range(21, 0, -1), [const_zhejiang_ratio[-j - 1] for j in range(len(const_zhejiang_ratio))])
     plt.title('zhejiang model')
 
     plt.subplot(234)
-    plt.bar(range(21, 0, -1), [beijing_ratio[-j - 1] for j in range(len(beijing_ratio))])
+    plt.bar(range(21, 0, -1), [const_beijing_ratio[-j - 1] for j in range(len(const_beijing_ratio))])
     plt.title('beijing model')
 
     plt.subplot(235)
-    plt.bar(range(21, 0, -1), [tianjin_ratio[-j - 1] for j in range(len(tianjin_ratio))])
+    plt.bar(range(21, 0, -1), [const_tianjin_ratio[-j - 1] for j in range(len(const_tianjin_ratio))])
     plt.title('tianjin model')
 
 
