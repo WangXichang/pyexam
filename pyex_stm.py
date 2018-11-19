@@ -40,11 +40,11 @@
 
           ---
           usage:调用方式
-          >>> import pyex_stm as stm
-          >>> m = stm.run(name='shandong', df=data, field_list=['ls'])
-          >>> m.report()
-          >>> m.output.head()
-          >>> m.save_output_data_to_csv
+          [1] import pyex_stm as stm
+          [2] m = stm.run(name='shandong', df=data, field_list=['ls'])
+          [3] m.report()
+          [4] m.output.head()
+          [5] m.save_output_data_to_csv
 
        plot()
           山东、浙江、上海、北京、天津方案等级转换分数分布直方图
