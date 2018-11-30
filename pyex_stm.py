@@ -92,12 +92,12 @@ warnings.filterwarnings('ignore')
 
 
 # some constants for models: score grade ratio, shandong grade score interval
-const_zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-const_shanghai_ratio = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-const_beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-const_tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-const_shandong_ratio = [3, 7, 16, 24, 24, 16, 7, 3]
-const_shandong_interval = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
+CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
 # interface to use model for some typical application
@@ -139,7 +139,7 @@ def run(name='shandong',
     # check name
     name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
                'tscore, zscore, tlinear'
-    if name not in name_set:
+    if name.lower() not in name_set:
         print('invalid name, not in {}'.format(name_set))
         return
     # check input data
@@ -159,15 +159,15 @@ def run(name='shandong',
         return
 
     # shandong score model
-    if name == 'shandong':
-        ratio_list = [x * 0.01 for x in const_shandong_ratio]
+    if name.lower() == 'shandong':
+        ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
         pltmodel = PltScore()
         pltmodel.model_name = 'shandong'
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_parameters(input_score_ratio_list=ratio_list,
-                                output_score_points_list=const_shandong_interval,
+                                output_score_points_list=CONST_SHANDONG_SEGMENT,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
                                 approx_mode=approx_method,
@@ -177,24 +177,24 @@ def run(name='shandong',
         pltmodel.run()
         return pltmodel
 
-    if name in 'zhejiang, shanghai, beijing, tiangjin':
+    if name.lower() in 'zhejiang, shanghai, beijing, tiangjin':
         grade_max = 100
         grade_diff = 3
         ratio_list = None
-        if name == 'zhejiang':
-            ratio_list = const_zhejiang_ratio
-        elif name == 'shanghai':
+        if name.lower() == 'zhejiang':
+            ratio_list = CONST_ZHEJIANG_RATIO
+        elif name.lower() == 'shanghai':
             grade_max = 70
-            ratio_list = const_shanghai_ratio
-        elif name == 'beijing':
-            ratio_list = const_beijing_ratio
-        elif name == 'tianjin':
-            ratio_list = const_tianjin_ratio
+            ratio_list = CONST_SHANGHAI_RATIO
+        elif name.lower() == 'beijing':
+            ratio_list = CONST_BEIJING_RATIO
+        elif name.lower() == 'tianjin':
+            ratio_list = CONST_TIANJIN_RATIO
 
         grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
 
         m = GradeScore()
-        m.model_name = name
+        m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=input_score_max,
                          minscore=input_score_min,
@@ -205,7 +205,7 @@ def run(name='shandong',
         m.run()
         return m
 
-    if name == 'tao':
+    if name.lower() == 'tao':
         m = GradeScoreTao()
         m.grade_num = 50
         m.set_data(input_data=input_data,
@@ -215,27 +215,27 @@ def run(name='shandong',
         m.run()
         return m
 
-    if name == 'zscore':
+    if name.lower() == 'zscore':
         zm = Zscore()
-        zm.model_name = name
+        zm.model_name = name.lower()
         zm.set_data(input_data=input_data, field_list=field_list)
         zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
 
-    if name == 'tscore':
+    if name.lower() == 'tscore':
         tm = Tscore()
-        tm.model_name = name
+        tm.model_name = name.lower()
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
 
-    if name == 'tlinear':
+    if name.lower() == 'tlinear':
         tm = TscoreLinear()
-        tm.model_name = name
+        tm.model_name = name.lower()
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_parameters(input_score_max=input_score_max,
                           input_score_min=input_score_min)
@@ -251,7 +251,7 @@ def run(name='shandong',
         ratio_list = ratio_list
         grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
         m = GradeScore()
-        m.model_name = name
+        m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_parameters(maxscore=input_score_max,
                          minscore=input_score_min,
@@ -267,23 +267,23 @@ def plot():
     plt.figure('model ratio distribution')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
-    plt.bar(range(1, 9), [const_shandong_ratio[j] for j in range(8)])
+    plt.bar(range(1, 9), [CONST_SHANDONG_RATIO[j] for j in range(8)])
     plt.title('shandong model')
 
     plt.subplot(232)
-    plt.bar(range(11, 0, -1), [const_shanghai_ratio[-j - 1] for j in range(11)])
+    plt.bar(range(11, 0, -1), [CONST_SHANGHAI_RATIO[-j - 1] for j in range(11)])
     plt.title('shanghai model')
 
     plt.subplot(233)
-    plt.bar(range(21, 0, -1), [const_zhejiang_ratio[-j - 1] for j in range(len(const_zhejiang_ratio))])
+    plt.bar(range(21, 0, -1), [CONST_ZHEJIANG_RATIO[-j - 1] for j in range(len(CONST_ZHEJIANG_RATIO))])
     plt.title('zhejiang model')
 
     plt.subplot(234)
-    plt.bar(range(21, 0, -1), [const_beijing_ratio[-j - 1] for j in range(len(const_beijing_ratio))])
+    plt.bar(range(21, 0, -1), [CONST_BEIJING_RATIO[-j - 1] for j in range(len(CONST_BEIJING_RATIO))])
     plt.title('beijing model')
 
     plt.subplot(235)
-    plt.bar(range(21, 0, -1), [const_tianjin_ratio[-j - 1] for j in range(len(const_tianjin_ratio))])
+    plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
     plt.title('tianjin model')
 
 
