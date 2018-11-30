@@ -72,6 +72,15 @@
        Tscore: T分数转换模型 tscore model
        Tlinear: T分数线性转换模型 tscore model by linear transform mode
        SegTable: 计算分段表模型 segment table model
+
+    [CONSTANT] 模块中的常量
+        各省市等级分数转换比例设置，山东省区间划分设置
+        CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+        CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+        CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+        CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+        CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
+        CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
     """
 
 
