@@ -73,7 +73,7 @@
        Tlinear: T分数线性转换模型 tscore model by linear transform mode
        SegTable: 计算分段表模型 segment table model
 
-    [CONSTANT] 模块中的常量
+    [CONSTANTS] 模块中的常量
         各省市等级分数转换比例设置，山东省区间划分设置
         CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
         CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
