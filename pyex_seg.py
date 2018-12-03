@@ -12,11 +12,11 @@ import time
 # guid to use pyex_seg
 def help_doc():
     print(SegTable.__doc__)
-    print(help_exp.__doc__)
+    print(test.__doc__)
 
 
 # test SegTable and show some example
-def help_exp():
+def test():
     """
     a example for test SegTable
     ---------------------------------------------------------------------------
@@ -101,6 +101,44 @@ def help_exp():
     print(seg.output_data[seg.output_data.sf_count2 > 0][['seg', 'sf_count2', 'sf_sum']])
 
     return seg
+    # end test
+
+
+def run(df=None,
+        field_list=None,
+        segmax=150,
+        segmin=0,
+        segstart=150,
+        seglist=None,
+        useseglist=False,
+        segalldata=True,
+        segstep=1,
+        segsort='d',
+        display=True):
+    if not isinstance(df, pd.DataFrame):
+        print('df is not DataFrame!')
+        return
+    if type(field_list) != list:
+        print('field_list is not a list!')
+        return
+    for fs in field_list:
+        if fs not in df.columns:
+            print('{0} is not in df.columns!'.format(fs))
+            return
+    sm = SegTable()
+    sm.set_data(input_data=df, field_list=field_list)
+    sm.set_parameters(segmax=segmax,
+                      segmin=segmin,
+                      segstep=segstep,
+                      segstart=segstart,
+                      segsort=segsort,
+                      seglist=seglist,
+                      useseglist=useseglist,
+                      usealldata=segalldata,
+                      display=display
+                      )
+    sm.run()
+    return sm
 
 
 class SegTable(object):
