@@ -296,6 +296,10 @@ def plot():
     plt.title('tianjin model')
 
 
+def help_doc():
+    print(__doc__)
+
+
 # Score Transform Model Interface
 # Abstract class
 class ScoreTransformModel(object):
@@ -1796,7 +1800,7 @@ class SegTable(object):
         print('        display:{}'.format(self.__display))
         print('-' * 28)
 
-    def helpdoc(self):
+    def help_doc(self):
         print(self.__doc__)
 
     def __check(self):
