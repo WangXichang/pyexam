@@ -296,7 +296,7 @@ def plot():
     plt.title('tianjin model')
 
 
-def help_doc():
+def doc():
     print(__doc__)
 
 

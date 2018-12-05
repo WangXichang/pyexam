@@ -10,7 +10,7 @@ import time
 
 
 # guid to use pyex_seg
-def help_doc():
+def doc():
     print(SegTable.__doc__)
     print(test.__doc__)
 
