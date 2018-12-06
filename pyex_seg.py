@@ -2,17 +2,57 @@
 # from 2017-09-16
 # version 1.0.2     at 2018-6-24
 
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import time
-# import copy
 
 
-# guid to use pyex_seg
 def doc():
+    """
+    guide to use pyex_seg/SegTable to calculate score seg table
+    """
     print(SegTable.__doc__)
     print(test.__doc__)
+
+
+def run(df=None,
+        field_list=None,
+        segmax=150,
+        segmin=0,
+        segstart=150,
+        segstep=1,
+        segsort='d',
+        seglist=None,
+        useseglist=False,
+        usealldata=True,
+        display=True):
+    """interface to use SegTable to calculate seg table"""
+    if not isinstance(df, pd.DataFrame):
+        print('df is not DataFrame!')
+        return
+    if type(field_list) != list:
+        print('field_list is not a list!')
+        return
+    for fs in field_list:
+        if fs not in df.columns:
+            print('{0} is not in df.columns!'.format(fs))
+            return
+    sm = SegTable()
+    sm.set_data(input_data=df, field_list=field_list)
+    sm.set_parameters(segmax=segmax,
+                      segmin=segmin,
+                      segstep=segstep,
+                      segstart=segstart,
+                      segsort=segsort,
+                      seglist=seglist,
+                      useseglist=useseglist,
+                      usealldata=usealldata,
+                      display=display
+                      )
+    sm.run()
+    return sm
 
 
 # test SegTable and show some example
@@ -102,43 +142,6 @@ def test():
 
     return seg
     # end test
-
-
-def run(df=None,
-        field_list=None,
-        segmax=150,
-        segmin=0,
-        segstart=150,
-        seglist=None,
-        useseglist=False,
-        segalldata=True,
-        segstep=1,
-        segsort='d',
-        display=True):
-    if not isinstance(df, pd.DataFrame):
-        print('df is not DataFrame!')
-        return
-    if type(field_list) != list:
-        print('field_list is not a list!')
-        return
-    for fs in field_list:
-        if fs not in df.columns:
-            print('{0} is not in df.columns!'.format(fs))
-            return
-    sm = SegTable()
-    sm.set_data(input_data=df, field_list=field_list)
-    sm.set_parameters(segmax=segmax,
-                      segmin=segmin,
-                      segstep=segstep,
-                      segstart=segstart,
-                      segsort=segsort,
-                      seglist=seglist,
-                      useseglist=useseglist,
-                      usealldata=segalldata,
-                      display=display
-                      )
-    sm.run()
-    return sm
 
 
 class SegTable(object):
