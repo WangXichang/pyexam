@@ -109,6 +109,10 @@ CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
 
+def show():
+    print(__doc__)
+
+
 # interface to use model for some typical application
 def run(name='shandong',
         df=None,
@@ -294,10 +298,6 @@ def plot():
     plt.subplot(235)
     plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
     plt.title('tianjin model')
-
-
-def doc():
-    print(__doc__)
 
 
 # Score Transform Model Interface

@@ -9,7 +9,7 @@ import numpy as np
 import time
 
 
-def doc():
+def show():
     """
     guide to use pyex_seg/SegTable to calculate score seg table
     """
