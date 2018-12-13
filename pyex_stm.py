@@ -579,7 +579,7 @@ class PltScore(ScoreTransformModel):
         stime = time.time()
 
         # check valid
-        if not super().run():
+        if not super(PltScore, self).run():
             return
 
         if self.input_score_max is None:
@@ -849,7 +849,7 @@ class PltScore(ScoreTransformModel):
             return
         if mode == 'model':
             self.__plotmodel()
-        elif not super().plot(mode):
+        elif not super(PltScore, self).plot(mode):
             print('mode {} is invalid'.format(mode))
 
     def __plotmodel(self):
@@ -948,7 +948,7 @@ class Zscore(ScoreTransformModel):
 
     def run(self):
         # check data and parameter in super
-        if not super().run():
+        if not super(Zscore, self).run():
             return
         self.output_data = self.input_data
         self._map_table = self.__get_map_table(
@@ -1026,7 +1026,7 @@ class Zscore(ScoreTransformModel):
 
     def plot(self, mode='out'):
         if mode in 'raw,out':
-            super().plot(mode)
+            super(Zscore, self).plot(mode)
         else:
             print('not support this mode!')
 
@@ -1038,7 +1038,7 @@ class Tscore(ScoreTransformModel):
     对智力测验,尤其是提出智商这一概念所作出的巨大贡献。'''
 
     def __init__(self):
-        super().__init__('t')
+        super(Tscore, self).__init__('t')
         # self.model_name = 't'
 
         self.rscore_max = 150
@@ -1099,13 +1099,13 @@ class Tscore(ScoreTransformModel):
         print('-' * 50)
 
     def plot(self, mode='raw'):
-        super().plot(mode)
+        super(Tscore, self).plot(mode)
 
 
 class TscoreLinear(ScoreTransformModel):
     """Get Zscore by linear formula: (x-mean)/std"""
     def __init__(self):
-        super().__init__('tzl')
+        super(TscoreLinear, self).__init__('tzl')
 
         self.model_name = 'tzl'
         self.rawscore_max = 150
@@ -1131,7 +1131,7 @@ class TscoreLinear(ScoreTransformModel):
         self.tscore_stdnum = tscore_stdnum
 
     def check_data(self):
-        super().check_data()
+        super(TscoreLinear, self).check_data()
         return True
 
     def check_parameter(self):
@@ -1144,7 +1144,7 @@ class TscoreLinear(ScoreTransformModel):
         return True
 
     def run(self):
-        super().run()
+        super(TscoreLinear, self).run()
         self.output_data = self.input_data
         for sf in self.field_list:
             rmean, rstd = self.output_data[[sf]].describe().loc[['mean', 'std']].values[:, 0]
@@ -1179,7 +1179,7 @@ class TscoreLinear(ScoreTransformModel):
         print('-' * 50)
 
     def plot(self, mode='raw'):
-        super().plot(mode)
+        super(TscoreLinear, self).plot(mode)
 
 
 class GradeScore(ScoreTransformModel):
@@ -1191,7 +1191,7 @@ class GradeScore(ScoreTransformModel):
     grade_order = 'd'   # d: from high to low, a: from low to high
     """
     def __init__(self):
-        super().__init__('grade')
+        super(GradeScore, self).__init__('grade')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
         self.approx_method_set = 'minmax, maxmin, nearmax, nearmin, near'
 
@@ -1394,7 +1394,7 @@ class GradeScore(ScoreTransformModel):
         print('=' * 50)
 
     def plot(self, mode='raw'):
-        super().plot(mode)
+        super(GradeScore, self).plot(mode)
 
     def check_parameter(self):
         if self.input_score_max > self.input_score_min:
@@ -1404,7 +1404,7 @@ class GradeScore(ScoreTransformModel):
         return False
 
     def check_data(self):
-        return super().check_data()
+        return super(GradeScore, self).check_data()
 
     def report_map_table(self):
         fs_list = ['seg']
@@ -1434,7 +1434,7 @@ class GradeScoreTao(ScoreTransformModel):
     """
 
     def __init__(self):
-        super().__init__('grade')
+        super(GradeScoreTao, self).__init__('grade')
         self.model_name = 'taobaiqiang'
 
         self.grade_num = 50
