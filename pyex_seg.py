@@ -9,7 +9,7 @@ import numpy as np
 import time
 
 
-def doc():
+def show():
     """
     guide to use pyex_seg/SegTable to calculate score seg table
     """
@@ -229,8 +229,8 @@ class SegTable(object):
 
     def __init__(self):
         # raw data
-        self.__input_dataframe = None
-        self.__segFields = []
+        self.input_data = None
+        self.field_list = []
         # parameter for model
         self.__segList = []
         self.__useseglist = False
@@ -250,22 +250,6 @@ class SegTable(object):
     @property
     def output_data(self):
         return self.__output_dataframe
-
-    @property
-    def input_data(self):
-        return self.__input_dataframe
-
-    @input_data.setter
-    def input_data(self, df):
-        self.__input_dataframe = df
-
-    @property
-    def field_list(self):
-        return self.__segFields
-
-    @field_list.setter
-    def field_list(self, field_list):
-        self.__segFields = field_list
 
     @property
     def seglist(self):
@@ -408,13 +392,13 @@ class SegTable(object):
         print('        display:{}'.format(self.__display))
         print('-' * 28)
 
-    def helpdoc(self):
+    def help(self):
         print(self.__doc__)
 
     def __check(self):
-        if isinstance(self.__input_dataframe, pd.Series):
-            self.__input_dataframe = pd.DataFrame(self.__input_dataframe)
-        if not isinstance(self.__input_dataframe, pd.DataFrame):
+        if isinstance(self.input_data, pd.Series):
+            self.input_data = pd.DataFrame(self.input_data)
+        if not isinstance(self.input_data, pd.DataFrame):
             print('error: raw score data is not ready!')
             return False
         if self.__segMax <= self.__segMin:
