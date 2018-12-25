@@ -13,6 +13,11 @@ import warnings
 
 
 def irt_response_curve():
+    """
+    it is a idealization to use norm distribution as response curve
+    limit distribution is difficultlly to reach in real data
+    """
+
     x = [v/100 for v in range(-400, 400)]
     y = [st.norm.cdf(v) for v in x]
 
@@ -30,12 +35,13 @@ class BaseIrt(object):
     @staticmethod
     def p(zv):
         # 回答正确的概率函数
-        e = np.exp(zv)
-        pp = e / (1.0 + e)
+        et = np.exp(zv)
+        pp = et / (1.0 + et)
         return pp
 
     def _lik(self, p_val):
         # 似然函数
+        # add efficient small 1e-200 to avoid log(zero)
         scores = self.scores
         log_lik_val = np.dot(np.log(p_val + 1e-200), scores.transpose()) + \
             np.dot(np.log(1 - p_val + 1e-200), (1 - scores).transpose())
@@ -530,8 +536,8 @@ class McMc(object):
 # if __name__ == 'main':
 #     # test Irt2PL
 #     f = 'lsat.csv'
-#     score = np.loadtxt(f, delimiter=",")
-#     res = Irt2PL(scores=score, m_step_method='newton').em()
+#     score_data = np.loadtxt(f, delimiter=",")
+#     res = Irt2PL(scores=score_data, m_step_method='newton').em()
 #     print(res)
 #
 #
