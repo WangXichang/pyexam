@@ -23,11 +23,14 @@ beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
+data_path = 'd:/mywrite/newgk/gkdata/'
+
+
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', 'd:/18my_write/newgk/gkdata/xj1517/']
+    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', data_path+'xj1517/']
     datawk = []
     datalk = []
-    for fs in ['15', '16', '17']:
+    for fs in ['15', '16', '17', '18']:
         for _path in data_path:
             if not os.path.isfile(_path+'g'+fs+'wk.csv'):
                 continue
@@ -35,10 +38,12 @@ def get_cjfun():
                                       dtype={'kl': str}))
             datalk.append(pd.read_csv(_path+'g'+fs+'lk.csv', index_col=0, low_memory=False,
                                       dtype={'kl': str}))
-    # print(datawk, datalk)
+    if any([len(datawk)==0, len(datalk)==0]):
+        return None
+    print('wk_data_len={0}, lk_data_len={1}'.format(len(datawk), len(datalk)))
 
     def get_cj(year='15', kl='wk'):
-        if year in '15-16-17':
+        if year in '15-16-17-18':
             yeari = int(year) - 15
         else:
             yeari = 0
@@ -185,7 +190,7 @@ def plot_pie_xk():
 class Xuanke():
 
     def __init__(self):
-        self.xkfile = 'd:/my_write/newgk/gkdata/xk/xk_type_zycount.csv'
+        self.xkfile = data_path + 'xk/xk_type_zycount.csv'
         self.xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
         self.xk_label = ['0', '1', '2', '3', '1/2', '1/3']
         self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
@@ -225,7 +230,7 @@ class Xuanke():
         # self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
 
     def load_data(self):
-        self.dc = pd.read_csv('d:/my_write/newgk/gkdata/xk/xk_zyclass_zycount.txt')
+        self.dc = pd.read_csv(data_path+'xk/xk_zyclass_zycount.txt')
         self.dc = self.dc.fillna(0)
         self.zyclass_name = [x for x in self.dc.zyclass if x not in ('total','ratio')]
         self.zyclass_name[0] = '00实验基地班'
@@ -302,7 +307,7 @@ class Xuanke():
         return xk_comb_dict
 
     def load_data_military(self):
-        self.df_xk_junshi = pd.read_csv('d:/work/newgk/gkdata/xk/xk_junshi2020.csv')
+        self.df_xk_junshi = pd.read_csv(data_path+'xk/xk_junshi2020.csv')
 
         def get_xktype(xkstr):
             if '不限' in xkstr:
@@ -373,17 +378,21 @@ class Xuanke():
 
         align_dict = {fs: 'r' for fs in list(self.field_dict.keys())+['xk0']}
         align_dict.update({'zyclass': 'l', 'xk_sum': 'r'})
-        print(ptt.make_page(dt, title='xk type count for benke', align=align_dict))
+        print(ptt.make_page(dt,
+                            title='xk type count for benke',
+                            align=align_dict))
 
         dtt = pd.DataFrame(self.dzy_benke.sum()).unstack().unstack()
         dtt.zyclass = dtt.zyclass.apply(lambda x: 'total')
         dt2 = pd.concat([self.dzy_benke, dtt])
         dt2.zyclass = dt2.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])] if x != 'total' else x)
         dt2 = dt2.astype({fs: int for fs in dt2.columns.values if fs != 'zyclass'})
-        print(ptt.make_page(dt2, align={fs: 'l' if fs=='zyclass' else 'r' for fs in dt2.columns}))
+        print(ptt.make_page(dt2,
+                            title='all zy count',
+                            align={fs: 'l' if fs=='zyclass' else 'r' for fs in dt2.columns}))
 
 
-def xk_stats(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv',
+def xk_stats(xkfile=data_path+'xk/xk_type_zycount.csv',
              plot_pie=False,
              ptt_zycount=False,
              ):
@@ -392,7 +401,7 @@ def xk_stats(xkfile='d:/work/newgk/gkdata/xk/xk_type_zycount.csv',
     xk_subject = ['d', 'h', 'l', 's', 'w', 'z']
     xk_sub_cb = cb(xk_subject, 3)
 
-    dc = pd.read_csv('d:/work/newgk/gkdata/xk/xk_zyclass_zycount.txt')
+    dc = pd.read_csv(data_path+'xk/xk_zyclass_zycount.txt')
     dc = dc.fillna(0)
     zyclass_name = [x for x in dc.zyclass if x not in ('total','ratio')]
     zyclass_name[0] = '00实验基地班'
