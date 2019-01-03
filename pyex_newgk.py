@@ -23,15 +23,81 @@ beijing_ratio = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 
-data_path = 'd:/mywrite/newgk/gkdata/'
+data_path_dell = 'd:/mywrite/newgk/gkdata/'
+data_path_office = 'f:/studies/lqdata/'
 
 
+class Score:
+    def __init__(self):
+        self.data_list_wk = []
+        self.data_list_lk = []
+        self.load_data()
+
+    def load_data(self):
+        year_list = ['15', '16', '17', '18']
+        d_path = [data_path_office, data_path_dell+'xj1517']
+        for fs in year_list:
+            for _path in d_path:
+                p_file = _path+'g'+fs+'wk.csv'
+                if not os.path.isfile(p_file):
+                    continue
+                print('get wk data: {}'.format(_path+'g'+fs+'wk.csv'))
+                self.data_list_wk.append(self.read_data(p_file, 'wk'))
+                p_file = _path+'g'+fs+'lk.csv'
+                if not os.path.isfile(p_file):
+                    continue
+                print('get lk data: {}'.format(p_file))
+                self.data_list_lk.append(self.read_data(p_file, 'lk'))
+
+    def read_data(self, path_file, kl='wk'):
+        df = pd.read_csv(path_file, index_col=0, low_memory=False, dtype={'kl': str})
+        f_list = ['dl', 'ls', 'zz'] if kl == 'wk' else ['wl', 'hx', 'sw']
+        for fs in f_list:
+            if fs not in ['wl', 'sw']:
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x, 0))
+            elif fs == 'wl':
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 11 * 10, 0))
+            elif fs == 'sw':
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 9 * 10, 0))
+            df = df.astype({fs+'n': int})
+
+        # create total score
+        print('create total score')
+        df.loc[:, 'zfn'] = df['yw']+df['sx']+df['wy'] + \
+            ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else
+             (df['wln'] + df['hxn'] + df['swn']))
+        df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
+            ((df['dl'] + df['ls'] + df['zz']) if kl == 'wk' else
+             (df['wl'] + df['hx'] + df['sw']))
+        df = df.astype({'zfn': int, 'zf': int})
+
+        # drop some security fields
+        drop_fields = ['ksh', 'xm', 'sfzh']
+        for fd in drop_fields:
+            if fd not in df.columns:
+                continue
+            print('drop or redo field: {}'.format(fd))
+            if fd == 'ksh':
+                df.loc[:, fd] = df[fd].apply(lambda x: str(x)[0:10])
+            else:
+                df = df.drop(labels=fd, axis=1)
+
+        return df
+
+    def data(self, year='15', kl='wk'):
+        year_int = 0
+        if year in '15-16-17-18':
+            year_int = int(year) - 15
+        df = self.data_list_wk[year_int] if kl == 'wk' else self.data_list_lk[year_int]
+        return df
+
+# test closed-package function
 def get_cjfun():
-    data_path = ['d:/gkcj1517/', 'f:/studies/lqdata/', data_path+'xj1517/']
+    d_path = [data_path_office, data_path_dell+'xj1517']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17', '18']:
-        for _path in data_path:
+        for _path in d_path:
             if not os.path.isfile(_path+'g'+fs+'wk.csv'):
                 continue
             datawk.append(pd.read_csv(_path+'g'+fs+'wk.csv', index_col=0, low_memory=False,
@@ -60,8 +126,13 @@ def get_cjfun():
         df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
                           ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else
                            (df['wln'] + df['hxn'] + df['swn']))
-        # if 'ksh' in df.columns:
-        #     df = df.drop('ksh', axis=1)
+        drop_fields = ['ksh', 'xm', 'sfzh']
+        for fd in df.columns:
+             if fd == 'ksh':
+                 df.loc[:, fd] = df[fd].apply(lambda x: str(x)[0:10])
+             else:
+                 df = df.drop(labels=fd, axis=1)
+
         return df
 
     return get_cj
@@ -190,7 +261,7 @@ def plot_pie_xk():
 class Xuanke():
 
     def __init__(self):
-        self.xkfile = data_path + 'xk/xk_type_zycount.csv'
+        self.xkfile = data_path_dell + 'xk/xk_type_zycount.csv'
         self.xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
         self.xk_label = ['0', '1', '2', '3', '1/2', '1/3']
         self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
@@ -392,7 +463,7 @@ class Xuanke():
                             align={fs: 'l' if fs=='zyclass' else 'r' for fs in dt2.columns}))
 
 
-def xk_stats(xkfile=data_path+'xk/xk_type_zycount.csv',
+def xk_stats(xkfile=data_path_dell+'xk/xk_type_zycount.csv',
              plot_pie=False,
              ptt_zycount=False,
              ):
@@ -401,7 +472,7 @@ def xk_stats(xkfile=data_path+'xk/xk_type_zycount.csv',
     xk_subject = ['d', 'h', 'l', 's', 'w', 'z']
     xk_sub_cb = cb(xk_subject, 3)
 
-    dc = pd.read_csv(data_path+'xk/xk_zyclass_zycount.txt')
+    dc = pd.read_csv(data_path_dell+'xk/xk_zyclass_zycount.txt')
     dc = dc.fillna(0)
     zyclass_name = [x for x in dc.zyclass if x not in ('total','ratio')]
     zyclass_name[0] = '00实验基地班'
