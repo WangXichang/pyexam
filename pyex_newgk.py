@@ -280,8 +280,9 @@ class Xuanke():
         self.xk_zy_total = None
         self.xk_zy_total_benke = None
 
-        self.load_data()
-        self.load_data_military()
+        if not self.load_data() or not self.load_data_military():
+            print('load data fail!')
+            return
 
         self.xk_zy_total = sum(self.dzy[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
         self.xk_zy_total_benke = sum(self.dzy_benke[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
@@ -301,6 +302,16 @@ class Xuanke():
         # self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
 
     def load_data(self):
+        if os.path.isdir(data_path_dell):
+            data_path = data_path_dell
+        elif os.path.isdir(data_path_office):
+            data_path = data_path_office
+        else:
+            print('no data path found!')
+            return False
+        if not os.path.isfile(data_path+'xk/xk_zyclass_zycount.txt'):
+            print('no data file found!')
+            return False
         self.dc = pd.read_csv(data_path+'xk/xk_zyclass_zycount.txt')
         self.dc = self.dc.fillna(0)
         self.zyclass_name = [x for x in self.dc.zyclass if x not in ('total','ratio')]
@@ -349,6 +360,8 @@ class Xuanke():
         self.xk_comb_dict = self.count_kmset_zycount(self.dzy)
         self.xk_comb_dict_benke = self.count_kmset_zycount(self.dzy_benke)
 
+        return True
+
     def count_kmset_zycount(self, zydf):
         # count zy number for kmset
         zyfield=list(zydf.columns.values)
@@ -378,6 +391,16 @@ class Xuanke():
         return xk_comb_dict
 
     def load_data_military(self):
+        if os.path.isdir(data_path_dell):
+            data_path = data_path_dell
+        elif os.path.isdir(data_path_office):
+            data_path = data_path_office
+        else:
+            print('no data-m path found!')
+            return False
+        if not os.path.isfile(data_path+'xk/xk_junshi2020.csv'):
+            print('no data-m file found!')
+            return False
         self.df_xk_junshi = pd.read_csv(data_path+'xk/xk_junshi2020.csv')
 
         def get_xktype(xkstr):
@@ -415,6 +438,8 @@ class Xuanke():
         dtemp.loc[:, 'zyclass'] = dtemp.zydm.apply(lambda x: str(x)[0:2])
         dtemp.loc[:, 'xk_type'] = dtemp.xkkm.apply(lambda x: get_xktype(x))
         self.df_xk_junshi = dtemp
+
+        return True
 
 
     def plot_pie(self):
