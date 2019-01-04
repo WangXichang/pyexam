@@ -25,7 +25,7 @@ tianjin_ratio = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 
 data_path_dell = 'd:/mywrite/newgk/gkdata/'
 data_path_office = 'f:/studies/lqdata/'
-
+d_path = data_path_office if os.path.isdir(data_path_office) else data_path_dell
 
 class Score:
     def __init__(self):
@@ -35,19 +35,20 @@ class Score:
 
     def load_data(self):
         year_list = ['15', '16', '17', '18']
-        d_path = [data_path_office, data_path_dell+'xj1517']
+        # d_path = [data_path_office, data_path_dell+'xj1517']
         for fs in year_list:
-            for _path in d_path:
-                p_file = _path+'g'+fs+'wk.csv'
-                if not os.path.isfile(p_file):
-                    continue
-                print('get wk data: {}'.format(_path+'g'+fs+'wk.csv'))
-                self.data_list_wk.append(self.read_data(p_file, 'wk'))
-                p_file = _path+'g'+fs+'lk.csv'
-                if not os.path.isfile(p_file):
-                    continue
-                print('get lk data: {}'.format(p_file))
-                self.data_list_lk.append(self.read_data(p_file, 'lk'))
+            # for _path in d_path:
+            _path = d_path
+            p_file = _path+'g'+fs+'wk.csv'
+            if not os.path.isfile(p_file):
+                continue
+            print('get wk data: {}'.format(_path+'g'+fs+'wk.csv'))
+            self.data_list_wk.append(self.read_data(p_file, 'wk'))
+            p_file = _path+'g'+fs+'lk.csv'
+            if not os.path.isfile(p_file):
+                continue
+            print('get lk data: {}'.format(p_file))
+            self.data_list_lk.append(self.read_data(p_file, 'lk'))
 
     def read_data(self, path_file, kl='wk'):
         df = pd.read_csv(path_file, index_col=0, low_memory=False, dtype={'kl': str})
@@ -261,69 +262,70 @@ def plot_pie_xk():
 class Xuanke():
 
     def __init__(self):
-        self.xkfile = data_path_dell + 'xk/xk_type_zycount.csv'
-        self.xk_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
-        self.xk_label = ['0', '1', '2', '3', '1/2', '1/3']
-        self.km_pinyin1 = ['d', 'h', 'l', 's', 'w', 'z']
-        self.km_ccname = ['地理', '化学', '历史', '生物', '物理', '政治']
-        self.xk_km_cb = cb(self.km_pinyin1, 3)
-        self.xk_comb_ccname = {''.join(k): ''.join([self.km_ccname[self.km_pinyin1.index(s)] for s in k])
-                               for k in self.xk_km_cb}
+        self.xkfile = d_path + 'xk/xk_type_zycount.csv'
 
-        self.dc = None
-        self.dzy = None
-        self.dzy_benke = None
-        self.zyclass_name = None
-        self.xk_comb_dict = {}
-        self.xk_comb_dict_benke = {}
-        self.df_xk_junshi = None
-        self.xk_zy_total = None
-        self.xk_zy_total_benke = None
+        self.xk_type_name = ['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']
+        self.xk_type_label = ['0', '1', '2', '3', '1/2', '1/3']
+        self.xk_class_name = None
 
+        self.km_name_pinyin_first = ['d', 'h', 'l', 's', 'w', 'z']
+        self.km_name_chinese_string = ['地理', '化学', '历史', '生物', '物理', '政治']
+        self.__km_cb = cb(self.km_name_pinyin_first, 3)
+        self.km_comb_ccname_dict = {''.join(k): ''.join(
+            [self.km_name_chinese_string[self.km_name_pinyin_first.index(s)] for s in k])
+            for k in self.__km_cb}
+
+        self.df_xkdata_junshi = None
+        self.df_total_count = None
+        self.df_class_type_count = None
+        self.df_class_type_count_bk = None
+        self.df_comb_st = None
+
+        self.num_zy_total = None
+        self.num_zy_total_bk = None
+        self.num_kmcomb_count_dict = {}
+        self.num_kmcomb_count_dict_bk = {}
+
+        self.pre_do()
+
+    def pre_do(self):
         if not self.load_data() or not self.load_data_military():
             print('load data fail!')
-            return
+            return None
 
-        self.xk_zy_total = sum(self.dzy[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
-        self.xk_zy_total_benke = sum(self.dzy_benke[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
-        self.xk_comb_percent = {k: pl.uf_round45i(self.xk_comb_dict[k]/self.xk_zy_total*100, 2)
-                                for k in self.xk_comb_dict}
-        self.xk_comb_percent_benke = {k: pl.uf_round45i(self.xk_comb_dict_benke[k]/self.xk_zy_total_benke*100, 2)
-                                      for k in self.xk_comb_dict_benke}
-
-        self.xk_comb_df = pd.DataFrame({'xkset': list(self.xk_comb_dict.keys()),
-                                        'xksetname': [self.xk_comb_ccname[k] for k in self.xk_comb_dict.keys()],
-                                        'xkcount': [int(x) for x in self.xk_comb_dict.values()],
-                                        'xkpercent': list(self.xk_comb_percent.values()),
-                                        'xkcount_b': [int(x) for x in self.xk_comb_dict_benke.values()],
-                                        'xkpercent_b': list(self.xk_comb_percent_benke.values()),
+        self.num_zy_total = sum(self.df_class_type_count[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
+        self.num_zy_total_bk = sum(self.df_class_type_count_bk[['xk0', 'xk1', 'xk2', 'xk3', 'xk21', 'xk31']].sum())
+        xk_comb_percent = {k: pl.uf_round45i(self.num_kmcomb_count_dict[k] / self.num_zy_total * 100, 2)
+                           for k in self.num_kmcomb_count_dict}
+        xk_comb_percent_benke = {k: pl.uf_round45i(self.num_kmcomb_count_dict_bk[k] / self.num_zy_total_bk * 100, 2)
+                                 for k in self.num_kmcomb_count_dict_bk}
+        self.df_comb_st = pd.DataFrame({'comb_code': list(self.num_kmcomb_count_dict.keys()),
+                                        'comb_name': [self.km_comb_ccname_dict[k]
+                                                          for k in self.num_kmcomb_count_dict.keys()],
+                                        'zy_count': [int(x) for x in self.num_kmcomb_count_dict.values()],
+                                        'zy_percent': list(xk_comb_percent.values()),
+                                        'zy_count_bk': [int(x) for x in self.num_kmcomb_count_dict_bk.values()],
+                                        'zy_percent_bk': list(xk_comb_percent_benke.values()),
                                         })
         # self.xk_comb_df = self.xk_comb_df.astype({'xkcount': int})
         # self.xk_comb_df.xkpercent = self.xk_comb_df.xkpercent.apply(lambda x: round(100*x, 2))
 
     def load_data(self):
-        if os.path.isdir(data_path_dell):
-            data_path = data_path_dell
-        elif os.path.isdir(data_path_office):
-            data_path = data_path_office
-        else:
-            print('no data path found!')
-            return False
-        if not os.path.isfile(data_path+'xk/xk_zyclass_zycount.txt'):
+        if not os.path.isfile(d_path+'xk/xk_zyclass_zycount.txt'):
             print('no data file found!')
             return False
-        self.dc = pd.read_csv(data_path+'xk/xk_zyclass_zycount.txt')
-        self.dc = self.dc.fillna(0)
-        self.zyclass_name = [x for x in self.dc.zyclass if x not in ('total','ratio')]
-        self.zyclass_name[0] = '00实验基地班'
-        self.zyclass_name[-1] = '88中外合作'
-        self.zyclass_name_bk = self.zyclass_name[0:14]
-        self.zyclass_name_bk.append(self.zyclass_name[-1])
+        self.df_total_count = pd.read_csv(d_path + 'xk/xk_zyclass_zycount.txt')
+        self.df_total_count = self.df_total_count.fillna(0)
+        self.xk_class_name = [x for x in self.df_total_count.zyclass if x not in ('total', 'ratio')]
+        self.xk_class_name[0] = '00实验基地班'
+        self.xk_class_name[-1] = '88中外合作'
+        self.zyclass_name_bk = self.xk_class_name[0:14]
+        self.zyclass_name_bk.append(self.xk_class_name[-1])
 
         # read zy class type data
         dzy = pd.read_csv(self.xkfile, dtype={'zyclass': str})
         dzy = dzy.fillna(0)
-        self.dzy = dzy
+        self.df_class_type_count = dzy
 
         dzyp = dzy[dzy.zyclass < '50']  # benke
         zyfield=list(dzy.columns.values)
@@ -339,13 +341,13 @@ class Xuanke():
         for fs in self.field_dict.keys():
             dtemp.loc[:, fs] = sum(dzy[fd] for fd in self.field_dict[fs])
             dtemp2.loc[:, fs] = sum(dzyp[fd] for fd in self.field_dict[fs])
-        self.dzy = dtemp
-        self.dzy_benke = dtemp2
+        self.df_class_type_count = dtemp
+        self.df_class_type_count_bk = dtemp2
         dzy = dtemp
         dzyp = dtemp2
 
         # count for xk_type
-        xk_name = self.xk_name
+        xk_name = self.xk_type_name
         self.xk_count = dzy[xk_name].sum(axis=0)
         self.zyclass_count = dzy[xk_name].sum(axis=1)
         self.type_name = dzy.zyclass
@@ -357,8 +359,8 @@ class Xuanke():
         self.xk_count_zk = [x-y for x,y in zip(self.xk_count, self.xk_count_bk)]
         self.zyclass_count_zk = [x-y for x,y in zip(self.zyclass_count, self.zyclass_count_bk)]
 
-        self.xk_comb_dict = self.count_kmset_zycount(self.dzy)
-        self.xk_comb_dict_benke = self.count_kmset_zycount(self.dzy_benke)
+        self.num_kmcomb_count_dict = self.count_kmset_zycount(self.df_class_type_count)
+        self.num_kmcomb_count_dict_bk = self.count_kmset_zycount(self.df_class_type_count_bk)
 
         return True
 
@@ -368,8 +370,8 @@ class Xuanke():
         zyfield.remove('zyclass')
         zy_xk_series = zydf[zyfield].sum()
         xk_comb_dict = {}
-        self.xk_km_cb = cb(self.km_pinyin1, 3)
-        for xs in self.xk_km_cb:
+        self.__km_cb = cb(self.km_name_pinyin_first, 3)
+        for xs in self.__km_cb:
             zynum = zy_xk_series['xk0']
             xss = ''.join(xs)
             for t in zy_xk_series.index:
@@ -391,24 +393,17 @@ class Xuanke():
         return xk_comb_dict
 
     def load_data_military(self):
-        if os.path.isdir(data_path_dell):
-            data_path = data_path_dell
-        elif os.path.isdir(data_path_office):
-            data_path = data_path_office
-        else:
-            print('no data-m path found!')
-            return False
-        if not os.path.isfile(data_path+'xk/xk_junshi2020.csv'):
+        if not os.path.isfile(d_path+'xk/xk_junshi2020.csv'):
             print('no data-m file found!')
             return False
-        self.df_xk_junshi = pd.read_csv(data_path+'xk/xk_junshi2020.csv')
+        self.df_xkdata_junshi = pd.read_csv(d_path + 'xk/xk_junshi2020.csv')
 
         def get_xktype(xkstr):
             if '不限' in xkstr:
                 return 'xk0'
             result = ''
             kmstr = ''
-            for km, p in zip(self.km_ccname, self.km_pinyin1):
+            for km, p in zip(self.km_name_chinese_string, self.km_name_pinyin_first):
                 if km in xkstr:
                     kmstr += p
             if '或' in xkstr:
@@ -434,10 +429,10 @@ class Xuanke():
                     print('error:{}'.format(xkstr))
             return result+kmstr
 
-        dtemp = self.df_xk_junshi
+        dtemp = self.df_xkdata_junshi
         dtemp.loc[:, 'zyclass'] = dtemp.zydm.apply(lambda x: str(x)[0:2])
         dtemp.loc[:, 'xk_type'] = dtemp.xkkm.apply(lambda x: get_xktype(x))
-        self.df_xk_junshi = dtemp
+        self.df_xkdata_junshi = dtemp
 
         return True
 
@@ -447,22 +442,22 @@ class Xuanke():
         plt.rcParams.update({'font.size': 16})
         plt.figure(u'选科专业统计')
         plt.subplot(131)
-        plt.pie(self.xk_count, labels=self.xk_label, autopct='%1.2f%%')
+        plt.pie(self.xk_count, labels=self.xk_type_label, autopct='%1.2f%%')
         plt.title(u'全部选科专业')
         plt.subplot(132)
-        plt.pie(self.xk_count_bk, labels=self.xk_label, autopct='%1.2f%%')
+        plt.pie(self.xk_count_bk, labels=self.xk_type_label, autopct='%1.2f%%')
         plt.title(u'本科选科专业')
         plt.subplot(133)
-        plt.pie(self.xk_count_zk, labels=self.xk_label, autopct='%1.2f%%')
+        plt.pie(self.xk_count_zk, labels=self.xk_type_label, autopct='%1.2f%%')
         plt.title(u'专科选科专业')
 
     def print_xk(self):
-        print(ptt.make_page(self.dzy[['zyclass']+self.xk_name], title='all zy count'))
-        print(ptt.make_page(self.dzy_benke[['zyclass'] + self.xk_name], title='benke zy count'))
+        print(ptt.make_page(self.df_class_type_count[['zyclass'] + self.xk_type_name], title='all zy count'))
+        print(ptt.make_page(self.df_class_type_count_bk[['zyclass'] + self.xk_type_name], title='benke zy count'))
 
     def ptt_zyclass_xktype(self):
         # benke zyclass-xktype-count
-        dt = self.dzy_benke[['zyclass', 'xk0'] + list(self.field_dict.keys())]
+        dt = self.df_class_type_count_bk[['zyclass', 'xk0'] + list(self.field_dict.keys())]
         dt = dt.astype({fs: int for fs in list(self.field_dict.keys())+['xk0']})
         dt.zyclass = dt.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])])
         dt.loc[:, 'xk_sum'] = sum(dt[fs] for fs in ['xk0']+list(self.field_dict.keys()))
@@ -478,9 +473,9 @@ class Xuanke():
                             title='xk type count for benke',
                             align=align_dict))
 
-        dtt = pd.DataFrame(self.dzy_benke.sum()).unstack().unstack()
+        dtt = pd.DataFrame(self.df_class_type_count_bk.sum()).unstack().unstack()
         dtt.zyclass = dtt.zyclass.apply(lambda x: 'total')
-        dt2 = pd.concat([self.dzy_benke, dtt])
+        dt2 = pd.concat([self.df_class_type_count_bk, dtt])
         dt2.zyclass = dt2.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])] if x != 'total' else x)
         dt2 = dt2.astype({fs: int for fs in dt2.columns.values if fs != 'zyclass'})
         print(ptt.make_page(dt2,
