@@ -300,6 +300,19 @@ def plot():
     plt.title('tianjin model')
 
 
+def test(model='shandong', max_score=100, data_size=100):
+    # create data set
+    dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
+
+    # test shandong model
+    print('test model={}'.format(model))
+    print('data set size={}, score range from 0 to 100'.format(data_size))
+
+    r = run(name=model, df=dfscore, field_list='km')
+    # r.output_data.head()
+
+    return r
+
 # Score Transform Model Interface
 # Abstract class
 class ScoreTransformModel(object):
