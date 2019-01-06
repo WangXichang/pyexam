@@ -300,16 +300,38 @@ def plot():
     plt.title('tianjin model')
 
 
-def test(model='shandong', max_score=100, data_size=100):
+def test(model='shandong', max_score=100, min_score=0, data_size=1000):
+    model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing', 'tao']
+    if model not in model_list:
+        print('use correct model: {}'.format(','.join(model_list)))
+        return None
+
     # create data set
-    dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
+    # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
+    norm_data = [sts.norm.rvs() for _ in range(data_size)]
+    norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
+    norm_data = [int((x+4)*max_score/8) for x in norm_data]
+    dfscore = pd.DataFrame({'km': norm_data})
 
     # test shandong model
-    print('test model={}'.format(model))
-    print('data set size={}, score range from 0 to 100'.format(data_size))
-
-    r = run(name=model, df=dfscore, field_list='km')
-    # r.output_data.head()
+    if model in model_list[2:]:
+        print('test model={}'.format(model))
+        print('data set size={}, score range from 0 to 100'.format(data_size))
+        r = run(name=model, df=dfscore, field_list='km')
+        # r.output_data.head()
+    elif model.lower() == 'z':
+        m = Zscore()
+        m.set_data(dfscore, field_list=['km'])
+        m.set_parameters(rawscore_max=max_score, rawscore_min=min_score)
+        m.run()
+        r = m
+    elif model.lower() == 't':
+        m = Tscore()
+        m.set_data(dfscore, field_list=['km'])
+        m.set_parameters(rawscore_max=100, rawscore_min=0,
+                         tscore_mean=500, tscore_std=100, tscore_stdnum=4)
+        m.run()
+        r = m
 
     return r
 
@@ -930,16 +952,16 @@ class Zscore(ScoreTransformModel):
 
     def __init__(self):
         super(Zscore, self).__init__('zt')
-        # self.model_name = 'zt'
+        self.model_name = 'zscore'
         self.stdNum = 3
         self.maxRawscore = 150
         self.minRawscore = 0
-        self._map_table = None
-        self.__currentfield = None
+        self.map_table = None
+        # self.__currentfield = None
+
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = get_norm_dist_table(self._samplesize, stdnum=4)
-        self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
+        self._normtable = None
 
     def set_data(self, input_data=None, field_list=None):
         self.input_data = input_data
@@ -963,34 +985,70 @@ class Zscore(ScoreTransformModel):
         # check data and parameter in super
         if not super(Zscore, self).run():
             return
-        self.output_data = self.input_data
-        self._map_table = self.__get_map_table(
-            self.output_data,
-            self.maxRawscore,
-            self.minRawscore,
-            self.field_list)
-        for sf in self.field_list:
-            print('start run...')
-            st = time.clock()
-            self._calczscoretable(sf)
-            df = self.output_data.copy()
-            print('zscore calculating1...')
-            df.loc[:, sf+'_zscore'] = \
-                df[sf].apply(lambda x: x if x in self._map_table.seg.values else -999)
-            print('zscore calculating1...use time{}'.format(time.clock()-st))
-            print('zscore calculating2...')
-            df.loc[:, sf+'_zscore'] = \
-                df[sf + '_zscore'].replace(self._map_table.seg.values,
-                                           self._map_table[sf+'_zscore'].values)
-            self.output_data = df
-            print('zscore transoform finished with {} consumed'.format(round(time.clock()-st, 2)))
+        # create and calculate output_data
+        print('start run...')
+        # deprecated for time cost
+        # if self._normtable is None:
+        #     print('create norm table')
+        #     self._normtable = get_norm_dist_table(self._samplesize, stdnum=4)
+        #     self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
+        self.output_data = self.input_data.copy()
+        self.map_table = \
+            self.__get_map_table(self.output_data, self.maxRawscore, self.minRawscore, self.field_list)
 
-    def _calczscoretable(self, sf):
-        if sf+'_percent' in self._map_table.columns.values:
-            self._map_table.loc[:, sf+'_zscore'] = \
-                self._map_table[sf+'_percent'].apply(self.__get_zscore_from_normtable)
+        for sf in self.field_list:
+            print('start run on field: {}...'.format(sf))
+            st = time.clock()
+            self._get_zscore_in_map_table(sf)
+            df = self.output_data
+            print('zscore calculating(1): create field {}_zscore ...'.format(sf))
+            df.loc[:, sf+'_zscore'] = \
+                df[sf].apply(lambda x: x if x in self.map_table.seg.values else -999)
+            print('zscore calculating(1)...use time{}'.format(time.clock()-st))
+            print('zscore calculating(2): get zscore from map_table...')
+            df.loc[:, sf+'_zscore'] = \
+                df[sf + '_zscore'].replace(self.map_table.seg.values,
+                                           self.map_table[sf + '_zscore'].values)
+            self.output_data = df
+            print('{}_zscore finished with {} consumed'.format(sf, round(time.clock()-st, 2)))
+
+    # new method for time reason
+    def lookup_zscore(self, percent):
+        low_z = -self.stdNum
+        high_z = self.stdNum
+        curr_z = low_z
+        if sts.norm.cdf(low_z) >= percent:
+            return low_z
+        elif sts.norm.cdf(high_z) <= percent:
+            return high_z
+        err = 10**-6
+        iter_num = 1000
+        while True:
+            iter_num = iter_num - 1
+            curr_p = sts.norm.cdf(curr_z)
+            if abs(curr_p - percent) < err:
+                return curr_z
+            if iter_num < 0:
+                return curr_z
+            if curr_p > percent:
+                high_z = curr_z
+            elif curr_p < percent:
+                low_z = curr_z
+            curr_z = (low_z + high_z) / 2
+
+    def _get_zscore_in_map_table(self, sf):
+        # use method lookup_zscore
+        if sf+'_percent' in self.map_table.columns.values:
+            self.map_table.loc[:, sf + '_zscore'] = \
+                self.map_table[sf + '_percent'].apply(self.lookup_zscore)
         else:
             print('error: not found field{}+"_percent"!'.format(sf))
+        # deprecated for time cost
+        # if sf+'_percent' in self.map_table.columns.values:
+        #     self.map_table.loc[:, sf + '_zscore'] = \
+        #         self.map_table[sf + '_percent'].apply(self.__get_zscore_from_normtable)
+        # else:
+        #     print('error: not found field{}+"_percent"!'.format(sf))
 
     def __get_zscore_from_normtable(self, p):
         df = self._normtable.loc[self._normtable.cdf >= p - Zscore.MinError][['sv']].head(1).sv
@@ -1005,10 +1063,11 @@ class Zscore(ScoreTransformModel):
         """no sort problem in this map_table usage"""
         seg = SegTable()
         seg.set_data(df, scorefieldnamelist)
-        seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='ascending')
+        seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='a')
         seg.run()
         return seg.output_data
 
+    # deprecated for time cost
     @staticmethod
     def get_normtable(stdnum=4, precise=4):
         cdf_list = []
@@ -1060,11 +1119,13 @@ class Tscore(ScoreTransformModel):
         self.tscore_mean = 50
         self.tscore_stdnum = 4
 
+        self.map_table = None
+
     def set_data(self, input_data=None, field_list=None):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self, rawscore_max=150, rawscore_min=0, tscore_mean=50, tscore_std=10, tscore_stdnum=4):
+    def set_parameters(self, rawscore_max=150, rawscore_min=0, tscore_mean=500, tscore_std=100, tscore_stdnum=4):
         self.rscore_max = rawscore_max
         self.rscore_min = rawscore_min
         self.tscore_mean = tscore_mean
@@ -1074,7 +1135,8 @@ class Tscore(ScoreTransformModel):
     def run(self):
         zm = Zscore()
         zm.set_data(self.input_data, self.field_list)
-        zm.set_parameters(std_num=self.tscore_stdnum, rawscore_min=self.rscore_min,
+        zm.set_parameters(std_num=self.tscore_stdnum,
+                          rawscore_min=self.rscore_min,
                           rawscore_max=self.rscore_max)
         zm.run()
         self.output_data = zm.output_data
@@ -1084,6 +1146,7 @@ class Tscore(ScoreTransformModel):
                 newsf = sf.replace('_zscore', '_tscore')
                 self.output_data.loc[:, newsf] = \
                     self.output_data[sf].apply(lambda x: x * self.tscore_std + self.tscore_mean)
+        self.map_table = zm.map_table
 
     def report(self):
         print('T-score by normal table transform report')
