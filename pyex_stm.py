@@ -307,6 +307,7 @@ def test(model='shandong', max_score=100, min_score=0, data_size=1000):
         return None
 
     # create data set
+    print('create test dataset...')
     # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
     norm_data = [sts.norm.rvs() for _ in range(data_size)]
     norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
