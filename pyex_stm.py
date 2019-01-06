@@ -957,8 +957,10 @@ class Zscore(ScoreTransformModel):
         self.maxRawscore = 150
         self.minRawscore = 0
         self.map_table = None
+        self.output_data_decimal = 0
         # self.__currentfield = None
 
+        # deprecated
         # create norm table
         self._samplesize = 100000    # cdf error is less than 0.0001
         self._normtable = None
@@ -967,10 +969,12 @@ class Zscore(ScoreTransformModel):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self, std_num=3, rawscore_max=100, rawscore_min=0):
+    def set_parameters(self, std_num=3, rawscore_max=100, rawscore_min=0,
+                       output_decimal=6):
         self.stdNum = std_num
         self.maxRawscore = rawscore_max
         self.minRawscore = rawscore_min
+        self.output_data_decimal = output_decimal
 
     def check_parameter(self):
         if self.maxRawscore <= self.minRawscore:
@@ -1018,23 +1022,26 @@ class Zscore(ScoreTransformModel):
         high_z = self.stdNum
         curr_z = low_z
         if sts.norm.cdf(low_z) >= percent:
-            return low_z
+            return round45i(low_z, self.output_data_decimal)
         elif sts.norm.cdf(high_z) <= percent:
-            return high_z
-        err = 10**-6
+            return round45i(high_z, self.output_data_decimal)
+        err = 10**(-7)
         iter_num = 1000
         while True:
             iter_num = iter_num - 1
             curr_p = sts.norm.cdf(curr_z)
             if abs(curr_p - percent) < err:
-                return curr_z
+                break
+                # return curr_z
             if iter_num < 0:
-                return curr_z
+                break
+                # return curr_z
             if curr_p > percent:
                 high_z = curr_z
             elif curr_p < percent:
                 low_z = curr_z
             curr_z = (low_z + high_z) / 2
+        return round45i(curr_z, self.output_data_decimal)
 
     def _get_zscore_in_map_table(self, sf):
         # use method lookup_zscore
@@ -1119,25 +1126,32 @@ class Tscore(ScoreTransformModel):
         self.tscore_mean = 50
         self.tscore_stdnum = 4
 
+        self.output_data_decimal = 0
+        self.zscore_decimal = 6
+
         self.map_table = None
 
     def set_data(self, input_data=None, field_list=None):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self, rawscore_max=150, rawscore_min=0, tscore_mean=500, tscore_std=100, tscore_stdnum=4):
+    def set_parameters(self, rawscore_max=150, rawscore_min=0,
+                       tscore_mean=500, tscore_std=100, tscore_stdnum=4,
+                       output_decimal=0):
         self.rscore_max = rawscore_max
         self.rscore_min = rawscore_min
         self.tscore_mean = tscore_mean
         self.tscore_std = tscore_std
         self.tscore_stdnum = tscore_stdnum
+        self.output_data_decimal = output_decimal
 
     def run(self):
         zm = Zscore()
         zm.set_data(self.input_data, self.field_list)
         zm.set_parameters(std_num=self.tscore_stdnum,
                           rawscore_min=self.rscore_min,
-                          rawscore_max=self.rscore_max)
+                          rawscore_max=self.rscore_max,
+                          output_decimal=self.zscore_decimal)
         zm.run()
         self.output_data = zm.output_data
         namelist = self.output_data.columns
@@ -1145,7 +1159,9 @@ class Tscore(ScoreTransformModel):
             if '_zscore' in sf:
                 newsf = sf.replace('_zscore', '_tscore')
                 self.output_data.loc[:, newsf] = \
-                    self.output_data[sf].apply(lambda x: x * self.tscore_std + self.tscore_mean)
+                    self.output_data[sf].apply(
+                        lambda x: round45i(x * self.tscore_std + self.tscore_mean,
+                                           self.output_data_decimal))
         self.map_table = zm.map_table
 
     def report(self):
