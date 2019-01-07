@@ -18,7 +18,7 @@ from statsmodels.stats.diagnostic import lillifors
 def help_doc():
     print("""
     types in this modul:
-    uf_ : universal functions
+    fun_ : universal functions
         round45i(v, dec)
         float2str(v, intlen, declen)
         int2str(v, dec)
@@ -28,7 +28,7 @@ def help_doc():
         norm_table(size, std, mean, stdnum)
     report_... : describe some info to dataset
            describe(df, dec)
-    exuf_... : some functions for examination data processing
+    exfun_... : some functions for examination data processing
           set_place(df, with_zero, )
     """)
 
@@ -45,7 +45,7 @@ def exp_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=
     # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
     #                           for _ in range(size)]})
     df = pd.DataFrame({'sv': [max(minvalue,
-                                  min(uf_round45i(x, decimal) if decimal > 0 else int(uf_round45i(x, decimal)),
+                                  min(fun_round45i(x, decimal) if decimal > 0 else int(fun_round45i(x, decimal)),
                                       maxvalue))
                               for x in np.random.normal(mean, std, size)]})
     return df
@@ -98,12 +98,12 @@ def report_describe(df, decimal=4):
         kurtosis
     """
 
-    def uf_list2str(listvalue, decimal):
+    def fun_list2str(listvalue, decimal):
         return ''.join([('{:' + '1.' + str(decimal) + 'f}  ').
-                       format(uf_round45i(x, decimal)) for x in listvalue])
+                       format(fun_round45i(x, decimal)) for x in listvalue])
 
-    def uf_list2sqrt2str(listvalue, decimal):
-        return uf_list2str([np.sqrt(x) for x in listvalue], decimal)
+    def fun_list2sqrt2str(listvalue, decimal):
+        return fun_list2str([np.sqrt(x) for x in listvalue], decimal)
 
     pr = [[stats.pearsonr(df[x], df[y])[0]
            for x in df.columns] for y in df.columns]
@@ -112,17 +112,17 @@ def report_describe(df, decimal=4):
     print('\trecords: ', sd.nobs)
     print('\tpearson recorrelation:')
     for i in range(len(df.columns)):
-        print('\t', uf_list2str(pr[i], 4))
+        print('\t', fun_list2str(pr[i], 4))
     print('\tcovariance matrix:')
     for j in range(len(cv)):
-        print('\t', uf_list2str(cv.iloc[j, :], 4))
-    print('\tmin : ', uf_list2str(sd.minmax[0], 4))
-    print('\tmax : ', uf_list2str(sd.minmax[1], 4))
-    print('\tmean: ', uf_list2str(sd.mean, decimal))
-    print('\tvar : ', uf_list2str(sd.variance, decimal))
-    print('\tstd : ', uf_list2sqrt2str(sd.variance, decimal))
-    print('\tskewness: ', uf_list2str(sd.skewness, decimal))
-    print('\tkurtosis: ', uf_list2str(sd.kurtosis, decimal))
+        print('\t', fun_list2str(cv.iloc[j, :], 4))
+    print('\tmin : ', fun_list2str(sd.minmax[0], 4))
+    print('\tmax : ', fun_list2str(sd.minmax[1], 4))
+    print('\tmean: ', fun_list2str(sd.mean, decimal))
+    print('\tvar : ', fun_list2str(sd.variance, decimal))
+    print('\tstd : ', fun_list2sqrt2str(sd.variance, decimal))
+    print('\tskewness: ', fun_list2str(sd.skewness, decimal))
+    print('\tkurtosis: ', fun_list2str(sd.kurtosis, decimal))
     dict = {'record': sd.nobs,
             'max': sd.minmax[1],
             'min': sd.minmax[0],
@@ -136,31 +136,31 @@ def report_describe(df, decimal=4):
     return dict
 
 
-def uf_float2str(v, intlen, declen):
-    v = uf_round45i(v, declen)
+def fun_float2str(v, intlen, declen):
+    v = fun_round45i(v, declen)
     fs = '{:'+str(intlen+declen+1)+'.'+str(declen)+'f}'
     return fs.format(v)
 
 
-def uf_int2str(v, decimal):
+def fun_int2str(v, decimal):
     return ('{:' + str(decimal) + 'd}').format(v)
 
 
-def uf_df_digit2str(dfsource, intlen=2, declen=4, strlen=8):
+def fun_df_digit2str(dfsource, intlen=2, declen=4, strlen=8):
     df = dfsource[[dfsource.columns[0]]]
     fdinfo = dfsource.dtypes
     for fs in fdinfo.index:
         if fdinfo[fs] in [np.float, np.float16, np.float32, np.float64]:
-            df[fs+'_f'] = dfsource[fs].apply(lambda x: uf_float2str(x, intlen, declen))
+            df[fs+'_f'] = dfsource[fs].apply(lambda x: fun_float2str(x, intlen, declen))
         elif fdinfo[fs] in [np.int, np.int8, np.int16, np.int32, np.int64]:
-            df[fs+'_f'] = dfsource[fs].apply(lambda x: uf_int2str(x, 6))
+            df[fs+'_f'] = dfsource[fs].apply(lambda x: fun_int2str(x, 6))
         elif fdinfo[fs] in [str]:
             df[fs+'_f'] = dfsource[fs].apply(lambda x: x.rjust(strlen))
     df.sort_index(axis=1)
     return df
 
 
-def uf_round45_dep(v, i=0):
+def fun_round45_dep(v, i=0):
     vl = str(v).split('.')
     sign = -1 if v < 0 else 1
     if len(vl) == 2:
@@ -181,12 +181,12 @@ def uf_round45_dep(v, i=0):
     return int(v)
 
 
-def uf_round45i(v, decimal=0):
+def fun_round45i(v, decimal=0):
     u = int(v * 10 ** decimal * 10)
     return (int(u/10) + (1 if v > 0 else -1)) / 10 ** decimal if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** decimal
 
 
-def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
+def plot_dist_norm(mean=60, std=15, start=20, end=100, size=1000):
     plt.plot([x for x in np.linspace(start, end, size)],
              [stats.norm.pdf((x - mean) / std) for x in np.linspace(start, end, size)])
     for x in range(start, end+10, 10):
@@ -198,7 +198,7 @@ def plot_norm(mean=60, std=15, start=20, end=100, size=1000):
 
 
 # 正态分布测试
-def uf_test_norm(data, p_value=0.05):
+def fun_test_norm(data, p_value=0.05):
     # 20<样本数<50用normal test算法检验正态分布性
     if 20 < len(data) < 50:
         p_value0 = stats.normaltest(data)[1]
@@ -244,11 +244,11 @@ def uf_test_norm(data, p_value=0.05):
 
 
 # 对所有样本组进行正态性检验
-def uf_test_norm_dataset_list(dataset_list, p_value=0.01):
+def fun_test_norm_dataset_list(dataset_list, p_value=0.01):
     result = []
     for gi, dataset in enumerate(dataset_list):
         # 正态性检验
-        status = uf_test_norm(dataset, p_value)
+        status = fun_test_norm(dataset, p_value)
         if status is False:
             print('the {}-th is not normal var'.format(gi))
         else:
@@ -257,18 +257,18 @@ def uf_test_norm_dataset_list(dataset_list, p_value=0.01):
     return result
 
 
-def uf_read_large_csv(f, display=False):
-    if f is str:
-        if not os.path.isfile(f):
+def fun_read_large_csv(file_name, display=False):
+    if file_name is str:
+        if not os.path.isfile(file_name):
             if display:
-                print('file:{} not found!'.format(f))
+                print('file:{} not found!'.format(file_name))
                 return None
     else:
         if display:
-            print('not valid file name:{}'.format(f))
+            print('not valid file name:{}'.format(file_name))
         return None
 
-    reader = pd.read_csv(f, sep=',', iterator=True)
+    reader = pd.read_csv(file_name, sep=',', iterator=True)
     loop = True
     chunk_size = 100000
     chunks = []
@@ -286,22 +286,26 @@ def uf_read_large_csv(f, display=False):
     return df
 
 
-def exuf_set_place(df: pd.DataFrame, field_list=(),
-                 suffscore_field_list=(),
-                 rand_field='',
-                 score_ascending=False,
-                 rand_ascending=True,
-                 display=False):
+def fun_place(df: pd.DataFrame,
+              field_list=(),
+              suffix_score_field_list=(),
+              rand_field='',
+              score_ascending=False,
+              rand_ascending=True,
+              score_digits = 3,
+              display=False):
     """
     calculate place by some score field
     add score after decimal dot by using suffix fields  in suffix_field_list in order
     place order is set by ascending = False/True
     same place is reset by rand number with rand_ascending=False/True
     :param df: input dataframe
-    :param field_list: place field name list
-    :param suffscore_field_list: composite some score fields in assigned field
+    :param field_list: set place acoording to the fields  in field_list
+    :param suffix_score_field_list: composite some score fields as suffix of the place field used to sort
+    :param rand_field: rand number used for sorting when order is same at field_list
     :param score_ascending:  place order by score field
     :param rand_ascending: order by random number
+    :param score_digits: length of the score, that is int digits
     :param display: display some messages in running procedure
     :return: output dataframe
     """
@@ -313,12 +317,13 @@ def exuf_set_place(df: pd.DataFrame, field_list=(),
     for fs in field_list:
         if display:
             print('calculate field:{}'.format(fs))
-        if len(suffscore_field_list) > 0:
+        if len(suffix_score_field_list) > 0:
             if fs+'_suff' in dt.columns:
                 dt.drop(fs+'_suff')
-            dt.loc[:, fs+'_suff'] = ['{:3d}.'.format(int(x)) for x in dt[fs]]
-            for fsf in suffscore_field_list:
-                dt.loc[:, fs+'_suff'] = dt[fs+'_suff'] + df[fsf].apply(lambda x: '{:3d}'.format(int(x)))
+            format_str = '{:0'+str(score_digits)+'d}'   # {:03d}
+            dt.loc[:, fs+'_suff'] = [format_str.format(int(x)) for x in dt[fs]]
+            for fsf in suffix_score_field_list:
+                dt.loc[:, fs+'_suff'] = dt[fs+'_suff'] + df[fsf].apply(lambda x: format_str.format(int(x)))
         f_rand = rand_field
         if len(rand_field) == 0:
             rand_list = [x for x in range(1, dt_len+1)]
@@ -327,7 +332,7 @@ def exuf_set_place(df: pd.DataFrame, field_list=(),
             f_rand = fs+'_rand'
 
         # use suffix fields
-        if len(suffscore_field_list) == 0:
+        if len(suffix_score_field_list) == 0:
             dt = dt.sort_values([fs, f_rand],
                                 ascending=[score_ascending, rand_ascending])
         else:
@@ -339,7 +344,7 @@ def exuf_set_place(df: pd.DataFrame, field_list=(),
         pltemp = []
         last_sv = dt.head(1)[fs].values[0]
         last_pl = 1
-        place_field = fs if len(suffscore_field_list) == 0 else fs + '_suff'
+        place_field = fs if len(suffix_score_field_list) == 0 else fs + '_suff'
         for fi, svi in enumerate(dt[place_field].values):
             if svi == last_sv:
                 pltemp.append(last_pl)
