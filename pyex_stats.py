@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 import os
 from scipy import stats
-import pyex_lib as pl
-import pyex_seg as ps
+from pyex_tool import pyex_seg as ps, pyex_lib as pl
+
 
 # ywmean = df.yw.mean(), wlmean = df.wl.mean()
 # m = math.sqrt(sum([(x - ywmean)**2 for x in df.yw]))*math.sqrt(sum([(x - wlmean)**2 for x in df.wl]))

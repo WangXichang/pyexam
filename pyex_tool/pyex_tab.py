@@ -3,7 +3,8 @@
 from texttable import Texttable
 import numpy as np
 import pandas as pd
-import pyex_lib as pl
+from pyex_tool import pyex_lib as pl
+
 
 def df_to_table(dataframe,
                 title='new table',

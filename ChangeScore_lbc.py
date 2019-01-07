@@ -1,6 +1,8 @@
 import pandas as pd
 import os
-import pyex_seg as pg
+from pyex_tool import pyex_seg as pg
+
+
 class ChangeScore(object):
     def __init__(self):
         self.__segFields = []

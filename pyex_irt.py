@@ -67,8 +67,14 @@ class BaseIrt(object):
 
 class Irt2PL(BaseIrt):
     # EM算法求解
-    def __init__(self, init_slop=None, init_threshold=None, max_iter=10000, tol=1e-5, gp_size=11,
-                 m_step_method='newton', *args, **kwargs):
+    def __init__(self,
+                 init_slop=None,
+                 init_threshold=None,
+                 max_iter=10000,
+                 tol=1e-5,
+                 gp_size=11,
+                 m_step_method='newton',
+                 *args, **kwargs):
         """
         :param init_slop: 斜率初值
         :param init_threshold: 阈值初值

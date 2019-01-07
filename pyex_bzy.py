@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 import importlib as imp
-import pyex_ptt as ptt
+from pyex_tool import pyex_ptt as ptt
 import pyex_bzy_exp
 
 
