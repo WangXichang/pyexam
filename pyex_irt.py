@@ -192,6 +192,7 @@ class EAPIrt2PLModel(object):
     """
     use EAP to evaluate trait
     """
+
     # def __init__(self, score_array, slop, threshold, model=Irt2PL):
     #     self.x_nodes, self.x_weights = model.get_gh_point(21)
     #     z = model.z(slop, threshold, self.x_nodes)
@@ -227,9 +228,8 @@ class EAPIrt2PLModel(object):
         weight = x_weights[:, 0]
         h = np.sum(weight * lik_values)
         # get result
-        r = g / h
-        # print(r)
-        return r
+        # r = g / h
+        return g/h
 
     def test(self):
         # test EAPIrt2PLModel
@@ -240,7 +240,6 @@ class EAPIrt2PLModel(object):
         p = Irt2PL.p(z)
         _score_data = np.random.binomial(1, p, 1000)
         # 计算潜在特质估计值
-        # eap = EAPIrt2PLModel(score, a, b)
         eap_result = self.eap(_score_data, a, b)
         print(round(float(eap_result), 4))
 
