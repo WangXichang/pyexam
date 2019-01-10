@@ -3,13 +3,79 @@
 # update 2018-01-20
 
 
+"""
+    IRT可以说是心理测量理论的一次革命，也正是因为IRT理论的存在。
+    SAT、ACT、雅思、托业等考试才能做到一年多次考试，其中的玄机在于IRT等值和基于IRT的自适应测验。
+    同时，运用IRT的非认知测验（例如人格等），也在处理自比数据和抵抗作假等方面成果卓越。
+"""
+
+
 from __future__ import print_function, division
 import scipy.stats as st
 import matplotlib.pyplot as plt
 import numpy as np
 import progressbar
-# import seaborn as sn
 import warnings
+# import seaborn as sn
+
+
+def test_Irt2PL():
+    data_file = 'f:/mydoc-book/ItemResponseTheory/miami/lsat2.csv'
+    score_data = np.loadtxt(data_file, delimiter=",")
+    res = Irt2PL(scores=score_data, m_step_method='newton').em()
+    print('slop: {0}\nthreshold: {1}'.format(res[0], res[1]))
+    return score_data
+
+
+def test_Grm():
+    data_file = 'f:/mydoc-book/ItemResponseTheory/miami/science2.csv'
+    score_data = np.loadtxt(data_file, delimiter=',')
+    grm = Grm(scores=score_data)
+    print('{}'.format(grm.em()))
+
+
+def test_EAPIrt2PLModel(self):
+    # 模拟参数
+    a = np.random.uniform(1, 3, 1000)
+    b = np.random.normal(0, 1, size=1000)
+    z = Irt2PL.z(a, b, 1)
+    p = Irt2PL.p(z)
+    _score_data = np.random.binomial(1, p, 1000)
+    # 计算潜在特质估计值
+    eap_result = EAPIrt2PLModel().eap(_score_data, a, b)
+    print(round(float(eap_result), 4))
+
+
+def test_McMc():
+    # 样本量和题量
+    person_size = 1000
+    item_size = 60
+    # 模拟参数
+    a = np.random.lognormal(0, 1, (1, item_size))
+    a[a > 4] = 4
+    b = np.random.normal(0, 1, (1, item_size))
+    b[b > 4] = 4
+    b[b < -4] = -4
+    c = np.random.beta(5, 17, (1, item_size))
+    c[c < 0] = 0
+    c[c > 0.2] = 0.2
+    true_theta = np.random.normal(0, 1, (person_size, 1))
+    p_val = McMc().logistic(a, b, c, true_theta)
+    scores = np.random.binomial(1, p_val)
+
+    # MCMC参数估计
+    thetas, slops, thresholds, guesses = McMc().mcmc(7000, score_data=scores)
+    est_theta = np.mean(thetas[3000:], axis=0)
+    est_slop = np.mean(slops[3000:], axis=0)
+    est_threshold = np.mean(thresholds[3000:], axis=0)
+    est_guess = np.mean(guesses[3000:], axis=0)
+
+    # 打印误差
+    print('estimate error is :\n',
+          np.mean(np.abs(est_slop - a[0])),
+          np.mean(np.abs(est_threshold - b[0])),
+          np.mean(np.abs(est_guess - c[:, 0])),
+          np.mean(np.abs(est_theta - true_theta[:, 0])))
 
 
 def irt_response_curve():
@@ -39,6 +105,7 @@ class BaseIrt(object):
         pp = et / (1.0 + et)
         return pp
 
+    # 双参数IRT似然函数
     def _lik(self, p_val):
         # 似然函数
         # add efficient small 1e-200 to avoid log(zero)
@@ -47,40 +114,45 @@ class BaseIrt(object):
             np.dot(np.log(1 - p_val + 1e-200), (1 - scores).transpose())
         return np.exp(log_lik_val)
 
+    # EM算法的E步算法
     def _e_step(self, p_val, weights):
-        # EM算法E步
         # 计算theta的分布人数
         scores = self.scores
         lik_wt = self._lik(p_val) * weights
         # 归一化
         lik_wt_sum = np.sum(lik_wt, axis=0)
-        _temp = lik_wt / lik_wt_sum
+        lik_wt_normalizing = lik_wt / lik_wt_sum
         # theta的人数分布
-        full_dis = np.sum(_temp, axis=1)
+        full_dis = np.sum(lik_wt_normalizing, axis=1)
         # theta下回答正确的人数分布
-        right_dis = np.dot(_temp, scores)
+        right_dis = np.dot(lik_wt_normalizing, scores)
         full_dis.shape = full_dis.shape[0], 1
         # 对数似然值
-        print(np.sum(np.log(lik_wt_sum)))
+        print('log likehood value = {}'.format(np.sum(np.log(lik_wt_sum))))
         return full_dis, right_dis
 
 
 class Irt2PL(BaseIrt):
-    # EM算法求解
+    """
+    由于a 和\theta 均为未知，采用EM算法（当然，也可以用MCMC算法），将\theta 作为缺失数据。
+    E步：计算 \theta 下的样本量分布（人数）和答对试题的样本量分布（人数），
+    M步：应用极大似然法求解a 和b的值 。
+    """
     def __init__(self,
                  init_slop=None,
                  init_threshold=None,
                  max_iter=10000,
-                 tol=1e-5,
                  gp_size=11,
                  m_step_method='newton',
+                 tol=1e-5,
                  *args, **kwargs):
         """
         :param init_slop: 斜率初值
         :param init_threshold: 阈值初值
         :param max_iter: EM算法最大迭代次数
-        :param tol: 精度
-        :param gp_size: Gauss–Hermite积分点数
+        :param gp_size: Gauss–Hermite 积分点数
+        :param m_step_method: M步求解方法，缺省为牛顿法('newton'), 可以选择'irls'法（迭代加权最小二乘法）
+        :param tol: 精度,缺省为le-5，即10**-5
         """
         super(Irt2PL, self).__init__(*args, **kwargs)
         # 斜率初值
@@ -106,6 +178,7 @@ class Irt2PL(BaseIrt):
         _z[_z < -35] = -35
         return _z
 
+    # Gauss–Hermite积分静态方法
     @staticmethod
     def get_gh_point(gp_size):
         x_nodes, x_weights = np.polynomial.hermite.hermgauss(gp_size)
@@ -115,6 +188,9 @@ class Irt2PL(BaseIrt):
         x_weights.shape = x_weights.shape[0], 1
         return x_nodes, x_weights
 
+    # M步的求解算法很多，此处实现两种：收敛速度快的牛顿迭代（newton）、
+    # 稳健见长的迭代加权最小二乘法（irls）。
+    # irls是一种收敛速度很快，也很稳健，同时易于实现编程的非线性方程求解算法
     def _irls(self, p_val, full_dis, right_dis, slop, threshold, theta):
         # 所有题目误差列表
         e_list = (right_dis - full_dis * p_val) / full_dis * (p_val * (1 - p_val))
@@ -138,6 +214,10 @@ class Irt2PL(BaseIrt):
             slop[i], threshold[i] = x0_temp[1], x0_temp[0]
         return slop, threshold, delta_list
 
+    # 牛顿迭代也是一种收敛速度很快的算法，但缺点是必须要计算步长，否则可能会不收敛，
+    # 我们假设不需要计算步长，事实上步长恒为1的收敛效果还不错。
+    # 下面的牛顿迭代中，并没有计算所有参数形成的雅克比矩阵和黑塞矩阵，
+    # 因为求稀疏矩阵的逆近乎于求每个小矩阵的逆，事实也是如此，参数估计效果一致。
     @staticmethod
     def _newton(p_val, full_dis, right_dis, slop, threshold, theta):
         # 一阶导数
@@ -182,7 +262,7 @@ class Irt2PL(BaseIrt):
             p_val = self.p(zz)
             slop, threshold, delta_list = self._est_item_parameter(slop, threshold, self.x_nodes, p_val)
             if np.max(np.abs(delta_list)) < tol:
-                print(i)
+                print('accuracy is reached at iter time {}'.format(i))
                 return slop, threshold
         warnings.warn("no convergence")
         return slop, threshold
@@ -191,6 +271,12 @@ class Irt2PL(BaseIrt):
 class EAPIrt2PLModel(object):
     """
     use EAP to evaluate trait
+    EM算法只能估计项目参数，对于特质参数，需要单独估计。
+    特质参数估计的方法很多，有极大似然法，加权极大似然法，MAP（岭回归的另一种贝叶斯叫法），EAP。
+    EAP（expected a posteriori）算法是唯一不需要迭代的算法，所以它的计算速度是最快的，常用于在线测验的参数估计，
+    其理论依据是贝叶斯法则。EAP的公式为
+    E(\theta_i) = \theta_i =\frac{\int \theta_i g(\theta)L(\theta_i)d\theta}{\int g(\theta)L(\theta_i)d\theta} ，
+    g(\theta) 是概率密度函数，常假设服从正态分布，所以上式的积分可以用Gauss–Hermite积分求解方法计算。
     """
 
     # def __init__(self, score_array, slop, threshold, model=Irt2PL):
@@ -230,18 +316,6 @@ class EAPIrt2PLModel(object):
         # get result
         # r = g / h
         return g/h
-
-    def test(self):
-        # test EAPIrt2PLModel
-        # 模拟参数
-        a = np.random.uniform(1, 3, 1000)
-        b = np.random.normal(0, 1, size=1000)
-        z = Irt2PL.z(a, b, 1)
-        p = Irt2PL.p(z)
-        _score_data = np.random.binomial(1, p, 1000)
-        # 计算潜在特质估计值
-        eap_result = self.eap(_score_data, a, b)
-        print(round(float(eap_result), 4))
 
 
 class Grm(object):
@@ -415,7 +489,16 @@ class Grm(object):
 
 class McMc(object):
     """
-
+    我们从贝叶斯的角度来求解IRT参数，即MCMC算法。
+    MCMC算法优点是实现简单，容易编程，对初值不敏感，可以同时估计项目参数和潜在变量，缺点是耗时。
+    本次对三参数IRT模型进行参数估计： c + (1 - c) * （e^{a * \theta + b}）/（1 + e^（a * \theta + b））
+    与双参数模型相比，三参数多了一个 c 参数，这个 c 参数通常称为猜测参数。
+    我们采用的MCMC算法是最简单的gibbs抽样。
+    定的抽样分布是:
+        \theta_{t}\sim N(\theta_{t-1}, 1) ，
+        a_{t}\sim N(a_{t-1}, 0.3) ，
+        b_{t}\sim N(b_{t-1}, 0.3) ，
+        c_{t}\sim unif(c_{t-1}, 0.03) （均匀分布）
     """
     @staticmethod
     def _log_normal(param):
@@ -508,45 +591,3 @@ class McMc(object):
             threshold_list[i] = threshold[0]
             guess_list[i] = guess[0]
         return theta_list, slop_list, threshold_list, guess_list
-
-    def test(self):
-        # 样本量和题量
-        person_size = 1000
-        item_size = 60
-        # 模拟参数
-        a = np.random.lognormal(0, 1, (1, item_size))
-        a[a > 4] = 4
-        b = np.random.normal(0, 1, (1, item_size))
-        b[b > 4] = 4
-        b[b < -4] = -4
-        c = np.random.beta(5, 17, (1, item_size))
-        c[c < 0] = 0
-        c[c > 0.2] = 0.2
-        true_theta = np.random.normal(0, 1, (person_size, 1))
-        p_val = self.logistic(a, b, c, true_theta)
-        scores = np.random.binomial(1, p_val)
-        # MCMC参数估计
-        thetas, slops, thresholds, guesses = self.mcmc(7000, score_data=scores)
-        est_theta = np.mean(thetas[3000:], axis=0)
-        est_slop = np.mean(slops[3000:], axis=0)
-        est_threshold = np.mean(thresholds[3000:], axis=0)
-        est_guess = np.mean(guesses[3000:], axis=0)
-        # 打印误差
-        print(np.mean(np.abs(est_slop - a[0])))
-        print(np.mean(np.abs(est_threshold - b[0])))
-        print(np.mean(np.abs(est_guess - c[:, 0])))
-        print(np.mean(np.abs(est_theta - true_theta[:, 0])))
-
-
-# if __name__ == 'main':
-#     # test Irt2PL
-#     f = 'lsat.csv'
-#     score_data = np.loadtxt(f, delimiter=",")
-#     res = Irt2PL(scores=score_data, m_step_method='newton').em()
-#     print(res)
-#
-#
-#     # test Grm
-#     score_data = np.loadtxt('science.csv', delimiter=',')
-#     grm = Grm(scores=score_data)
-#     print(grm.em())
