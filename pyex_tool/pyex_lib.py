@@ -286,23 +286,23 @@ def fun_read_large_csv(file_name, display=False):
     return df
 
 
-def fun_place(df: pd.DataFrame,
-              field_list=(),
-              suffix_score_field_list=(),
-              rand_field='',
-              score_ascending=False,
-              rand_ascending=True,
-              score_digits = 3,
-              display=False):
+def fun_ranking(df: pd.DataFrame,
+                ranking_field_list=(),
+                ranking_suffix_score_field_list=None,
+                ranking_rand_field=None,
+                score_ascending=False,
+                rand_ascending=True,
+                score_digits = 3,
+                display=False):
     """
     calculate place by some score field
     add score after decimal dot by using suffix fields  in suffix_field_list in order
     place order is set by ascending = False/True
     same place is reset by rand number with rand_ascending=False/True
     :param df: input dataframe
-    :param field_list: set place acoording to the fields  in field_list
-    :param suffix_score_field_list: composite some score fields as suffix of the place field used to sort
-    :param rand_field: rand number used for sorting when order is same at field_list
+    :param ranking_field_list: set place acoording to the fields  in field_list
+    :param ranking_suffix_score_field_list: composite some score fields as suffix of the place field used to sort
+    :param ranking_rand_field: rand number used for sorting when order is same at field_list
     :param score_ascending:  place order by score field
     :param rand_ascending: order by random number
     :param score_digits: length of the score, that is int digits
@@ -314,27 +314,27 @@ def fun_place(df: pd.DataFrame,
         print('calculating place...')
     dt = copy.deepcopy(df)
     dt_len = len(dt)
-    for fs in field_list:
+    for fs in ranking_field_list:
         if display:
             print('calculate field:{}'.format(fs))
-        if len(suffix_score_field_list) > 0:
+        if len(ranking_suffix_score_field_list) > 0:
             if fs+'_suff' in dt.columns:
                 dt.drop(fs+'_suff')
             format_str = '{:0'+str(score_digits)+'d}'   # {:03d}
             dt.loc[:, fs+'_suff'] = [format_str.format(int(x)) for x in dt[fs]]
-            for fsf in suffix_score_field_list:
+            for fsf in ranking_suffix_score_field_list:
                 dt.loc[:, fs+'_suff'] = dt[fs+'_suff'] + df[fsf].apply(lambda x: format_str.format(int(x)))
-        f_rand = rand_field
-        if len(rand_field) == 0:
+        if ranking_rand_field in dt.columns:
+            f_rand = ranking_rand_field
+        elif ranking_rand_field is None:
             rand_list = [x for x in range(1, dt_len+1)]
             random.shuffle(rand_list)
             dt.loc[:, fs+'_rand'] = rand_list
             f_rand = fs+'_rand'
 
         # use suffix fields
-        if len(suffix_score_field_list) == 0:
-            dt = dt.sort_values([fs, f_rand],
-                                ascending=[score_ascending, rand_ascending])
+        if ranking_suffix_score_field_list is None:
+            dt = dt.sort_values([fs, f_rand], ascending=[score_ascending, rand_ascending])
         else:
             dt = dt.sort_values([fs+'_suff', f_rand],
                                 ascending=[score_ascending, rand_ascending])
@@ -344,7 +344,7 @@ def fun_place(df: pd.DataFrame,
         pltemp = []
         last_sv = dt.head(1)[fs].values[0]
         last_pl = 1
-        place_field = fs if len(suffix_score_field_list) == 0 else fs + '_suff'
+        place_field = fs if len(ranking_suffix_score_field_list) == 0 else fs + '_suff'
         for fi, svi in enumerate(dt[place_field].values):
             if svi == last_sv:
                 pltemp.append(last_pl)

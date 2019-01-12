@@ -70,7 +70,7 @@ def test_McMc():
     est_threshold = np.mean(thresholds[3000:], axis=0)
     est_guess = np.mean(guesses[3000:], axis=0)
 
-    # 打印误差
+    # 输出估计误差
     print('estimate error is :\n',
           np.mean(np.abs(est_slop - a[0])),
           np.mean(np.abs(est_threshold - b[0])),
