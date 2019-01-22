@@ -24,6 +24,7 @@ data_path_dell = 'd:/mywrite/newgk/gkdata/'
 data_path_office = 'f:/studies/lqdata/'
 d_path = data_path_office if os.path.isdir(data_path_office) else data_path_dell
 
+
 class Score:
     def __init__(self):
         self.data_list_wk = []
@@ -47,16 +48,17 @@ class Score:
             print('get lk data: {}'.format(p_file))
             self.data_list_lk.append(self.read_data(p_file, 'lk'))
 
-    def read_data(self, path_file, kl='wk'):
+    @classmethod
+    def read_data(cls, path_file, kl='wk'):
         df = pd.read_csv(path_file, index_col=0, low_memory=False, dtype={'kl': str})
         f_list = ['dl', 'ls', 'zz'] if kl == 'wk' else ['wl', 'hx', 'sw']
         for fs in f_list:
             if fs not in ['wl', 'sw']:
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x, 0))
             elif fs == 'wl':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 11 * 10, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 11 * 10, 0))
             elif fs == 'sw':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 9 * 10, 0))
+                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.fun_round45i(x / 9 * 10, 0))
             df = df.astype({fs+'n': int})
 
         # create total score
@@ -89,20 +91,21 @@ class Score:
         df = self.data_list_wk[year_int] if kl == 'wk' else self.data_list_lk[year_int]
         return df
 
+
 # test closed-package function
 def get_cjfun():
-    d_path = [data_path_office, data_path_dell+'xj1517']
+    dd_path = [data_path_office, data_path_dell+'xj1517']
     datawk = []
     datalk = []
     for fs in ['15', '16', '17', '18']:
-        for _path in d_path:
+        for _path in dd_path:
             if not os.path.isfile(_path+'g'+fs+'wk.csv'):
                 continue
             datawk.append(pd.read_csv(_path+'g'+fs+'wk.csv', index_col=0, low_memory=False,
                                       dtype={'kl': str}))
             datalk.append(pd.read_csv(_path+'g'+fs+'lk.csv', index_col=0, low_memory=False,
                                       dtype={'kl': str}))
-    if any([len(datawk)==0, len(datalk)==0]):
+    if any([len(datawk) == 0, len(datalk) == 0]):
         return None
     print('wk_data_len={0}, lk_data_len={1}'.format(len(datawk), len(datalk)))
 
@@ -111,44 +114,45 @@ def get_cjfun():
             yeari = int(year) - 15
         else:
             yeari = 0
-        flist = ['dl', 'ls', 'zz'] if kl == 'wk' else ['wl', 'hx', 'sw']
+        f_list = ['dl', 'ls', 'zz'] if kl == 'wk' else ['wl', 'hx', 'sw']
         df = datawk[yeari] if kl == 'wk' else datalk[yeari]
-        for fs in flist:
-            if fs not in ['wl', 'sw']:
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x, 0))
-            elif fs == 'wl':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 11 * 10, 0))
-            elif fs == 'sw':
-                df.loc[:, fs+'n'] = df[fs].apply(lambda x: pl.uf_round45i(x / 9 * 10, 0))
+        for _fs in f_list:
+            if _fs not in ['wl', 'sw']:
+                df.loc[:, _fs+'n'] = df[_fs].apply(lambda x: pl.fun_round45i(x, 0))
+            elif _fs == 'wl':
+                df.loc[:, _fs+'n'] = df[_fs].apply(lambda x: pl.fun_round45i(x / 11 * 10, 0))
+            elif _fs == 'sw':
+                df.loc[:, _fs+'n'] = df[_fs].apply(lambda x: pl.fun_round45i(x / 9 * 10, 0))
         # df.loc[:, 'kl'] = df['ksh'].apply(lambda x: x[4:10])
         df.loc[:, 'zf'] = df['yw']+df['sx']+df['wy'] + \
                           ((df['dln'] + df['lsn'] + df['zzn']) if kl == 'wk' else
                            (df['wln'] + df['hxn'] + df['swn']))
-        drop_fields = ['ksh', 'xm', 'sfzh']
+        # drop_fields = ['ksh', 'xm', 'sfzh']
         for fd in df.columns:
-             if fd == 'ksh':
-                 df.loc[:, fd] = df[fd].apply(lambda x: str(x)[0:10])
-             else:
-                 df = df.drop(labels=fd, axis=1)
+            if fd == 'ksh':
+                df.loc[:, fd] = df[fd].apply(lambda x: str(x)[0:10])
+            else:
+                df = df.drop(labels=fd, axis=1)
 
         return df
 
     return get_cj
 
+
 def desc_score_segtable_plot(df, kl='wk', minscore=500, maxscore=600):
-    flist = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
+    f_list = ['yw', 'sx', 'wy', 'dl', 'ls', 'zz'] if kl == 'wk' else \
         ['yw', 'sx', 'wy', 'wl', 'hx', 'sw']
-    flist = [fs+'n' if fs not in 'yw, sx, wy' else fs for fs in flist]
+    f_list = [fs+'n' if fs not in 'yw, sx, wy' else fs for fs in f_list]
     tdf = df[(df.zf <= maxscore) & (df.zf >= minscore)]
     if 'sg' in dir():
         pb.reload(sg)
     seg = sg.SegTable()
-    seg.set_data(tdf, flist)
+    seg.set_data(tdf, f_list)
     seg.set_parameters(segmax=150, segmin=0, segsort='a')
     seg.run()
-    dfo=seg.output_data
-    dfo[[fs+'_count' for fs in flist]].plot()
-    print(tdf[flist].describe())
+    dfo = seg.output_data
+    dfo[[fs+'_count' for fs in f_list]].plot()
+    print(tdf[f_list].describe())
     return dfo
 
 
@@ -163,7 +167,7 @@ def desc_score_seg_var(df, kl='wk', year='15', minscore=400, maxscore=650, step=
     print('\n')
 
     result2 = None
-    d1 = {'year':[], 'scope': []}
+    d1 = {'year': [], 'scope': []}
     d1.update({fs+'_var': [] for fs in flist})
     dstd = pd.DataFrame(d1)
     dcor = pd.DataFrame(d1)
@@ -229,10 +233,10 @@ def plot_pie_subjects_centage():
 
 def plot_pie_xk():
 
-    zy_class_name = ['试验班', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
-                     '12', '13', '51', '52', '53', '54', '55', '56', '57', '58', '59',
-                     '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '88']
-    pzy_class_name = zy_class_name[0:13]
+    # zy_class_name = ['试验班', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+    #                  '12', '13', '51', '52', '53', '54', '55', '56', '57', '58', '59',
+    #                  '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '88']
+    # pzy_class_name = zy_class_name[0:13]
     xk_name = ['0', '1', '2', '3', '1/2', '1/3']
 
     zyall = 34210
@@ -256,7 +260,7 @@ def plot_pie_xk():
     return
 
 
-class Xuanke():
+class Xuanke:
 
     def __init__(self):
         self.xkfile = d_path + 'xk/xk_type_zycount.csv'
@@ -474,7 +478,7 @@ class Xuanke():
         dtt.zyclass = dtt.zyclass.apply(lambda x: 'total')
         dt2 = pd.concat([self.df_class_type_count_bk, dtt])
         dt2.zyclass = dt2.zyclass.apply(lambda x: self.zyclass_name_bk[int(x[0:2])] if x != 'total' else x)
-        dt2 = dt2.astype({fs: int for fs in dt2.columns.values if fs != 'zyclass'})
+        dt2 = dt2.astype({fs: int for fs in dt2.columns.values if fs != 'zy' + 'class'})
         print(ptt.make_page(dt2,
                             title='all zy count',
                             align={fs: 'l' if fs=='zyclass' else 'r' for fs in dt2.columns}))
