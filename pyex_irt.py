@@ -46,7 +46,7 @@ def test_EAPIrt2PLModel(self):
     print(round(float(eap_result), 4))
 
 
-def test_McMc():
+def test_McM():
     # 样本量和题量
     person_size = 1000
     item_size = 60

@@ -51,6 +51,8 @@ class Finder:
         self.yx17 = None
         self.yx18 = None
 
+        self.load_data()
+
     def set_datapath(self, path):
         self.path = path
         self.load_data()
@@ -80,9 +82,8 @@ class Finder:
         if os.path.isfile(fdfs):
             tempdf = pd.read_csv(fdfs, skiprows=22)
             tempdf.astype(dtype={'rs': int})
-            # print(tempdf.head())
             temparray = np.array([[x for x in tempdf.loc[y: y+10, 'rs']] for y in range(0, len(tempdf), 11)])
-            # print(temparray.shape)
+            # score segment list
             self.fd2018pt = pd.DataFrame({'fd': temparray[:, 0],
                                           'wk': temparray[:, 1], 'wklj': temparray[:, 2],
                                           'lk': temparray[:, 3], 'lklj': temparray[:, 4],
