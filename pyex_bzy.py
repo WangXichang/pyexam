@@ -39,11 +39,17 @@ def getzy():
 class Finder:
     def __init__(self):
         self.path = 'f:/studies/lqdata/'
+
         self.td16bk1 = None
         self.td16bk2 = None
-        self.td17bk = None
         self.td16zk = None
+
+        self.td17bk = None
         self.td17zk = None
+
+        self.td18bk = None
+        self.td18zk = None
+
         self.dflq = None
         self.fd2018pt = None
         self.yxinfo = None
@@ -58,6 +64,11 @@ class Finder:
         self.load_data()
 
     def load_data(self):
+        # year 2015
+        if os.path.isfile(self.path+'2015pc2lqk.csv'):
+            self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
+
+        # year 2016
         self.td16bk1 = pd.read_csv(self.path+'td2016pc1_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td16bk1 = self.td16bk1.fillna(0)
@@ -67,16 +78,21 @@ class Finder:
                                   dtype={'xx': str}, verbose=True)
         self.td16bk2 = self.td16bk2.fillna(0)
         self.td16bk2.astype(dtype={'wkpos': int, 'lkpos': int})
+        self.td16zk = pd.read_csv(self.path+'td2016zk_sc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True)
 
         self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td17bk = self.td17bk.fillna(0)
         self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
-
-        self.td16zk = pd.read_csv(self.path+'td2016zk_sc.csv', sep=',',
-                                  dtype={'xx': str}, verbose=True)
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
+
+        self.td18bk = pd.read_csv(self.path+'td2018bk_sc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True)
+        self.td18bk = self.td18bk.fillna(0)
+        self.td18bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
+
 
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
@@ -91,9 +107,6 @@ class Finder:
                                           'yw': temparray[:, 7], 'ywlj': temparray[:, 8],
                                           'yl': temparray[:, 9], 'yllj': temparray[:, 10],
                                           })
-
-        if os.path.isfile(self.path+'2015pc2lqk.csv'):
-            self.dflq = pd.read_csv(self.path+'2015pc2lqk.csv', sep='\t', low_memory=False)
 
         if os.path.isfile(self.path+'yxinfo.csv'):
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
