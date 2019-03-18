@@ -88,10 +88,9 @@ class Finder:
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
 
-        self.td18bk = pd.read_csv(self.path+'td2018bk_sc.csv', sep=',',
-                                  dtype={'xx': str}, verbose=True)
+        self.td18bk = pd.read_csv(self.path+'td2018pc1_sc.csv', sep=',', verbose=True)
         self.td18bk = self.td18bk.fillna(0)
-        self.td18bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
+        self.td18bk = self.td18bk.astype(dtype={'xx': str, 'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int})
 
 
         fdfs = self.path + 'fd2018pk.csv'
