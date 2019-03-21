@@ -90,8 +90,8 @@ class Finder:
 
         self.td18bk = pd.read_csv(self.path+'td2018pc1_sc.csv', sep=',', verbose=True)
         self.td18bk = self.td18bk.fillna(0)
-        self.td18bk = self.td18bk.astype(dtype={'xx': str, 'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int})
-
+        self.td18bk = self.td18bk.astype(dtype={'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int,
+                                                'wkratio': int, 'lkratio': int})
 
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
@@ -106,6 +106,12 @@ class Finder:
                                           'yw': temparray[:, 7], 'ywlj': temparray[:, 8],
                                           'yl': temparray[:, 9], 'yllj': temparray[:, 10],
                                           })
+            wkpos_map = {self.fd2018pt.fd[idx]: self.fd2018pt.wklj[idx] for idx in self.fd2018pt.index}
+            lkpos_map = {self.fd2018pt.fd[idx]: self.fd2018pt.lklj[idx] for idx in self.fd2018pt.index}
+            self.td18bk.loc[:, 'wkpos'] = self.td18bk.wkmin.apply(
+                lambda x: wkpos_map[int(x)] if int(x) in wkpos_map else -1)
+            self.td18bk.loc[:, 'lkpos'] = self.td18bk.lkmin.apply(
+                lambda x: lkpos_map[int(x)] if int(x) in lkpos_map else -1)
 
         if os.path.isfile(self.path+'yxinfo.csv'):
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
@@ -129,9 +135,9 @@ class Finder:
                         self.yx16 = dt.copy()
                         self.yx16 =pd.merge(self.yx16, yxinfoc, on='yxdm', how='left')
                 else:
-                    print('load fail:{}'.format(fs))
+                    print('yx DataFrame load fail:{}'.format(fs))
 
-    def findwc(self, score=500, scope=0):
+    def find_wc_from_fd2018(self, score=500, scope=0):
         df = self.fd2018pt
         fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
         if len(fdv) > 0:
@@ -139,7 +145,7 @@ class Finder:
         else:
             print('not found data for score={}!'.format(score))
 
-    def somexx(self, xxsubstr=('医学',), kl='wk', cc='bk'):
+    def find_tdinfo_from_yxname(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
         if ffun is False:
             return
@@ -149,14 +155,21 @@ class Finder:
             df1 = self.td16bk1[self.td16bk1.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
             print(ptt.make_page(df1, '2016p1'))
+
             print('2016p2---')
             df2 = self.td16bk2[self.td16bk2.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(ptt.make_page(df2, '2016p2'))
+
             print('2017bk---')
             df3 = self.td17bk[self.td17bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(ptt.make_page(df3, '2017bk', align={'xx': 'l'}))
+
+            print('2018bk---')
+            df3 = self.td18bk[self.td18bk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+                sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(ptt.make_page(df3, '2018bk', align={'xx': 'l'}))
         else:
             # print('2016zk---')
             df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
@@ -166,9 +179,10 @@ class Finder:
             df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
             print(ptt.make_page(df2, title='2017zk', align={'xx': 'l'}))
+
         return  # df1, df2, df3
 
-    def findxx(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
+    def find_tdinfo_from_wc(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         align = dict() if align is None else align
         if cc == 'bk':
@@ -229,12 +243,12 @@ class Finder:
         print(ptt.make_page(dfmerge, title='16-17zk', align=align))
         return  # dfmerge
 
-    def lookxx(self, yxlist=('',)):
+    def find_yxinfo(self, yxlist=('',)):
         yxfilterfun = closed_filter(yxlist)
         df = self.yxinfo[self.yxinfo.yxmc.apply(yxfilterfun)]
         print(ptt.make_mpage(df, '/'.join(yxlist)))
 
-    def findzy(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
+    def find_zhuanye(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
         # align = dict() if align is None else align
         if self.dflq is None:
             return pd.DataFrame()
