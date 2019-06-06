@@ -378,3 +378,30 @@ def report_mean_median_mode(df, field_list, with_zero=False, display=True):
             for i in range(3):
                 plt.plot([st[i], st[i]], [0, 1], '--')
                 plt.text(st[i], 0.001*(i+1), stname[i])
+
+
+def uf_dec2bin(x, max_digit=100):
+    if x > 1:
+        x_int = bin(int(x))
+    else:
+        x_int = ''
+    x -= int(x)
+    bins = []
+    while x:
+        x *= 2
+        bins.append('1' if x >= 1. else '0')
+        x -= int(x)
+        if len(bins) >= max_digit:
+            break
+    return '0.'+''.join(bins) if len(x_int) == 0 else x_int + '.' + ''.join(bins)
+
+
+def uf_bin2dec(b: str):
+    if '.' in b:
+        b = b[b.find('.')+1:]
+    # print(b)
+    from decimal import Decimal as Dc
+    d = Dc('0')
+    for i, x in enumerate(b):
+        d += Dc(2**(-i-1) * int(x))
+    return d
