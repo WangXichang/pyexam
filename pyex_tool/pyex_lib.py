@@ -380,7 +380,7 @@ def report_mean_median_mode(df, field_list, with_zero=False, display=True):
                 plt.text(st[i], 0.001*(i+1), stname[i])
 
 
-def uf_dec2bin(x, max_digit=100):
+def fun_dec2bin(x, max_digit=100):
     if x > 1:
         x_int = bin(int(x)).replace('0b', '')
     else:
@@ -395,12 +395,11 @@ def uf_dec2bin(x, max_digit=100):
         else:
             bins.append('0')
         max_digit -= 1
-    # print(bins)
-    return '{}.{}'.format(x_int, ''.join(bins)) if x_int else \
-        '0.{}'.format(''.join(bins))
+    return '{}.{}'.format(x_int, ''.join(bins)) \
+        if x_int else '0.{}'.format(''.join(bins))
 
 
-def uf_bin2dec(b: str):
+def fun_bin2dec(b: str):
     b_int = 0
     if '.' in b:
         bi = b[:b.find('.')]
@@ -414,3 +413,79 @@ def uf_bin2dec(b: str):
     for i, x in enumerate(bd):
         d += Dc(2**(-i-1) * int(x))
     return Dc(b_int) + d
+
+
+def fun_bin4save2dec(f: float, ndigit=55):
+    bin4save = uf_dec2bin(f).rstrip('0')
+    bin4save = bin4save[bin4save.find('.')+1:]
+    ndigit = len(bin4save)
+    print(bin4save, ndigit)
+    from decimal import Decimal, getcontext
+    getcontext().prec = ndigit
+    dv = Decimal('0')
+    for i, b in enumerate(bin4save):
+        dv = dv + Decimal(b) / Decimal(2**(i+1))
+    return dv
+
+
+def fun_decimal_exp(x):
+    """Return e raised to the power of x.  Result type matches input type.
+
+    >>> print(exp(Decimal(1)))
+    2.718281828459045235360287471
+    >>> print(exp(Decimal(2)))
+    7.389056098930650227230427461
+    >>> print(exp(2.0))
+    7.38905609893
+    >>> print(exp(2+0j))
+    (7.38905609893+0j)
+
+    """
+    from decimal import getcontext
+    getcontext().prec += 2
+    i, lasts, s, fact, num = 0, 0, 1, 1, 1
+    while s != lasts:
+        lasts = s
+        i += 1
+        fact *= i
+        num *= x
+        s += num / fact
+    getcontext().prec -= 2
+    return +s
+
+
+def fun_decimal_pi(prec=30):
+    """
+    Compute Pi to the assigned precision
+    The default prec = 30, 28digits after decimal point.
+
+    >>> print(pi())
+    3.14159265358979323846264338327
+
+    """
+    from decimal import Decimal, localcontext
+    # tc = getcontext()
+    # getcontext().prec = prec + 2  # extra digits for intermediate steps
+    with localcontext() as ctx:
+        ctx.prec = prec + 2
+        # three = Decimal(3)      # substitute "three=3.0" for regular floats
+        lasts, t, s, n, na, d, da = 0, Decimal(3), 3, 1, 0, 0, 24
+        while s != lasts:
+            lasts = s
+            n, na = n + na, na + 8
+            d, da = d + da, da + 32
+            t = (t * n) / d
+            s += t
+    # getcontext().prec -= 2
+    return +s
+
+
+def fun_decimal45(v, d, rounding=''):
+    if 'decimal' not in dir():
+        import decimal
+    if not rounding:
+        rounding = decimal.ROUND_HALF_UP
+    vs = str(v)
+    if '.' in vs:
+        d = d + vs.find('.')
+    return float(decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(str(v)))
