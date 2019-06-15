@@ -181,9 +181,15 @@ def fun_round45_dep(v, i=0):
     return int(v)
 
 
-def fun_round45i(v, decimal=0):
-    u = int(v * 10 ** decimal * 10)
-    return (int(u/10) + (1 if v > 0 else -1)) / 10 ** decimal if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** decimal
+def fun_round45(number, digits=0):
+    '''
+    precision is not normal at decimal >16
+    :param number: 
+    :param digits: 
+    :return: 
+    '''
+    u = int(number * 10 ** digits * 10)
+    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
 
 
 def plot_dist_norm(mean=60, std=15, start=20, end=100, size=1000):
@@ -489,3 +495,11 @@ def fun_decimal45(v, d, rounding=''):
     if '.' in vs:
         d = d + vs.find('.')
     return float(decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(str(v)))
+
+def test_decimal45(fun, test_num=1000):
+    v = 1.235
+    st = time.time()
+    for _ in range(test_num):
+        fun(v, 2)
+    print(format((time.time()-st)/test_num, '.30f'))
+    return
