@@ -160,38 +160,6 @@ def fun_df_digit2str(dfsource, intlen=2, declen=4, strlen=8):
     return df
 
 
-def fun_round45_dep(v, i=0):
-    vl = str(v).split('.')
-    sign = -1 if v < 0 else 1
-    if len(vl) == 2:
-        if len(vl[1]) > i:
-            if vl[1][i] >= '5':
-                if i > 0:
-                    vp = (eval(vl[1][:i]) + 1)/10**i * sign
-                    return int(v)+vp
-                else:
-                    return int(v)+sign
-            else:
-                if i > 0:
-                    return int(v) + eval(vl[1][:i])/10**i * sign
-                else:
-                    return int(v)
-        else:
-            return v
-    return int(v)
-
-
-def fun_round45(number, digits=0):
-    '''
-    precision is not normal at decimal >16
-    :param number: 
-    :param digits: 
-    :return: 
-    '''
-    u = int(number * 10 ** digits * 10)
-    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
-
-
 def plot_dist_norm(mean=60, std=15, start=20, end=100, size=1000):
     plt.plot([x for x in np.linspace(start, end, size)],
              [stats.norm.pdf((x - mean) / std) for x in np.linspace(start, end, size)])
@@ -486,7 +454,55 @@ def fun_decimal_pi(prec=30):
     return +s
 
 
-def fun_decimal45(v, d, rounding=''):
+def fun_round45s(v, digits=0):
+    __doc__ = '''
+    use str and char method
+    not valid for digits < 0
+    precision is not normal at decimal >16 because of binary representation
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
+    vl = str(v).split('.')
+    sign = -1 if v < 0 else 1
+    if len(vl) == 2:
+        if len(vl[1]) > digits:
+            if vl[1][digits] >= '5':
+                if digits > 0:
+                    vp = (eval(vl[1][:digits]) + 1) / 10 ** digits * sign
+                    return int(v)+vp
+                else:
+                    return int(v)+sign
+            else:
+                if digits > 0:
+                    return int(v) + eval(vl[1][:digits]) / 10 ** digits * sign
+                else:
+                    return int(v)
+        else:
+            return v
+    return int(v)
+
+
+def fun_round45i(number, digits=0):
+    __doc__ = '''
+    use multiple 10 power and int method
+    precision is not normal at decimal >16 because of binary representation
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
+    u = int(number * 10 ** digits * 10)
+    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
+
+
+def fun_round45d(v, d, rounding=''):
+    __doc__ = '''
+    use decimal round method
+    precision is not normal beyong decimal precision range,default prec = 28
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
     if 'decimal' not in dir():
         import decimal
     if not rounding:
@@ -496,8 +512,9 @@ def fun_decimal45(v, d, rounding=''):
         d = d + vs.find('.')
     return float(decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(str(v)))
 
-def test_decimal45(fun, test_num=1000):
-    v = 1.235
+
+def test_round45(fun, test_num=1000):
+    v = 123.275
     st = time.time()
     for _ in range(test_num):
         fun(v, 2)
