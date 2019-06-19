@@ -483,7 +483,7 @@ def fun_round45s(v, digits=0):
     return int(v)
 
 
-def fun_round45i(number, digits=0):
+def fun_round45r(number, digits=0):
     __doc__ = '''
     use multiple 10 power and int method
     precision is not normal at decimal >16 because of binary representation
@@ -491,8 +491,11 @@ def fun_round45i(number, digits=0):
     :param digits: places after decimal point
     :return: rounded number with assigned precision
     '''
-    u = int(number * 10 ** digits * 10)
-    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
+    if format(number, '.'+str(digits+2)+'f').rstrip('0') <= str(number):
+        return round(number+10**-(digits+2), digits)
+    return round(number, digits)
+    # u = int(number * 10 ** digits * 10)
+    # return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
 
 
 def fun_round45d(v, d, rounding=''):
@@ -515,8 +518,9 @@ def fun_round45d(v, d, rounding=''):
 
 def test_round45(fun, test_num=1000):
     v = 123.275
+    import decimal
     st = time.time()
     for _ in range(test_num):
         fun(v, 2)
-    print(format((time.time()-st)/test_num, '.30f'))
+    print(format((time.time()-st)/test_num, '10e'))
     return

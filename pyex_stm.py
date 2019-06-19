@@ -11,33 +11,49 @@
     [functions] 模块中的函数
        run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near')
-          运行各个模型的入口函数
-          interface function
-          通过指定name=‘shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
-          可以计算山东、上海、浙江、北京、天津、陶百强模型
-          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
-          通过指定name = 'zscore'/'tscore'/'tlinear'计算Z分数、T分数、线性转换T分数
-          caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
+          运行各个模型的调用函数 calling model function
           ---
           参数描述
-          parameters specification:
-          name: model name
-          df: input raw score data, type DataFrame of pandas 输入原始分数数据，类型为DataFrame
-          field_list: score field to calculate in df 计算转换分数的字段表
-          ratio: ratio list including percent value for each interval of grade score 划分等级的比例表
-          grade_max: max value of grade score 最大等级分数
-          grade_diff: differentiao value of grade score 等级分差值
-          input_score_max: raw score max value 最大原始分数
-          input_score_min: raw score min value 最小原始分数
-          output_score_decimal: grade score precision, decimal digit number 输出分数精度，小数位数
+          name:= 'shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
+          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          -
+          name:= 'zscore'/'tscore'/'tlinear'
+          计算Z分数、T分数、线性转换T分数
+          caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
+          --
+          df: input raw score data, type DataFrame of pandas
+          输入原始分数数据，类型为DataFrame
+          --
+          field_list: score field to calculate in df
+          计算转换分数的字段表
+          --
+          ratio: ratio list including percent value for each interval of grade score
+          划分等级的比例表
+          --
+          grade_max: max value of grade score
+          最大等级分数
+          --
+          grade_diff: differentiao value of grade score
+          等级分差值
+          --
+          input_score_max: raw score max value
+          最大原始分数
+          --
+          input_score_min: raw score min value
+          最小原始分数
+          --
+          output_score_decimal: grade score precision, decimal digit number
+          输出分数精度，小数位数
+          --
           approx_mode: how to approxmate score points of raw score for each ratio vlaue
-              目前设计的比例值逼近策略有(name=)：
+          计算等级时的逼近方式（目前设计的比例值逼近策略有)：
               'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
               'maxmin': get score with max value in less 大于该比例值的分值中最小的值
               'near':   get score with nearest ratio 最接近该比例值的分值（分值）
               'minnear': get score with min value in near 最接近该比例值的分值中最小的值
               'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
-
+              注：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
           ---
           usage:调用方式
           [1] import pyex_stm as stm
@@ -105,8 +121,13 @@ CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2,
 CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+# ShanDong
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+# GuangDong: ration=(15%、35%、35%、13%, 2%)
+#            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
+CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
+CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
 def show():
