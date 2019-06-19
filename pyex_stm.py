@@ -53,7 +53,8 @@
               'near':   get score with nearest ratio 最接近该比例值的分值（分值）
               'minnear': get score with min value in near 最接近该比例值的分值中最小的值
               'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
-              注：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
+              注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
+              注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
           ---
           usage:调用方式
           [1] import pyex_stm as stm
@@ -472,14 +473,8 @@ class ScoreTransformModel(object):
 
 
 # piecewise linear transform model
-class PltScore(ScoreTransformModel):
-    """
-    PltModel:
-    linear transform from raw-score to grade-score at each intervals divided by preset ratios
-    set ratio and intervals according to norm distribution property
-    get a near normal distribution
-
-    # for ratio = [3, 7, 16, 24, 24, 16, 7, 3] & grade = [20, 30, ..., 100]
+    # ShanDong Model Analysis
+    # ratio = [3, 7, 16, 24, 24, 16, 7, 3], grade = [(21, 30),(31, 40), ..., (91, 100)]
     # following is estimation to std:
         # according to percent
         #   test std=15.54374977       at 50    Zcdf(-10/std)=0.26
@@ -500,38 +495,48 @@ class PltScore(ScoreTransformModel):
         #   p2: cut percent at 20, 100 is a little big, so std is reduced
         #   p3: percent at 30,40 is a bit larger than normal according to std=15.54375
         # on the whole, fitting is approximate fine
+        # set model score percentages and endpoints
+        # get approximate normal distribution
+        # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
+        #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
+        #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
+        # according to std
+        #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
+        #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
+        #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
+        #   cdf(70) = 0.0.73999999697   as std=15.54375
+        #   cdf(60) = 0.0
+        #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
+        #   cdf(40) = 0.0991            as std=15.54375
+        #   cdf(30) = 0.0268            as std=15.54375
+        #   cdf(20) = 0.0050            as std=15.54375
+        # ---------------------------------------------------------------------------------------------------------
+        #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
+        #   std/points      20      30         40        50        60      70         80        90         100
+        #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
+        #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
+        #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
+        # ---------------------------------------------------------------------------------------------------------
+        # on the whole, fitting is approximate fine
+        # p1: std scope in 15.54 - 15.95
+        # p2: cut percent at 20, 100 is a little big, std would be reduced
+        # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
+        # p4: max frequency at 60 estimation:
+        #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
+        #     percentage in all  : pga = pg60*0.24 = 0.023404
+        #     peak frequency estimation: 0.0234 * total_number
+        #          max number at mean nerghbor point:200,000-->4680,   300,000 --> 7020
+    # GuangDong Model Analysis
+    # ratio = [2, 13, 35, 35, 15], gradescore = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+    # meanscore ~= 35*0.02+48*0.13+63*0.35+78*0.35+93*0.15 = 70.24
+
+class PltScore(ScoreTransformModel):
     """
-    # set model score percentages and endpoints
-    # get approximate normal distribution
-    # according to percent , test std=15.54374977       at 50    Zcdf(-10/std)=0.26
-    #                        test std=15.60608295       at 40    Zcdf(-20/std)=0.10
-    #                        test std=15.950713502      at 30    Zcdf(-30/std)=0.03
-    # according to std
-    #   cdf(100)= 0.99496           as std=15.54375,    0.9948      as std=15.606       0.9939    as std=15.9507
-    #   cdf(90) = 0.970(9)79656     as std=15.9507135   0.97000     as std=15.54375     0.972718    as std=15.606
-    #   cdf(80) = 0.900001195       as std=15.606,      0.9008989   as std=15.54375
-    #   cdf(70) = 0.0.73999999697   as std=15.54375
-    #   cdf(60) = 0.0
-    #   cdf(50) = 0.26+3.027*E-9    as std=15.54375
-    #   cdf(40) = 0.0991            as std=15.54375
-    #   cdf(30) = 0.0268            as std=15.54375
-    #   cdf(20) = 0.0050            as std=15.54375
-    # ---------------------------------------------------------------------------------------------------------
-    #     percent       0      0.03       0.10      0.26      0.50    0.74       0.90      0.97       1.00
-    #   std/points      20      30         40        50        60      70         80        90         100
-    #   15.54375    0.0050   0.0268       0.0991   [0.26000]   0    0.739(6)  0.9008989  0.97000    0.99496
-    #   15.6060     0.0052   0.0273      [0.09999]  0.26083    0    0.73917   0.9000012  0.97272    0.99481
-    #   15.9507     0.0061  [0.0299(5)]   0.10495   0.26535    0    0.73465   0.8950418  0.970(4)   0.99392
-    # ---------------------------------------------------------------------------------------------------------
-    # on the whole, fitting is approximate fine
-    # p1: std scope in 15.54 - 15.95
-    # p2: cut percent at 20, 100 is a little big, std would be reduced
-    # p3: percent at 30 is a bit larger than normal according to std=15.54375, same at 40
-    # p4: max frequency at 60 estimation:
-    #     percentage in 50-60: pg60 = [norm.pdf(0)=0.398942]/[add:pdf(50-60)=4.091] = 0.097517
-    #     percentage in all  : pga = pg60*0.24 = 0.023404
-    #     peak frequency estimation: 0.0234 * total_number
-    #          max number at mean nerghbor point:200,000-->4680,   300,000 --> 7020
+    PltModel:
+    linear transform from raw-score to grade-score at each intervals divided by preset ratios
+    set ratio and intervals according to norm distribution property
+    get a near normal distribution
+    """
 
     def __init__(self):
         # intit input_df, input_output_data, output_df, model_name
