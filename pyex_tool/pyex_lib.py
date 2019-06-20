@@ -524,3 +524,19 @@ def test_round45(fun, test_num=1000):
         fun(v, 2)
     print(format((time.time()-st)/test_num, '10e'))
     return
+
+
+def test_float_prec(dlen=5, tnum=10000):
+    import random
+    find_num = 0
+    for _ in range(tnum):
+        v = random.random()+1
+        ss = str(v)[:dlen+1]
+        sf = format(float(ss), '.20f')
+        if len(ss) < 17:
+            print('*'+ss+'\n*'+sf)
+            continue
+        if (sf[16] != ss[16]) & (sf[16] not in '90'):
+            print(ss+'\n'+sf)
+            find_num += 1
+    return find_num
