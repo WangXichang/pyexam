@@ -64,7 +64,7 @@
           [5] m.save_output_data_to_csv
 
        plot()
-          山东、浙江、上海、北京、天津方案等级转换分数分布直方图
+          山东、浙江、上海、北京、天津、广东、湖南方案等级转换分数分布直方图
           plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
 
        round45i(v: float, dec=0)
@@ -122,17 +122,57 @@ CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2,
 CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-# ShanDong
-CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
+# ShanDong: piecewise linear transform
+# 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
+CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3], 21-100
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-# GuangDong: ration=(15%、35%、35%、13%, 2%)
+# GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
 CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
 CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+# HuNan is same as GuangDong
+CONST_HUNAN_RATIO = [2, 13, 35, 35, 15]
+CONST_HUNAN_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
 def show():
     print(__doc__)
+
+
+def test(model='shandong', max_score=100, min_score=0, data_size=1000):
+    model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
+                  'hunan', 'guangdong', 'hainan', 'tao']
+    if model not in model_list:
+        print('use correct model: {}'.format(','.join(model_list)))
+        return None
+
+    # create data set
+    print('create test dataset...')
+    # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
+    norm_data = [sts.norm.rvs() for _ in range(data_size)]
+    norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
+    norm_data = [int((x+4)*max_score/8) for x in norm_data]
+    dfscore = pd.DataFrame({'km': norm_data})
+
+    if model in model_list[2:]:
+        print('test model={}'.format(model))
+        print('data set size={}, score range from 0 to 100'.format(data_size))
+        m = run(name=model, df=dfscore, field_list='km')
+        return m
+    elif model.lower() == 'z':
+        m = Zscore()
+        m.set_data(dfscore, field_list=['km'])
+        m.set_para(rawscore_max=max_score, rawscore_min=min_score)
+        m.run()
+        return m
+    elif model.lower() == 't':
+        m = Tscore()
+        m.set_data(dfscore, field_list=['km'])
+        m.set_para(rawscore_max=100, rawscore_min=0,
+                   tscore_mean=500, tscore_std=100, tscore_stdnum=4)
+        m.run()
+        return m
+    return None
 
 
 # interface to use model for some typical application
@@ -201,7 +241,7 @@ def run(name='shandong',
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
-        pltmodel.set_parameters(input_score_ratio_list=ratio_list,
+        pltmodel.set_para(input_score_ratio_list=ratio_list,
                                 output_score_points_list=CONST_SHANDONG_SEGMENT,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
@@ -231,7 +271,7 @@ def run(name='shandong',
         m = GradeScore()
         m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(maxscore=input_score_max,
+        m.set_para(maxscore=input_score_max,
                          minscore=input_score_min,
                          grade_ratio_table=ratio_list,
                          grade_score_table=grade_score,
@@ -245,7 +285,7 @@ def run(name='shandong',
         m.grade_num = 50
         m.set_data(input_data=input_data,
                    field_list=field_list)
-        m.set_parameters(maxscore=input_score_max,
+        m.set_para(maxscore=input_score_max,
                          minscore=input_score_min)
         m.run()
         return m
@@ -254,7 +294,7 @@ def run(name='shandong',
         zm = Zscore()
         zm.model_name = name.lower()
         zm.set_data(input_data=input_data, field_list=field_list)
-        zm.set_parameters(std_num=4, rawscore_max=150, rawscore_min=0)
+        zm.set_para(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
@@ -263,7 +303,7 @@ def run(name='shandong',
         tm = Tscore()
         tm.model_name = name.lower()
         tm.set_data(input_data=input_data, field_list=field_list)
-        tm.set_parameters(rawscore_max=150, rawscore_min=0)
+        tm.set_para(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
@@ -272,7 +312,7 @@ def run(name='shandong',
         tm = TscoreLinear()
         tm.model_name = name.lower()
         tm.set_data(input_data=input_data, field_list=field_list)
-        tm.set_parameters(input_score_max=input_score_max,
+        tm.set_para(input_score_max=input_score_max,
                           input_score_min=input_score_min)
         tm.run()
         tm.report()
@@ -288,7 +328,7 @@ def run(name='shandong',
         m = GradeScore()
         m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
-        m.set_parameters(maxscore=input_score_max,
+        m.set_para(maxscore=input_score_max,
                          minscore=input_score_min,
                          grade_ratio_table=ratio_list,
                          grade_score_table=grade_score,
@@ -321,42 +361,6 @@ def plot():
     plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
     plt.title('tianjin model')
 
-
-def test(model='shandong', max_score=100, min_score=0, data_size=1000):
-    model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing', 'tao']
-    if model not in model_list:
-        print('use correct model: {}'.format(','.join(model_list)))
-        return None
-
-    # create data set
-    print('create test dataset...')
-    # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
-    norm_data = [sts.norm.rvs() for _ in range(data_size)]
-    norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
-    norm_data = [int((x+4)*max_score/8) for x in norm_data]
-    dfscore = pd.DataFrame({'km': norm_data})
-
-    # test shandong model
-    if model in model_list[2:]:
-        print('test model={}'.format(model))
-        print('data set size={}, score range from 0 to 100'.format(data_size))
-        r = run(name=model, df=dfscore, field_list='km')
-        # r.output_data.head()
-    elif model.lower() == 'z':
-        m = Zscore()
-        m.set_data(dfscore, field_list=['km'])
-        m.set_parameters(rawscore_max=max_score, rawscore_min=min_score)
-        m.run()
-        r = m
-    elif model.lower() == 't':
-        m = Tscore()
-        m.set_data(dfscore, field_list=['km'])
-        m.set_parameters(rawscore_max=100, rawscore_min=0,
-                         tscore_mean=500, tscore_std=100, tscore_stdnum=4)
-        m.run()
-        r = m
-
-    return r
 
 # Score Transform Model Interface
 # Abstract class
@@ -391,7 +395,7 @@ class ScoreTransformModel(object):
     def set_data(self, input_data=None, field_list=None):
         raise NotImplementedError()
 
-    def set_parameters(self, *args, **kwargs):
+    def set_para(self, *args, **kwargs):
         raise NotImplementedError()
 
     def check_data(self):
@@ -547,7 +551,7 @@ class PltScore(ScoreTransformModel):
         self.output_score_points = []
         self.output_data_decimal = 0
 
-        # parameters
+        # para
         self.approx_mode = 'minmax'
         self.score_order = 'descending'  # ascending or a / descending or d
         self.use_minscore_as_rawscore_start_endpoint = True
@@ -581,7 +585,7 @@ class PltScore(ScoreTransformModel):
         else:
             self.field_list = field_list
 
-    def set_parameters(self,
+    def set_para(self,
                        input_score_ratio_list=None,
                        output_score_points_list=None,
                        input_score_min=None,
@@ -635,7 +639,7 @@ class PltScore(ScoreTransformModel):
             print('len is 0 or not same for raw score percent and std score points list!')
             return False
         return True
-    # --------------data and parameters setting end
+    # --------------data and para setting end
 
     def run(self):
         stime = time.time()
@@ -655,7 +659,7 @@ class PltScore(ScoreTransformModel):
         seg = SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
-        seg.set_parameters(segmax=self.input_score_max,
+        seg.set_para(segmax=self.input_score_max,
                            segmin=self.input_score_min,
                            segsort='a' if self.score_order in 'ascending, a' else 'd',
                            segstep=1,
@@ -996,7 +1000,7 @@ class Zscore(ScoreTransformModel):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self, std_num=3, rawscore_max=100, rawscore_min=0,
+    def set_para(self, std_num=3, rawscore_max=100, rawscore_min=0,
                        output_decimal=6):
         self.stdNum = std_num
         self.maxRawscore = rawscore_max
@@ -1097,7 +1101,7 @@ class Zscore(ScoreTransformModel):
         """no sort problem in this map_table usage"""
         seg = SegTable()
         seg.set_data(df, scorefieldnamelist)
-        seg.set_parameters(segmax=maxscore, segmin=minscore, segsort='a')
+        seg.set_para(segmax=maxscore, segmin=minscore, segsort='a')
         seg.run()
         return seg.output_data
 
@@ -1125,7 +1129,7 @@ class Zscore(ScoreTransformModel):
         else:
             print('output score data is not ready!')
         print('data fields in rawscore:{}'.format(self.field_list))
-        print('parameters:')
+        print('para:')
         print('\tzscore stadard diff numbers:{}'.format(self.stdNum))
         print('\tmax score in raw score:{}'.format(self.maxRawscore))
         print('\tmin score in raw score:{}'.format(self.minRawscore))
@@ -1162,7 +1166,7 @@ class Tscore(ScoreTransformModel):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self, rawscore_max=150, rawscore_min=0,
+    def set_para(self, rawscore_max=150, rawscore_min=0,
                        tscore_mean=500, tscore_std=100, tscore_stdnum=4,
                        output_decimal=0):
         self.rscore_max = rawscore_max
@@ -1175,7 +1179,7 @@ class Tscore(ScoreTransformModel):
     def run(self):
         zm = Zscore()
         zm.set_data(self.input_data, self.field_list)
-        zm.set_parameters(std_num=self.tscore_stdnum,
+        zm.set_para(std_num=self.tscore_stdnum,
                           rawscore_min=self.rscore_min,
                           rawscore_max=self.rscore_max,
                           output_decimal=self.zscore_decimal)
@@ -1211,7 +1215,7 @@ class Tscore(ScoreTransformModel):
             print('output score data is not ready!')
         print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
-        print('parameters:')
+        print('para:')
         print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
         print('\tmax score in raw score:{}'.format(self.rscore_max))
         print('\tmin score in raw score:{}'.format(self.rscore_min))
@@ -1237,7 +1241,7 @@ class TscoreLinear(ScoreTransformModel):
         self.input_data = input_data
         self.field_list = field_list
 
-    def set_parameters(self,
+    def set_para(self,
                        input_score_max=150,
                        input_score_min=0,
                        tscore_std=10,
@@ -1291,7 +1295,7 @@ class TscoreLinear(ScoreTransformModel):
             print('output score data is not ready!')
         print('data fields in rawscore:{}'.format(self.field_list))
         print('-' * 50)
-        print('parameters:')
+        print('para:')
         print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
         print('\tmax score in raw score:{}'.format(self.rawscore_max))
         print('\tmin score in raw score:{}'.format(self.rawscore_min))
@@ -1338,7 +1342,7 @@ class GradeScore(ScoreTransformModel):
         else:
             print('error field_list: {}'.format(field_list))
 
-    def set_parameters(self,
+    def set_para(self,
                        maxscore=None,
                        minscore=None,
                        grade_ratio_table=None,
@@ -1381,7 +1385,7 @@ class GradeScore(ScoreTransformModel):
         seg = SegTable()
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
-        seg.set_parameters(segmax=self.input_score_max,
+        seg.set_para(segmax=self.input_score_max,
                            segmin=self.input_score_min,
                            segsort=self.grade_order)
         seg.run()
@@ -1573,7 +1577,7 @@ class GradeScoreTao(ScoreTransformModel):
         if isinstance(field_list, list) or isinstance(field_list, tuple):
             self.field_list = field_list
 
-    def set_parameters(self,
+    def set_para(self,
                        maxscore=None,
                        minscore=None,
                        grade_num=None,
@@ -1599,7 +1603,7 @@ class GradeScoreTao(ScoreTransformModel):
     def run_create_grade_dist_list(self):
         # approx_method = 'near'
         seg = SegTable()
-        seg.set_parameters(segmax=self.input_score_max,
+        seg.set_para(segmax=self.input_score_max,
                            segmin=self.input_score_min,
                            segsort='d')
         seg.set_data(self.input_data,
@@ -1672,7 +1676,7 @@ class SegTable(object):
                    字段的类型应为可计算类型，如int,float.
 
     设置参数：最高分值，最低分值，分段距离，分段开始值，分数顺序，指定分段值列表， 使用指定分段列表，使用所有数据， 关闭计算过程显示信息
-    set_parameters（segmax, segmin, segstep, segstart, segsort, seglist, useseglist, usealldata, display）
+    set_para（segmax, segmin, segstep, segstart, segsort, seglist, useseglist, usealldata, display）
         segmax: int, maxvalue for segment, default=150
                 输出分段表中分数段的最大值
         segmin: int, minvalue for segment, default=0。
@@ -1712,7 +1716,7 @@ class SegTable(object):
         seg = SegTable()
         df = pd.DataFrame({'sf':[i % 11 for i in range(100)]})
         seg.set_data(df, ['sf'])
-        seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
+        seg.set_para(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
         seg.run()
         seg.plot()
         print(seg.output_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
@@ -1732,7 +1736,7 @@ class SegTable(object):
               seg.segmax = 120
           重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
           便于在计算期间调整模型。
-          by usting property mode, rawdata, scorefields, parameters can be setted individually
+          by usting property mode, rawdata, scorefields, para can be setted individually
         4) 当设置大于1分的分段分值X时， 会在结果DataFrame中生成一个字段[segfiled]_countX，改字段中不需要计算的分段
           值设为-1。
           when segstep > 1, will create field [segfield]_countX, X=str(segstep), no used value set to -1 in this field
@@ -1860,7 +1864,7 @@ class SegTable(object):
             self.field_list = field_list
         self.__check()
 
-    def set_parameters(
+    def set_para(
             self,
             segmax=None,
             segmin=None,
@@ -1904,10 +1908,10 @@ class SegTable(object):
             print(set_str)
         self.__check()
         if display:
-            self.show_parameters()
+            self.show_para()
 
-    def show_parameters(self):
-        print('------ seg parameters ------')
+    def show_para(self):
+        print('------ seg para ------')
         print('    use seglist:{0}'.format(self.__useseglist, self.__segList))
         print('        seglist:{1}'.format(self.__useseglist, self.__segList))
         print('       maxvalue:{}'.format(self.__segMax))
