@@ -491,14 +491,29 @@ def fun_round45r(number, digits=0):
     :param digits: places after decimal point
     :return: rounded number with assigned precision
     '''
-    if format(number, '.'+str(digits+2)+'f').rstrip('0') <= str(number):
-        return round(number+10**-(digits+2), digits)
+    if digits > 16:
+        raise NotImplementedError
+    snum = str(number)
+    int_len = snum.find('.')
+    if int_len + digits > 16:
+        print('can get enough decimal digits!')
+        return None
+    if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
+        # add 10**-16 to get 1 in digit-15
+        # round(1.265, 3): 1.26499999999999990230 to 1.26500000000000101252
+        # add a positive error 10**-16
+        return round(number + 10 ** -(16-int_len), digits) + 10 ** -(16-int_len)
     return round(number, digits)
-    # u = int(number * 10 ** digits * 10)
-    # return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** digits
 
 
-def fun_round45d(v, d, rounding=''):
+def fun_round45i(number, digits=0):
+    u = int(number * 10 ** digits * 10)
+    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits \
+        if (abs(u) % 10 >= 5) else \
+        int(u / 10) / 10 ** digits
+
+
+def fun_round45d(v, d, result_decimal=False):
     __doc__ = '''
     use decimal round method
     precision is not normal beyong decimal precision range,default prec = 28
@@ -508,12 +523,13 @@ def fun_round45d(v, d, rounding=''):
     '''
     if 'decimal' not in dir():
         import decimal
-    if not rounding:
-        rounding = decimal.ROUND_HALF_UP
     vs = str(v)
-    if '.' in vs:
+    if int(v) > 0:
         d = d + vs.find('.')
-    return float(decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(str(v)))
+    r = decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(vs)
+    if result_decimal:
+        return r
+    return float(r)
 
 
 def test_round45(fun, test_num=1000):

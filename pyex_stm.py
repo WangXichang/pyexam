@@ -2140,6 +2140,19 @@ def round45i(v: float, dec=0):
     return int(r) if dec <= 0 else r
 
 
+def round45r(number, digits=0):
+    __doc__ = '''
+    use multiple 10 power and int method
+    precision is not normal at decimal >16 because of binary representation
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
+    if format(number, '.'+str(digits+2)+'f').rstrip('0') <= str(number):
+        return round(number+10**-(digits+2), digits)
+    return round(number, digits)
+
+
 def get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
