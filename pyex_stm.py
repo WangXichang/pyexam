@@ -98,6 +98,8 @@
         CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
         CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
         CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+        CONST_M8_RATIO = [2, 13, 35, 35, 15]
+        CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
     """
 
 
@@ -131,8 +133,8 @@ CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71,
 CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
 CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 # HuNan is same as GuangDong
-CONST_HUNAN_RATIO = [2, 13, 35, 35, 15]
-CONST_HUNAN_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+CONST_M8_RATIO = [2, 13, 35, 35, 15]
+CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
 def show():
@@ -141,7 +143,7 @@ def show():
 
 def test(model='shandong', max_score=100, min_score=0, data_size=1000):
     model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
-                  'hunan', 'guangdong', 'hainan', 'tao']
+                  'm8', 'guangdong', 'hainan', 'tao']
     if model not in model_list:
         print('use correct model: {}'.format(','.join(model_list)))
         return None
@@ -152,12 +154,12 @@ def test(model='shandong', max_score=100, min_score=0, data_size=1000):
     norm_data = [sts.norm.rvs() for _ in range(data_size)]
     norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
     norm_data = [int((x+4)*max_score/8) for x in norm_data]
-    dfscore = pd.DataFrame({'km': norm_data})
+    dfscore = pd.DataFrame({'kmx': norm_data})
 
     if model in model_list[2:]:
         print('test model={}'.format(model))
         print('data set size={}, score range from 0 to 100'.format(data_size))
-        m = run(name=model, df=dfscore, field_list='km')
+        m = run(name=model, df=dfscore, field_list='kmx')
         return m
     elif model.lower() == 'z':
         m = Zscore()
@@ -189,7 +191,7 @@ def run(name='shandong',
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
-                  default = 'shandong'
+                      'guangdong', 'm8', default = 'shandong'
     :param df: dataframe, input data, default = None
     :param field_list: score fields list in input dataframe, default = None and set to digit fields in running
     :param ratio_list: ratio list used to create intervals of raw score for each grade
@@ -212,7 +214,7 @@ def run(name='shandong',
     :return: model
     """
     # check name
-    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, tao, ' \
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, guangdong, m8, tao, ' \
                'tscore, zscore, tlinear'
     if name.lower() not in name_set:
         print('invalid name, not in {}'.format(name_set))
@@ -243,6 +245,25 @@ def run(name='shandong',
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
                                 output_score_points_list=CONST_SHANDONG_SEGMENT,
+                                input_score_max=input_score_max,
+                                input_score_min=input_score_min,
+                                approx_mode=approx_method,
+                                score_order='descending',
+                                decimals=output_score_decimal
+                                )
+        pltmodel.run()
+        return pltmodel
+
+    # guangdong & m8 score model
+    if name.lower() in 'guangdong, m8':
+        ratio_list = [x * 0.01 for x in CONST_M8_RATIO]
+        pltmodel = PltScore()
+        pltmodel.model_name = 'm8'
+        pltmodel.output_data_decimal = 0
+        pltmodel.set_data(input_data=input_data,
+                          field_list=field_list)
+        pltmodel.set_para(input_score_ratio_list=ratio_list,
+                                output_score_points_list=CONST_M8_SEGMENT,
                                 input_score_max=input_score_max,
                                 input_score_min=input_score_min,
                                 approx_mode=approx_method,

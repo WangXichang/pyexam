@@ -496,12 +496,16 @@ def fun_round45r(number, digits=0):
     snum = str(number)
     int_len = snum.find('.')
     if int_len + digits > 16:
-        print('can get enough decimal digits!')
+        print('too many digits to float precision!')
         return None
+    # format(16-digits-int_len) maybe correct because of less length precision(<16)
     if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
         # add 10**-16 to get 1 in digit-15
         # round(1.265, 3): 1.26499999999999990230 to 1.26500000000000101252
         # add a positive error 10**-16
+        # really 16 is too big!
+        # format(1.18999999999999994671+10**-16, '.20f') => '1.18999999999999994671'
+        # format(1.18999999999999994671+10**-15, '.20f') => '1.19000000000000105693'
         return round(number + 10 ** -(16-int_len), digits) + 10 ** -(16-int_len)
     return round(number, digits)
 
@@ -556,3 +560,15 @@ def test_float_prec(dlen=5, tnum=10000):
             print(ss+'\n'+sf)
             find_num += 1
     return find_num
+
+
+def test_round45r(times=1000):
+    for n in range(times):
+        v = round(random.random() + 1, 2)
+        vd = fun_round45d(v, 2)
+        vr = fun_round45r(v, 2)
+        if n % 100 == 0:
+            print('normal: vd={:.20f}, vr={:.20f}'.format(vd, vr))
+        if vd != vr:
+            print('invalid: vd={}, vr={}'.format(vd, vr))
+    return
