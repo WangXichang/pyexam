@@ -482,14 +482,18 @@ def fun_round45s(v, digits=0):
             return v
     return int(v)
 
-
 def fun_round45r(number, digits=0):
     __doc__ = '''
-    use multiple 10 power and int method
-    precision is not normal at decimal >16 because of binary representation
-    :param number: input float value
-    :param digits: places after decimal point
-    :return: rounded number with assigned precision
+    float is not presicion at digit 16 from decimal point for significant figure.
+    note that: 10**-16 => 0.0...0(53)1110011010...,    so 10**-16 can not definitely represented in float 1+52bit
+    if hope that round(1.265, 3): 1.264999... to 1.265000...
+    can add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
+    test result:
+    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(17)4671'
+    format(1.18999999999999994671+10**-15, '.20f')     => '1.190000000000001(15)05693'
+    format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(17)4671'
     '''
     if digits > 16:
         raise NotImplementedError
@@ -500,13 +504,7 @@ def fun_round45r(number, digits=0):
         return None
     # format(16-digits-int_len) maybe correct because of less length precision(<16)
     if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
-        # add 10**-16 to get 1 in digit-15
-        # round(1.265, 3): 1.26499999999999990230 to 1.26500000000000101252
-        # add a positive error 10**-16
-        # really 16 is too big!
-        # format(1.18999999999999994671+10**-16, '.20f') => '1.18999999999999994671'
-        # format(1.18999999999999994671+10**-15, '.20f') => '1.19000000000000105693'
-        return round(number + 10 ** -(16-int_len), digits) + 10 ** -(16-int_len)
+        return round(number + 2 * 10**-(16-int_len+1), digits) + 2 * 10**-(16-int_len+1)
     return round(number, digits)
 
 
@@ -567,8 +565,8 @@ def test_round45r(times=1000):
         v = round(random.random() + 1, 2)
         vd = fun_round45d(v, 2)
         vr = fun_round45r(v, 2)
-        if n % 100 == 0:
-            print('normal: vd={:.20f}, vr={:.20f}'.format(vd, vr))
-        if vd != vr:
-            print('invalid: vd={}, vr={}'.format(vd, vr))
+        vds = format(vd, '.20f')
+        vrs = format(vr, '.20f')
+        if vrs[16] != '0' or vds[16] == '9':
+            print('times:{}  vd={:.20f}, vr={:.20f}'.format(n, vd, vr))
     return
