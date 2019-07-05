@@ -485,26 +485,29 @@ def fun_round45s(v, digits=0):
 def fun_round45r(number, digits=0):
     __doc__ = '''
     float is not presicion at digit 16 from decimal point for significant figure.
-    note that: 10**-16 => 0.0...0(53)1110011010...,    so 10**-16 can not definitely represented in float 1+52bit
     if hope that round(1.265, 3): 1.264999... to 1.265000...
     can add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
+    note that: 
+        10**-16     => 0.0...00(53)1110011010...
+        2*10**-16   => 0.0...0(52)1110011010...
+        1.2*10**-16 => 0.0...0(52)100010100...
+    so 10**-16 can not definitely represented in float 1+52bit
+    
     test result:
     format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(17)4671'
-    format(1.18999999999999994671+10**-15, '.20f')     => '1.190000000000001(15)05693'
     format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
     format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
     format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(17)4671'
     '''
-    if digits > 16:
-        raise NotImplementedError
     snum = str(number)
     int_len = snum.find('.')
-    if int_len + digits > 16:
-        print('too many digits to float precision!')
-        return None
-    # format(16-digits-int_len) maybe correct because of less length precision(<16)
+    if digits > 16 or int_len+digits > 16:
+        # raise NotImplementedError
+        print('float cannot support {} digits precision'.format(digits))
+        return number
+    add_err = 2 * 10**-(16-int_len+1)
     if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
-        return round(number + 2 * 10**-(16-int_len+1), digits) + 2 * 10**-(16-int_len+1)
+        return round(number + add_err, digits) + add_err
     return round(number, digits)
 
 
@@ -560,7 +563,13 @@ def test_float_prec(dlen=5, tnum=10000):
     return find_num
 
 
-def test_round45r(times=1000):
+def test_round45r(times=1000, test_time=False):
+    if test_time:
+        st = time.time()
+        for n in range(times):
+            fun_round45r(1.265, 2)
+        print(format((time.time()-st)/times, '.20f'))
+        return
     for n in range(times):
         v = round(random.random() + 1, 2)
         vd = fun_round45d(v, 2)
