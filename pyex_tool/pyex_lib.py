@@ -160,32 +160,6 @@ def fun_df_digit2str(dfsource, intlen=2, declen=4, strlen=8):
     return df
 
 
-def fun_round45_dep(v, i=0):
-    vl = str(v).split('.')
-    sign = -1 if v < 0 else 1
-    if len(vl) == 2:
-        if len(vl[1]) > i:
-            if vl[1][i] >= '5':
-                if i > 0:
-                    vp = (eval(vl[1][:i]) + 1)/10**i * sign
-                    return int(v)+vp
-                else:
-                    return int(v)+sign
-            else:
-                if i > 0:
-                    return int(v) + eval(vl[1][:i])/10**i * sign
-                else:
-                    return int(v)
-        else:
-            return v
-    return int(v)
-
-
-def fun_round45i(v, decimal=0):
-    u = int(v * 10 ** decimal * 10)
-    return (int(u/10) + (1 if v > 0 else -1)) / 10 ** decimal if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** decimal
-
-
 def plot_dist_norm(mean=60, std=15, start=20, end=100, size=1000):
     plt.plot([x for x in np.linspace(start, end, size)],
              [stats.norm.pdf((x - mean) / std) for x in np.linspace(start, end, size)])
@@ -380,7 +354,7 @@ def report_mean_median_mode(df, field_list, with_zero=False, display=True):
                 plt.text(st[i], 0.001*(i+1), stname[i])
 
 
-def uf_dec2bin(x, max_digit=100):
+def fun_dec2bin(x, max_digit=100):
     if x > 1:
         x_int = bin(int(x)).replace('0b', '')
     else:
@@ -395,12 +369,11 @@ def uf_dec2bin(x, max_digit=100):
         else:
             bins.append('0')
         max_digit -= 1
-    # print(bins)
-    return '{}.{}'.format(x_int, ''.join(bins)) if x_int else \
-        '0.{}'.format(''.join(bins))
+    return '{}.{}'.format(x_int, ''.join(bins)) \
+        if x_int else '0.{}'.format(''.join(bins))
 
 
-def uf_bin2dec(b: str):
+def fun_bin2dec(b: str):
     b_int = 0
     if '.' in b:
         bi = b[:b.find('.')]
@@ -414,3 +387,186 @@ def uf_bin2dec(b: str):
     for i, x in enumerate(bd):
         d += Dc(2**(-i-1) * int(x))
     return Dc(b_int) + d
+
+
+def fun_bin4save2dec(f: float, ndigit=55):
+    bin4save = uf_dec2bin(f).rstrip('0')
+    bin4save = bin4save[bin4save.find('.')+1:]
+    ndigit = len(bin4save)
+    print(bin4save, ndigit)
+    from decimal import Decimal, getcontext
+    getcontext().prec = ndigit
+    dv = Decimal('0')
+    for i, b in enumerate(bin4save):
+        dv = dv + Decimal(b) / Decimal(2**(i+1))
+    return dv
+
+
+def fun_decimal_exp(x):
+    """Return e raised to the power of x.  Result type matches input type.
+
+    >>> print(exp(Decimal(1)))
+    2.718281828459045235360287471
+    >>> print(exp(Decimal(2)))
+    7.389056098930650227230427461
+    >>> print(exp(2.0))
+    7.38905609893
+    >>> print(exp(2+0j))
+    (7.38905609893+0j)
+
+    """
+    from decimal import getcontext
+    getcontext().prec += 2
+    i, lasts, s, fact, num = 0, 0, 1, 1, 1
+    while s != lasts:
+        lasts = s
+        i += 1
+        fact *= i
+        num *= x
+        s += num / fact
+    getcontext().prec -= 2
+    return +s
+
+
+def fun_decimal_pi(prec=30):
+    """
+    Compute Pi to the assigned precision
+    The default prec = 30, 28digits after decimal point.
+
+    >>> print(pi())
+    3.14159265358979323846264338327
+
+    """
+    from decimal import Decimal, localcontext
+    # tc = getcontext()
+    # getcontext().prec = prec + 2  # extra digits for intermediate steps
+    with localcontext() as ctx:
+        ctx.prec = prec + 2
+        # three = Decimal(3)      # substitute "three=3.0" for regular floats
+        lasts, t, s, n, na, d, da = 0, Decimal(3), 3, 1, 0, 0, 24
+        while s != lasts:
+            lasts = s
+            n, na = n + na, na + 8
+            d, da = d + da, da + 32
+            t = (t * n) / d
+            s += t
+    # getcontext().prec -= 2
+    return +s
+
+
+def fun_round45s(v, digits=0):
+    __doc__ = '''
+    use str and char method
+    not valid for digits < 0
+    precision is not normal at decimal >16 because of binary representation
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
+    vl = str(v).split('.')
+    sign = -1 if v < 0 else 1
+    if len(vl) == 2:
+        if len(vl[1]) > digits:
+            if vl[1][digits] >= '5':
+                if digits > 0:
+                    vp = (eval(vl[1][:digits]) + 1) / 10 ** digits * sign
+                    return int(v)+vp
+                else:
+                    return int(v)+sign
+            else:
+                if digits > 0:
+                    return int(v) + eval(vl[1][:digits]) / 10 ** digits * sign
+                else:
+                    return int(v)
+        else:
+            return v
+    return int(v)
+
+def fun_round45r(number, digits=0):
+    __doc__ = '''
+    float is not presicion at digit 16 from decimal point for significant figure.
+    note that: 10**-16 => 0.0...0(53)1110011010...,    so 10**-16 can not definitely represented in float 1+52bit
+    if hope that round(1.265, 3): 1.264999... to 1.265000...
+    can add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
+    test result:
+    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(17)4671'
+    format(1.18999999999999994671+10**-15, '.20f')     => '1.190000000000001(15)05693'
+    format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(17)4671'
+    '''
+    if digits > 16:
+        raise NotImplementedError
+    snum = str(number)
+    int_len = snum.find('.')
+    if int_len + digits > 16:
+        print('too many digits to float precision!')
+        return None
+    # format(16-digits-int_len) maybe correct because of less length precision(<16)
+    if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
+        return round(number + 2 * 10**-(16-int_len+1), digits) + 2 * 10**-(16-int_len+1)
+    return round(number, digits)
+
+
+def fun_round45i(number, digits=0):
+    u = int(number * 10 ** digits * 10)
+    return (int(u/10) + (1 if number > 0 else -1)) / 10 ** digits \
+        if (abs(u) % 10 >= 5) else \
+        int(u / 10) / 10 ** digits
+
+
+def fun_round45d(v, d, result_decimal=False):
+    __doc__ = '''
+    use decimal round method
+    precision is not normal beyong decimal precision range,default prec = 28
+    :param number: input float value
+    :param digits: places after decimal point
+    :return: rounded number with assigned precision
+    '''
+    if 'decimal' not in dir():
+        import decimal
+    vs = str(v)
+    if int(v) > 0:
+        d = d + vs.find('.')
+    r = decimal.Context(prec=d, rounding=decimal.ROUND_HALF_UP).create_decimal(vs)
+    if result_decimal:
+        return r
+    return float(r)
+
+
+def test_round45(fun, test_num=1000):
+    v = 123.275
+    import decimal
+    st = time.time()
+    for _ in range(test_num):
+        fun(v, 2)
+    print(format((time.time()-st)/test_num, '10e'))
+    return
+
+
+def test_float_prec(dlen=5, tnum=10000):
+    import random
+    find_num = 0
+    for _ in range(tnum):
+        v = random.random()+1
+        ss = str(v)[:dlen+1]
+        sf = format(float(ss), '.20f')
+        if len(ss) < 17:
+            print('*'+ss+'\n*'+sf)
+            continue
+        if (sf[16] != ss[16]) & (sf[16] not in '90'):
+            print(ss+'\n'+sf)
+            find_num += 1
+    return find_num
+
+
+def test_round45r(times=1000):
+    for n in range(times):
+        v = round(random.random() + 1, 2)
+        vd = fun_round45d(v, 2)
+        vr = fun_round45r(v, 2)
+        vds = format(vd, '.20f')
+        vrs = format(vr, '.20f')
+        if vrs[16] != '0' or vds[16] == '9':
+            print('times:{}  vd={:.20f}, vr={:.20f}'.format(n, vd, vr))
+    return
