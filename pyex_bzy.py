@@ -26,9 +26,10 @@ def getzy():
     loc_lq = 'd:/zy/'
     loc_list = [loc_suface, loc_dell, loc_lq, loc_off]
     
-    zy = Finder()
     for p in loc_list:
         if os.path.isfile(p+'td2017bk_sc.csv'):
+            print('find path ' + p)
+            zy = Finder()
             zy.set_datapath(p)
             return zy
     
@@ -57,7 +58,7 @@ class Finder:
         self.yx17 = None
         self.yx18 = None
 
-        self.load_data()
+        # self.load_data()
 
     def set_datapath(self, path):
         self.path = path
@@ -196,6 +197,9 @@ class Finder:
             df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
             df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
+            # print('2018---')
+            df4 = self.get_df_from_pos(self.td18bk, lowpos=low, highpos=high, posfield=posfield,
+                                       filterlist=filterlist, kl=kl)
             if kl == 'lk':
                 df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
                 df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
