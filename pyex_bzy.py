@@ -10,12 +10,10 @@ import pyex_bzy_exp
 
 def getzyfun():
     zy = getzy()
-
     def find():
         imp.reload(pyex_bzy_exp)
         pyex_bzy_exp.find(zy)
         return
-
     return find
 
 
@@ -53,7 +51,9 @@ class Finder:
         self.td18zk = None
 
         self.fd2018pt = None
+        self.fd2018ystk_zhf = None
         self.fd2019pt = None
+        self.fd2019ystk_zhf = None
 
         self.dflq = None
         self.yxinfo = None
@@ -83,18 +83,18 @@ class Finder:
         self.td16zk = pd.read_csv(self.path+'td2016zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
 
+        # 2017
         self.td17bk = pd.read_csv(self.path+'td2017bk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         self.td17bk = self.td17bk.fillna(0)
         self.td17bk.astype(dtype={'wkpos': int, 'lkpos': int, 'xx': str})
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
-
+        # 2018
         self.td18bk = pd.read_csv(self.path+'td2018pc1_sc.csv', sep=',', verbose=True)
         self.td18bk = self.td18bk.fillna(0)
         self.td18bk = self.td18bk.astype(dtype={'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int,
                                                 'wkratio': int, 'lkratio': int})
-
         # read fd2018pt from path/fd2018pk.csv
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
@@ -115,9 +115,12 @@ class Finder:
                 lambda x: wkpos_map[int(x)] if int(x) in wkpos_map else -1)
             self.td18bk.loc[:, 'lkpos'] = self.td18bk.lkmin.apply(
                 lambda x: lkpos_map[int(x)] if int(x) in lkpos_map else -1)
+        # read 2018 ystk fdlist
+        self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf_csv.txt')
 
         # read fd2019pt from path/fd2019pk.csv
         self.fd2019pt = pd.read_csv(self.path+'fd2019pk.csv')
+        self.fd2019ystk_zhf = pd.read_csv(self.path + 'fd2019mstk_zhf_wk.csv')
 
         if os.path.isfile(self.path+'yxinfo.csv'):
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
@@ -141,7 +144,7 @@ class Finder:
                         self.yx16 = dt.copy()
                         self.yx16 =pd.merge(self.yx16, yxinfoc, on='yxdm', how='left')
                 else:
-                    print('yx DataFrame load fail:{}'.format(fs))
+                    print('college data load fail:{}'.format(fname))
 
     def find_wc_from_score(self, score=500, scope=0, year=18):
         if year == 18:
@@ -211,22 +214,37 @@ class Finder:
             if kl == 'lk':
                 df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
                 df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
-                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2']
+                df3 = df3.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
+                df4 = df4.rename(columns={'lkjh': 'lkjh18', 'lkpos': 'lkpos18'})
+                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2',
+                             'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
             else:
                 df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
                 df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
-                outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2']
-            dfmerge = pd.merge(df3, df1, on='xx', how='outer')
-            dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')[outfields]
-            dfmerge = dfmerge.fillna('0')
+                df3 = df3.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
+                df4 = df4.rename(columns={'wkjh': 'wkjh18', 'wkpos': 'wkpos18'})
+                outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2',
+                             'wkjh17', 'wkpos17', 'wkjh18', 'wkpos18']
+            dfmerge = pd.merge(df4, df1, on='xx', how='outer')
+            dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')  # [outfields]
+            dfmerge = pd.merge(dfmerge, df3, on='xx', how='outer')  # [outfields]
+            dfmerge = dfmerge.fillna('-1')
+            # print(dfmerge.head())
+            # return dfmerge
             if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={'lkpos': int, 'lkpos16': int, 'lkpos16p2': int,
-                                                'lkjh': int, 'lkjh16': int, 'lkjh16p2': int
-                                                }, errors='ignore')
+                dfmerge = dfmerge.astype(dtype={
+                    'lkpos16': int, 'lkpos16p2': int,
+                    'lkjh16': int, 'lkjh16p2': int,
+                    'lkpos17': int, 'lkjh17': int,
+                    'lkpos18': int, 'lkjh18': int
+                    }, errors='ignore')
             else:
-                dfmerge = dfmerge.astype(dtype={'wkpos': int, 'wkpos16': int, 'wkpos16p2': int,
-                                                'wkjh': int, 'wkjh16': int, 'wkjh16p2': int
-                                                }, errors='ignore')
+                dfmerge = dfmerge.astype(dtype={
+                    'wkpos16': int, 'wkpos16p2': int,
+                    'wkjh16': int, 'wkjh16p2': int,
+                    'wkpos17': int, 'wkjh17': int,
+                    'wkpos18': int, 'wkjh18': int
+                }, errors='ignore')
         else:
             # print('2016zk---')
             df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
@@ -252,7 +270,7 @@ class Finder:
                 dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
                                                 'wkjh16': int, 'wkjh17': int
                                                 }, errors='ignore')
-        print(ptt.make_page(dfmerge, title='16-17zk', align=align))
+        print(ptt.make_page(dfmerge, title='data 16-18', align=align))
         return  # dfmerge
 
     def find_yxinfo(self, yxlist=('',)):

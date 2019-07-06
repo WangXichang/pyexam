@@ -505,7 +505,7 @@ def fun_round45r(number, digits=0):
         # raise NotImplementedError
         print('float cannot support {} digits precision'.format(digits))
         return number
-    add_err = 2 * 10**-(16-int_len+1)
+    add_err = 2 * 10**-(16-int_len+1)*(1 if number>0 else -1)
     if format(number, '.'+str(16-digits-int_len)+'f').rstrip('0') <= str(number):
         return round(number + add_err, digits) + add_err
     return round(number, digits)
