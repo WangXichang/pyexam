@@ -20,11 +20,12 @@ def getzyfun():
 
 
 def getzy():
+    loc_off4 = 'f:/project/bzy/'
     loc_dell = 'd:/work/data/lq/'
     loc_off = 'f:/studies/lqdata/'
     loc_suface = 'c:/users/wangxichang/zydata/'
     loc_lq = 'd:/zy/'
-    loc_list = [loc_suface, loc_dell, loc_lq, loc_off]
+    loc_list = [loc_off4, loc_suface, loc_dell, loc_lq, loc_off]
     
     for p in loc_list:
         if os.path.isfile(p+'td2017bk_sc.csv'):
@@ -51,14 +52,14 @@ class Finder:
         self.td18bk = None
         self.td18zk = None
 
-        self.dflq = None
         self.fd2018pt = None
+        self.fd2019pt = None
+
+        self.dflq = None
         self.yxinfo = None
         self.yx16 = None
         self.yx17 = None
         self.yx18 = None
-
-        # self.load_data()
 
     def set_datapath(self, path):
         self.path = path
@@ -94,6 +95,7 @@ class Finder:
         self.td18bk = self.td18bk.astype(dtype={'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int,
                                                 'wkratio': int, 'lkratio': int})
 
+        # read fd2018pt from path/fd2018pk.csv
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
             tempdf = pd.read_csv(fdfs, skiprows=22)
@@ -113,6 +115,9 @@ class Finder:
                 lambda x: wkpos_map[int(x)] if int(x) in wkpos_map else -1)
             self.td18bk.loc[:, 'lkpos'] = self.td18bk.lkmin.apply(
                 lambda x: lkpos_map[int(x)] if int(x) in lkpos_map else -1)
+
+        # read fd2019pt from path/fd2019pk.csv
+        self.fd2019pt = pd.read_csv(self.path+'fd2019pk.csv')
 
         if os.path.isfile(self.path+'yxinfo.csv'):
             self.yxinfo = pd.read_csv(self.path+'yxinfo.csv', sep=',', index_col=0,
@@ -138,8 +143,11 @@ class Finder:
                 else:
                     print('yx DataFrame load fail:{}'.format(fs))
 
-    def find_wc_from_fd2018(self, score=500, scope=0):
-        df = self.fd2018pt
+    def find_wc_from_score(self, score=500, scope=0, year=18):
+        if year == 18:
+            df = self.fd2018pt
+        elif year == 19:
+            df = self.fd2019pt
         fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
         if len(fdv) > 0:
             print(ptt.make_page(fdv, title=str('focus on '+str(score))))
