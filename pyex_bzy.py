@@ -49,8 +49,14 @@ class Finder:
 
         self.td18bk = None
         self.td18zk = None
+        self.td18mstk_bk1 = None
+        self.td18wxbd_bk1 = None
+
+        self.td2019mstk_bk1 = None
+        self.td2019wxbd_bk1 = None
 
         self.fd2018pt = None
+        self.fd2018mstk = None
         self.fd2018ystk_zhf = None
         self.fd2019pt = None
         self.fd2019ystk_zhf = None
@@ -91,10 +97,18 @@ class Finder:
         self.td17zk = pd.read_csv(self.path+'td2017zk_sc.csv', sep=',',
                                   dtype={'xx': str}, verbose=True)
         # 2018
+        td_type_fields = {'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int, 'wkratio': int, 'lkratio': int}
         self.td18bk = pd.read_csv(self.path+'td2018pc1_sc.csv', sep=',', verbose=True)
         self.td18bk = self.td18bk.fillna(0)
         self.td18bk = self.td18bk.astype(dtype={'wkjh': int, 'lkjh': int, 'wktd': int, 'lktd': int,
                                                 'wkratio': int, 'lkratio': int})
+        self.td18mstk_bk1 = pd.read_csv(self.path+'td2018mstk_bk1.csv')
+        self.td18mstk_bk1 = self.td18mstk_bk1.fillna(-1)
+        self.td18mstk_bk1 = self.td18mstk_bk1.astype(dtype=td_type_fields)
+        self.td18wxbd_bk1 = pd.read_csv(self.path+'td2018wxbd_bk1.csv', skiprows=4)
+        self.td18wxbd_bk1 = self.td18wxbd_bk1.fillna(-1)
+        self.td18wxbd_bk1 = self.td18wxbd_bk1.astype(dtype=td_type_fields)
+
         # read fd2018pt from path/fd2018pk.csv
         fdfs = self.path + 'fd2018pk.csv'
         if os.path.isfile(fdfs):
@@ -118,7 +132,9 @@ class Finder:
         # read 2018 ystk fdlist
         self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf_csv.txt')
 
+        # 2019
         # read fd2019pt from path/fd2019pk.csv
+        # self.td19mstk_bk1 = pd.read_csv(self.path+'td2019mstk_bk1.csv')
         self.fd2019pt = pd.read_csv(self.path+'fd2019pk.csv')
         self.fd2019ystk_zhf = pd.read_csv(self.path + 'fd2019mstk_zhf_wk.csv')
 
