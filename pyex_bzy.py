@@ -163,7 +163,6 @@ class Finder:
                 else:
                     print('college data load fail:{}'.format(fname))
 
-
     def find_wc_from_score(self, score=500, scope=0, year=18, kl='wk'):
         df = None
         if year == 18:
@@ -178,13 +177,13 @@ class Finder:
                 df = self.fd2019ystk_zhf
         if df is None:
             print('no fd data found for kl={} year={}!'.format(kl, year))
+            print('year in [{}] kl in [{}]'.format('18,19', 'wk,lk, msw, msl'))
             return
-        fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
+        fdv = df[df.fd.apply(lambda x: score-scope <= x <= score+scope)]
         if len(fdv) > 0:
-            print(ptt.make_page(fdv, title=str('focus on '+str(score))))
+            print(ptt.make_page(fdv, title=str('score on {} with scope {}'.format(score, scope))))
         else:
             print('not found data for score={}!'.format(score))
-
 
     def find_tdinfo_from_yxname(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
