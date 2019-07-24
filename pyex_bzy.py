@@ -187,6 +187,20 @@ class Finder:
         else:
             print('not found data for score={}!'.format(score))
 
+    def find_score_from_wc(self, wc, kl='wk', year=19):
+        if year == 19:
+            df = self.fd2019pt
+        elif year == 18:
+            df = self.fd2018pt
+        for i, row in df.iterrows():
+            if kl == 'wk':
+                if row['wklj'] >= wc:
+                    return row['fd']
+            elif kl == 'lk':
+                if row['lklj'] >= wc:
+                    return row['fd']
+        return -1
+
 
     def find_tdinfo_from_yxname(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
@@ -277,12 +291,16 @@ class Finder:
         dfmerge = dfmerge.astype(dtype=f_type)
         if cc == 'zk':
             fields_zk = ['xx', 'lkjh16', 'lkpos16', 'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
+            if kl == 'wk':
+                fields_zk = [s.replace('lk', 'wk') for s in fields_zk]
             dfmerge = dfmerge[fields_zk]
         if cc == 'bk':
             fields_bk = ['xx', 'lkjh16', 'lkpos16','lkjh16p2', 'lkpos16p2', 'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
+            if kl == 'wk':
+                fields_zk = [s.replace('lk', 'wk') for s in fields_zk]
             dfmerge = dfmerge[fields_bk]
         print(ptt.make_page(dfmerge, title='data 16-18', align=align))
-        return  # dfmerge
+        return
 
     def find_yxinfo(self, yxlist=('',)):
         yxfilterfun = closed_filter(yxlist)
