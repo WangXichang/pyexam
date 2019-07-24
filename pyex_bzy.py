@@ -105,6 +105,7 @@ class Finder:
         self.td18mstk_bk1 = pd.read_csv(self.path+'td2018mstk_bk1.csv')
         self.td18mstk_bk1 = self.td18mstk_bk1.fillna(-1)
         self.td18mstk_bk1 = self.td18mstk_bk1.astype(dtype=td_type_fields)
+
         self.td18wxbd_bk1 = pd.read_csv(self.path+'td2018wxbd_bk1.csv', skiprows=4)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.fillna(-1)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.astype(dtype=td_type_fields)
@@ -132,7 +133,7 @@ class Finder:
             self.td18bk.loc[:, 'lkpos'] = self.td18bk.lkmin.apply(
                 lambda x: lkpos_map[int(x)] if int(x) in lkpos_map else -1)
         # read 2018 ystk fdlist
-        self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf_csv.txt')
+        self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf.txt')
 
         # 2019
         # read fd2019pt from path/fd2019pk.csv
@@ -164,16 +165,28 @@ class Finder:
                 else:
                     print('college data load fail:{}'.format(fname))
 
-    def find_wc_from_score(self, score=500, scope=0, year=18):
+
+    def find_wc_from_score(self, score=500, scope=0, year=18, kl='wk'):
+        df = None
         if year == 18:
-            df = self.fd2018pt
+            if kl.lower() in 'wk, lk':
+                df = self.fd2018pt
+            if kl.lower() == 'ys':
+                df = self.fd2018ystk_zhf
         elif year == 19:
-            df = self.fd2019pt
+            if kl.lower() in 'wk, lk':
+                df = self.fd2019pt
+            if kl.lower() == 'ys':
+                df = self.fd2019ystk_zhf
+        if df is None:
+            print('no fd data found for kl={} year={}!'.format(kl, year))
+            return
         fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
         if len(fdv) > 0:
             print(ptt.make_page(fdv, title=str('focus on '+str(score))))
         else:
             print('not found data for score={}!'.format(score))
+
 
     def find_tdinfo_from_yxname(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
