@@ -126,7 +126,7 @@ CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 # ShanDong: piecewise linear transform
 # 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
-CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3], 21-100
+CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 # GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
@@ -360,27 +360,38 @@ def run(name='shandong',
 
 
 def plot():
-    plt.figure('model ratio distribution')
+    plt.figure('Score Distribution of Models')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
     plt.bar(range(1, 9), [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    plt.title('shandong model')
+    mean_shandong = sum([x/100*sum(y)/2 for x, y in zip(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT)])
+    plt.title('shandong({:.2f})'.format(mean_shandong))
 
     plt.subplot(232)
     plt.bar(range(11, 0, -1), [CONST_SHANGHAI_RATIO[-j - 1] for j in range(11)])
-    plt.title('shanghai model')
+    mean_shanghai = sum([(70-i*3)*y/100 for i, y in enumerate(CONST_SHANGHAI_RATIO)])
+    plt.title('shanghai(mean={:.0f})'.format(mean_shanghai))
+    # plt.xlabel('mean={:.0f}'.format(mean_shanghai))
 
     plt.subplot(233)
     plt.bar(range(21, 0, -1), [CONST_ZHEJIANG_RATIO[-j - 1] for j in range(len(CONST_ZHEJIANG_RATIO))])
-    plt.title('zhejiang model')
+    mean_zhejiang = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_ZHEJIANG_RATIO)])
+    plt.title('Zhejing(mean={:.2f})'.format(mean_zhejiang))
 
     plt.subplot(234)
     plt.bar(range(21, 0, -1), [CONST_BEIJING_RATIO[-j - 1] for j in range(len(CONST_BEIJING_RATIO))])
-    plt.title('beijing model')
+    mean_beijing = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_BEIJING_RATIO)])
+    plt.title('Beijing(mean={:.2f})'.format(mean_beijing))
 
     plt.subplot(235)
     plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
-    plt.title('tianjin model')
+    mean_tianjin = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_TIANJIN_RATIO)])
+    plt.title('tianjin(mean={:.2f})'.format(mean_tianjin))
+
+    plt.subplot(236)
+    plt.bar(range(1, 6), [CONST_M8_RATIO[j] for j in range(len(CONST_M8_RATIO))])
+    mean_m8 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M8_RATIO, CONST_M8_SEGMENT)])
+    plt.title('m8(mean={:.2f})'.format(mean_m8))
 
 
 # Score Transform Model Interface

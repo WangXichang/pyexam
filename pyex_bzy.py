@@ -108,6 +108,8 @@ class Finder:
         self.td18wxbd_bk1 = pd.read_csv(self.path+'td2018wxbd_bk1.csv', skiprows=4)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.fillna(-1)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.astype(dtype=td_type_fields)
+        self.td18zk = pd.read_csv(self.path+'td2018zksc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True, skiprows=4)
 
         # read fd2018pt from path/fd2018pk.csv
         fdfs = self.path + 'fd2018pk.csv'
@@ -227,65 +229,77 @@ class Finder:
             # print('2018---')
             df4 = self.get_df_from_pos(self.td18bk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            if kl == 'lk':
-                df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
-                df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
-                df3 = df3.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
-                df4 = df4.rename(columns={'lkjh': 'lkjh18', 'lkpos': 'lkpos18'})
-                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2',
-                             'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
-            else:
-                df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-                df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
-                df3 = df3.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
-                df4 = df4.rename(columns={'wkjh': 'wkjh18', 'wkpos': 'wkpos18'})
-                outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2',
-                             'wkjh17', 'wkpos17', 'wkjh18', 'wkpos18']
-            dfmerge = pd.merge(df4, df1, on='xx', how='outer')
-            dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')  # [outfields]
-            dfmerge = pd.merge(dfmerge, df3, on='xx', how='outer')  # [outfields]
-            dfmerge = dfmerge.fillna('-1')
-            # print(dfmerge.head())
-            # return dfmerge
-            if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={
-                    'lkpos16': int, 'lkpos16p2': int,
-                    'lkjh16': int, 'lkjh16p2': int,
-                    'lkpos17': int, 'lkjh17': int,
-                    'lkpos18': int, 'lkjh18': int
-                    }, errors='ignore')
-            else:
-                dfmerge = dfmerge.astype(dtype={
-                    'wkpos16': int, 'wkpos16p2': int,
-                    'wkjh16': int, 'wkjh16p2': int,
-                    'wkpos17': int, 'wkjh17': int,
-                    'wkpos18': int, 'wkjh18': int
-                }, errors='ignore')
         else:
             # print('2016zk---')
             df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
+            df2 = df1.head(0)
             # print('2017zk---')
-            df2 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
+            df3 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
                                        filterlist=filterlist, kl=kl)
-            if kl == 'lk':
-                df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
-                df2 = df2.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
-                outfields = ['xx', 'lkjh16', 'lkjh17', 'lkpos16', 'lkpos17']
-            else:
-                df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-                df2 = df2.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
-                outfields = ['xx', 'wkjh16', 'wkjh17', 'wkpos16', 'wkpos17']
-            dfmerge = pd.merge(df2, df1, on='xx', how='outer')[outfields]
-            dfmerge = dfmerge.fillna('0')
-            if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={'lkpos16': int, 'lkpos17': int,
-                                                'lkjh16': int, 'lkjh17': int
-                                                }, errors='ignore')
-            else:
-                dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
-                                                'wkjh16': int, 'wkjh17': int
-                                                }, errors='ignore')
+            # print('2018zk---')
+            df4 = self.get_df_from_pos(self.td18zk, lowpos=low, highpos=high, posfield=posfield,
+                                       filterlist=filterlist, kl=kl)
+
+        if kl == 'lk':
+            df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
+            df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
+            df3 = df3.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
+            df4 = df4.rename(columns={'lkjh': 'lkjh18', 'lkpos': 'lkpos18'})
+            outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2',
+                         'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
+        else:
+            df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
+            df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
+            df3 = df3.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
+            df4 = df4.rename(columns={'wkjh': 'wkjh18', 'wkpos': 'wkpos18'})
+            outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2',
+                         'wkjh17', 'wkpos17', 'wkjh18', 'wkpos18']
+        dfmerge = pd.merge(df4, df1, on='xx', how='outer')
+        dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')  # [outfields]
+        dfmerge = pd.merge(dfmerge, df3, on='xx', how='outer')  # [outfields]
+        dfmerge = dfmerge.fillna('-1')
+        # print(dfmerge.head())
+        # return dfmerge
+        #     if kl == 'lk':
+        #         dfmerge = dfmerge.astype(dtype={
+        #             'lkpos16': int, 'lkpos16p2': int,
+        #             'lkjh16': int, 'lkjh16p2': int,
+        #             'lkpos17': int, 'lkjh17': int,
+        #             'lkpos18': int, 'lkjh18': int
+        #             }, errors='ignore')
+        #     else:
+        #         dfmerge = dfmerge.astype(dtype={
+        #             'wkpos16': int, 'wkpos16p2': int,
+        #             'wkjh16': int, 'wkjh16p2': int,
+        #             'wkpos17': int, 'wkjh17': int,
+        #             'wkpos18': int, 'wkjh18': int
+        #         }, errors='ignore')
+        # else:
+        #     # print('2016zk---')
+        #     df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
+        #                                filterlist=filterlist, kl=kl)
+        #     # print('2017zk---')
+        #     df2 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
+        #                                filterlist=filterlist, kl=kl)
+        #     if kl == 'lk':
+        #         df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
+        #         df2 = df2.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
+        #         outfields = ['xx', 'lkjh16', 'lkjh17', 'lkpos16', 'lkpos17']
+        #     else:
+        #         df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
+        #         df2 = df2.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
+        #         outfields = ['xx', 'wkjh16', 'wkjh17', 'wkpos16', 'wkpos17']
+        #     dfmerge = pd.merge(df2, df1, on='xx', how='outer')[outfields]
+        #     dfmerge = dfmerge.fillna('0')
+        #     if kl == 'lk':
+        #         dfmerge = dfmerge.astype(dtype={'lkpos16': int, 'lkpos17': int,
+        #                                         'lkjh16': int, 'lkjh17': int
+        #                                         }, errors='ignore')
+        #     else:
+        #         dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
+        #                                         'wkjh16': int, 'wkjh17': int
+        #                                         }, errors='ignore')
         print(ptt.make_page(dfmerge, title='data 16-18', align=align))
         return  # dfmerge
 
