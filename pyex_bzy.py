@@ -181,24 +181,32 @@ class Finder:
         if df is None:
             print('no fd data found for kl={} year={}!'.format(kl, year))
             return
-        fdv = df[df.fd.apply(lambda x: score-scope<=x<=score+scope)]
+        fdv = df[df.fd.apply(lambda x: score-scope <= x <= score+scope)]
         if len(fdv) > 0:
-            print(ptt.make_page(fdv, title=str('focus on '+str(score))))
+            print(ptt.make_page(fdv, title='score at {} in year({})'.format(score, year)))
         else:
-            print('not found data for score={}!'.format(score))
+            print('not founded data for score={}!'.format(score))
 
     def find_score_from_wc(self, wc, kl='wk', year=19):
         if year == 19:
             df = self.fd2019pt
         elif year == 18:
             df = self.fd2018pt
+        found = False
+        lj = 0
         for i, row in df.iterrows():
             if kl == 'wk':
-                if row['wklj'] >= wc:
-                    return row['fd']
+                lj = sum((row['wklj'], row['ywlj']))
+                if lj >= wc:
+                    found = True
             elif kl == 'lk':
-                if row['lklj'] >= wc:
-                    return row['fd']
+                lj = row['lklj'] + row['tylj']+row['yllj']
+                if lj >= wc:
+                    found = True
+            if found:
+                print('get score={} for sum={} in {} - {}'.format(row['fd'], lj, kl, year))
+                print(ptt.make_mpage(df.iloc[i - 1:i + 2, :]))
+                return
         return -1
 
 
