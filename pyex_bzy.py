@@ -310,7 +310,7 @@ class Finder:
 
         print(ptt.make_page(dfmerge, title='data 16-18', align={'xx': 'l'}))
 
-        return dfmerge
+        return # dfmerge
 
     def find_yxinfo(self, yxlist=('',)):
         yxfilterfun = closed_filter(yxlist)
