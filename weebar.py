@@ -756,7 +756,11 @@ class BarcodeReader(object):
             return
         if self.image_bar.shape[0] * self.image_bar.shape[1] == 0:
             return
+
+        # reverse image: black to white
         img = 255 - self.image_bar.copy()
+
+        # get binary image: bar01
         th = img.mean() + gray_shift
         img[img < th] = 0
         img[img > 0] = 1
@@ -764,6 +768,7 @@ class BarcodeReader(object):
 
         # get bar bar&space width list
         # mid_loc = self.image_bar_mid
+        # scan from mid - scope to mid + scope by step=scan_step
         for _line in range(-self.image_scan_scope,
                            self.image_scan_scope,
                            self.image_scan_step):
