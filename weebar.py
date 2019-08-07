@@ -645,7 +645,7 @@ class BarcodeReader(object):
         move_to_down = '(bar_center[1] + bar_wid[1] / 2 + gap) > image_cliped.shape[0]'
         # first loc bar
         image_cliped = image_data[box_top: box_bottom+1, box_left: box_right+1]
-        bar_center, bar_wid = self.proc1a1_get_barimage_center(255 - image_cliped)
+        bar_center, bar_wid = self.proc1a1_get_barimage_center_and_width(255 - image_cliped)
         step = 0
         move_condition = eval(move_to_right) | eval(move_to_left) | eval(move_to_up) | eval(move_to_down)
         while move_condition & (step < 21):
@@ -659,7 +659,7 @@ class BarcodeReader(object):
                                       move_up=move_up, move_down=move_down,
                                       box_left=box_left, box_right=box_right,
                                       box_top=box_top, box_bottom=box_bottom)
-            bar_center, bar_wid = self.proc1a1_get_barimage_center(255 - image_cliped)
+            bar_center, bar_wid = self.proc1a1_get_barimage_center_and_width(255 - image_cliped)
             step += 1
             if display:
                 dstr = ('' if move_left == 0 else '  move_left={}, left={}'.format(move_left, box_left)) + \
@@ -683,7 +683,7 @@ class BarcodeReader(object):
         # print('tblr:', top_gap, bottom_gap, left_gap, right_gap)
         return True, image_cliped, box_left, box_right, box_top, box_bottom
 
-    def proc1a1_get_barimage_center(self, bar_image):
+    def proc1a1_get_barimage_center_and_width(self, bar_image):
         horizon_fun = bar_image.sum(axis=0)
         horizon_mid, horizon_wid = self.proc1b_find_peak(horizon_fun)
         vertical_fun = bar_image.sum(axis=1)
