@@ -763,7 +763,7 @@ class BarcodeReader(object):
         # get binary image: bar01
         th = img.mean() + gray_shift
         img[img < th] = 0
-        img[img > 0] = 1
+        img[img > 0] = 1    # pixels for img>=th
         self.image_bar01 = img
 
         # get bar bar&space width list
