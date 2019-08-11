@@ -4,6 +4,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import matplotlib.pyplot as plt
 import os
+import pandas as pd
 
 
 # exif info from PIL
@@ -113,7 +114,7 @@ class ImageData(object):
             try:
                 self.image = Image.open(file_name)
             except IOError:
-                print('IOERROR ' + fname)
+                print('IOERROR ' + file_name)
         elif os.path.isdir(self.file_path):
             print('file path exists, file name is error!')
         else:
@@ -132,11 +133,15 @@ class ImageData(object):
             self.load_image(file_name=file_name)
 
         # result = {'image': self.image, 'exif': None}
-        get_exif = {}  # 'no exif'
+        get_exif = {'exif_items': [], 'exif_content': []}  # 'no exif'
         if hasattr(self.image, '_getexif'):
             exifinfo = self.image._getexif()
             if exifinfo != None:
                 for tag, value in exifinfo.items():
                     decoded = TAGS.get(tag, tag)
-                    get_exif[decoded] = value
-        return get_exif
+                    # get_exif[decoded] = value
+                    get_exif['exif_items'].append(format(decoded, '30s'))
+                    value = value if len(str(value)) < 50 else str(value)[:50]
+                    get_exif['exif_content'].append(format(str(value), '50s'))
+        self.exif_info = pd.DataFrame(get_exif)
+        return self.exif_info
