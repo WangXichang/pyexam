@@ -109,6 +109,8 @@ class Finder:
         self.td18wxbd_bk1 = pd.read_csv(self.path+'td2018wxbd_bk1.csv', skiprows=4)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.fillna(-1)
         self.td18wxbd_bk1 = self.td18wxbd_bk1.astype(dtype=td_type_fields)
+        self.td18zk = pd.read_csv(self.path+'td2018zksc.csv', sep=',',
+                                  dtype={'xx': str}, verbose=True, skiprows=4)
 
         # read fd2018pt from path/fd2018pk.csv
         fdfs = self.path + 'fd2018pk.csv'
@@ -131,7 +133,7 @@ class Finder:
             self.td18bk.loc[:, 'lkpos'] = self.td18bk.lkmin.apply(
                 lambda x: lkpos_map[int(x)] if int(x) in lkpos_map else -1)
         # read 2018 ystk fdlist
-        self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf.txt')
+        self.fd2018ystk_zhf = pd.read_csv(self.path + 'fd2018ystk_zhf_csv.txt')
 
         # 2019
         # read fd2019pt from path/fd2019pk.csv
@@ -183,7 +185,29 @@ class Finder:
         if len(fdv) > 0:
             print(ptt.make_page(fdv, title=str('score on {} with scope {}'.format(score, scope))))
         else:
-            print('not found data for score={}!'.format(score))
+            print('not founded data for score={}!'.format(score))
+
+    def find_score_from_wc(self, wc, kl='wk', year=19):
+        if year == 19:
+            df = self.fd2019pt
+        elif year == 18:
+            df = self.fd2018pt
+        found = False
+        lj = 0
+        for i, row in df.iterrows():
+            if kl == 'wk':
+                lj = sum((row['wklj'], row['ywlj']))
+                if lj >= wc:
+                    found = True
+            elif kl == 'lk':
+                lj = row['lklj'] + row['tylj']+row['yllj']
+                if lj >= wc:
+                    found = True
+            if found:
+                print('get score={} for sum={} in {} - {}'.format(row['fd'], lj, kl, year))
+                print(ptt.make_mpage(df.iloc[i - 1:i + 2, :]))
+                return
+        return -1
 
     def find_tdinfo_from_yxname(self, xxsubstr=('医学',), kl='wk', cc='bk'):
         ffun = closed_filter(xxsubstr)
@@ -212,94 +236,80 @@ class Finder:
             print(ptt.make_page(df3, '2018bk', align={'xx': 'l'}))
         else:
             # print('2016zk---')
-            df1 = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+            df = self.td16zk[self.td16zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by=('lkpos' if kl == 'lk' else 'wkpos'))
-            print(ptt.make_page(df1, title='2016zk', align={'xx': 'l'}))
+            print(ptt.make_page(df, title='2016 zk', align={'xx': 'l'}))
             # print('2017zk---')
-            df2 = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+            df = self.td17zk[self.td17zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
                 sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
-            print(ptt.make_page(df2, title='2017zk', align={'xx': 'l'}))
+            print(ptt.make_page(df, title='2017 zk', align={'xx': 'l'}))
+            # print('2018zk---')
+            df = self.td18zk[self.td18zk.xx.apply(ffun)][['xx', 'wkpos', 'lkpos']].\
+                sort_values(by='lkpos' if kl == 'lk' else 'wkpos')
+            print(ptt.make_page(df, title='2018 zk', align={'xx': 'l'}))
 
         return  # df1, df2, df3
 
-    def find_tdinfo_from_wc(self, low, high, filterlist=('',), kl='wk', cc='bk', align=None):
+    def find_tdinfo_from_wc(self, low, high, selecter=(''), filter=('',), kl='wk', cc='bk', align=None):
         posfield = 'wkpos' if kl == 'wk' else 'lkpos'
         align = dict() if align is None else align
         if cc == 'bk':
             # print('2016pc1---')
             df1 = self.get_df_from_pos(self.td16bk1, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
+                                       selecter=selecter, filter=filter, kl=kl)
             # print('2016pc2---')
             df2 = self.get_df_from_pos(self.td16bk2, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
+                                       selecter=selecter, filter=filter, kl=kl)
             # print('2017---')
             df3 = self.get_df_from_pos(self.td17bk, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
+                                       selecter=selecter, filter=filter, kl=kl)
             df3.loc[:, 'xxh'] = df3.xx.apply(lambda x: str(x)[0:4])
             # print('2018---')
             df4 = self.get_df_from_pos(self.td18bk, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
-            if kl == 'lk':
-                df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
-                df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
-                df3 = df3.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
-                df4 = df4.rename(columns={'lkjh': 'lkjh18', 'lkpos': 'lkpos18'})
-                outfields = ['xx', 'lkjh', 'lkjh16', 'lkjh16p2', 'lkpos', 'lkpos16', 'lkpos16p2',
-                             'lkjh17', 'lkpos17', 'lkjh18', 'lkpos18']
-            else:
-                df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-                df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
-                df3 = df3.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
-                df4 = df4.rename(columns={'wkjh': 'wkjh18', 'wkpos': 'wkpos18'})
-                outfields = ['xx', 'wkjh', 'wkjh16', 'wkjh16p2', 'wkpos', 'wkpos16', 'wkpos16p2',
-                             'wkjh17', 'wkpos17', 'wkjh18', 'wkpos18']
-            dfmerge = pd.merge(df4, df1, on='xx', how='outer')
-            dfmerge = pd.merge(dfmerge, df2, on='xx', how='outer')  # [outfields]
-            dfmerge = pd.merge(dfmerge, df3, on='xx', how='outer')  # [outfields]
-            dfmerge = dfmerge.fillna('-1')
-            # print(dfmerge.head())
-            # return dfmerge
-            if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={
-                    'lkpos16': int, 'lkpos16p2': int,
-                    'lkjh16': int, 'lkjh16p2': int,
-                    'lkpos17': int, 'lkjh17': int,
-                    'lkpos18': int, 'lkjh18': int
-                    }, errors='ignore')
-            else:
-                dfmerge = dfmerge.astype(dtype={
-                    'wkpos16': int, 'wkpos16p2': int,
-                    'wkjh16': int, 'wkjh16p2': int,
-                    'wkpos17': int, 'wkjh17': int,
-                    'wkpos18': int, 'wkjh18': int
-                }, errors='ignore')
+                                       selecter=selecter, filter=filter, kl=kl)
         else:
             # print('2016zk---')
             df1 = self.get_df_from_pos(self.td16zk, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
+                                       selecter=selecter, filter=filter, kl=kl)
+            df2 = df1.head(0)
             # print('2017zk---')
-            df2 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
-                                       filterlist=filterlist, kl=kl)
-            if kl == 'lk':
-                df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
-                df2 = df2.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
-                outfields = ['xx', 'lkjh16', 'lkjh17', 'lkpos16', 'lkpos17']
-            else:
-                df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
-                df2 = df2.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
-                outfields = ['xx', 'wkjh16', 'wkjh17', 'wkpos16', 'wkpos17']
-            dfmerge = pd.merge(df2, df1, on='xx', how='outer')[outfields]
-            dfmerge = dfmerge.fillna('0')
-            if kl == 'lk':
-                dfmerge = dfmerge.astype(dtype={'lkpos16': int, 'lkpos17': int,
-                                                'lkjh16': int, 'lkjh17': int
-                                                }, errors='ignore')
-            else:
-                dfmerge = dfmerge.astype(dtype={'wkpos16': int, 'wkpos17': int,
-                                                'wkjh16': int, 'wkjh17': int
-                                                }, errors='ignore')
-        print(ptt.make_page(dfmerge, title='data 16-18', align=align))
-        return  # dfmerge
+            df3 = self.get_df_from_pos(self.td17zk, lowpos=low, highpos=high, posfield=posfield,
+                                       selecter=selecter, filter=filter, kl=kl)
+            # print('2018zk---')
+            df4 = self.get_df_from_pos(self.td18zk, lowpos=low, highpos=high, posfield=posfield,
+                                       selecter=selecter, filter=filter, kl=kl)
+
+        if kl == 'lk':
+            df1 = df1.rename(columns={'lkjh': 'lkjh16', 'lkpos': 'lkpos16'})
+            df2 = df2.rename(columns={'lkjh': 'lkjh16p2', 'lkpos': 'lkpos16p2'})
+            df3 = df3.rename(columns={'lkjh': 'lkjh17', 'lkpos': 'lkpos17'})
+            df4 = df4.rename(columns={'lkjh': 'lkjh18', 'lkpos': 'lkpos18'})
+        else:
+            df1 = df1.rename(columns={'wkjh': 'wkjh16', 'wkpos': 'wkpos16'})
+            df2 = df2.rename(columns={'wkjh': 'wkjh16p2', 'wkpos': 'wkpos16p2'})
+            df3 = df3.rename(columns={'wkjh': 'wkjh17', 'wkpos': 'wkpos17'})
+            df4 = df4.rename(columns={'wkjh': 'wkjh18', 'wkpos': 'wkpos18'})
+
+        for df in [df1, df2, df3, df4]:
+            df.loc[:, 'xxh'] = df.xx.apply(lambda x: x[0:4])
+
+        df1 = df1.drop(labels=['xx'], axis=1)
+        df2 = df2.drop(labels=['xx'], axis=1)
+        df3 = df3.drop(labels=['xx'], axis=1)
+
+        dfmerge = pd.merge(df4, df3, on='xxh', how='outer')
+        dfmerge = pd.merge(dfmerge, df1, on='xxh', how='outer')  # [outfields]
+        if df2['xxh'].count() > 0:
+            dfmerge = pd.merge(dfmerge, df2, on='xxh', how='outer')  # [outfields]
+        dfmerge = dfmerge.fillna('-1')
+        f_type = {k: int for k in dfmerge.columns if ('jh' in k) or ('pos' in k)}
+        dfmerge = dfmerge.astype(dtype=f_type)
+        dfmerge = dfmerge.drop(labels='xxh', axis=1)
+        dfmerge = dfmerge.query('xx != "-1"')
+
+        print(ptt.make_page(dfmerge, title='data 16-18', align={'xx': 'l'}))
+
+        return # dfmerge
 
     def find_yxinfo(self, yxlist=('',)):
         yxfilterfun = closed_filter(yxlist)
@@ -322,15 +332,17 @@ class Finder:
         return  # df
 
     @staticmethod
-    def get_df_from_pos(df, lowpos, highpos, posfield, filterlist, kl):
+    def get_df_from_pos(df, lowpos, highpos, posfield, selecter, filter, kl):
         jh = 'wkjh' if kl == 'wk' else 'lkjh'
-        filterfun = closed_filter(filterlist)
+        selecterfun = select_filter(selecter, filter)
+        # filterfun = delete_filter(filter)
         return df[['xx', jh, posfield]][(df[posfield] <= highpos) &
                                         (df[posfield] >= lowpos) &
-                                        df.xx.apply(filterfun)].sort_values(by=posfield)
+                                        df.xx.apply(selecterfun)
+                                        ].sort_values(by=posfield)
 
 
-def closed_filter(substr_list):
+def select_filter(substr_list, substr_list2):
     substr_list = substr_list
     if (not isinstance(substr_list, list)) & (not isinstance(substr_list, tuple)):
         print('filter is not list')
@@ -340,6 +352,24 @@ def closed_filter(substr_list):
         for s in substr_list:
             if s in str(x):
                 return True
+        for s in substr_list2:
+            if s not in str(x):
+                return True
+        return False
+
+    return filterfun
+
+
+def delete_filter(substr_list):
+    substr_list = substr_list
+    if (not isinstance(substr_list, list)) & (not isinstance(substr_list, tuple)):
+        print('filter is not list')
+        return False
+
+    def filterfun(x):
+        for s in substr_list:
+            if s in str(x):
+                return False
         return False
 
     return filterfun
