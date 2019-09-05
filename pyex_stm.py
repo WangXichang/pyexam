@@ -9,7 +9,7 @@
     stm module description stm模块说明：
 
     [functions] 模块中的函数
-       run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
+       run(name, df, field_list, ratio_list, grade_max, grade_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near')
           运行各个模型的调用函数 calling model function
           ---
@@ -28,7 +28,7 @@
           field_list: score field to calculate in df
           计算转换分数的字段表
           --
-          ratio: ratio list including percent value for each interval of grade score
+          ratio_list: ratio list including percent value for each interval of grade score
           划分等级的比例表
           --
           grade_max: max value of grade score
@@ -124,14 +124,17 @@ CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2,
 CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+
 # ShanDong: piecewise linear transform
 # 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+
 # GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
 CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
 CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+
 # HuNan is same as GuangDong
 CONST_M8_RATIO = [2, 13, 35, 35, 15]
 CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
@@ -195,7 +198,7 @@ def run(name='shandong',
     :param df: dataframe, input data, default = None
     :param field_list: score fields list in input dataframe, default = None and set to digit fields in running
     :param ratio_list: ratio list used to create intervals of raw score for each grade
-                        default = None, set to a list by name
+                        default = None, set to a list by the model's name
                         must be set to a list if name is not in module preassigned list
                         must be set for new model
     :param grade_diff: difference value between two neighbor grade score
