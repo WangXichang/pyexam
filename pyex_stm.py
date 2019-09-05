@@ -1,8 +1,10 @@
 # -*- utf-8 -*-
 
 
+# comments to stm
 """
     2018.09.24 -- 2018.11
+    2019.09.03 --
     designed for new High Test grade score model
     also for shandong interval linear transform
 
@@ -100,7 +102,7 @@
         CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
         CONST_M8_RATIO = [2, 13, 35, 35, 15]
         CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
-    """
+"""
 
 
 import copy
@@ -140,7 +142,7 @@ CONST_M8_RATIO = [2, 13, 35, 35, 15]
 CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
-def show():
+def about():
     print(__doc__)
 
 
@@ -190,7 +192,8 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        approx_method='near'
+        approx_method='near',
+        score_order='descending'
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -214,6 +217,7 @@ def run(name='shandong',
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
     :param approx_method: maxmin, minmax, minnear, maxnear, default = 'near'
+    :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
     # check name
@@ -247,13 +251,12 @@ def run(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                                output_score_points_list=CONST_SHANDONG_SEGMENT,
-                                input_score_max=input_score_max,
-                                input_score_min=input_score_min,
-                                approx_mode=approx_method,
-                                score_order='descending',
-                                decimals=output_score_decimal
-                                )
+                          output_score_points_list=CONST_SHANDONG_SEGMENT,
+                          input_score_max=input_score_max,
+                          input_score_min=input_score_min,
+                          approx_mode=approx_method,
+                          score_order=score_order,
+                          decimals=output_score_decimal)
         pltmodel.run()
         return pltmodel
 
@@ -266,13 +269,12 @@ def run(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                                output_score_points_list=CONST_M8_SEGMENT,
-                                input_score_max=input_score_max,
-                                input_score_min=input_score_min,
-                                approx_mode=approx_method,
-                                score_order='descending',
-                                decimals=output_score_decimal
-                                )
+                          output_score_points_list=CONST_M8_SEGMENT,
+                          input_score_max=input_score_max,
+                          input_score_min=input_score_min,
+                          approx_mode=approx_method,
+                          score_order=score_order,
+                          decimals=output_score_decimal)
         pltmodel.run()
         return pltmodel
 
@@ -296,11 +298,10 @@ def run(name='shandong',
         m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_para(maxscore=input_score_max,
-                         minscore=input_score_min,
-                         grade_ratio_table=ratio_list,
-                         grade_score_table=grade_score,
-                         approx_method=approx_method
-                         )
+                   minscore=input_score_min,
+                   grade_ratio_table=ratio_list,
+                   grade_score_table=grade_score,
+                   approx_method=approx_method)
         m.run()
         return m
 
