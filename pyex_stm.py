@@ -146,11 +146,15 @@ def about():
     print(__doc__)
 
 
-def test(model='shandong', max_score=100, min_score=0, data_size=1000):
+def test(model='shandong',
+         max_score=100,
+         min_score=0,
+         data_size=1000):
+
     model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
                   'm8', 'guangdong', 'hainan', 'tao']
-    if model not in model_list:
-        print('use correct model: {}'.format(','.join(model_list)))
+    if model.lower() not in model_list:
+        print('correct model name in: [{}]'.format(','.join(model_list)))
         return None
 
     # create data set
@@ -158,7 +162,7 @@ def test(model='shandong', max_score=100, min_score=0, data_size=1000):
     # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
     norm_data = [sts.norm.rvs() for _ in range(data_size)]
     norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
-    norm_data = [int((x+4)*max_score/8) for x in norm_data]
+    norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
     dfscore = pd.DataFrame({'kmx': norm_data})
 
     if model in model_list[2:]:
@@ -984,13 +988,11 @@ class PltScore(ScoreTransformModel):
                     plt.plot([x[j], x[j]], [0, y[j]], '--')
                     plt.plot([0, x[j]], [y[j], y[j]], '--')
                 for j, xx in enumerate(x):
-                    # if cfi == 0:
-                    #     plt.text(xx-3, ou_min-2, '{}'.format(int(xx)))
-                    # else:
                     plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
                     plt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
-            # y = x for signing score shift
+
+            # darw y = x for showing score shift
             plt.plot((0, in_max), (0, in_max))
 
         plt.show()
