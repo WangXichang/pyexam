@@ -74,16 +74,21 @@ def readbar(
 
 def testbar(
         code_type='128c',
-        file_list=(),
+        filename='',
         box_top=None, box_left=None, box_bottom=None, box_right=None,
         blur_kernel=(17, 17),
         display=False
         ):
-    if not (isinstance(file_list, str) | isinstance(file_list, list)):
-        print('file_list is not type:list!')
+    if not os.path.isfile(filename):
+        print('file_list is not found!')
         return
-    if isinstance(file_list, str):
-        file_list = [file_list]
+
+    if not any([box_bottom, box_left, box_right, box_top]):
+        im = plt.imread(filename)
+        box_top = 0
+        box_left = 0
+        box_right = im.shape[1]     # column number
+        box_bottom = im.shape[0]    # row number
 
     st = time.time()
     reader = BarReaderFactory.create(code_type)  # BarcodeReader128()
@@ -91,12 +96,14 @@ def testbar(
     reader.new_image_blurr_template = blur_kernel
     reader.get_dataframe(
         code_type=code_type,
-        file_list=file_list,
+        file_list=[filename],
         box_top=box_top, box_left=box_left, box_bottom=box_bottom, box_right=box_right,
         display=display)
     print('total time:{:5.2n},  mean time:{:4.2n}'.
-          format(time.time() - st, (time.time()-st) / len(file_list)))
-    reader.show_bar_image()
+          format(time.time() - st, time.time()-st))
+
+    if display:
+        reader.show_bar_image()
 
     return reader
 

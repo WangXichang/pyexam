@@ -91,7 +91,7 @@ doc2 = """
         """
 
 
-class ImageData(object):
+class Exif(object):
     def __init__(self, file_name=None):
         self.image = None
         self.file_name = file_name
@@ -104,35 +104,45 @@ class ImageData(object):
             file_name = self.file_name
         if not isinstance(file_name, str):
             print('file name is empty!')
-            return
+            return False
         self.file_name = file_name
         p = file_name.rfind('/') if file_name.rfind('/') else file_name.rfind('\\')
-        if p > 0:
-            self.file_path = file_name[:p]
-
+        self.file_path = file_name[:p] if p > 0 else ''
         if os.path.isfile(file_name):
             try:
                 self.image = Image.open(file_name)
+                self.__get_exif()
+                # self.image_data = self.image
+                # self.image.close()
             except IOError:
                 print('IOERROR ' + file_name)
+                return False
         elif os.path.isdir(self.file_path):
-            print('file path exists, file name is error!')
+            print('file path=({}) exists, \nfile name is error!'.format(self.file_path))
+            return False
         else:
-            print('file path is error!')
+            print('file name error =({})!')
+            return False
+        return True
 
     def show_image(self):
         if self.image is not None:
             plt.imshow(self.image)
 
-    def get_exif_data(self, file_name=None):
-        """Get embedded EXIF data from image file."""
-        if file_name is None:
-            fname = self.file_name
-            self.load_image()
-        else:
-            self.load_image(file_name=file_name)
+    def show_exif(self):
+        if self.exif_info is not None:
+            print(self.exif_info)
 
-        # result = {'image': self.image, 'exif': None}
+    def __get_exif(self, file_name=None, reload=False):
+        _file_name = file_name
+        if file_name is None:
+            _file_name = self.file_name
+            if (self.image is None) or reload:
+                if not self.load_image():
+                    return None
+        else:
+            if not self.load_image(file_name):
+                return None
         get_exif = {'exif_items': [], 'exif_content': []}  # 'no exif'
         if hasattr(self.image, '_getexif'):
             exifinfo = self.image._getexif()

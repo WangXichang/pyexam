@@ -1,15 +1,17 @@
 # -*- utf-8 -*-
 
 
+# comments to stm
 """
     2018.09.24 -- 2018.11
+    2019.09.03 --
     designed for new High Test grade score model
     also for shandong interval linear transform
 
     stm module description stm模块说明：
 
     [functions] 模块中的函数
-       run(name, df, field_list, ratio, grade_max, grade_diff, input_score_max, input_score_min,
+       run(name, df, field_list, ratio_list, grade_max, grade_diff, input_score_max, input_score_min,
            output_score_decimal=0, approx_mode='near')
           运行各个模型的调用函数 calling model function
           ---
@@ -28,7 +30,7 @@
           field_list: score field to calculate in df
           计算转换分数的字段表
           --
-          ratio: ratio list including percent value for each interval of grade score
+          ratio_list: ratio list including percent value for each interval of grade score
           划分等级的比例表
           --
           grade_max: max value of grade score
@@ -100,7 +102,7 @@
         CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
         CONST_M8_RATIO = [2, 13, 35, 35, 15]
         CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
-    """
+"""
 
 
 import copy
@@ -124,28 +126,35 @@ CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2,
 CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
 CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+
 # ShanDong: piecewise linear transform
 # 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+
 # GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
 CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
 CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+
 # HuNan is same as GuangDong
 CONST_M8_RATIO = [2, 13, 35, 35, 15]
 CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
-def show():
+def about():
     print(__doc__)
 
 
-def test(model='shandong', max_score=100, min_score=0, data_size=1000):
+def test(model='shandong',
+         max_score=100,
+         min_score=0,
+         data_size=1000):
+
     model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
                   'm8', 'guangdong', 'hainan', 'tao']
-    if model not in model_list:
-        print('use correct model: {}'.format(','.join(model_list)))
+    if model.lower() not in model_list:
+        print('correct model name in: [{}]'.format(','.join(model_list)))
         return None
 
     # create data set
@@ -153,7 +162,7 @@ def test(model='shandong', max_score=100, min_score=0, data_size=1000):
     # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
     norm_data = [sts.norm.rvs() for _ in range(data_size)]
     norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
-    norm_data = [int((x+4)*max_score/8) for x in norm_data]
+    norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
     dfscore = pd.DataFrame({'kmx': norm_data})
 
     if model in model_list[2:]:
@@ -187,7 +196,8 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        approx_method='near'
+        approx_method='near',
+        score_order='descending'
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -195,7 +205,7 @@ def run(name='shandong',
     :param df: dataframe, input data, default = None
     :param field_list: score fields list in input dataframe, default = None and set to digit fields in running
     :param ratio_list: ratio list used to create intervals of raw score for each grade
-                        default = None, set to a list by name
+                        default = None, set to a list by the model's name
                         must be set to a list if name is not in module preassigned list
                         must be set for new model
     :param grade_diff: difference value between two neighbor grade score
@@ -211,6 +221,7 @@ def run(name='shandong',
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
     :param approx_method: maxmin, minmax, minnear, maxnear, default = 'near'
+    :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
     # check name
@@ -244,13 +255,12 @@ def run(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                                output_score_points_list=CONST_SHANDONG_SEGMENT,
-                                input_score_max=input_score_max,
-                                input_score_min=input_score_min,
-                                approx_mode=approx_method,
-                                score_order='descending',
-                                decimals=output_score_decimal
-                                )
+                          output_score_points_list=CONST_SHANDONG_SEGMENT,
+                          input_score_max=input_score_max,
+                          input_score_min=input_score_min,
+                          approx_mode=approx_method,
+                          score_order=score_order,
+                          decimals=output_score_decimal)
         pltmodel.run()
         return pltmodel
 
@@ -263,13 +273,12 @@ def run(name='shandong',
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                                output_score_points_list=CONST_M8_SEGMENT,
-                                input_score_max=input_score_max,
-                                input_score_min=input_score_min,
-                                approx_mode=approx_method,
-                                score_order='descending',
-                                decimals=output_score_decimal
-                                )
+                          output_score_points_list=CONST_M8_SEGMENT,
+                          input_score_max=input_score_max,
+                          input_score_min=input_score_min,
+                          approx_mode=approx_method,
+                          score_order=score_order,
+                          decimals=output_score_decimal)
         pltmodel.run()
         return pltmodel
 
@@ -293,11 +302,10 @@ def run(name='shandong',
         m.model_name = name.lower()
         m.set_data(input_data=input_data, field_list=field_list)
         m.set_para(maxscore=input_score_max,
-                         minscore=input_score_min,
-                         grade_ratio_table=ratio_list,
-                         grade_score_table=grade_score,
-                         approx_method=approx_method
-                         )
+                   minscore=input_score_min,
+                   grade_ratio_table=ratio_list,
+                   grade_score_table=grade_score,
+                   approx_method=approx_method)
         m.run()
         return m
 
@@ -980,14 +988,12 @@ class PltScore(ScoreTransformModel):
                     plt.plot([x[j], x[j]], [0, y[j]], '--')
                     plt.plot([0, x[j]], [y[j], y[j]], '--')
                 for j, xx in enumerate(x):
-                    # if cfi == 0:
-                    #     plt.text(xx-3, ou_min-2, '{}'.format(int(xx)))
-                    # else:
                     plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
                     plt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
-            # y = x for signing score shift
-            plt.plot((0, in_max), (0, in_max))
+
+            # darw y = x for showing score shift
+            plt.plot((0, in_max), (0, in_max), 'ro-')
 
         plt.show()
         return
