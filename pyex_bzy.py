@@ -4,6 +4,8 @@ import os
 import numpy as np
 import pandas as pd
 import importlib as imp
+
+from pyex_bzy0702 import closed_filter
 from pyex_tool import pyex_ptt as ptt
 import pyex_bzy_exp
 
@@ -312,16 +314,16 @@ class Finder:
         return # dfmerge
 
     def find_yxinfo(self, yxlist=('',)):
-        yxfilterfun = closed_filter(yxlist)
+        yxfilterfun = select_filter(yxlist, '')
         df = self.yxinfo[self.yxinfo.yxmc.apply(yxfilterfun)]
         print(ptt.make_mpage(df, '/'.join(yxlist)))
 
     def find_zhuanye(self, lowpos=0, highpos=1000000, xxfilterlist=('',), zyfilterlist=('',)):
-        # align = dict() if align is None else align
+        # align = dict() if align is None else
         if self.dflq is None:
             return pd.DataFrame()
-        xxfilterfun = closed_filter(xxfilterlist)
-        zyfilterfun = closed_filter(zyfilterlist)
+        xxfilterfun = select_filter(xxfilterlist, '')
+        zyfilterfun = select_filter(zyfilterlist, '')
         df = self.dflq[self.dflq.YXMC.apply(xxfilterfun) & self.dflq.ZYMC.apply(zyfilterfun) & \
                        (self.dflq.WC >= lowpos) & (self.dflq.WC <= highpos)].\
             groupby(['YXDH', 'ZYDH'])[['WC', 'YXMC', 'ZYMC']].max()
