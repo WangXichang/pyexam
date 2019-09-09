@@ -402,6 +402,32 @@ def plot():
     plt.title('m8(mean={:.2f})'.format(mean_m8))
 
 
+# test dataset
+class Testdata():
+    def __init__(self, mean=60, max=100, min=0, std=18, size=1000000):
+        self.data_mean = mean
+        self.data_max = max
+        self.data_min = min
+        self.data_std = std
+        self.data_size = size
+        self.data_set = None
+
+    def get_data(self):
+        self.data_set = pd.DataFrame({
+            'no': [str(x).zfill(7) for x in range(1, self.data_size+1)],
+            'km1': self.get_score(),
+            'km2': self.get_score(),
+            'km3': self.get_score(),
+        })
+
+    def get_score(self):
+        print('create score...')
+        score_list = sts.norm.rvs(loc=self.data_mean, scale=self.data_std, size=self.data_size)
+        score_list = [(int(x) if x <= 100 else 100) if x >= 0 else 0
+                      for x in score_list]
+        return score_list
+
+
 # Score Transform Model Interface
 # Abstract class
 class ScoreTransformModel(object):
