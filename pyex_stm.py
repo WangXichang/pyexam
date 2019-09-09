@@ -875,6 +875,80 @@ class PltScore(ScoreTransformModel):
             self.result_coeff.update({i: [c, p[0], p[1]]})
         return True
 
+    # new at 2019-09-09
+    def __get_raw_list_from_ratio_list(self,
+                                       field,
+                                       approx_mode='maxmin',
+                                       cum_mode='yes',
+                                       score_order='d',     # from high to low
+                                       score_min=0,
+                                       score_max=100):
+
+        raw_first = score_min \
+            if (score_order == 'a') or (score_order=='ascending') \
+            else score_max
+        raw_list_for_ratio = [raw_first]
+
+        last_ratio = 0
+        for ratio in self.input_score_ratio_cum:
+            next_raw = self.get_seg_from_map_table(map_table=self.map_table,
+                                                   field=field,
+                                                   start_ratio=ratio,
+                                                   this_seg_ratio=ratio - last_ratio,
+                                                   ratio_approx_mode=approx_mode)
+            last_ratio = ratio
+            raw_list_for_ratio.append(next_raw)
+
+        return raw_list_for_ratio
+
+    # new at 2019-09-09
+    def get_seg_from_map_table(self,
+                               map_table,
+                               field,
+                               start_ratio,
+                               this_seg_ratio,
+                               ratio_approx_mode):
+        _mode = ratio_approx_mode.lower().strip()
+        _dest_ratio = start_ratio + this_seg_ratio
+        result_seg = -1
+        result_percent = -1
+
+        last_cum_percent = 0
+        last_seg = -1
+        last_ratio_diff = 100
+        for index, row in map_table.iterrows():
+            cum_percent = row[field+'_percent']
+            if cum_percent < start_ratio:
+                continue
+            print(cum_percent, cum_percent-_dest_ratio, last_ratio_diff)
+            if cum_percent >= _dest_ratio:
+                if _mode == 'near':
+                    # if this is near else last is near
+                    if abs(cum_percent - _dest_ratio) < last_ratio_diff:
+                        result_seg = row['seg']
+                        result_percent = cum_percent
+                    else:
+                        result_seg = last_seg
+                        result_percent = last_cum_percent
+                elif _mode == 'minmax':
+                    if cum_percent == _dest_ratio:
+                        result_seg = row['seg']
+                        result_percent = cum_percent
+                    else:
+                        result_seg = last_seg
+                        result_percent = last_cum_percent
+                elif _mode == 'maxmin':
+                    result_seg = last_seg
+                    result_percent = cum_percent
+                break
+            last_seg = row['seg']
+            last_ratio_diff = abs(cum_percent - _dest_ratio)
+            last_cum_percent = cum_percent
+        if result_seg < 0:
+            result_seg, result_percent = last_seg, last_cum_percent
+        return result_seg, result_percent
+
+
     def __get_raw_score_from_ratio(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
