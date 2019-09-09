@@ -12,7 +12,7 @@
 
     [functions] 模块中的函数
        run(name, df, field_list, ratio_list, grade_max, grade_diff, input_score_max, input_score_min,
-           output_score_decimal=0, approx_mode='near')
+           output_score_decimal=0, ratio_approx_mode='near', ratio_cum_mode='yes')
           运行各个模型的调用函数 calling model function
           ---
           参数描述
@@ -48,8 +48,8 @@
           output_score_decimal: grade score precision, decimal digit number
           输出分数精度，小数位数
           --
-          approx_mode: how to approxmate score points of raw score for each ratio vlaue
-          计算等级时的逼近方式（目前设计的比例值逼近策略有)：
+          ratio_approx_mode: how to approxmate score points of raw score for each ratio vlaue
+          计算等级时的逼近方式（目前设计的比例值逼近策略)：
               'minmax': get score with min value in bigger 小于该比例值的分值中最大的值
               'maxmin': get score with max value in less 大于该比例值的分值中最小的值
               'near':   get score with nearest ratio 最接近该比例值的分值（分值）
@@ -57,6 +57,17 @@
               'maxnear': get score with max value in near 最接近该比例值的分值中最大的值
               注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
               注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
+
+              拟改进为（2019.09.09） ratio_approx_mode：
+              'near':    look up the nearest in all ratios to given-ratio 最接近的比例
+              'minmax':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
+              'maxmin':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
+
+          拟增加比例累加控制(2019.09.09)：
+          ratio_cum_mode:
+              'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
+              'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
+
           ---
           usage:调用方式
           [1] import pyex_stm as stm
@@ -196,7 +207,8 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        approx_method='near',
+        ratio_approx_mode='near',
+        ratio_cum_mode='yes',
         score_order='descending'
         ):
     """
@@ -220,7 +232,8 @@ def run(name='shandong',
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param approx_method: maxmin, minmax, minnear, maxnear, default = 'near'
+    :param ratio_approx_mode: maxmin, minmax, near  default=near
+    :param ratio_cum_mode: yes, no  default=yes
     :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
@@ -258,7 +271,7 @@ def run(name='shandong',
                           output_score_points_list=CONST_SHANDONG_SEGMENT,
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
-                          approx_mode=approx_method,
+                          ratio_approx_mode=ratio_approx_mode,
                           score_order=score_order,
                           decimals=output_score_decimal)
         pltmodel.run()
@@ -276,7 +289,7 @@ def run(name='shandong',
                           output_score_points_list=CONST_M8_SEGMENT,
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
-                          approx_mode=approx_method,
+                          ratio_approx_mode=ratio_approx_mode,
                           score_order=score_order,
                           decimals=output_score_decimal)
         pltmodel.run()
@@ -305,7 +318,7 @@ def run(name='shandong',
                    minscore=input_score_min,
                    grade_ratio_table=ratio_list,
                    grade_score_table=grade_score,
-                   approx_method=approx_method)
+                   ratio_approx_mode=ratio_approx_mode)
         m.run()
         return m
 
@@ -361,7 +374,7 @@ def run(name='shandong',
                          minscore=input_score_min,
                          grade_ratio_table=ratio_list,
                          grade_score_table=grade_score,
-                         approx_method=approx_method
+                         ratio_approx_mode=ratio_approx_mode
                          )
         m.run()
         return m
@@ -400,6 +413,32 @@ def plot():
     plt.bar(range(1, 6), [CONST_M8_RATIO[j] for j in range(len(CONST_M8_RATIO))])
     mean_m8 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M8_RATIO, CONST_M8_SEGMENT)])
     plt.title('m8(mean={:.2f})'.format(mean_m8))
+
+
+# test dataset
+class Testdata():
+    def __init__(self, mean=60, max=100, min=0, std=18, size=1000000):
+        self.data_mean = mean
+        self.data_max = max
+        self.data_min = min
+        self.data_std = std
+        self.data_size = size
+        self.data_set = None
+
+    def get_data(self):
+        self.data_set = pd.DataFrame({
+            'no': [str(x).zfill(7) for x in range(1, self.data_size+1)],
+            'km1': self.get_score(),
+            'km2': self.get_score(),
+            'km3': self.get_score(),
+        })
+
+    def get_score(self):
+        print('create score...')
+        score_list = sts.norm.rvs(loc=self.data_mean, scale=self.data_std, size=self.data_size)
+        score_list = [(int(x) if x <= 100 else 100) if x >= 0 else 0
+                      for x in score_list]
+        return score_list
 
 
 # Score Transform Model Interface
@@ -592,7 +631,7 @@ class PltScore(ScoreTransformModel):
         self.output_data_decimal = 0
 
         # para
-        self.approx_mode = 'minmax'
+        self.ratio_approx_mode = 'minmax'
         self.score_order = 'descending'  # ascending or a / descending or d
         self.use_minscore_as_rawscore_start_endpoint = True
 
@@ -630,7 +669,7 @@ class PltScore(ScoreTransformModel):
                        output_score_points_list=None,
                        input_score_min=None,
                        input_score_max=None,
-                       approx_mode='minmax',
+                       ratio_approx_mode='minmax',
                        score_order='descending',
                        decimals=None):
         """
@@ -638,7 +677,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param approx_mode:  minmax, maxmin, minnear, maxnear
+        :param ratio_approx_mode:  minmax, maxmin, minnear, maxnear
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
@@ -664,7 +703,7 @@ class PltScore(ScoreTransformModel):
         self.input_score_min = input_score_min
         self.input_score_max = input_score_max
 
-        self.approx_mode = approx_mode
+        self.ratio_approx_mode = ratio_approx_mode
         self.score_order = score_order
 
     def check_parameter(self):
@@ -805,8 +844,8 @@ class PltScore(ScoreTransformModel):
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
-            points_list = self.__get_raw_score_from_ratio(field, self.approx_mode)
-            if len(points_list) > 0:  # error found if approx_method name
+            points_list = self.__get_raw_score_from_ratio(field, self.ratio_approx_mode)
+            if len(points_list) > 0:  # error found if ratio_approx_mode name
                 self.result_input_data_points = points_list
             else:
                 return False
@@ -1354,7 +1393,7 @@ class GradeScore(ScoreTransformModel):
     def __init__(self):
         super(GradeScore, self).__init__('grade')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        self.approx_method_set = 'minmax, maxmin, nearmax, nearmin, near'
+        self.ratio_approx_mode_set = 'minmax, maxmin, nearmax, nearmin, near'
 
         self.input_score_max = 150
         self.input_score_min = 0
@@ -1363,7 +1402,7 @@ class GradeScore(ScoreTransformModel):
         self.grade_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
         self.grade_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
         self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
-        self.approx_method = 'near'
+        self.ratio_approx_mode = 'near'
 
         self.map_table = None
         self.output_data = None
@@ -1385,7 +1424,7 @@ class GradeScore(ScoreTransformModel):
                        minscore=None,
                        grade_ratio_table=None,
                        grade_score_table=None,
-                       approx_method=None):
+                       ratio_approx_mode=None):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
                 if maxscore >= max([max(self.input_data[f]) for f in self.field_list]):
@@ -1409,8 +1448,8 @@ class GradeScore(ScoreTransformModel):
         self.grade_no = [x+1 for x in range(len(self.ratio_grade_table))]
         self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
         self.ratio_grade_table = [1] + self.ratio_grade_table
-        if approx_method in self.approx_method_set:
-            self.approx_method = approx_method
+        if ratio_approx_mode in self.ratio_approx_mode_set:
+            self.ratio_approx_mode = ratio_approx_mode
 
     def run(self):
         if len(self.field_list) == 0:
@@ -1490,7 +1529,7 @@ class GradeScore(ScoreTransformModel):
         print('percent:{} not found in {}'.format(p, self.ratio_grade_table))
         return self.grade_no[-1]
 
-    # calculate grade score by approx_method
+    # calculate grade score by ratio_approx_mode
     def get_grade_map_by_approx(self):
         ratio_table = [1-x for x in self.ratio_grade_table[1:]]
         for sf in self.field_list:
@@ -1514,13 +1553,13 @@ class GradeScore(ScoreTransformModel):
                     d1 = abs(curr_grade_ratio - last_p)
                     d2 = abs(curr_grade_ratio - curr_p)
                     if d1 < d2:
-                        if self.approx_method in 'minmax, near':
+                        if self.ratio_approx_mode in 'minmax, near':
                             curr_to_new_grade = True
                     elif d1 == d2:
-                        if self.approx_method in 'minmax, nearmin, minnear':
+                        if self.ratio_approx_mode in 'minmax, nearmin, minnear':
                             curr_to_new_grade = True
                     else:  # d2 < d1
-                        if self.approx_method in 'minmax':
+                        if self.ratio_approx_mode in 'minmax':
                             curr_to_new_grade = True
                     if curr_to_new_grade:
                         curr_grade_no += 1
@@ -1639,7 +1678,7 @@ class GradeScoreTao(ScoreTransformModel):
         self.run_create_output_data()
 
     def run_create_grade_dist_list(self):
-        # approx_method = 'near'
+        # ratio_approx_mode = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.input_score_max,
                            segmin=self.input_score_min,
