@@ -890,14 +890,20 @@ class PltScore(ScoreTransformModel):
         raw_list_for_ratio = [raw_first]
 
         last_ratio = 0
+        st_ratio = 0
         for ratio in self.input_score_ratio_cum:
-            next_raw = self.get_seg_from_map_table(map_table=self.map_table,
+            th_seg_ratio = ratio - last_ratio
+            p_result = self.get_seg_from_map_table(map_table=self.map_table,
                                                    field=field,
-                                                   start_ratio=ratio,
-                                                   this_seg_ratio=ratio - last_ratio,
+                                                   start_ratio=st_ratio,
+                                                   this_seg_ratio=th_seg_ratio,
                                                    ratio_approx_mode=approx_mode)
             last_ratio = ratio
-            raw_list_for_ratio.append(next_raw)
+            raw_list_for_ratio.append(p_result[0])
+            if cum_mode == 'yes':
+                st_ratio = p_result[1]
+            else:
+                th_seg_ratio = ratio
 
         return raw_list_for_ratio
 
