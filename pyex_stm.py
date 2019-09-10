@@ -921,6 +921,7 @@ class PltScore(ScoreTransformModel):
             last_ratio = ratio
             last_percent = p_result[1]
             result_raw_list_for_ratio.append(p_result[0])
+            print(last_percent)
 
         return result_raw_list_for_ratio
 
