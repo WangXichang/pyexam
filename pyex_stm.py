@@ -855,12 +855,14 @@ class PltScore(ScoreTransformModel):
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
             # points_list = self.__get_raw_score_from_ratio(field, self.ratio_approx_mode)
-            point_list = self.__get_raw_list_from_ratio_list(field=field,
-                                                             approx_mode=self.ratio_approx_mode,
-                                                             cum_mode=self.ratio_cum_mode,
-                                                             score_order=self.score_order,
-                                                             score_max=self.input_score_max,
-                                                             score_min=self.input_score_min)
+            points_list = self.get_raw_list_from_ratio_list(field=field,
+                                                            approx_mode=self.ratio_approx_mode,
+                                                            cum_mode=self.ratio_cum_mode,
+                                                            score_order=self.score_order,
+                                                            score_max=self.input_score_max,
+                                                            score_min=self.input_score_min,
+                                                            raw_score_ratio_cum_list=self.input_score_ratio_cum,
+                                                            map_table=self.map_table)
             if len(points_list) > 0:  # error found if ratio_approx_mode name
                 self.result_input_data_points = points_list
             else:
@@ -892,13 +894,15 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    def __get_raw_list_from_ratio_list(self,
-                                       field,
-                                       approx_mode='maxmin',
-                                       cum_mode='yes',
-                                       score_order='d',     # from high to low
-                                       score_min=0,
-                                       score_max=100):
+    def get_raw_list_from_ratio_list(self,
+                                     field,
+                                     approx_mode='maxmin',
+                                     cum_mode='yes',
+                                     score_order='d',  # from high to low
+                                     score_min=0,
+                                     score_max=100,
+                                     raw_score_ratio_cum_list=None,
+                                     map_table=None):
 
         raw_first = score_min \
             if (score_order == 'a') or (score_order=='ascending') \
@@ -907,9 +911,9 @@ class PltScore(ScoreTransformModel):
 
         last_ratio = 0
         last_percent=0
-        for ratio in self.input_score_ratio_cum:
+        for ratio in raw_score_ratio_cum_list:
             dest_percent = ratio if cum_mode=='no' else ratio-last_ratio+last_percent
-            p_result = self.get_seg_from_map_table(map_table=self.map_table,
+            p_result = self.get_seg_from_map_table(map_table=map_table,
                                                    field=field,
                                                    start_ratio=last_ratio,
                                                    this_seg_ratio=dest_percent,
@@ -939,7 +943,7 @@ class PltScore(ScoreTransformModel):
             cum_percent = row[field+'_percent']
             if cum_percent < start_ratio:
                 continue
-            print(cum_percent, cum_percent-_dest_ratio, last_ratio_diff)
+            # print(cum_percent, cum_percent-_dest_ratio, last_ratio_diff)
             if cum_percent >= _dest_ratio:
                 if _mode == 'near':
                     # if this is near else last is near
@@ -957,7 +961,7 @@ class PltScore(ScoreTransformModel):
                         result_seg = last_seg
                         result_percent = last_cum_percent
                 elif _mode == 'maxmin':
-                    result_seg = last_seg
+                    result_seg = row['seg']
                     result_percent = cum_percent
                 break
             last_seg = row['seg']
