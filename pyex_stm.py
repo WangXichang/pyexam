@@ -207,7 +207,7 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        ratio_approx_mode='near',
+        ratio_approx_mode='maxmin',
         ratio_cum_mode='yes',
         score_order='descending'
         ):
@@ -232,8 +232,8 @@ def run(name='shandong',
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param ratio_approx_mode: maxmin, minmax, near  default=near
-    :param ratio_cum_mode: yes, no  default=yes
+    :param ratio_approx_mode: maxmin, minmax, near  default=maxmin  # for shandong new project
+    :param ratio_cum_mode: yes, no  default=yes                     # for shandong new project
     :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
@@ -513,7 +513,11 @@ class ScoreTransformModel(object):
         self.input_data = pd.read_csv(filename)
 
     def save_output_data_to_csv(self, filename):
-        self.output_data.to_csv(filename)
+        self.output_data.to_csv(filename, index=False)
+
+    def save_report_to_file(self, filename):
+        with open(filename, mode='w', encoding='utf-8') as f:
+            f.write(self.output_report_doc)
 
     def report(self):
         raise NotImplementedError()
@@ -644,6 +648,7 @@ class PltScore(ScoreTransformModel):
         self.seg_model = None
         self.map_table = pd.DataFrame()
         self.result_input_data_points = []
+        self.result_ratio_cum_dict = {}
         self.result_coeff = {}
         self.result_formula = ''
         self.result_dict = {}
@@ -759,17 +764,19 @@ class PltScore(ScoreTransformModel):
         self.map_table = seg.output_data
 
         # transform score on each field
+        self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
         self.result_dict = {}
-        result_dataframe = self.input_data
-        result_report_save = ''
+        self.output_data = self.input_data.copy(deep=True)
         for i, fs in enumerate(self.field_list):
-            print(' --start transform score field: <<{}>>'.format(fs))
+            print('start transform score field: [{}] ...'.format(fs))
+
+            # filter data from input_data
             # create output_data by filter from df
-            _filter = '(df.{0}>={1}) & (df.{2}<={3})'.\
-                      format(fs, self.input_score_min, fs, self.input_score_max)
-            print('   use filter: [{}]'.format(_filter))
-            df = self.input_data
-            self.output_data = df[eval(_filter)][[fs]]
+            # _filter = '(df.{0}>={1}) & (df.{2}<={3})'.\
+            #           format(fs, self.input_score_min, fs, self.input_score_max)
+            # print('   use filter: [{}]'.format(_filter))
+            # df = self.input_data
+            # self.output_data = df[eval(_filter)][[fs]]
 
             # get formula
             if not self.__get_formula(fs):
@@ -778,17 +785,18 @@ class PltScore(ScoreTransformModel):
 
             # transform score
             print('   begin calculating ...')
-            df2 = self.output_data
-            df2.loc[:, (fs + '_plt')] = df2[fs].apply(self.__get_plt_score)
-            print('   merge score field: {}'.format(fs+'_plt'))
-            result_dataframe = result_dataframe.merge(self.output_data[[fs+'_plt']],
-                                                      how='left', right_index=True, left_index=True)
-            result_dataframe = result_dataframe.fillna(-1)
-            if self.output_data_decimal == 0:
-                result_dataframe = result_dataframe.astype({fs+'_plt': int})
-            self.__get_report_doc(fs)
+            # df2 = self.output_data
+            self.output_data.loc[:, (fs + '_plt')] = self.output_data[fs].apply(self.__get_plt_score)
+            # print('   merge score field: {}'.format(fs+'_plt'))
+            # result_dataframe = result_dataframe.merge(self.output_data[[fs+'_plt']],
+            #                                           how='left', right_index=True, left_index=True)
+            # result_dataframe = result_dataframe.fillna(-1)
+            # if self.output_data_decimal == 0:
+            #     result_dataframe = result_dataframe.astype({fs+'_plt': int})
+
+            self.output_report_doc += self.__get_report_doc(fs)
             print('   create report ...')
-            result_report_save += self.output_report_doc
+            # result_report_save += self.output_report_doc
 
             # save result
             self.result_dict[fs] = {
@@ -796,8 +804,8 @@ class PltScore(ScoreTransformModel):
                 'coeff': copy.deepcopy(self.result_coeff),
                 'formulas': copy.deepcopy(self.result_formula)}
 
-        self.output_report_doc = result_report_save
-        self.output_data = result_dataframe
+        # self.output_report_doc = result_report_save
+        # self.output_data = result_dataframe
 
         # seg fs_plt in map_table
         fs_list = ['seg']
@@ -835,7 +843,7 @@ class PltScore(ScoreTransformModel):
         self.output_data.loc[:, rawscore_field + '_plt'] = \
             self.input_data[rawscore_field].apply(self.__get_plt_score)
         # create report
-        self.__get_report_doc()
+        self.output_report_doc = self.__get_report_doc()
 
     # from current formula in result_coeff
     def __get_plt_score(self, x):
@@ -904,36 +912,40 @@ class PltScore(ScoreTransformModel):
                                      raw_score_ratio_cum_list=None,
                                      map_table=None):
 
-        raw_first = score_min \
+        raw_score_first = score_min \
             if (score_order == 'a') or (score_order=='ascending') \
             else score_max
-        result_raw_list_for_ratio = [raw_first]
+        result_raw_score_for_ratio = [raw_score_first]
+        result_ratio_cumsum = []
 
         last_ratio = 0
         last_percent=0
         for ratio in raw_score_ratio_cum_list:
-            dest_percent = ratio if cum_mode=='no' else ratio-last_ratio+last_percent
+            dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
+            result_ratio_cumsum.append('{:.4f}'.format(dest_percent))
             p_result = self.get_seg_from_map_table(map_table=map_table,
                                                    field=field,
                                                    start_ratio=last_ratio,
-                                                   this_seg_ratio=dest_percent,
+                                                   dest_ratio=dest_percent,
                                                    ratio_approx_mode=approx_mode)
+            # print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
+            #     ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
             last_ratio = ratio
             last_percent = p_result[1]
-            result_raw_list_for_ratio.append(p_result[0])
-            print(last_percent)
+            result_raw_score_for_ratio.append(p_result[0])
+        self.result_ratio_cum_dict[field]= result_ratio_cumsum
 
-        return result_raw_list_for_ratio
+        return result_raw_score_for_ratio
 
     # new at 2019-09-09
     def get_seg_from_map_table(self,
                                map_table,
                                field,
                                start_ratio,
-                               this_seg_ratio,
+                               dest_ratio,
                                ratio_approx_mode):
         _mode = ratio_approx_mode.lower().strip()
-        _dest_ratio = start_ratio + this_seg_ratio
+        _dest_ratio = dest_ratio
         result_seg = -1
         result_percent = -1
 
@@ -1048,24 +1060,30 @@ class PltScore(ScoreTransformModel):
             self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(f[0], 6), f[1][1], f[2][1])
                                    for f in self.result_coeff.values()]
 
-        self.output_report_doc = '---<< score field: [{}] >>---\n'.format(field)
+        field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
+        _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
-        self.output_report_doc += 'input score  mean, std: {}, {}\n'.\
+        _output_report_doc += 'input score  mean, std: {}, {}\n'.\
             format(round45i(self.input_data[field].mean(), 2),
                    round45i(self.input_data[field].std(), 2))
-        self.output_report_doc += 'input score percentage: {}\n'.\
+        _output_report_doc += 'input score percentage: {}\n'.\
             format([round45i(plist[j]-plist[j-1], 2) if j > 0 else plist[0]
                     for j in range(len(plist))])
-        self.output_report_doc += 'input score  endpoints: {}\n'.\
+        _output_report_doc += 'input cumsum percentage: {}\n'.\
+            format([x for x in self.input_score_ratio_cum])
+        _output_report_doc += 'input  added percentage: {}\n'.\
+            format(self.result_ratio_cum_dict[field])
+        _output_report_doc += 'input score  endpoints: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
-        self.output_report_doc += 'output score endpoints: {}\n'.\
+        _output_report_doc += 'output score endpoints: {}\n'.\
             format([x[2] for x in self.result_coeff.values()])
         for i, fs in enumerate(self.result_formula):
             if i == 0:
-                self.output_report_doc += '    transform formulas: {}\n'.format(fs)
+                _output_report_doc += '    transform formulas: {}\n'.format(fs)
             else:
                 self.output_report_doc += '                        {}\n'.format(fs)
-        self.output_report_doc += '---'*30 + '\n\n'
+        _output_report_doc += '---'*40 + '\n'
+        return _output_report_doc
 
     def get_plt_score_from_formula(self, field, x):
         if field not in self.field_list:
