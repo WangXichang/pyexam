@@ -123,11 +123,9 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
-# used in class Zscore
 import scipy.stats as sts
 import seaborn as sbn
-
+from pyex_tool import pyex_ptt as ptt
 
 warnings.filterwarnings('ignore')
 
@@ -472,6 +470,7 @@ class ScoreTransformModel(object):
         self.output_data = pd.DataFrame()
         self.output_data_decimal = 0
         self.output_report_doc = ''
+        self.map_table = pd.DataFrame()
 
         self.sys_pricision_decimals = 6
 
@@ -518,6 +517,10 @@ class ScoreTransformModel(object):
     def save_report_to_file(self, filename):
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.output_report_doc)
+
+    def save_map_table_to_file(self,filename):
+        with open(filename, mode='w', encoding='utf-8') as f:
+            f.write(ptt.make_mpage(self.map_table, page_line_num=50))
 
     def report(self):
         raise NotImplementedError()
