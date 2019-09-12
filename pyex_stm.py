@@ -1084,7 +1084,7 @@ class PltScore(ScoreTransformModel):
             if i == 0:
                 _output_report_doc += '    transform formulas: {}\n'.format(fs)
             else:
-                self.output_report_doc += '                        {}\n'.format(fs)
+                _output_report_doc += '                        {}\n'.format(fs)
         _output_report_doc += '---'*40 + '\n'
         return _output_report_doc
 
