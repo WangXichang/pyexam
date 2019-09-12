@@ -1057,10 +1057,10 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
-            self.result_formula = ['{0:0.6f}*(x-{1:2d})+{2:2d}'.format(round45i(f[0], 6), f[1][0], f[2][0])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0], 6), f[1][0], f[2][0])
                                    for f in self.result_coeff.values()]
         else:
-            self.result_formula = ['{0:0.6f}*(x-{1:2d})+{2:2d}'.format(round45i(f[0], 6), f[1][1], f[2][1])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0], 6), f[1][1], f[2][1])
                                    for f in self.result_coeff.values()]
 
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
@@ -1082,7 +1082,7 @@ class PltScore(ScoreTransformModel):
             format([x[2] for x in self.result_coeff.values()])
         for i, fs in enumerate(self.result_formula):
             if i == 0:
-                _output_report_doc += '    transform formulas: {}\n'.format(fs)
+                _output_report_doc += 'line transform formula: {}\n'.format(fs)
             else:
                 _output_report_doc += '                        {}\n'.format(fs)
         _output_report_doc += '---'*40 + '\n'
