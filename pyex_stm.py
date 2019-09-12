@@ -1057,10 +1057,10 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
-            self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(f[0], 6), f[1][0], f[2][0])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d})+{2:2d}'.format(round45i(f[0], 6), f[1][0], f[2][0])
                                    for f in self.result_coeff.values()]
         else:
-            self.result_formula = ['{0}*(x-{1})+{2}'.format(round45i(f[0], 6), f[1][1], f[2][1])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d})+{2:2d}'.format(round45i(f[0], 6), f[1][1], f[2][1])
                                    for f in self.result_coeff.values()]
 
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
@@ -1070,11 +1070,11 @@ class PltScore(ScoreTransformModel):
             format(round45i(self.input_data[field].mean(), 2),
                    round45i(self.input_data[field].std(), 2))
         _output_report_doc += 'input score percentage: {}\n'.\
-            format([round45i(plist[j]-plist[j-1], 2) if j > 0 else plist[0]
+            format([format(round45i(plist[j]-plist[j-1], 2) if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
-        _output_report_doc += 'input cumsum percentage: {}\n'.\
-            format([x for x in self.input_score_ratio_cum])
-        _output_report_doc += 'input  added percentage: {}\n'.\
+        _output_report_doc += 'input cumu  percentage: {}\n'.\
+            format([format(x, '0.4f') for x in self.input_score_ratio_cum])
+        _output_report_doc += 'input added percentage: {}\n'.\
             format(self.result_ratio_cum_dict[field])
         _output_report_doc += 'input score  endpoints: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
