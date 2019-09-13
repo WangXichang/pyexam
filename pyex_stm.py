@@ -930,8 +930,8 @@ class PltScore(ScoreTransformModel):
                                                    start_ratio=last_ratio,
                                                    dest_ratio=dest_percent,
                                                    ratio_approx_mode=approx_mode)
-            print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
-                ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
+            # print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
+            #     ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
             last_ratio = ratio
             last_percent = p_result[1]
             result_raw_score_for_ratio.append(p_result[0])
