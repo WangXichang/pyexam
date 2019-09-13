@@ -925,17 +925,17 @@ class PltScore(ScoreTransformModel):
         last_percent=0
         for ratio in raw_score_ratio_cum_list:
             dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
-            result_ratio_cumsum.append('{:.4f}'.format(dest_percent))
             p_result = self.get_seg_from_map_table(map_table=map_table,
                                                    field=field,
                                                    start_ratio=last_ratio,
                                                    dest_ratio=dest_percent,
                                                    ratio_approx_mode=approx_mode)
-            # print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
-            #     ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
+            print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
+                ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
             last_ratio = ratio
             last_percent = p_result[1]
             result_raw_score_for_ratio.append(p_result[0])
+            result_ratio_cumsum.append('{:.4f}'.format(p_result[1]))
         self.result_ratio_cum_dict[field]= result_ratio_cumsum
 
         return result_raw_score_for_ratio
