@@ -851,13 +851,16 @@ class PltScore(ScoreTransformModel):
     # from current formula in result_coeff
     def __get_plt_score(self, x):
         for f in self.result_coeff.values():
-            # print(f)
-            if self.score_order in 'ascending, a':
-                if f[1][0] <= x <= f[1][1]:
-                    return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
-            else:
-                if f[1][0] >= x >= f[1][1]:
-                    return round45i(f[0]*(x - f[1][1]) + f[2][1], self.output_data_decimal)
+            # a = (f[2][1]-f[2][0])/(f[1][1]-f[1][0])                     # (y2 - y1) / (x2 - x1)
+            # b = (f[2][0]*f[1][1]-f[2][1]*f[1][0])/(f[1][1]-f[1][0])     # (y1x2 - y2x1) / (x2 - x1)
+            if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
+                return f[0][0]*x + f[0][1]
+            # if self.score_order in ['ascending', 'a']:
+            #     if f[1][0] <= x <= f[1][1]:
+            #         return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
+            # else:
+            #     if f[1][0] >= x >= f[1][1]:
+            #         return round45i(f[0]*(x - f[1][1]) + f[2][1], self.output_data_decimal)
         return -1
 
     def __get_formula(self, field):
@@ -900,8 +903,13 @@ class PltScore(ScoreTransformModel):
         yp = self.output_score_points
         for i, p in enumerate(zip(xp, yp)):
             v = p[0][1] - p[0][0]
-            c = abs((p[1][1] - p[1][0]) / (1 if v == 0 else v))
-            self.result_coeff.update({i: [c, p[0], p[1]]})
+            if v == 0:
+                print('denominator is zero in formula {}'.format(i))
+                raise ValueError
+            a = (p[1][1]-p[1][0])/v                     # (y2 - y1) / (x2 - x1)
+            b = (p[1][0]*p[0][1]-p[1][1]*p[0][0])/v     # (y1x2 - y2x1) / (x2 - x1)
+            # c = (p[1][1] - p[1][0]) / (1 if v == 0 else v)
+            self.result_coeff.update({i: [(a, b), p[0], p[1]]})
         return True
 
     # new at 2019-09-09
@@ -1057,32 +1065,34 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0], 6), f[1][0], f[2][0])
-                                   for f in self.result_coeff.values()]
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0][0], 6), f[1][0], f[2][0])
+                                   for f in self.result_coeff.values()
+                                  ]
         else:
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0], 6), f[1][1], f[2][1])
-                                   for f in self.result_coeff.values()]
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0][0], 6), f[1][1], f[2][1])
+                                   for i, f in enumerate(self.result_coeff.values())
+                                  ]
 
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
         _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
-        _output_report_doc += 'input score  mean, std: {}, {}\n'.\
+        _output_report_doc += 'input score  mean, std:  {}, {}\n'.\
             format(round45i(self.input_data[field].mean(), 2),
                    round45i(self.input_data[field].std(), 2))
-        _output_report_doc += 'input score percentage: {}\n'.\
+        _output_report_doc += '  input seg percentage: {}\n'.\
             format([format(round45i(plist[j]-plist[j-1], 2) if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
-        _output_report_doc += 'input cumu  percentage: {}\n'.\
+        _output_report_doc += '  input sum percentage: {}\n'.\
             format([format(x, '0.4f') for x in self.input_score_ratio_cum])
-        _output_report_doc += 'input added percentage: {}\n'.\
+        _output_report_doc += '      found percentage: {}\n'.\
             format(self.result_ratio_cum_dict[field])
-        _output_report_doc += 'input score  endpoints: {}\n'.\
+        _output_report_doc += '      found seg points: {}\n'.\
             format([x[1] for x in self.result_coeff.values()])
-        _output_report_doc += 'output score endpoints: {}\n'.\
+        _output_report_doc += '     output seg points: {}\n'.\
             format([x[2] for x in self.result_coeff.values()])
         for i, fs in enumerate(self.result_formula):
             if i == 0:
-                _output_report_doc += 'line transform formula: {}\n'.format(fs)
+                _output_report_doc += '     transform formula: {}\n'.format(fs)
             else:
                 _output_report_doc += '                        {}\n'.format(fs)
         _output_report_doc += '---'*40 + '\n'
@@ -1093,14 +1103,17 @@ class PltScore(ScoreTransformModel):
             print('invalid field name {} not in {}'.format(field, self.field_list))
         coeff = self.result_dict[field]['coeff']
         for cf in coeff.values():
-            if self.score_order in 'ascending, a':
-                if cf[1][0] <= x <= cf[1][1]:
-                    return round45i(cf[0] * (x - cf[1][0]) + cf[2][0],
-                                    self.output_data_decimal)
-            else:
-                if cf[1][0] >= x >= cf[1][1]:
-                    return round45i(cf[0] * (x - cf[1][1]) + cf[2][1],
-                                    self.output_data_decimal)
+            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+                return cf[0][0] * x + cf[0][1]
+            # if self.score_order in 'ascending, a':
+            #     if cf[1][0] <= x <= cf[1][1]:
+            #         return cf[0][0]*x + cf[0][1]
+            #         # return round45i(cf[0] * (x - cf[1][0]) + cf[2][0],
+            #         #                 self.output_data_decimal)
+            # else:
+            #     if cf[1][0] >= x >= cf[1][1]:
+            #         # return round45i(cf[0] * (x - cf[1][1]) + cf[2][1],
+            #         #                 self.output_data_decimal)
         return -1
 
     def report(self):
