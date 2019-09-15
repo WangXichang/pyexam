@@ -474,7 +474,7 @@ class ScoreTransformModel(object):
         self.output_report_doc = ''
         self.map_table = pd.DataFrame()
 
-        self.sys_pricision_decimals = 6
+        self.sys_pricision_decimals = 8
 
     def set_data(self, input_data=None, field_list=None):
         raise NotImplementedError()
@@ -778,54 +778,38 @@ class PltScore(ScoreTransformModel):
         # transform score on each field
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
         self.result_dict = {}
-        self.output_data = self.input_data.copy(deep=True)
+        self.output_data = self.input_data.copy()   # (deep=True)
         for i, fs in enumerate(self.field_list):
             print('start transform score field: [{}] ...'.format(fs))
-
-            # filter data from input_data
-            # create output_data by filter from df
-            # _filter = '(df.{0}>={1}) & (df.{2}<={3})'.\
-            #           format(fs, self.input_score_min, fs, self.input_score_max)
-            # print('   use filter: [{}]'.format(_filter))
-            # df = self.input_data
-            # self.output_data = df[eval(_filter)][[fs]]
 
             # get formula
             if not self.__get_formula(fs):
                 print('fail to get formula !')
                 return
 
-            # transform score
-            print('   begin calculating ...')
-            self.output_data.loc[:, (fs + '_plt')] = self.output_data[fs].apply(self.__get_plt_score_at_field)
-
-            self.output_report_doc += self.__get_report_doc(fs)
-            print('   create report ...')
-
-            # save result
+            # save result_formula, seg
             self.result_dict[fs] = {
                 'input_score_points': copy.deepcopy(self.result_input_data_points),
                 'coeff': copy.deepcopy(self.result_formula_coeff),
                 'formulas': copy.deepcopy(self.result_formula_text_list)}
 
+            # transform score
+            print('   begin calculating ...')
+            self.output_data.loc[:, (fs + '_plt')] = \
+                self.output_data[fs].apply(
+                    lambda x: self.get_plt_score_from_formula(fs, x))
+
+            self.output_report_doc += self.__get_report_doc(fs)
+            print('   create report ...')
+
         # seg fs_plt in map_table
-        fs_list = ['seg']
-        for ffs in self.field_list:
-            fs_list += [ffs+'_count']
-            fs_list += [ffs+'_percent']
-            fs_list += [ffs+'_plt']
-        df = self.map_table
-        for fs in fs_list:
-            # format percent to fixed precision for print
-            if 'percent' in fs:
-                df[fs] = df[fs].apply(lambda x: round(x, self.sys_pricision_decimals))
-            # get plt score in map_table
-            if '_plt' in fs:
-                fs_name = fs[0:fs.index('_')]
-                df.loc[:, fs] = df['seg'].apply(
-                    lambda x: self.get_plt_score_from_formula(fs_name, x))
-                if self.output_data_decimal == 0:
-                    df[fs] = df[fs].astype('int')
+        df_map = self.map_table
+        for fs in self.field_list:
+            fs_name = fs + '_plt'
+            df_map.loc[:, fs_name] = df_map['seg'].apply(
+                lambda x: self.get_plt_score_from_formula(fs, x))
+            if self.output_data_decimal == 0:
+                df_map[fs_name] = df_map[fs_name].astype('int')
 
         print('used time:', time.time() - stime)
         print('-'*50)
@@ -844,7 +828,7 @@ class PltScore(ScoreTransformModel):
         if not isinstance(self.output_data, pd.DataFrame):
             self.output_data = self.input_data
         self.output_data.loc[:, rawscore_field + '_plt'] = \
-            self.input_data[rawscore_field].apply(self.__get_plt_score_at_field)
+            self.input_data[rawscore_field].apply(self.__get_plt_score_from_formula_at_field)
         # create report
         self.output_report_doc = self.__get_report_doc(rawscore_field)
 
@@ -855,7 +839,7 @@ class PltScore(ScoreTransformModel):
         return -1
 
     # from current formula in result_coeff
-    def __get_plt_score_at_field(self, x):
+    def __get_plt_score_from_formula_at_field(self, x):
         for f in self.result_formula_coeff.values():
             # a = f[0][0]      # (y2 - y1) / (x2 - x1)
             # b = f[0][1])     # (y1x2 - y2x1) / (x2 - x1)
