@@ -122,6 +122,8 @@ import os
 import warnings
 import numpy as np
 import pandas as pd
+import fractions as fr
+import decimal as dc
 import matplotlib.pyplot as plt
 import scipy.stats as sts
 import seaborn as sbn
@@ -757,14 +759,21 @@ class PltScore(ScoreTransformModel):
         seg.set_data(input_data=self.input_data,
                      field_list=self.field_list)
         seg.set_para(segmax=self.input_score_max,
-                           segmin=self.input_score_min,
-                           segsort='a' if self.score_order in 'ascending, a' else 'd',
-                           segstep=1,
-                           display=False,
-                           usealldata=False)
+                     segmin=self.input_score_min,
+                     segsort='a' if self.score_order in ['ascending', 'a'] else 'd',
+                     segstep=1,
+                     display=False,
+                     usealldata=False)
         seg.run()
         self.seg_model = seg
-        self.map_table = seg.output_data
+        self.map_table = seg.output_data.copy(deep=True)
+        for f in self.field_list:
+            max_sum = max(self.map_table[f+'_sum'])
+            self.map_table[f+'_fr'] = self.map_table[f+'_sum'].apply(
+                lambda x: fr.Fraction(x, max_sum))
+            self.map_table.astype({f+'_fr': fr.Fraction})
+            # strange error!!: some seg percent to zero
+            self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
 
         # transform score on each field
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
@@ -783,32 +792,21 @@ class PltScore(ScoreTransformModel):
 
             # get formula
             if not self.__get_formula(fs):
-                print('fail to initializing !')
+                print('fail to get formula !')
                 return
 
             # transform score
             print('   begin calculating ...')
-            # df2 = self.output_data
             self.output_data.loc[:, (fs + '_plt')] = self.output_data[fs].apply(self.__get_plt_score)
-            # print('   merge score field: {}'.format(fs+'_plt'))
-            # result_dataframe = result_dataframe.merge(self.output_data[[fs+'_plt']],
-            #                                           how='left', right_index=True, left_index=True)
-            # result_dataframe = result_dataframe.fillna(-1)
-            # if self.output_data_decimal == 0:
-            #     result_dataframe = result_dataframe.astype({fs+'_plt': int})
 
             self.output_report_doc += self.__get_report_doc(fs)
             print('   create report ...')
-            # result_report_save += self.output_report_doc
 
             # save result
             self.result_dict[fs] = {
                 'input_score_points': copy.deepcopy(self.result_input_data_points),
                 'coeff': copy.deepcopy(self.result_coeff),
                 'formulas': copy.deepcopy(self.result_formula)}
-
-        # self.output_report_doc = result_report_save
-        # self.output_data = result_dataframe
 
         # seg fs_plt in map_table
         fs_list = ['seg']
@@ -826,6 +824,8 @@ class PltScore(ScoreTransformModel):
                 fs_name = fs[0:fs.index('_')]
                 df.loc[:, fs] = df['seg'].apply(
                     lambda x: self.get_plt_score_from_formula(fs_name, x))
+                if self.output_data_decimal == 0:
+                    df[fs] = df[fs].astype('int')
 
         print('used time:', time.time() - stime)
         print('-'*50)
@@ -851,16 +851,10 @@ class PltScore(ScoreTransformModel):
     # from current formula in result_coeff
     def __get_plt_score(self, x):
         for f in self.result_coeff.values():
-            # a = (f[2][1]-f[2][0])/(f[1][1]-f[1][0])                     # (y2 - y1) / (x2 - x1)
-            # b = (f[2][0]*f[1][1]-f[2][1]*f[1][0])/(f[1][1]-f[1][0])     # (y1x2 - y2x1) / (x2 - x1)
+            # a = f[0][0]      # (y2 - y1) / (x2 - x1)
+            # b = f[0][1])     # (y1x2 - y2x1) / (x2 - x1)
             if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
-                return f[0][0]*x + f[0][1]
-            # if self.score_order in ['ascending', 'a']:
-            #     if f[1][0] <= x <= f[1][1]:
-            #         return round45i(f[0]*(x - f[1][0]) + f[2][0], self.output_data_decimal)
-            # else:
-            #     if f[1][0] >= x >= f[1][1]:
-            #         return round45i(f[0]*(x - f[1][1]) + f[2][1], self.output_data_decimal)
+                return round45r(f[0][0]*x + f[0][1])
         return -1
 
     def __get_formula(self, field):
@@ -869,15 +863,15 @@ class PltScore(ScoreTransformModel):
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
             # points_list = self.__get_raw_score_from_ratio(field, self.ratio_approx_mode)
-            points_list = self.get_raw_list_from_ratio_list(field=field,
-                                                            approx_mode=self.ratio_approx_mode,
-                                                            cum_mode=self.ratio_cum_mode,
-                                                            score_order=self.score_order,
-                                                            score_max=self.input_score_max,
-                                                            score_min=self.input_score_min,
-                                                            raw_score_ratio_cum_list=self.input_score_ratio_cum,
-                                                            map_table=self.map_table)
-            if len(points_list) > 0:  # error found if ratio_approx_mode name
+            points_list = self.__get_formula_raw_seg_list(field=field,
+                                                          approx_mode=self.ratio_approx_mode,
+                                                          cum_mode=self.ratio_cum_mode,
+                                                          score_order=self.score_order,
+                                                          score_max=self.input_score_max,
+                                                          score_min=self.input_score_min,
+                                                          raw_score_ratio_cum_list=self.input_score_ratio_cum,
+                                                          map_table=self.map_table)
+            if len(points_list) > 0:
                 self.result_input_data_points = points_list
             else:
                 return False
@@ -885,13 +879,14 @@ class PltScore(ScoreTransformModel):
             print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
             print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
             return False
+
         # step 2
         # calculate Coefficients
-        if not self.__get_formula_para():
+        if not self.__get_formula_coeff():
             return False
         return True
 
-    def __get_formula_para(self):
+    def __get_formula_coeff(self):
         # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
         # coefficient = (y2-y1)/(x2 -x1)
 
@@ -905,7 +900,9 @@ class PltScore(ScoreTransformModel):
             v = p[0][1] - p[0][0]
             if v == 0:
                 print('denominator is zero in formula {}'.format(i))
-                raise ValueError
+                print('seg:{}'.format(p))
+                v=1
+                # raise ValueError
             a = (p[1][1]-p[1][0])/v                     # (y2 - y1) / (x2 - x1)
             b = (p[1][0]*p[0][1]-p[1][1]*p[0][0])/v     # (y1x2 - y2x1) / (x2 - x1)
             # c = (p[1][1] - p[1][0]) / (1 if v == 0 else v)
@@ -913,21 +910,21 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    def get_raw_list_from_ratio_list(self,
-                                     field,
-                                     approx_mode='maxmin',
-                                     cum_mode='yes',
-                                     score_order='d',  # from high to low
-                                     score_min=0,
-                                     score_max=100,
-                                     raw_score_ratio_cum_list=None,
-                                     map_table=None):
+    def __get_formula_raw_seg_list(self,
+                                   field,
+                                   approx_mode='maxmin',
+                                   cum_mode='yes',
+                                   score_order='d',  # from high to low
+                                   score_min=0,
+                                   score_max=100,
+                                   raw_score_ratio_cum_list=None,
+                                   map_table=None):
 
         raw_score_first = score_min \
             if (score_order == 'a') or (score_order=='ascending') \
             else score_max
         result_raw_score_for_ratio = [raw_score_first]
-        result_ratio_cumsum = []
+        result_ratio_cum = []
 
         last_ratio = 0
         last_percent=0
@@ -943,8 +940,8 @@ class PltScore(ScoreTransformModel):
             last_ratio = ratio
             last_percent = p_result[1]
             result_raw_score_for_ratio.append(p_result[0])
-            result_ratio_cumsum.append('{:.4f}'.format(p_result[1]))
-        self.result_ratio_cum_dict[field]= result_ratio_cumsum
+            result_ratio_cum.append('{:.4f}'.format(p_result[1]))
+        self.result_ratio_cum_dict[field]= result_ratio_cum
 
         return result_raw_score_for_ratio
 
@@ -956,41 +953,56 @@ class PltScore(ScoreTransformModel):
                                dest_ratio,
                                ratio_approx_mode):
         _mode = ratio_approx_mode.lower().strip()
-        _dest_ratio = dest_ratio
+
+        # f = field+'_fr'
+        # min_fr = list(map_table.query(f+' <= @dest_ratio')[['seg', f]].tail(1).values[0])
+        # max_fr = list(map_table.query(f+' >= @dest_ratio')[['seg', f]].head(1).values[0])
+        # print(min_fr, max_fr)
+        # if _mode in ['near']:
+        #     if dest_ratio - min_fr[1] < max_fr[1] - dest_ratio:
+        #         return min_fr
+        #     else:
+        #         return max_fr
+        # elif _mode in ['maxmin']:
+        #     return max_fr
+        # elif _mode in ['minmax']:
+        #     return min_fr
+        # return 0, 0
+
         result_seg = -1
         result_percent = -1
-
         last_cum_percent = 0
         last_seg = -1
         last_ratio_diff = 100
         for index, row in map_table.iterrows():
             cum_percent = row[field+'_percent']
+            cum_p = row[field+'_percent']
             if cum_percent < start_ratio:
                 continue
-            # print(cum_percent, cum_percent-_dest_ratio, last_ratio_diff)
-            if cum_percent >= _dest_ratio:
+            # print(cum_percent >= dest_ratio, cum_percent, dest_ratio, last_ratio_diff)
+            if cum_percent >= dest_ratio:
                 if _mode == 'near':
                     # if this is near else last is near
-                    if abs(cum_percent - _dest_ratio) < last_ratio_diff:
+                    if abs(cum_percent - dest_ratio) < last_ratio_diff:
                         result_seg = row['seg']
-                        result_percent = cum_percent
+                        result_percent = cum_p
                     else:
                         result_seg = last_seg
                         result_percent = last_cum_percent
                 elif _mode == 'minmax':
-                    if cum_percent == _dest_ratio:
+                    if cum_percent == dest_ratio:
                         result_seg = row['seg']
-                        result_percent = cum_percent
+                        result_percent = cum_p
                     else:
                         result_seg = last_seg
                         result_percent = last_cum_percent
                 elif _mode == 'maxmin':
                     result_seg = row['seg']
-                    result_percent = cum_percent
+                    result_percent = cum_p
                 break
             last_seg = row['seg']
-            last_ratio_diff = abs(cum_percent - _dest_ratio)
-            last_cum_percent = cum_percent
+            last_ratio_diff = abs(cum_percent - dest_ratio)
+            last_cum_percent = cum_p
         if result_seg < 0:
             result_seg, result_percent = last_seg, last_cum_percent
         return result_seg, result_percent
@@ -1065,11 +1077,11 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         if self.score_order in 'ascending, a':
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0][0], 6), f[1][0], f[2][0])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45r(f[0][0], 6), f[1][0], f[2][0])
                                    for f in self.result_coeff.values()
                                   ]
         else:
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45i(f[0][0], 6), f[1][1], f[2][1])
+            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45r(f[0][0], 6), f[1][1], f[2][1])
                                    for i, f in enumerate(self.result_coeff.values())
                                   ]
 
@@ -1077,10 +1089,10 @@ class PltScore(ScoreTransformModel):
         _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
         _output_report_doc += 'input score  mean, std:  {}, {}\n'.\
-            format(round45i(self.input_data[field].mean(), 2),
-                   round45i(self.input_data[field].std(), 2))
+            format(round45r(self.input_data[field].mean(), 2),
+                   round45r(self.input_data[field].std(), 2))
         _output_report_doc += '  input seg percentage: {}\n'.\
-            format([format(round45i(plist[j]-plist[j-1], 2) if j > 0 else plist[0], '0.4f')
+            format([format(round45r(plist[j]-plist[j-1], 2) if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
         _output_report_doc += '  input sum percentage: {}\n'.\
             format([format(x, '0.4f') for x in self.input_score_ratio_cum])
@@ -1104,16 +1116,7 @@ class PltScore(ScoreTransformModel):
         coeff = self.result_dict[field]['coeff']
         for cf in coeff.values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                return cf[0][0] * x + cf[0][1]
-            # if self.score_order in 'ascending, a':
-            #     if cf[1][0] <= x <= cf[1][1]:
-            #         return cf[0][0]*x + cf[0][1]
-            #         # return round45i(cf[0] * (x - cf[1][0]) + cf[2][0],
-            #         #                 self.output_data_decimal)
-            # else:
-            #     if cf[1][0] >= x >= cf[1][1]:
-            #         # return round45i(cf[0] * (x - cf[1][1]) + cf[2][1],
-            #         #                 self.output_data_decimal)
+                return round45r(cf[0][0] * x + cf[0][1])
         return -1
 
     def report(self):
@@ -1262,9 +1265,9 @@ class Zscore(ScoreTransformModel):
         high_z = self.stdNum
         curr_z = low_z
         if sts.norm.cdf(low_z) >= percent:
-            return round45i(low_z, self.output_data_decimal)
+            return round45r(low_z, self.output_data_decimal)
         elif sts.norm.cdf(high_z) <= percent:
-            return round45i(high_z, self.output_data_decimal)
+            return round45r(high_z, self.output_data_decimal)
         err = 10**(-7)
         iter_num = 1000
         while True:
@@ -1281,7 +1284,7 @@ class Zscore(ScoreTransformModel):
             elif curr_p < percent:
                 low_z = curr_z
             curr_z = (low_z + high_z) / 2
-        return round45i(curr_z, self.output_data_decimal)
+        return round45r(curr_z, self.output_data_decimal)
 
     def _get_zscore_in_map_table(self, sf):
         # use method lookup_zscore
@@ -1400,7 +1403,7 @@ class Tscore(ScoreTransformModel):
                 newsf = sf.replace('_zscore', '_tscore')
                 self.output_data.loc[:, newsf] = \
                     self.output_data[sf].apply(
-                        lambda x: round45i(x * self.tscore_std + self.tscore_mean,
+                        lambda x: round45r(x * self.tscore_std + self.tscore_mean,
                                            self.output_data_decimal))
         self.map_table = zm.map_table
 
@@ -1529,7 +1532,7 @@ class GradeScore(ScoreTransformModel):
 
         self.input_score_max = 150
         self.input_score_min = 0
-        self.ratio_grade_table = [round45i(sum(__zhejiang_ratio[0:j + 1]) * 0.01, 2)
+        self.ratio_grade_table = [round45r(sum(__zhejiang_ratio[0:j + 1]) * 0.01, 2)
                                   for j in range(len(__zhejiang_ratio))]
         self.grade_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
         self.grade_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
@@ -1568,7 +1571,7 @@ class GradeScore(ScoreTransformModel):
         if isinstance(minscore, int):
             self.input_score_min = minscore
         if isinstance(grade_ratio_table, list) or isinstance(grade_ratio_table, tuple):
-            self.ratio_grade_table = [round45i(1 - sum(grade_ratio_table[0:j + 1]) * 0.01, 2)
+            self.ratio_grade_table = [round45r(1 - sum(grade_ratio_table[0:j + 1]) * 0.01, 2)
                                       for j in range(len(grade_ratio_table))]
             if sum(grade_ratio_table) != 100:
                 print('ratio table is wrong, sum:{} is not 100!'.format(sum(grade_ratio_table)))
@@ -1832,7 +1835,7 @@ class GradeScoreTao(ScoreTransformModel):
                         max_score = curseg
                     max_point = self.input_data[self.input_data[fs] >= max_score][fs].mean()
                     # print(fs, max_score, curseg, lastseg)
-                    self.grade_dist_dict.update({fs: round45i(max_point/self.grade_num, 8)})
+                    self.grade_dist_dict.update({fs: round45r(max_point/self.grade_num, 8)})
                     break
                 lastpercent = curpercent
                 lastseg = curseg
@@ -2179,7 +2182,7 @@ class SegTable(object):
         for f in self.field_list:
             # calculate preliminary group count
             tempdf = self.input_data
-            tempdf.loc[:, f] = tempdf[f].apply(round45i)
+            tempdf.loc[:, f] = tempdf[f].apply(round45r)
 
             # count seg_count in [segmin, segmax]
             r = tempdf.groupby(f)[f].count()
@@ -2204,7 +2207,7 @@ class SegTable(object):
             # calculate percent field
             maxsum = max(max(outdf[f + '_sum']), 1)     # avoid divided by 0 in percent computing
             outdf[f + '_percent'] = \
-                outdf[f + '_sum'].apply(lambda x: round45i(x/maxsum, self.__percent_decimal))
+                outdf[f + '_sum'].apply(lambda x: round45r(x/maxsum, self.__percent_decimal))
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
@@ -2350,6 +2353,34 @@ def round45i(v: float, dec=0):
 
 
 def round45r(number, digits=0):
+    __doc__ = '''
+    float is not precise at digit 16 from decimal point.
+    if hope that round(1.265, 3): 1.264999... to 1.265000...
+    need to add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
+    note that: 
+        10**-16     => 0.0...00(53)1110011010...
+        2*10**-16   => 0.0...0(52)1110011010...
+        1.2*10**-16 => 0.0...0(52)100010100...
+    so 10**-16 can not definitely represented in float 1+52bit
+
+    test result:
+    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(17)4671'
+    format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
+    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(17)4671'
+    '''
+    snum = str(number)
+    int_len = snum.find('.')
+    if digits > 16 or int_len + digits > 16:
+        print('float cannot support {} digits precision'.format(digits))
+        raise NotImplementedError
+    add_err = 2 * 10 ** -(16 - int_len + 1) * (1 if number > 0 else -1)
+    if format(number, '.' + str(16 - digits - int_len) + 'f').rstrip('0') <= str(number):
+        return round(number + add_err, digits) + add_err
+    return int(round(number, digits))
+
+
+def round45r_old(number, digits=0):
     __doc__ = '''
     use multiple 10 power and int method
     precision is not normal at decimal >16 because of binary representation
