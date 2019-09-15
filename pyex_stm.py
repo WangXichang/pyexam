@@ -654,8 +654,8 @@ class PltScore(ScoreTransformModel):
         self.map_table = pd.DataFrame()
         self.result_input_data_points = []
         self.result_ratio_cum_dict = {}
-        self.result_coeff = {}
-        self.result_formula = ''
+        self.result_formula_coeff = {}
+        self.result_formula_text_list = ''
         self.result_dict = {}
 
     def set_data(self, input_data=None, field_list=None):
@@ -797,7 +797,7 @@ class PltScore(ScoreTransformModel):
 
             # transform score
             print('   begin calculating ...')
-            self.output_data.loc[:, (fs + '_plt')] = self.output_data[fs].apply(self.__get_plt_score)
+            self.output_data.loc[:, (fs + '_plt')] = self.output_data[fs].apply(self.__get_plt_score_at_field)
 
             self.output_report_doc += self.__get_report_doc(fs)
             print('   create report ...')
@@ -805,8 +805,8 @@ class PltScore(ScoreTransformModel):
             # save result
             self.result_dict[fs] = {
                 'input_score_points': copy.deepcopy(self.result_input_data_points),
-                'coeff': copy.deepcopy(self.result_coeff),
-                'formulas': copy.deepcopy(self.result_formula)}
+                'coeff': copy.deepcopy(self.result_formula_coeff),
+                'formulas': copy.deepcopy(self.result_formula_text_list)}
 
         # seg fs_plt in map_table
         fs_list = ['seg']
@@ -829,7 +829,7 @@ class PltScore(ScoreTransformModel):
 
         print('used time:', time.time() - stime)
         print('-'*50)
-        # run end
+    # run end
 
     # calculate single field from raw score to plt_score
     def run_at_field(self, rawscore_field):
@@ -844,13 +844,19 @@ class PltScore(ScoreTransformModel):
         if not isinstance(self.output_data, pd.DataFrame):
             self.output_data = self.input_data
         self.output_data.loc[:, rawscore_field + '_plt'] = \
-            self.input_data[rawscore_field].apply(self.__get_plt_score)
+            self.input_data[rawscore_field].apply(self.__get_plt_score_at_field)
         # create report
-        self.output_report_doc = self.__get_report_doc()
+        self.output_report_doc = self.__get_report_doc(rawscore_field)
+
+    def get_plt_score_from_formula(self, field, x):
+        for cf in self.result_dict[field]['coeff'].values():
+            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+                return round45r(cf[0][0] * x + cf[0][1])
+        return -1
 
     # from current formula in result_coeff
-    def __get_plt_score(self, x):
-        for f in self.result_coeff.values():
+    def __get_plt_score_at_field(self, x):
+        for f in self.result_formula_coeff.values():
             # a = f[0][0]      # (y2 - y1) / (x2 - x1)
             # b = f[0][1])     # (y1x2 - y2x1) / (x2 - x1)
             if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
@@ -886,9 +892,11 @@ class PltScore(ScoreTransformModel):
             return False
         return True
 
+    # formula-1: y = (y2-y1)/(x2 -x1) * (x - x1) + y1                   # a(x - x1) + y1
+    #        -2:   = (y2-y1)/(x2 -x1) * x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
+    #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)                # int / int
+    # coefficient: a = (y2-y1)/(x2 -x1),  b =
     def __get_formula_coeff(self):
-        # formula: y = (y2-y1-1)/(x2 -x1) * (x - x1) + y1
-        # coefficient = (y2-y1)/(x2 -x1)
 
         # calculate coefficient
         x_points = self.result_input_data_points
@@ -906,7 +914,7 @@ class PltScore(ScoreTransformModel):
             a = (p[1][1]-p[1][0])/v                     # (y2 - y1) / (x2 - x1)
             b = (p[1][0]*p[0][1]-p[1][1]*p[0][0])/v     # (y1x2 - y2x1) / (x2 - x1)
             # c = (p[1][1] - p[1][0]) / (1 if v == 0 else v)
-            self.result_coeff.update({i: [(a, b), p[0], p[1]]})
+            self.result_formula_coeff.update({i: [(a, b), p[0], p[1]]})
         return True
 
     # new at 2019-09-09
@@ -954,6 +962,7 @@ class PltScore(ScoreTransformModel):
                                ratio_approx_mode):
         _mode = ratio_approx_mode.lower().strip()
 
+        # don't pass debug
         # f = field+'_fr'
         # min_fr = list(map_table.query(f+' <= @dest_ratio')[['seg', f]].tail(1).values[0])
         # max_fr = list(map_table.query(f+' >= @dest_ratio')[['seg', f]].head(1).values[0])
@@ -1007,7 +1016,7 @@ class PltScore(ScoreTransformModel):
             result_seg, result_percent = last_seg, last_cum_percent
         return result_seg, result_percent
 
-
+    # deprecated, new implemented is __get_formula_raw_seg_list, get_seg_from_map_table
     def __get_raw_score_from_ratio(self, field, mode='minmax'):
         if mode not in 'minmax, maxmin, nearmax, nearmin':
             print('error mode {} !'.format(mode))
@@ -1076,33 +1085,34 @@ class PltScore(ScoreTransformModel):
         return input_score_points_for_ratio
 
     def __get_report_doc(self, field=''):
-        if self.score_order in 'ascending, a':
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45r(f[0][0], 6), f[1][0], f[2][0])
-                                   for f in self.result_coeff.values()
-                                  ]
-        else:
-            self.result_formula = ['{0:0.6f}*(x-{1:2d}) + {2:2d}'.format(round45r(f[0][0], 6), f[1][1], f[2][1])
-                                   for i, f in enumerate(self.result_coeff.values())
-                                  ]
+        p = 0 if self.score_order in ['ascending', 'a'] else 1
+        self.result_formula_text_list = []
+        for k in self.result_formula_coeff:
+            formula = self.result_formula_coeff[k]
+            if formula[0][0] > 0:
+                self.result_formula_text_list += \
+                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3:2d}'.
+                         format(k+1, formula[0][0], formula[1][p], formula[2][p])]
+            else:
+                self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
 
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
         _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
-        _output_report_doc += 'input score  mean, std:  {}, {}\n'.\
-            format(round45r(self.input_data[field].mean(), 2),
-                   round45r(self.input_data[field].std(), 2))
+        _output_report_doc += 'input score  mean, std:  {:2.2f}, {:2.2f}\n'.\
+            format(self.input_data[field].mean(), self.input_data[field].std())
         _output_report_doc += '  input seg percentage: {}\n'.\
-            format([format(round45r(plist[j]-plist[j-1], 2) if j > 0 else plist[0], '0.4f')
+            format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
         _output_report_doc += '  input sum percentage: {}\n'.\
             format([format(x, '0.4f') for x in self.input_score_ratio_cum])
         _output_report_doc += '      found percentage: {}\n'.\
             format(self.result_ratio_cum_dict[field])
-        _output_report_doc += '      found seg points: {}\n'.\
-            format([x[1] for x in self.result_coeff.values()])
+        _output_report_doc += '  found raw seg points: {}\n'.\
+            format([x[1] for x in self.result_formula_coeff.values()])
         _output_report_doc += '     output seg points: {}\n'.\
-            format([x[2] for x in self.result_coeff.values()])
-        for i, fs in enumerate(self.result_formula):
+            format([x[2] for x in self.result_formula_coeff.values()])
+        for i, fs in enumerate(self.result_formula_text_list):
             if i == 0:
                 _output_report_doc += '     transform formula: {}\n'.format(fs)
             else:
@@ -1110,24 +1120,15 @@ class PltScore(ScoreTransformModel):
         _output_report_doc += '---'*40 + '\n'
         return _output_report_doc
 
-    def get_plt_score_from_formula(self, field, x):
-        if field not in self.field_list:
-            print('invalid field name {} not in {}'.format(field, self.field_list))
-        coeff = self.result_dict[field]['coeff']
-        for cf in coeff.values():
-            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                return round45r(cf[0][0] * x + cf[0][1])
-        return -1
-
     def report(self):
         print(self.output_report_doc)
 
     def plot(self, mode='model'):
         if mode not in ['raw', 'out', 'model', 'shift']:
             print('valid mode is: raw, out, model,shift')
-            # print('mode:model describe the differrence of input and output score.')
             return
         if mode == 'model':
+            # mode: model describe the differrence of input and output score.
             self.__plotmodel()
         elif not super(PltScore, self).plot(mode):
             print('mode {} is invalid'.format(mode))
