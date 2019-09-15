@@ -793,16 +793,16 @@ class PltScore(ScoreTransformModel):
                 'coeff': copy.deepcopy(self.result_formula_coeff),
                 'formulas': copy.deepcopy(self.result_formula_text_list)}
 
-            # transform score
+            # get field_plt in output_data
             print('   begin calculating ...')
             self.output_data.loc[:, (fs + '_plt')] = \
                 self.output_data[fs].apply(
-                    lambda x: self.get_plt_score_from_formula(fs, x))
+                    lambda x: self.get_plt_score_from_formula3(fs, x))
 
             self.output_report_doc += self.__get_report_doc(fs)
             print('   create report ...')
 
-        # seg fs_plt in map_table
+        # get fs_plt in map_table
         df_map = self.map_table
         for fs in self.field_list:
             fs_name = fs + '_plt'
@@ -832,23 +832,48 @@ class PltScore(ScoreTransformModel):
         # create report
         self.output_report_doc = self.__get_report_doc(rawscore_field)
 
+    # -----------------------------------------------------------------------------------
+    # formula-1
+    # y = a*x + b
     def get_plt_score_from_formula(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 return round45r(cf[0][0] * x + cf[0][1])
         return -1
 
-    # from current formula in result_coeff
+    # -----------------------------------------------------------------------------------
+    # formula-2
+    # y = a*(x - b) + c
+    def get_plt_score_from_formula2(self, field, x):
+        for cf in self.result_dict[field]['coeff'].values():
+            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+                a = (cf[2][1]-cf[2][0])/(cf[1][1]-cf[1][0])
+                b = cf[1][0]
+                c = cf[2][0]
+                return round45r(a * (x - b) + c)
+        return -1
+
+    # -----------------------------------------------------------------------------------
+    # formula-3
+    # y = (a*x + b) / c : a=(y2-y1), b=y1x2-y2x1, c=(x2-x1)
+    def get_plt_score_from_formula3(self, field, x):
+        for cf in self.result_dict[field]['coeff'].values():
+            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+                a = (cf[2][1]-cf[2][0])
+                b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
+                c = (cf[1][1]-cf[1][0])
+                return round45r((a*x + b)/c)
+        return -1
+
+    # from current formula-1 in result_coeff
     def __get_plt_score_from_formula_at_field(self, x):
         for f in self.result_formula_coeff.values():
-            # a = f[0][0]      # (y2 - y1) / (x2 - x1)
-            # b = f[0][1])     # (y1x2 - y2x1) / (x2 - x1)
             if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
                 return round45r(f[0][0]*x + f[0][1])
         return -1
 
     def __get_formula(self, field):
-        # step 1
+        # --step 1
         # claculate _rawScorePoints
         if field in self.output_data.columns.values:
             print('-- get input score endpoints ...')
@@ -869,13 +894,13 @@ class PltScore(ScoreTransformModel):
             print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
             print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
             return False
-
-        # step 2
+        # --step 2
         # calculate Coefficients
         if not self.__get_formula_coeff():
             return False
         return True
 
+    # -----------------------------------------------------------------------------------
     # formula-1: y = (y2-y1)/(x2 -x1) * (x - x1) + y1                   # a(x - x1) + y1
     #        -2:   = (y2-y1)/(x2 -x1) * x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
     #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)                # int / int
@@ -968,34 +993,34 @@ class PltScore(ScoreTransformModel):
         last_seg = -1
         last_ratio_diff = 100
         for index, row in map_table.iterrows():
-            cum_percent = row[field+'_percent']
-            cum_p = row[field+'_percent']
-            if cum_percent < start_ratio:
+            cum_fr = row[field+'_percent']     # intended to use fraction _fr
+            cum_pr = row[field+'_percent']
+            if cum_fr < start_ratio:
                 continue
             # print(cum_percent >= dest_ratio, cum_percent, dest_ratio, last_ratio_diff)
-            if cum_percent >= dest_ratio:
+            if cum_fr >= dest_ratio:
                 if _mode == 'near':
                     # if this is near else last is near
-                    if abs(cum_percent - dest_ratio) < last_ratio_diff:
+                    if abs(cum_fr - dest_ratio) < last_ratio_diff:
                         result_seg = row['seg']
-                        result_percent = cum_p
+                        result_percent = cum_pr
                     else:
                         result_seg = last_seg
                         result_percent = last_cum_percent
                 elif _mode == 'minmax':
-                    if cum_percent == dest_ratio:
+                    if cum_fr == dest_ratio:
                         result_seg = row['seg']
-                        result_percent = cum_p
+                        result_percent = cum_pr
                     else:
                         result_seg = last_seg
                         result_percent = last_cum_percent
                 elif _mode == 'maxmin':
                     result_seg = row['seg']
-                    result_percent = cum_p
+                    result_percent = cum_pr
                 break
             last_seg = row['seg']
-            last_ratio_diff = abs(cum_percent - dest_ratio)
-            last_cum_percent = cum_p
+            last_ratio_diff = abs(cum_fr - dest_ratio)
+            last_cum_percent = cum_pr
         if result_seg < 0:
             result_seg, result_percent = last_seg, last_cum_percent
         return result_seg, result_percent
