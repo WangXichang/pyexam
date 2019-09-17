@@ -862,6 +862,7 @@ class PltScore(ScoreTransformModel):
                 a = (cf[2][1]-cf[2][0])
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
+                c = 1 if c == 0 else c
                 return round45r((a*x + b)/c)
         return -1
 
