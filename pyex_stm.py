@@ -143,14 +143,20 @@ CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
 CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 
-# GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
-#            segment=(100～86分、85～71分、70～56分、55～41分和40～30分)
-CONST_GUANGDONG_RATIO = [2, 13, 35, 35, 15]
-CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+# GuangDong: ration=(2%、35%、33%、33%, 17%), 5 levels
+#            segment=(30～40、41～58、59～70、71～82、83～100)
+#            predict: mean = 70.21, std = 20.95
+CONST_GUANGDONG_RATIO = [2, 15, 33, 33, 17]
+CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
 
-# HuNan is same as GuangDong
-CONST_M8_RATIO = [2, 13, 35, 35, 15]
-CONST_M8_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+# HuNan etc is not same as GuangDong
+# GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
+#            segment=(30～40、41～55、56～70、71～85、86～100)
+#            predict: mean = 70.24, std = 21.76
+#                     mean = sum([x/100*sum(y)/2 for x,y in zip(m6ratio,m6segment)])
+#                      std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(m6ratio,m6segment)])/5)
+CONST_M6_RATIO = [2, 13, 35, 35, 15]
+CONST_M6_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
 def about():
