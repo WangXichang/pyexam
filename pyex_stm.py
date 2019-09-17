@@ -202,14 +202,14 @@ def run(name='shandong',
         df=None,
         field_list='',
         ratio_list=None,
-        grade_diff=None,
-        grade_max=None,
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
         ratio_approx_mode='maxmin',
         ratio_cum_mode='yes',
-        score_order='descending'
+        score_order='descending',
+        grade_diff=None,
+        grade_max=None
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -260,10 +260,12 @@ def run(name='shandong',
         return
 
     # shandong score model
-    if name.lower() == 'shandong':
+    if name.lower() in ['shandong', 'guangdong', 'm8']:
         ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
+        if name.lower() in ['guangdong', 'm8']:
+            ratio_list = [x * 0.01 for x in CONST_M8_RATIO]
         pltmodel = PltScore()
-        pltmodel.model_name = 'shandong'
+        pltmodel.model_name = name
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
@@ -278,26 +280,7 @@ def run(name='shandong',
         pltmodel.run()
         return pltmodel
 
-    # guangdong & m8 score model
-    if name.lower() in 'guangdong, m8':
-        ratio_list = [x * 0.01 for x in CONST_M8_RATIO]
-        pltmodel = PltScore()
-        pltmodel.model_name = 'm8'
-        pltmodel.output_data_decimal = 0
-        pltmodel.set_data(input_data=input_data,
-                          field_list=field_list)
-        pltmodel.set_para(input_score_ratio_list=ratio_list,
-                          output_score_points_list=CONST_M8_SEGMENT,
-                          input_score_max=input_score_max,
-                          input_score_min=input_score_min,
-                          ratio_approx_mode=ratio_approx_mode,
-                          ratio_cum_mode=ratio_cum_mode,
-                          score_order=score_order,
-                          decimals=output_score_decimal)
-        pltmodel.run()
-        return pltmodel
-
-    if name.lower() in 'zhejiang, shanghai, beijing, tiangjin':
+    if name.lower() in 'zhejiang, shanghai, beijing, tianjin':
         grade_max = 100
         grade_diff = 3
         ratio_list = None
@@ -710,10 +693,10 @@ class PltScore(ScoreTransformModel):
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
 
-        input_p = input_score_ratio_list if score_order in 'descending, d' else input_score_ratio_list[::-1]
+        input_p = input_score_ratio_list if score_order in ['descending', 'd'] else input_score_ratio_list[::-1]
         self.input_score_ratio_cum = [sum(input_p[0:x + 1]) for x in range(len(input_p))]
 
-        if (score_order == 'descending') or (score_order == 'd'):
+        if score_order in ['descending', 'd']:
             out_pt = output_score_points_list[::-1]
             self.output_score_points = [x[::-1] for x in out_pt]
         else:
@@ -748,9 +731,11 @@ class PltScore(ScoreTransformModel):
             return
 
         if self.input_score_max is None:
-            self.input_score_max = max([self.input_data[fs].max() for fs in self.field_list])
+            # self.input_score_max = max([self.input_data[fs].max() for fs in self.field_list])
+            self.input_score_max = max(self.input_data[self.field_list].max())
         if self.input_score_min is None:
-            self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
+            # self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
+            self.input_score_min = min(self.input_data[self.field_list].min())
 
         # calculate seg table
         print('--- start calculating map_table ---')
@@ -847,7 +832,10 @@ class PltScore(ScoreTransformModel):
     def get_plt_score_from_formula2(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                a = (cf[2][1]-cf[2][0])/(cf[1][1]-cf[1][0])
+                v = (cf[1][1]-cf[1][0])
+                if v == 0:
+                    return round45r(cf[0][1])
+                a = (cf[2][1]-cf[2][0])/v
                 b = cf[1][0]
                 c = cf[2][0]
                 return round45r(a * (x - b) + c)
@@ -862,7 +850,9 @@ class PltScore(ScoreTransformModel):
                 a = (cf[2][1]-cf[2][0])
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
-                c = 1 if c == 0 else c
+                # x1 == x2 then return max(y1, y2)
+                if c == 0:
+                    return round45r(cf[0][1])
                 return round45r((a*x + b)/c)
         return -1
 
@@ -870,6 +860,9 @@ class PltScore(ScoreTransformModel):
     def __get_plt_score_from_formula_at_field(self, x):
         for f in self.result_formula_coeff.values():
             if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
+                # x1 == x2 then return max(y1, y2)
+                if f[1][0] == f[1][1]:
+                    return f[0][1]
                 return round45r(f[0][0]*x + f[0][1])
         return -1
 
@@ -902,28 +895,24 @@ class PltScore(ScoreTransformModel):
         return True
 
     # -----------------------------------------------------------------------------------
-    # formula-1: y = (y2-y1)/(x2 -x1) * (x - x1) + y1                   # a(x - x1) + y1
-    #        -2:   = (y2-y1)/(x2 -x1) * x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
-    #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)                # int / int
-    # coefficient: a = (y2-y1)/(x2 -x1),  b =
+    # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
+    #        -2:   = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
+    #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
     def __get_formula_coeff(self):
 
         # calculate coefficient
         x_points = self.result_input_data_points
-        step = 1 if self.score_order in 'ascending, a' else -1
+        step = 1 if self.score_order in ['ascending', 'a'] else -1
         xp = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
               for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         yp = self.output_score_points
         for i, p in enumerate(zip(xp, yp)):
             v = p[0][1] - p[0][0]
             if v == 0:
-                print('denominator is zero in formula {}'.format(i))
-                print('seg:{}'.format(p))
-                v=1
-                # raise ValueError
-            a = (p[1][1]-p[1][0])/v                     # (y2 - y1) / (x2 - x1)
-            b = (p[1][0]*p[0][1]-p[1][1]*p[0][0])/v     # (y1x2 - y2x1) / (x2 - x1)
-            # c = (p[1][1] - p[1][0]) / (1 if v == 0 else v)
+                a, b = 0, max(p[1])                         # x1 == x2 : y = max(y1, y2)
+            else:
+                a = (p[1][1]-p[1][0])/v                     # (y2 - y1) / (x2 - x1)
+                b = (p[1][0]*p[0][1]-p[1][1]*p[0][0])/v     # (y1x2 - y2x1) / (x2 - x1)
             self.result_formula_coeff.update({i: [(a, b), p[0], p[1]]})
         return True
 
@@ -1034,10 +1023,10 @@ class PltScore(ScoreTransformModel):
 
         input_score_points_for_ratio = \
             [min(self.input_data[field])] \
-            if self.score_order in 'ascending, a' else \
+            if self.score_order in ['ascending', 'a'] else \
             [max(self.input_data[field])]
 
-        seg_last = self.input_score_min if self.score_order in 'ascending, a' else self.input_score_max
+        seg_last = self.input_score_min if self.score_order in ['ascending', 'a'] else self.input_score_max
         ratio_last = -1
         ratio_cur_pos = 0     # first is 0
         ratio_num = len(self.input_score_ratio_cum)
@@ -1103,6 +1092,10 @@ class PltScore(ScoreTransformModel):
                 self.result_formula_text_list += \
                     ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3:2d}'.
                          format(k+1, formula[0][0], formula[1][p], formula[2][p])]
+            elif formula[0][0] == 0:
+                self.result_formula_text_list += \
+                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + max({3:2d}, {4:2d})'.
+                         format(k + 1, formula[0][0], formula[1][p], formula[2][0], formula[2][1])]
             else:
                 self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
 
@@ -1166,8 +1159,8 @@ class PltScore(ScoreTransformModel):
 
             formula = self.result_dict[fs]['coeff']
             for cfi, cf in enumerate(formula.values()):
-                x = cf[1] if self.score_order in 'ascending, a' else cf[1][::-1]
-                y = cf[2] if self.score_order in 'ascending, a' else cf[2][::-1]
+                x = cf[1] if self.score_order in ['ascending', 'a'] else cf[1][::-1]
+                y = cf[2] if self.score_order in ['ascending', 'a'] else cf[2][::-1]
                 plt.plot(x, y)
                 for j in [0, 1]:
                     plt.plot([x[j], x[j]], [0, y[j]], '--')
@@ -1566,11 +1559,13 @@ class GradeScore(ScoreTransformModel):
             print('error field_list: {}'.format(field_list))
 
     def set_para(self,
-                       maxscore=None,
-                       minscore=None,
-                       grade_ratio_table=None,
-                       grade_score_table=None,
-                       ratio_approx_mode=None):
+                 maxscore=None,
+                 minscore=None,
+                 grade_ratio_table=None,
+                 grade_score_table=None,
+                 ratio_approx_mode=None,
+                 ratio_cum_mode=None
+                 ):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
                 if maxscore >= max([max(self.input_data[f]) for f in self.field_list]):
