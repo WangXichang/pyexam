@@ -111,8 +111,8 @@
         CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
         CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
         CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-        CONST_M6_RATIO = [2, 13, 35, 35, 15]
-        CONST_M6_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+        CONST_M7_RATIO = [2, 13, 35, 35, 15]
+        CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 """
 
 
@@ -153,10 +153,10 @@ CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
 # GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(30～40、41～55、56～70、71～85、86～100)
 # simple predict: mean = 70.24, std = 21.76
-#                 mean = sum([x/100*sum(y)/2 for x,y in zip(m6ratio,m6segment)])
-#                 std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(m6ratio,m6segment)])/5)
-CONST_M6_RATIO = [2, 13, 35, 35, 15]
-CONST_M6_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+#                 mean = sum([x/100*sum(y)/2 for x,y in zip(M7ratio,M7segment)])
+#                 std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(M7ratio,M7segment)])/5)
+CONST_M7_RATIO = [2, 13, 35, 35, 15]
+CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
 
 def about():
@@ -169,7 +169,7 @@ def test(model='shandong',
          data_size=1000):
 
     model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
-                  'm6', 'guangdong', 'hainan', 'tao']
+                  'M7', 'guangdong', 'hainan', 'tao']
     if model.lower() not in model_list:
         print('correct model name in: [{}]'.format(','.join(model_list)))
         return None
@@ -219,7 +219,7 @@ def run(name='shandong',
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
-                      'guangdong', 'm6', default = 'shandong'
+                      'guangdong', 'M7', default = 'shandong'
     :param df: dataframe, input data, default = None
     :param field_list: score fields list in input dataframe, default = None and set to digit fields in running
     :param ratio_list: ratio list used to create intervals of raw score for each grade
@@ -244,7 +244,7 @@ def run(name='shandong',
     :return: model
     """
     # check name
-    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, guangdong, m6, tao, ' \
+    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, guangdong, M7, tao, ' \
                'tscore, zscore, tlinear'
     if name.lower() not in name_set:
         print('invalid name, not in {}'.format(name_set))
@@ -266,10 +266,10 @@ def run(name='shandong',
         return
 
     # shandong score model
-    if name.lower() in ['shandong', 'guangdong', 'm6']:
+    if name.lower() in ['shandong', 'guangdong', 'M7']:
         ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
-        if name.lower() in ['guangdong', 'm6']:
-            ratio_list = [x * 0.01 for x in CONST_M6_RATIO]
+        if name.lower() in ['guangdong', 'M7']:
+            ratio_list = [x * 0.01 for x in CONST_M7_RATIO]
         pltmodel = PltScore()
         pltmodel.model_name = name
         pltmodel.output_data_decimal = 0
@@ -374,12 +374,15 @@ def run(name='shandong',
 
 
 def plot():
+    import math
     plt.figure('Score Distribution of Models')
     plt.rcParams.update({'font.size': 16})
     plt.subplot(231)
     plt.bar(range(1, 9), [CONST_SHANDONG_RATIO[j] for j in range(8)])
     mean_shandong = sum([x/100*sum(y)/2 for x, y in zip(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT)])
-    plt.title('shandong({:.2f})'.format(mean_shandong))
+    std_shandong = math.sqrt(sum([(sum(y)/2-mean_shandong)**2
+                        for x, y in zip(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT)]) / len(CONST_SHANDONG_RATIO))
+    plt.title('sd:mean=({:.2f}), std={:.2f}'.format(mean_shandong, std_shandong))
 
     plt.subplot(232)
     plt.bar(range(11, 0, -1), [CONST_SHANGHAI_RATIO[-j - 1] for j in range(11)])
@@ -403,9 +406,9 @@ def plot():
     plt.title('tianjin(mean={:.2f})'.format(mean_tianjin))
 
     plt.subplot(236)
-    plt.bar(range(1, 6), [CONST_M6_RATIO[j] for j in range(len(CONST_M6_RATIO))])
-    mean_m6 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M6_RATIO, CONST_M6_SEGMENT)])
-    plt.title('m6(mean={:.2f})'.format(mean_m6))
+    plt.bar(range(1, 6), [CONST_M7_RATIO[j] for j in range(len(CONST_M7_RATIO))])
+    mean_M7 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
+    plt.title('M7(mean={:.2f})'.format(mean_M7))
 
 
 # test dataset
@@ -612,7 +615,12 @@ class ScoreTransformModel(object):
         #     peak frequency estimation: 0.0234 * total_number
         #          max number at mean nerghbor point:200,000-->4680,   300,000 --> 7020
     # GuangDong Model Analysis
-    # ratio = [2, 13, 35, 35, 15], gradescore = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+    # ratio = [2, 15, 33, 33, 17]
+    # gradescore = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
+    # meanscore ~= 35*0.02+48.5*0.13+64.5*0.35+76.5*0.35+92.5*0.15 = 70.23
+    # m7 Model Analysis
+    # ratio = [2, 13, 35, 35, 15]
+    # gradescore = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
     # meanscore ~= 35*0.02+48*0.13+63*0.35+78*0.35+93*0.15 = 70.24
 
 class PltScore(ScoreTransformModel):
