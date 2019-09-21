@@ -374,41 +374,107 @@ def run(name='shandong',
 
 
 def plot():
-    import math
-    plt.figure('Score Distribution of Models')
+    ms_dict = get_mean_std()
+    plt.figure('Noew Gaokao Grade Score Distribution of Models')
     plt.rcParams.update({'font.size': 16})
-    plt.subplot(231)
+    plt.subplot(241)
     plt.bar(range(1, 9), [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    mean_shandong = sum([x/100*sum(y)/2 for x, y in zip(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT)])
-    std_shandong = math.sqrt(sum([(sum(y)/2-mean_shandong)**2
-                        for x, y in zip(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT)]) / len(CONST_SHANDONG_RATIO))
-    plt.title('sd:mean=({:.2f}), std={:.2f}'.format(mean_shandong, std_shandong))
+    plt.title('shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
 
-    plt.subplot(232)
+    plt.subplot(242)
     plt.bar(range(11, 0, -1), [CONST_SHANGHAI_RATIO[-j - 1] for j in range(11)])
-    mean_shanghai = sum([(70-i*3)*y/100 for i, y in enumerate(CONST_SHANGHAI_RATIO)])
-    plt.title('shanghai(mean={:.0f})'.format(mean_shanghai))
-    # plt.xlabel('mean={:.0f}'.format(mean_shanghai))
+    plt.title('shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
 
-    plt.subplot(233)
+    plt.subplot(243)
     plt.bar(range(21, 0, -1), [CONST_ZHEJIANG_RATIO[-j - 1] for j in range(len(CONST_ZHEJIANG_RATIO))])
-    mean_zhejiang = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_ZHEJIANG_RATIO)])
-    plt.title('Zhejing(mean={:.2f})'.format(mean_zhejiang))
+    plt.title('zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
 
-    plt.subplot(234)
+    plt.subplot(244)
     plt.bar(range(21, 0, -1), [CONST_BEIJING_RATIO[-j - 1] for j in range(len(CONST_BEIJING_RATIO))])
-    mean_beijing = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_BEIJING_RATIO)])
-    plt.title('Beijing(mean={:.2f})'.format(mean_beijing))
+    plt.title('Beijing(mean={:.2f})'.format(*ms_dict['beijing']))
 
-    plt.subplot(235)
+    plt.subplot(245)
     plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
-    mean_tianjin = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_TIANJIN_RATIO)])
-    plt.title('tianjin(mean={:.2f})'.format(mean_tianjin))
+    # mean_tianjin = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_TIANJIN_RATIO)])
+    mean_tianjin, std_tianjin = __calc_mean_std(name='tianjin',
+                                                ratio_lst=CONST_TIANJIN_RATIO,
+                                                score_max=100,
+                                                score_gap=3)
+    plt.title('tianjin({:.2f}, {:.2f})'.format(mean_tianjin, std_tianjin))
 
-    plt.subplot(236)
+    plt.subplot(246)
     plt.bar(range(1, 6), [CONST_M7_RATIO[j] for j in range(len(CONST_M7_RATIO))])
-    mean_M7 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
-    plt.title('M7(mean={:.2f})'.format(mean_M7))
+    mean_m7 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
+    std_m7 = np.sqrt(sum([(sum(y)/2-mean_m7)**2
+                          for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
+                       /len(CONST_M7_RATIO))
+    plt.title('Jiangsu..(mean={:.2f}, std={:.2f})'.format(mean_m7, std_m7))
+
+
+def get_mean_std():
+    name_list = ['shandong', 'shanghai', 'zhejiang', 'guangdong', 'm7', 'beijing', 'tianjin']
+    mean_std_dict = dict()
+    for _name in name_list:
+        if _name in ['shandong', 'guangdong', 'm7']:
+            if _name =='shandong':
+                ratio_lst = CONST_SHANDONG_RATIO
+                score_seg = CONST_SHANDONG_SEGMENT
+            if _name =='guangdong':
+                ratio_lst = CONST_GUANGDONG_RATIO
+                score_seg = CONST_GUANGDONG_SEGMENT
+            if _name =='m7':
+                ratio_lst = CONST_M7_RATIO
+                score_seg = CONST_M7_SEGMENT
+            mean_std_dict.update({_name: __calc_mean_std(
+                name=_name, ratio_lst=ratio_lst, score_seg=score_seg)})
+        if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
+            score_max = 100
+            if _name =='shanghai':
+                ratio_lst = CONST_SHANGHAI_RATIO
+                score_max = 70
+            if _name =='zhejiang':
+                ratio_lst = CONST_ZHEJIANG_RATIO
+            if _name =='zhejiang':
+                ratio_lst = CONST_ZHEJIANG_RATIO
+            if _name =='beijing':
+                ratio_lst = CONST_BEIJING_RATIO
+            if _name =='tianjin':
+                ratio_lst = CONST_TIANJIN_RATIO
+            mean_std_dict.update({_name: __calc_mean_std(
+                name=_name, ratio_lst=ratio_lst, score_max=score_max)})
+    return mean_std_dict
+
+
+def __calc_mean_std(name='shandong', ratio_lst=None, score_seg=None, score_max=100, score_gap=3):
+    _mean, _std = -1, -1
+    if name in ['shandong', 'guangdong', 'm7']:
+        _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(ratio_lst, score_seg)])
+        _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * ratio_lst[i]
+                            for i, s in enumerate(score_seg)]) / 100)
+    if name in ['zhejiang', 'shanghai', 'beijing', 'tianjin']:
+        _mean = sum([r / 100 * (score_max-i*score_gap) for i, r in enumerate(ratio_lst)])
+        _std = np.sqrt(sum([(score_max-i*score_gap-_mean) ** 2 * s
+                            for i, s in enumerate(ratio_lst)]) / 100)
+    return _mean, _std
+
+
+def mentcaro(ratio = CONST_SHANDONG_RATIO,
+             seg=CONST_SHANDONG_SEGMENT,
+             size=1000,
+             ):
+    _loc=[x/100*sum(y)/2 for x, y in zip(ratio, seg)]
+    _max = max([max(x) for x in seg])
+    _min = min([min(x) for x in seg])
+    _mu = (_max + _min)/2
+    _sigma = (_max - _min + 1)/6
+    raw_mean = 50
+    raw_std = (100-raw_mean)/3
+    ndata = np.random.normal(raw_mean, raw_std, size=size)
+    ndata = [x if 0 <= x <= 100 else (0 if x < 0 else 100) for x in ndata]
+    print('mu={:.2f}, sigma={:.2f} std={:.2f}, mean={:.2f}'.
+          format(_mu, _sigma, np.std(ndata), np.mean(ndata)))
+    m = run(df=pd.DataFrame({'fs':ndata}), field_list='fs')
+    return m
 
 
 # test dataset
