@@ -377,44 +377,47 @@ def plot():
     ms_dict = get_mean_std()
     plt.figure('Noew Gaokao Grade Score Distribution of Models')
     plt.rcParams.update({'font.size': 16})
+
     plt.subplot(241)
-    plt.bar(range(1, 9), [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    plt.title('shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
+    plt.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO[::-1])
+    plt.title('Shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
 
     plt.subplot(242)
-    plt.bar(range(11, 0, -1), [CONST_SHANGHAI_RATIO[-j - 1] for j in range(11)])
-    plt.title('shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
+    plt.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
+    plt.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
 
     plt.subplot(243)
-    plt.bar(range(21, 0, -1), [CONST_ZHEJIANG_RATIO[-j - 1] for j in range(len(CONST_ZHEJIANG_RATIO))])
-    plt.title('zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
+    plt.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
+    plt.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
 
     plt.subplot(244)
-    plt.bar(range(21, 0, -1), [CONST_BEIJING_RATIO[-j - 1] for j in range(len(CONST_BEIJING_RATIO))])
-    plt.title('Beijing(mean={:.2f})'.format(*ms_dict['beijing']))
+    plt.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
+    plt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
 
     plt.subplot(245)
-    plt.bar(range(21, 0, -1), [CONST_TIANJIN_RATIO[-j - 1] for j in range(len(CONST_TIANJIN_RATIO))])
-    # mean_tianjin = sum([(100-i*3)*y/100 for i, y in enumerate(CONST_TIANJIN_RATIO)])
-    mean_tianjin, std_tianjin = __calc_mean_std(name='tianjin',
-                                                ratio_lst=CONST_TIANJIN_RATIO,
-                                                score_max=100,
-                                                score_gap=3)
-    plt.title('tianjin({:.2f}, {:.2f})'.format(mean_tianjin, std_tianjin))
+    # plt.bar(range(21, 101, 10), [CONST_SHANDONG_RATIO[j] for j in range(8)])
+    sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
+    plt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
 
     plt.subplot(246)
-    plt.bar(range(1, 6), [CONST_M7_RATIO[j] for j in range(len(CONST_M7_RATIO))])
-    mean_m7 = sum([x/100*sum(y)/2 for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
-    std_m7 = np.sqrt(sum([(sum(y)/2-mean_m7)**2
-                          for x, y in zip(CONST_M7_RATIO, CONST_M7_SEGMENT)])
-                       /len(CONST_M7_RATIO))
-    plt.title('Jiangsu..(mean={:.2f}, std={:.2f})'.format(mean_m7, std_m7))
+    # plt.bar([np.mean(x) for x in CONST_GUANGDONG_SEGMENT], CONST_M7_RATIO[::-1])
+    sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT], CONST_GUANGDONG_RATIO)
+    plt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
+
+    plt.subplot(247)
+    # plt.bar([np.mean(x) for x in CONST_M7_SEGMENT], CONST_M7_RATIO[::-1])
+    sbn.barplot([np.mean(x) for x in CONST_M7_SEGMENT], CONST_M7_RATIO)
+    plt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
 
 
 def get_mean_std():
     name_list = ['shandong', 'shanghai', 'zhejiang', 'guangdong', 'm7', 'beijing', 'tianjin']
     mean_std_dict = dict()
     for _name in name_list:
+        score_max = 100
+        score_gap = 3
+        ratio_lst = None
+        score_seg = None
         if _name in ['shandong', 'guangdong', 'm7']:
             if _name =='shandong':
                 ratio_lst = CONST_SHANDONG_RATIO
@@ -426,14 +429,11 @@ def get_mean_std():
                 ratio_lst = CONST_M7_RATIO
                 score_seg = CONST_M7_SEGMENT
             mean_std_dict.update({_name: __calc_mean_std(
-                name=_name, ratio_lst=ratio_lst, score_seg=score_seg)})
+                name=_name, ratio_lst=ratio_lst, score_seg=score_seg, score_max=score_max)})
         if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
-            score_max = 100
             if _name =='shanghai':
                 ratio_lst = CONST_SHANGHAI_RATIO
                 score_max = 70
-            if _name =='zhejiang':
-                ratio_lst = CONST_ZHEJIANG_RATIO
             if _name =='zhejiang':
                 ratio_lst = CONST_ZHEJIANG_RATIO
             if _name =='beijing':
@@ -441,7 +441,7 @@ def get_mean_std():
             if _name =='tianjin':
                 ratio_lst = CONST_TIANJIN_RATIO
             mean_std_dict.update({_name: __calc_mean_std(
-                name=_name, ratio_lst=ratio_lst, score_max=score_max)})
+                name=_name, ratio_lst=ratio_lst, score_max=score_max, score_gap=score_gap)})
     return mean_std_dict
 
 
