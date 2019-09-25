@@ -134,29 +134,44 @@ warnings.filterwarnings('ignore')
 
 # some constants for models: score grade ratio, shandong grade score interval
 CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+CONST_ZHEJIANG_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
 CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+CONST_SHANGHAI_SEGMENT = [(70-i*3, 70-i*3) for i in range(11)]
 CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+CONST_BEIJING_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+CONST_TIANJIN_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
 
 # ShanDong: piecewise linear transform
 # 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+# CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+CONST_SHANDONG_SEGMENT = [(100-i*10, 100-i*10-9) for i in range(8)]
 
 # GuangDong: ration=(2%、35%、33%、33%, 17%), 5 levels
 #            segment=(30～40、41～58、59～70、71～82、83～100)
 #            predict: mean = 70.21, std = 20.95
 CONST_GUANGDONG_RATIO = [2, 15, 33, 33, 17]
-CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
+# CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
+CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 
-# HuNan etc is not same as GuangDong
+# JIANGSU, FUJIAN, JIANGXI, HUNAN, HUBEI, LIAONING, GUIZHOU etc is not same as GuangDong
 # GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
 #            segment=(30～40、41～55、56～70、71～85、86～100)
 # simple predict: mean = 70.24, std = 21.76
 #                 mean = sum([x/100*sum(y)/2 for x,y in zip(M7ratio,M7segment)])
 #                 std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(M7ratio,M7segment)])/5)
 CONST_M7_RATIO = [2, 13, 35, 35, 15]
-CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+# CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
+
+CONST_DICT = {'zhejiang':(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
+              'shanghai':(CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
+              'beijing': (CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
+              'tianjin': (CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
+              'shandong': (CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
+              'guangdong': (CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
+              'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)}
 
 
 def about():
@@ -266,17 +281,19 @@ def run(name='shandong',
         return
 
     # shandong score model
-    if name.lower() in ['shandong', 'guangdong', 'M7']:
-        ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
-        if name.lower() in ['guangdong', 'M7']:
-            ratio_list = [x * 0.01 for x in CONST_M7_RATIO]
+    if name.lower() in ['shandong', 'guangdong', 'm7',
+                        'zhejiang', 'shanghai', 'beijing', 'tianjin']:
+        # ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
+        # if name.lower() in ['guangdong', 'M7']:
+        #     ratio_list = [x * 0.01 for x in CONST_M7_RATIO]
+        ratio_list = [x*0.01 for x in CONST_DICT[name.lower()][0]]
         pltmodel = PltScore()
         pltmodel.model_name = name
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                          output_score_points_list=CONST_SHANDONG_SEGMENT,
+                          output_score_points_list=CONST_DICT[name.lower()][1],
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
                           ratio_approx_mode=ratio_approx_mode,
@@ -395,8 +412,8 @@ def plot():
     plt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
 
     plt.subplot(245)
-    # plt.bar(range(21, 101, 10), [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
+    plt.bar(range(21, 101, 10), [CONST_SHANDONG_RATIO[j] for j in range(8)])
+    # sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
     plt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
 
     plt.subplot(246)
@@ -710,7 +727,7 @@ class PltScore(ScoreTransformModel):
         self.ratio_approx_mode = 'minmax'
         self.ratio_cum_mode = 'yes'
         self.score_order = 'descending'  # ascending or a / descending or d
-        self.use_minscore_as_rawscore_start_endpoint = True
+        # self.use_minscore_as_rawscore_start_endpoint = True
 
         # result
         self.seg_model = None
@@ -773,14 +790,16 @@ class PltScore(ScoreTransformModel):
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
 
-        input_p = input_score_ratio_list if score_order in ['descending', 'd'] else input_score_ratio_list[::-1]
-        self.input_score_ratio_cum = [sum(input_p[0:x + 1]) for x in range(len(input_p))]
-
+        input_p = None
         if score_order in ['descending', 'd']:
-            out_pt = output_score_points_list[::-1]
-            self.output_score_points = [x[::-1] for x in out_pt]
+            input_p = input_score_ratio_list
+            out_pt = output_score_points_list
         else:
-            self.output_score_points = output_score_points_list
+            input_p = input_score_ratio_list[::-1]
+            out_pt = output_score_points_list[::-1]
+        self.output_score_points = [x[::-1] for x in out_pt]
+        self.output_score_points = output_score_points_list
+        self.input_score_ratio_cum = [sum(input_p[0:x + 1]) for x in range(len(input_p))]
 
         self.input_score_min = input_score_min
         self.input_score_max = input_score_max
