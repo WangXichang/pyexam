@@ -50,20 +50,20 @@
           --
           ratio_approx_mode: how to approxmate score points of raw score for each ratio vlaue
           计算等级时的逼近方式（目前设计的比例值逼近策略)：
-              'min_greater': get score with min value in bigger 小于该比例值的分值中最大的值
-              'max_less': get score with max value in less 大于该比例值的分值中最小的值
+              'greater_min': get score with min value in bigger 小于该比例值的分值中最大的值
+              'less_max': get score with max value in less 大于该比例值的分值中最小的值
               'near':   get score with nearest ratio 最接近该比例值的分值（分值）
-              'min_near': get score with min value in near 最接近该比例值的分值中最小的值
-              'max_near': get score with max value in near 最接近该比例值的分值中最大的值
+              'near_min': get score with min value in near 最接近该比例值的分值中最小的值
+              'near_max': get score with max value in near 最接近该比例值的分值中最大的值
               注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
               注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
 
               拟改进为（2019.09.09） ratio_approx_mode：
               'near':    look up the nearest in all ratios to given-ratio 最接近的比例
-              'min_greater':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
-              'max_less':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
+              'greater_min':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
+              'less_max':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
 
-              仍然使用四种模式(2019.09.25)： min_greater, max_less, min_near, max_near
+              仍然使用四种模式(2019.09.25)： greater_min, less_max, near_min, near_max
 
           拟增加比例累加控制(2019.09.09)：
           ratio_cum_mode:
@@ -144,27 +144,26 @@ CONST_BEIJING_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
 CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
 CONST_TIANJIN_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
 
-# ShanDong: piecewise linear transform
+# ShanDong
 # 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
+# 8 segments: [100,91], ..., [30,21]
 CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-# CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
 CONST_SHANDONG_SEGMENT = [(100-i*10, 100-i*10-9) for i in range(8)]
 
-# GuangDong: ration=(2%、35%、33%、33%, 17%), 5 levels
-#            segment=(30～40、41～58、59～70、71～82、83～100)
-#            predict: mean = 70.21, std = 20.95
-CONST_GUANGDONG_RATIO = [2, 15, 33, 33, 17]
-# CONST_GUANGDONG_SEGMENT = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
+# GuangDong
+#   ration=(2%、35%、33%、33%, 17%), 5 levels
+#   segment=(30～40、41～58、59～70、71～82、83～100)
+#   predict: mean = 70.21, std = 20.95
+CONST_GUANGDONG_RATIO = [17, 33, 33, 15, 2]
 CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 
-# JIANGSU, FUJIAN, JIANGXI, HUNAN, HUBEI, LIAONING, GUIZHOU etc is not same as GuangDong
-# GuangDong: ration=(15%、35%、35%、13%, 2%), 5 levels
-#            segment=(30～40、41～55、56～70、71～85、86～100)
-# simple predict: mean = 70.24, std = 21.76
-#                 mean = sum([x/100*sum(y)/2 for x,y in zip(M7ratio,M7segment)])
-#                 std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(M7ratio,M7segment)])/5)
-CONST_M7_RATIO = [2, 13, 35, 35, 15]
-# CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+# JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
+#   ration=(15%、35%、35%、13%, 2%), 5 levels
+#   segment=(30～40、41～55、56～70、71～85、86～100)
+#   predict: mean = 70.24, std = 21.76
+#            mean = sum([x/100*sum(y)/2 for x,y in zip(M7ratio,M7segment)])
+#            std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(M7ratio,M7segment)])/5)
+CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
 CONST_DICT = {'zhejiang':(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
@@ -173,7 +172,8 @@ CONST_DICT = {'zhejiang':(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
               'tianjin': (CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
               'shandong': (CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
               'guangdong': (CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-              'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)}
+              'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)
+              }
 
 
 def about():
@@ -228,7 +228,7 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        ratio_approx_mode='max_less',
+        ratio_approx_mode='less_max',
         ratio_cum_mode='yes',
         score_order='descending',
         grade_diff=None,
@@ -255,7 +255,7 @@ def run(name='shandong',
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param ratio_approx_mode: max_less, min_greater, near(max_near, min_near)  default=max_less  # for shandong new project
+    :param ratio_approx_mode: less_max, greater_min, near(near_max, near_min)  default=less_max  # for shandong new project
     :param ratio_cum_mode: yes, no  default=yes                     # for shandong new project
     :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
@@ -285,9 +285,6 @@ def run(name='shandong',
     # shandong score model
     if name.lower() in ['shandong', 'guangdong', 'm7',
                         'zhejiang', 'shanghai', 'beijing', 'tianjin']:
-        # ratio_list = [x * 0.01 for x in CONST_SHANDONG_RATIO]
-        # if name.lower() in ['guangdong', 'M7']:
-        #     ratio_list = [x * 0.01 for x in CONST_M7_RATIO]
         ratio_list = [x*0.01 for x in CONST_DICT[name.lower()][0]]
         pltmodel = PltScore()
         pltmodel.model_name = name
@@ -305,6 +302,7 @@ def run(name='shandong',
         pltmodel.run()
         return pltmodel
 
+    # deprecated ...
     if name.lower() in 'zhejiang, shanghai, beijing, tianjin':
         grade_max = 100
         grade_diff = 3
@@ -372,25 +370,6 @@ def run(name='shandong',
         tm.report()
         return tm
 
-    # other models by assigning ratio and grade differential size
-    if name.lower() not in 'zhejiang, shanghai, beijing, tiangjin, tao, zscore, tscore, tlinear':
-        if ratio_list is None or grade_max is None or grade_diff is None:
-            print('no ratio defined for any model!')
-            return
-        ratio_list = ratio_list
-        grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
-        m = GradeScore()
-        m.model_name = name.lower()
-        m.set_data(input_data=input_data, field_list=field_list)
-        m.set_para(maxscore=input_score_max,
-                         minscore=input_score_min,
-                         grade_ratio_table=ratio_list,
-                         grade_score_table=grade_score,
-                         ratio_approx_mode=ratio_approx_mode
-                         )
-        m.run()
-        return m
-
 
 def plot():
     ms_dict = get_mean_std()
@@ -414,18 +393,15 @@ def plot():
     plt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
 
     plt.subplot(245)
-    plt.bar(range(21, 101, 10), [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    # sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
+    sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
     plt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
 
     plt.subplot(246)
-    # plt.bar([np.mean(x) for x in CONST_GUANGDONG_SEGMENT], CONST_M7_RATIO[::-1])
-    sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT], CONST_GUANGDONG_RATIO)
+    sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT][::-1], CONST_GUANGDONG_RATIO[::-1])
     plt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
 
     plt.subplot(247)
-    # plt.bar([np.mean(x) for x in CONST_M7_SEGMENT], CONST_M7_RATIO[::-1])
-    sbn.barplot([np.mean(x) for x in CONST_M7_SEGMENT], CONST_M7_RATIO)
+    sbn.barplot([np.mean(x) for x in CONST_M7_SEGMENT][::-1], CONST_M7_RATIO[::-1])
     plt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
 
 
@@ -466,14 +442,13 @@ def get_mean_std():
 
 def __calc_mean_std(name='shandong', ratio_lst=None, score_seg=None, score_max=100, score_gap=3):
     _mean, _std = -1, -1
-    if name in ['shandong', 'guangdong', 'm7']:
-        _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(ratio_lst, score_seg)])
-        _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * ratio_lst[i]
-                            for i, s in enumerate(score_seg)]) / 100)
-    if name in ['zhejiang', 'shanghai', 'beijing', 'tianjin']:
-        _mean = sum([r / 100 * (score_max-i*score_gap) for i, r in enumerate(ratio_lst)])
-        _std = np.sqrt(sum([(score_max-i*score_gap-_mean) ** 2 * s
-                            for i, s in enumerate(ratio_lst)]) / 100)
+    _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(CONST_DICT[name][0], CONST_DICT[name][1])])
+    _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * CONST_DICT[name][0][i]
+                        for i, s in enumerate(CONST_DICT[name][1])]) / 100)
+    # if name in ['zhejiang', 'shanghai', 'beijing', 'tianjin']:
+    #     _mean = sum([r / 100 * (score_max-i*score_gap) for i, r in enumerate(ratio_lst)])
+    #     _std = np.sqrt(sum([(score_max-i*score_gap-_mean) ** 2 * s
+    #                         for i, s in enumerate(ratio_lst)]) / 100)
     return _mean, _std
 
 
@@ -726,7 +701,7 @@ class PltScore(ScoreTransformModel):
         self.output_data_decimal = 0
 
         # para
-        self.ratio_approx_mode = 'min_greater'
+        self.ratio_approx_mode = 'greater_min'
         self.ratio_cum_mode = 'yes'
         self.score_order = 'descending'
         # self.use_min_rawscore_as_endpoint = True
@@ -767,7 +742,7 @@ class PltScore(ScoreTransformModel):
                  output_score_points_list=None,
                  input_score_min=None,
                  input_score_max=None,
-                 ratio_approx_mode='min_greater',
+                 ratio_approx_mode='greater_min',
                  ratio_cum_mode='yes',
                  score_order='descending',
                  decimals=None):
@@ -776,7 +751,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param ratio_approx_mode:  min_greater, max_less, min_near, max_near
+        :param ratio_approx_mode:  greater_min, less_max, near_min, near_max
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
@@ -1021,7 +996,7 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def __get_formula_raw_seg_list(self,
                                    field,
-                                   approx_mode='max_less',
+                                   approx_mode='less_max',
                                    cum_mode='yes',
                                    score_order='d',  # from high to low
                                    score_min=0,
@@ -1038,7 +1013,10 @@ class PltScore(ScoreTransformModel):
         last_ratio = 0
         last_percent=0
         for ratio in raw_score_ratio_cum_list:
-            dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
+            if 'near' in self.ratio_approx_mode:
+                dest_percent = ratio
+            else:
+                dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
             p_result = self.get_seg_from_map_table(map_table=map_table,
                                                    field=field,
                                                    start_ratio=last_ratio,
@@ -1062,64 +1040,55 @@ class PltScore(ScoreTransformModel):
                                dest_ratio,
                                ratio_approx_mode):
         _mode = ratio_approx_mode.lower().strip()
-
-        # don't pass debug
-        # f = field+'_fr'
-        # min_fr = list(map_table.query(f+' <= @dest_ratio')[['seg', f]].tail(1).values[0])
-        # max_fr = list(map_table.query(f+' >= @dest_ratio')[['seg', f]].head(1).values[0])
-        # print(min_fr, max_fr)
-        # if _mode in ['near']:
-        #     if dest_ratio - min_fr[1] < max_fr[1] - dest_ratio:
-        #         return min_fr
-        #     else:
-        #         return max_fr
-        # elif _mode in ['max_less']:
-        #     return max_fr
-        # elif _mode in ['min_greater']:
-        #     return min_fr
-        # return 0, 0
-
-        result_seg = -1
-        result_percent = -1
+        result_seg_endpoint = min(map_table[field+'_percent']) \
+            if self.score_order in ['descending', 'd'] \
+            else max(map_table[field])
+        result_percent = 0
         last_cum_percent = 0
         last_seg = -1
         last_ratio_diff = 100
         for index, row in map_table.iterrows():
-            cum_fr = row[field+'_percent']     # intended to use fraction _fr
-            cum_pr = row[field+'_percent']
-            if cum_fr < start_ratio:
+            current_cum_percent_fraction = row[field+'_percent']
+            current_cum_percent = row[field+'_percent']
+            if current_cum_percent_fraction < start_ratio:
                 continue
-            # print(cum_percent >= dest_ratio, cum_percent, dest_ratio, last_ratio_diff)
-            if cum_fr >= dest_ratio:
-                if _mode == 'near':
-                    # if this is near else last is near
-                    if abs(cum_fr - dest_ratio) < last_ratio_diff:
-                        result_seg = row['seg']
-                        result_percent = cum_pr
-                    else:
-                        result_seg = last_seg
+            if current_cum_percent_fraction >= dest_ratio:
+                if 'near' in _mode.lower():
+                    # nearer than last
+                    if abs(current_cum_percent_fraction - dest_ratio) < last_ratio_diff:
+                        result_seg_endpoint = row['seg']
+                        result_percent = current_cum_percent
+                    elif abs(current_cum_percent_fraction - dest_ratio) > last_ratio_diff:
+                        result_seg_endpoint = last_seg
                         result_percent = last_cum_percent
-                elif _mode == 'min_greater':
-                    if cum_fr == dest_ratio:
-                        result_seg = row['seg']
-                        result_percent = cum_pr
                     else:
-                        result_seg = last_seg
+                        if _mode == 'near_min':
+                            result_seg_endpoint = last_seg
+                            result_percent = last_cum_percent
+                        else:  # near_max
+                            result_seg_endpoint = row['seg']
+                            result_percent = current_cum_percent
+                elif _mode.lower() == 'greater_min':
+                    if current_cum_percent_fraction == dest_ratio:
+                        result_seg_endpoint = row['seg']
+                        result_percent = current_cum_percent
+                    else:
+                        result_seg_endpoint = last_seg
                         result_percent = last_cum_percent
-                elif _mode == 'max_less':
-                    result_seg = row['seg']
-                    result_percent = cum_pr
+                elif _mode.lower() == 'less_max':
+                    result_seg_endpoint = row['seg']
+                    result_percent = current_cum_percent
                 break
             last_seg = row['seg']
-            last_ratio_diff = abs(cum_fr - dest_ratio)
-            last_cum_percent = cum_pr
-        if result_seg < 0:
-            result_seg, result_percent = last_seg, last_cum_percent
-        return result_seg, result_percent
+            last_ratio_diff = abs(current_cum_percent_fraction - dest_ratio)
+            last_cum_percent = current_cum_percent
+        # if result_seg_endpoint < 0:
+        #     result_seg_endpoint, result_percent = last_seg, last_cum_percent
+        return result_seg_endpoint, result_percent
 
     # deprecated, new implemented is __get_formula_raw_seg_list, get_seg_from_map_table
-    def __get_raw_score_from_ratio(self, field, mode='min_greater'):
-        if mode not in 'min_greater, max_less, max_near, min_near':
+    def __get_raw_score_from_ratio(self, field, mode='greater_min'):
+        if mode not in 'greater_min, less_max, near_max, near_min':
             print('error mode {} !'.format(mode))
             return []
 
@@ -1139,17 +1108,17 @@ class PltScore(ScoreTransformModel):
             if (p == 1) | (ratio_cur_pos == ratio_num):
                 input_score_points_for_ratio += [seg_cur]
                 break
-            if mode in 'min_greater, max_less':
+            if mode in 'greater_min, less_max':
                 if p == cur_input_score_ratio:
-                    if (row['seg'] == 0) & (mode == 'min_greater') & (index < self.input_score_max):
+                    if (row['seg'] == 0) & (mode == 'greater_min') & (index < self.input_score_max):
                         pass
                     else:
                         input_score_points_for_ratio.append(seg_cur)
                         ratio_cur_pos += 1
                 elif p > cur_input_score_ratio:
-                    input_score_points_for_ratio.append(seg_last if mode == 'min_greater' else seg_cur)
+                    input_score_points_for_ratio.append(seg_last if mode == 'greater_min' else seg_cur)
                     ratio_cur_pos += 1
-            if mode in 'max_near, min_near, near':
+            if mode in 'near_max, near_min, near':
                 if p > cur_input_score_ratio:
                     if (p - cur_input_score_ratio) < abs(cur_input_score_ratio - ratio_last):
                         # thispercent is near to p
@@ -1158,8 +1127,8 @@ class PltScore(ScoreTransformModel):
                         # lastpercent is near to p
                         input_score_points_for_ratio.append(seg_last)
                     else:
-                        # two dist is equal, to set min_near if near
-                        if mode == 'max_near':
+                        # two dist is equal, to set near_min if near
+                        if mode == 'near_max':
                             input_score_points_for_ratio.append(seg_cur)
                         else:
                             input_score_points_for_ratio.append(seg_last)
@@ -1174,9 +1143,9 @@ class PltScore(ScoreTransformModel):
                     # next is not same
                     if p == ratio_last:
                         # two percent is 0
-                        if mode == 'max_near':
+                        if mode == 'near_max':
                             input_score_points_for_ratio += [seg_cur]
-                        else:  # min_near
+                        else:  # near_min
                             input_score_points_for_ratio += [seg_last]
                     else:
                         input_score_points_for_ratio += [seg_cur]
@@ -1634,7 +1603,7 @@ class GradeScore(ScoreTransformModel):
     def __init__(self):
         super(GradeScore, self).__init__('grade')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        self.ratio_approx_mode_set = 'min_greater, max_less, max_near, min_near, near'
+        self.ratio_approx_mode_set = 'greater_min, less_max, near_max, near_min, near'
 
         self.input_score_max = 150
         self.input_score_min = 0
@@ -1796,13 +1765,13 @@ class GradeScore(ScoreTransformModel):
                     d1 = abs(curr_grade_ratio - last_p)
                     d2 = abs(curr_grade_ratio - curr_p)
                     if d1 < d2:
-                        if self.ratio_approx_mode in 'min_greater, near':
+                        if self.ratio_approx_mode in 'greater_min, near':
                             curr_to_new_grade = True
                     elif d1 == d2:
-                        if self.ratio_approx_mode in 'min_greater, min_near, min_near':
+                        if self.ratio_approx_mode in 'greater_min, near_min, near_min':
                             curr_to_new_grade = True
                     else:  # d2 < d1
-                        if self.ratio_approx_mode in 'min_greater':
+                        if self.ratio_approx_mode in 'greater_min':
                             curr_to_new_grade = True
                     if curr_to_new_grade:
                         curr_grade_no += 1
