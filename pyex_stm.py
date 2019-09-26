@@ -1025,7 +1025,7 @@ class PltScore(ScoreTransformModel):
                                             dest_ratio=dest_percent,
                                             ratio_approx_mode=approx_mode)
             print('<{}> def_ratio={:.2f} dest_ratio={:.4f} result_p={:.4f} result_x{}2={:3.0f}'.
-                  format(i, ratio, dest_percent, result_this_seg_percent, i+1, result_this_seg_endpoint))
+                  format(i+1, ratio, dest_percent, result_this_seg_percent, i+1, result_this_seg_endpoint))
             last_ratio = ratio
             last_percent = result_this_seg_percent
             if ratio == raw_score_ratio_cum_list[-1]:
@@ -1051,48 +1051,61 @@ class PltScore(ScoreTransformModel):
             if self.score_order in ['descending', 'd'] \
             else max(map_table[field])
         result_percent = 0
-        last_cum_percent = 0
+        last_percent = 0
         last_seg = -1
-        last_ratio_diff = 100
+        last_diff = 100
+        _use_last = False
         for index, row in map_table.iterrows():
-            current_cum_percent_fraction = row[field+'_percent']
-            current_cum_percent = row[field+'_percent']
+            _percent = row[field+'_percent']
+            _seg = row['seg']
+            _diff = abs(_percent - dest_ratio)
+
+            # at bottom
             if index == map_table.index.max():
-                result_seg_endpoint = row['seg']
-                result_percent = current_cum_percent
-            if current_cum_percent_fraction < start_ratio:
-                continue
-            if current_cum_percent_fraction >= dest_ratio:
-                if 'near' in _mode.lower():
-                    # nearer than last
-                    if abs(current_cum_percent_fraction - dest_ratio) < last_ratio_diff:
-                        result_seg_endpoint = row['seg']
-                        result_percent = current_cum_percent
-                    elif abs(current_cum_percent_fraction - dest_ratio) > last_ratio_diff:
-                        result_seg_endpoint = last_seg
-                        result_percent = last_cum_percent
-                    else:
-                        if _mode == 'near_min':
-                            result_seg_endpoint = last_seg
-                            result_percent = last_cum_percent
-                        else:  # near_max
-                            result_seg_endpoint = row['seg']
-                            result_percent = current_cum_percent
-                elif _mode.lower() == 'less_max':
-                    if current_cum_percent_fraction == dest_ratio:
-                        result_seg_endpoint = row['seg']
-                        result_percent = current_cum_percent
-                    else:
-                        result_seg_endpoint = last_seg
-                        result_percent = last_cum_percent
-                elif _mode.lower() == 'greater_min':
-                    result_seg_endpoint = row['seg']
-                    result_percent = current_cum_percent
                 break
-            last_seg = row['seg']
-            last_ratio_diff = abs(current_cum_percent_fraction - dest_ratio)
-            last_cum_percent = current_cum_percent
-        return result_seg_endpoint, result_percent
+
+            # reduce searching
+            if _percent < start_ratio:
+                continue
+
+            # reach bigger than or equal to ratio
+            if _percent >= dest_ratio:
+                # at top
+                if index == map_table.index.min():
+                    break
+                # dealing with tragedies
+                if 'near' in _mode:
+                    # this ratio is near
+                    if _diff < last_diff:
+                        break
+                    # last ratio is near
+                    elif _diff > last_diff:
+                        _use_last = True
+                        break
+                    # distances are same
+                    else:
+                        # mode is near_min
+                        if 'near_min' in _mode:
+                            _use_last = True
+                            break
+                        # mode is near_max
+                        else:
+                            break
+                elif _mode == 'less_max':
+                    if _percent == dest_ratio:
+                        break
+                    else:
+                        _use_last = True
+                elif _mode == 'greater_min':
+                    break
+                break
+            last_seg = _seg
+            last_diff = _diff
+            last_percent = _percent
+        if _use_last:
+            return last_seg, last_percent
+        else:
+            return _seg, _percent
 
     def __get_report_doc(self, field=''):
         p = 0 if self.score_order in ['ascending', 'a'] else 1
@@ -1832,8 +1845,8 @@ class GradeScoreTao(ScoreTransformModel):
         # ratio_approx_mode = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.input_score_max,
-                           segmin=self.input_score_min,
-                           segsort='d')
+                     segmin=self.input_score_min,
+                     segsort='d')
         seg.set_data(self.input_data,
                      self.field_list)
         seg.run()
