@@ -1004,13 +1004,13 @@ class PltScore(ScoreTransformModel):
                                    score_max=100,
                                    raw_score_ratio_cum_list=None,
                                    map_table=None):
-        # print('--- field{}: find segment endpoint'.format(field))
-        raw_score_first = score_min if score_order in ['a', 'ascending'] \
+        result_ratio = []
+        # start and end points for raw score segments
+        raw_score_start = score_min if score_order in ['a', 'ascending'] \
                           else score_max
         raw_score_end = score_max if score_order in ['a', 'ascending'] \
                           else score_min
-        result_raw_seg_list = [raw_score_first]
-        result_ratio = []
+        result_raw_seg_list = [raw_score_start]
         last_ratio = 0
         last_percent = 0
         for i, ratio in enumerate(raw_score_ratio_cum_list):
@@ -1024,8 +1024,8 @@ class PltScore(ScoreTransformModel):
                                             start_ratio=last_ratio,
                                             dest_ratio=dest_percent,
                                             ratio_approx_mode=approx_mode)
-            print('<{}> def_ratio={:.2f} dest_ratio={:.4f} result_x({}2)={:3.0f} result_p={:.4f}'.format(
-                i, ratio, dest_percent, i+1, result_this_seg_endpoint, result_this_seg_percent))
+            print('<{}> def_ratio={:.2f} dest_ratio={:.4f} result_p={:.4f} result_x{}2={:3.0f}'.
+                  format(i, ratio, dest_percent, result_this_seg_percent, i+1, result_this_seg_endpoint))
             last_ratio = ratio
             last_percent = result_this_seg_percent
             if ratio == raw_score_ratio_cum_list[-1]:
@@ -1115,22 +1115,21 @@ class PltScore(ScoreTransformModel):
         plist = self.input_score_ratio_cum
         _output_report_doc += 'input score  mean, std:  {:2.2f}, {:2.2f}\n'.\
             format(self.input_data[field].mean(), self.input_data[field].std())
-        _output_report_doc += '  input seg percentage: {}\n'.\
+        _output_report_doc += '  input segment percent: {}\n'.\
             format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
-        _output_report_doc += '  input sum percentage: {}\n'.\
+        _output_report_doc += '     input cumu percent: {}\n'.\
             format([format(x, '0.4f') for x in self.input_score_ratio_cum])
-        _output_report_doc += '      found percentage: {}\n'.\
+        _output_report_doc += '    locating percent: {}\n'.\
             format(self.result_ratio_dict[field])
-        _output_report_doc += '  found raw seg points: {}\n'.\
+        _output_report_doc += '  locating endpoints: {}\n'.\
             format([x[1] for x in self.result_formula_coeff.values()])
-        _output_report_doc += '     output seg points: {}\n'.\
+        _output_report_doc += 'output seg endpoints: {}\n'.\
             format([x[2] for x in self.result_formula_coeff.values()])
         for i, fs in enumerate(self.result_formula_text_list):
             if i == 0:
-                _output_report_doc += '     transform formula: {}\n'.format(fs)
-            else:
-                _output_report_doc += '                        {}\n'.format(fs)
+                _output_report_doc += '   transform formula:\n'
+            _output_report_doc += '                     {}\n'.format(fs)
         _output_report_doc += '---'*40 + '\n'
         return _output_report_doc
 
