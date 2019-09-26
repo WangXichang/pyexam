@@ -842,7 +842,7 @@ class PltScore(ScoreTransformModel):
         self.result_dict = {}
         self.output_data = self.input_data.copy()   # (deep=True)
         for i, fs in enumerate(self.field_list):
-            print('start transform score field: [{}] ...'.format(fs))
+            print('--- transform score field:[{}]'.format(fs))
 
             # get formula
             if not self.__get_formula(fs):
@@ -856,13 +856,13 @@ class PltScore(ScoreTransformModel):
                 'formulas': copy.deepcopy(self.result_formula_text_list)}
 
             # get field_plt in output_data
-            print('   begin calculating ...')
+            print('--- begin calculating ...')
             self.output_data.loc[:, (fs + '_plt')] = \
                 self.output_data[fs].apply(
                     lambda x: self.get_plt_score_from_formula3(fs, x))
 
             self.output_report_doc += self.__get_report_doc(fs)
-            print('   create report ...')
+            print('---create report ...')
 
         # get fs_plt in map_table
         df_map = self.map_table
@@ -1004,36 +1004,39 @@ class PltScore(ScoreTransformModel):
                                    score_max=100,
                                    raw_score_ratio_cum_list=None,
                                    map_table=None):
-
+        # print('--- field{}: find segment endpoint'.format(field))
         raw_score_first = score_min if score_order in ['a', 'ascending'] \
                           else score_max
         raw_score_end = score_max if score_order in ['a', 'ascending'] \
                           else score_min
         result_raw_seg_list = [raw_score_first]
         result_ratio = []
-
         last_ratio = 0
-        last_percent=0
-        for ratio in raw_score_ratio_cum_list:
+        last_percent = 0
+        for i, ratio in enumerate(raw_score_ratio_cum_list):
             dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
-            p_result = self.get_seg_from_map_table(map_table=map_table,
-                                                   field=field,
-                                                   start_ratio=last_ratio,
-                                                   dest_ratio=dest_percent,
-                                                   ratio_approx_mode=approx_mode)
-            print('r={:.2f} last_r={:.2f} last_p={:.4f} dest_p={:.4f} r_seg={:3.0f} r_p={:.4f}'.format(
-                ratio, last_ratio, last_percent, dest_percent, p_result[0], p_result[1]))
+            if i == len(raw_score_ratio_cum_list)-1:
+                dest_percent = 1.0
+            result_this_seg_endpoint, result_this_seg_percent = \
+                self.get_seg_from_map_table(
+                                            map_table=map_table,
+                                            field=field,
+                                            start_ratio=last_ratio,
+                                            dest_ratio=dest_percent,
+                                            ratio_approx_mode=approx_mode)
+            print('<{}> def_ratio={:.2f} dest_ratio={:.4f} result_x({}2)={:3.0f} result_p={:.4f}'.format(
+                i, ratio, dest_percent, i+1, result_this_seg_endpoint, result_this_seg_percent))
             last_ratio = ratio
-            last_percent = p_result[1]
+            last_percent = result_this_seg_percent
             if ratio == raw_score_ratio_cum_list[-1]:
-                p_result[0] = raw_score_end
-            if (p_result[0] < 0):
+                result_this_seg_endpoint = raw_score_end
+            if result_this_seg_endpoint < 0:
                 result_raw_seg_list.append(raw_score_end)
             else:
-                result_raw_seg_list.append(p_result[0])
-            result_ratio.append('{:.4f}'.format(p_result[1]))
-        self.result_ratio_dict[field] = result_ratio
+                result_raw_seg_list.append(result_this_seg_endpoint)
+            result_ratio.append('{:.4f}'.format(result_this_seg_percent))
 
+        self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
 
     # new at 2019-09-09
@@ -1089,8 +1092,6 @@ class PltScore(ScoreTransformModel):
             last_seg = row['seg']
             last_ratio_diff = abs(current_cum_percent_fraction - dest_ratio)
             last_cum_percent = current_cum_percent
-        # if result_seg_endpoint < 0:
-        #     result_seg_endpoint, result_percent = last_seg, last_cum_percent
         return result_seg_endpoint, result_percent
 
     def __get_report_doc(self, field=''):
