@@ -1113,23 +1113,23 @@ class PltScore(ScoreTransformModel):
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
         _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
-        _output_report_doc += 'input score  mean, std:  {:2.2f}, {:2.2f}\n'.\
+        _output_report_doc += '  raw score mean, std:  {:2.2f}, {:2.2f}\n'.\
             format(self.input_data[field].mean(), self.input_data[field].std())
-        _output_report_doc += '  input segment percent: {}\n'.\
+        _output_report_doc += '  raw score seg ratio: {}\n'.\
             format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
-        _output_report_doc += '     input cumu percent: {}\n'.\
+        _output_report_doc += 'raw score cum percent: {}\n'.\
             format([format(x, '0.4f') for x in self.input_score_ratio_cum])
-        _output_report_doc += '    locating percent: {}\n'.\
+        _output_report_doc += '     locating percent: {}\n'.\
             format(self.result_ratio_dict[field])
-        _output_report_doc += '  locating endpoints: {}\n'.\
+        _output_report_doc += '   locating endpoints: {}\n'.\
             format([x[1] for x in self.result_formula_coeff.values()])
-        _output_report_doc += 'output seg endpoints: {}\n'.\
+        _output_report_doc += ' output seg endpoints: {}\n'.\
             format([x[2] for x in self.result_formula_coeff.values()])
         for i, fs in enumerate(self.result_formula_text_list):
             if i == 0:
-                _output_report_doc += '   transform formula:\n'
-            _output_report_doc += '                     {}\n'.format(fs)
+                _output_report_doc += '    transform formula:\n'
+            _output_report_doc += '                       {}\n'.format(fs)
         _output_report_doc += '---'*40 + '\n'
         return _output_report_doc
 
