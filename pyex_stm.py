@@ -1127,8 +1127,9 @@ class PltScore(ScoreTransformModel):
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
         _output_report_doc = field_title.format(field)
         plist = self.input_score_ratio_cum
-        _output_report_doc += '  raw score mean, std:  {:2.2f}, {:2.2f}\n'.\
-            format(self.input_data[field].mean(), self.input_data[field].std())
+        _output_report_doc += 'statistics(mean, std): raw_score({:2.2f}, {:2.2f})  out_score({:2.2f}, {:2.2f})\n'.\
+            format(self.input_data[field].mean(), self.input_data[field].std(),
+                   self.output_data[field+'_plt'].mean(), self.output_data[field+'_plt'].std())
         _output_report_doc += '  raw score seg ratio: {}\n'.\
             format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
                     for j in range(len(plist))])
