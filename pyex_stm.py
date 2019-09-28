@@ -1063,9 +1063,9 @@ class PltScore(ScoreTransformModel):
         _seg = -1
         _percent = -1
         last_percent = -1
-        last_seg = -1
+        last_seg = None
         last_diff = 1000
-        _use_last = False
+        _use_last = None
         for index, row in map_table.iterrows():
             _percent = row[field+'_percent']
             _seg = row['seg']
@@ -1073,42 +1073,38 @@ class PltScore(ScoreTransformModel):
 
             # at bottom
             if index == map_table.index.max():
-                break
-
-            # reduce searching
-            if _percent < start_ratio:
-                continue
+                _use_last = False
 
             # reach bigger than or equal to ratio
             if _percent >= dest_ratio:
                 # at top
-                if index == map_table.index.min():
-                    break
+                if last_seg is None:
+                    _use_last = False
+
                 # dealing with tragedies
                 if 'near' in _mode:
                     # this ratio is near
                     if _diff < last_diff:
-                        break
+                        _use_last = False
                     # last ratio is near
                     elif _diff > last_diff:
                         _use_last = True
-                        break
                     # distances are same
                     else:
                         # mode is near_min
                         if 'near_min' in _mode:
                             _use_last = True
-                            break
                         # mode is near_max
                         else:
-                            break
+                            _use_last = False
                 elif _mode == 'lower_max':
                     if _percent == dest_ratio:
-                        break
+                        _use_last = False
                     else:
                         _use_last = True
                 elif _mode == 'upper_min':
-                    break
+                    _use_last = False
+            if _use_last is not None:
                 break
             last_seg = _seg
             last_diff = _diff
