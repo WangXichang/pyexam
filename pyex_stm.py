@@ -12,7 +12,7 @@
 
     [functions] 模块中的函数
        run(name, df, field_list, ratio_list, grade_max, grade_diff, input_score_max, input_score_min,
-           output_score_decimal=0, ratio_approx_mode='near', ratio_cum_mode='yes')
+           output_score_decimal=0, approx_mode='near', cumu_mode='yes')
           运行各个模型的调用函数 calling model function
           ---
           参数描述
@@ -48,7 +48,7 @@
           output_score_decimal: grade score precision, decimal digit number
           输出分数精度，小数位数
           --
-          ratio_approx_mode: how to approxmate score points of raw score for each ratio vlaue
+          approx_mode: how to approxmate score points of raw score for each ratio vlaue
           计算等级时的逼近方式（目前设计的比例值逼近策略)：
               'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
               'lower_max': get score with max value in less 大于该比例值的分值中最小的值
@@ -58,7 +58,7 @@
               注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
               注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
 
-              拟改进为（2019.09.09） ratio_approx_mode：
+              拟改进为（2019.09.09） approx_mode：
               'near':    look up the nearest in all ratios to given-ratio 最接近的比例
               'upper_min':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
               'lower_max':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
@@ -66,7 +66,7 @@
               仍然使用四种模式(2019.09.25)： upper_min, lower_max, near_min, near_max
 
           拟增加比例累加控制(2019.09.09)：
-          ratio_cum_mode:
+          cumu_mode:
               'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
               'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
 
@@ -226,8 +226,8 @@ def run(name='shandong',
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        ratio_approx_mode='lower_max',
-        ratio_cum_mode='yes',
+        approx_mode='lower_max',
+        cumu_mode='yes',
         score_order='descending',
         grade_diff=None,
         grade_max=None
@@ -253,8 +253,8 @@ def run(name='shandong',
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param ratio_approx_mode: lower_max, upper_min, near(near_max, near_min)  default=lower_max  # for shandong new project
-    :param ratio_cum_mode: yes, no  default=yes                     # for shandong new project
+    :param approx_mode: lower_max, upper_min, near(near_max, near_min)  default=lower_max  # for shandong new project
+    :param cumu_mode: yes, no  default=yes                     # for shandong new project
     :param score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
@@ -264,6 +264,7 @@ def run(name='shandong',
     if name.lower() not in name_set:
         print('invalid name, not in {}'.format(name_set))
         return
+
     # check input data
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
@@ -273,11 +274,21 @@ def run(name='shandong',
             return
     else:
         input_data = df
+
     # check field_list
     if isinstance(field_list, str):
         field_list = [field_list]
     elif not isinstance(field_list, list):
         print('invalid field_list!')
+        return
+
+    # check approx_mode
+    if approx_mode not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
+        print('invalid approx mode: {}'.format(approx_mode))
+        print('  valid approx mode: lower_max, upper_min, near_min, near_max')
+        return
+    if cumu_mode not in ['yes', 'no']:
+        print('invalid cumu mode(yes/no): {}'.format(cumu_mode))
         return
 
     # shandong score model
@@ -293,8 +304,8 @@ def run(name='shandong',
                           output_score_points_list=CONST_DICT[name.lower()][1],
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
-                          ratio_approx_mode=ratio_approx_mode,
-                          ratio_cum_mode=ratio_cum_mode,
+                          approx_mode=approx_mode,
+                          cumu_mode=cumu_mode,
                           score_order=score_order,
                           decimals=output_score_decimal)
         pltmodel.run()
@@ -324,8 +335,8 @@ def run(name='shandong',
                    minscore=input_score_min,
                    grade_ratio_table=ratio_list,
                    grade_score_table=grade_score,
-                   ratio_approx_mode=ratio_approx_mode,
-                   ratio_cum_mode=ratio_cum_mode,
+                   approx_mode=approx_mode,
+                   cumu_mode=cumu_mode,
                    )
         m.run()
         return m
@@ -697,10 +708,12 @@ class PltScore(ScoreTransformModel):
         self.input_score_ratio_cum = []
         self.output_score_points = []
         self.output_data_decimal = 0
+        self.output_score_max = None
+        self.output_score_min = None
 
         # para
-        self.ratio_approx_mode = 'upper_min'
-        self.ratio_cum_mode = 'yes'
+        self.approx_mode = 'upper_min'
+        self.cumu_mode = 'yes'
         self.score_order = 'descending'
         # self.use_min_rawscore_as_endpoint = True
         # self.use_max_rawscore_as_endpoint = True
@@ -740,8 +753,8 @@ class PltScore(ScoreTransformModel):
                  output_score_points_list=None,
                  input_score_min=None,
                  input_score_max=None,
-                 ratio_approx_mode='upper_min',
-                 ratio_cum_mode='yes',
+                 approx_mode='upper_min',
+                 cumu_mode='yes',
                  score_order='descending',
                  decimals=None):
         """
@@ -749,7 +762,7 @@ class PltScore(ScoreTransformModel):
         :param output_score_points_list: score points for output score interval
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
-        :param ratio_approx_mode:  upper_min, lower_max, near_min, near_max
+        :param approx_mode:  upper_min, lower_max, near_min, near_max
         :param score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
@@ -760,8 +773,8 @@ class PltScore(ScoreTransformModel):
         if len(input_score_ratio_list) != len(output_score_points_list):
             print('the number of input score points is not same as output score points!')
             return
-        if ratio_cum_mode not in 'yes, no':
-            print('ratio_cum_mode value error:{}'.format(ratio_cum_mode))
+        if cumu_mode not in 'yes, no':
+            print('cumu_mode value error:{}'.format(cumu_mode))
 
         if isinstance(decimals, int):
             self.output_data_decimal = decimals
@@ -780,8 +793,8 @@ class PltScore(ScoreTransformModel):
         self.input_score_min = input_score_min
         self.input_score_max = input_score_max
 
-        self.ratio_approx_mode = ratio_approx_mode
-        self.ratio_cum_mode = ratio_cum_mode
+        self.approx_mode = approx_mode
+        self.cumu_mode = cumu_mode
         self.score_order = score_order
 
     def check_parameter(self):
@@ -811,9 +824,12 @@ class PltScore(ScoreTransformModel):
         if self.input_score_min is None:
             # self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
             self.input_score_min = min(self.input_data[self.field_list].min())
+        if self.output_score_points is not None:
+            self.output_score_max = max([max(x) for x in self.output_score_points])
+            self.output_score_min = min([min(x) for x in self.output_score_points])
 
         # calculate seg table
-        print('--- start calculating map_table ---')
+        print('--- start calculating map_table ...')
         # import pyex_seg as psg
         seg = SegTable()
         seg.set_data(input_data=self.input_data,
@@ -833,11 +849,11 @@ class PltScore(ScoreTransformModel):
                 lambda x: fr.Fraction(x, max_sum))
             self.map_table.astype({f+'_fr': fr.Fraction})
             # strange error!!: some seg percent to zero
-            self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
+            # self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
 
         # transform score on each field
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
-        self.result_dict = {}
+        self.result_dict = dict()
         self.output_data = self.input_data.copy(deep=True)
         for i, fs in enumerate(self.field_list):
             print('--- transform score field:[{}]'.format(fs))
@@ -854,52 +870,35 @@ class PltScore(ScoreTransformModel):
                 'formulas': copy.deepcopy(self.result_formula_text_list)}
 
             # get field_plt in output_data
-            print('--- begin calculating ...')
+            print('   calculate: {0} => {0}_plt'.format(fs))
             self.output_data.loc[:, (fs + '_plt')] = \
                 self.output_data[fs].apply(
-                    lambda x: self.get_plt_score_from_formula3(fs, x)).astype('int')
+                    lambda x: self.get_plt_score_from_formula3(fs, x))
 
+            if self.output_data_decimal == 0:
+                self.output_data[fs] = self.output_data[fs].astype('int')
+                self.output_data[fs+'_plt'] = self.output_data[fs+'_plt'].astype('int')
+
+            print('   create report ...')
             self.output_report_doc += self.__get_report_doc(fs)
-            print('---create report ...')
 
         # get fs_plt in map_table
         df_map = self.map_table
         for fs in self.field_list:
             fs_name = fs + '_plt'
             df_map.loc[:, fs_name] = df_map['seg'].apply(
-                lambda x: self.get_plt_score_from_formula(fs, x))
+                lambda x: self.get_plt_score_from_formula3(fs, x))
             if self.output_data_decimal == 0:
                 df_map[fs_name] = df_map[fs_name].astype('int')
 
-        print('used time:', time.time() - stime)
+        print('--- used time:', time.time() - stime)
         print('-'*50)
     # run end
-
-    # calculate single field from raw score to plt_score
-    def run_at_field(self, rawscore_field):
-        if rawscore_field not in self.field_list:
-            print('field:{} not in field_list:{}'.format(rawscore_field, self.field_list))
-            return
-        # recreate formula
-        if not self.__get_formula(rawscore_field):
-            print('create formula fail!')
-            return
-        # transform score
-        if not isinstance(self.output_data, pd.DataFrame):
-            self.output_data = self.input_data.copy(deep=True)
-        if self.output_data_decimal == 0:
-            self.output_data = self.output_data.astype({rawscore_field: int})
-        self.output_data.loc[:, rawscore_field + '_plt'] = \
-            self.output_data[rawscore_field].apply(self.get_plt_score_from_formula_at_field).astype('int')
-        # if self.output_data_decimal == 0:
-        #     self.output_data = self.output_data.astype({rawscore_field+'_plt': int, rawscore_field: int})
-        # create report
-        self.output_report_doc = self.__get_report_doc(rawscore_field)
 
     # -----------------------------------------------------------------------------------
     # formula-1
     # y = a*x + b
-    def get_plt_score_from_formula(self, field, x):
+    def get_plt_score_from_formula1(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 return round45r(cf[0][0] * x + cf[0][1])
@@ -924,11 +923,11 @@ class PltScore(ScoreTransformModel):
     # formula-3 new, recommend to use
     # y = (a*x + b) / c : a=(y2-y1), b=y1x2-y2x1, c=(x2-x1)
     def get_plt_score_from_formula3(self, field, x):
+        if x >= self.input_score_max:
+            return self.output_score_max
+        if x <= self.input_score_min:
+            return self.output_score_min
         for cf in self.result_dict[field]['coeff'].values():
-            if x >= self.input_score_max:
-                return max([max(p) for p in self.output_score_points])
-            if x <= self.input_score_min:
-                return min([min(p) for p in self.output_score_points])
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 a = (cf[2][1]-cf[2][0])
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
@@ -939,29 +938,15 @@ class PltScore(ScoreTransformModel):
                 return round45r((a*x + b)/c)
         return -1
 
-    # from current formula-1 in result_coeff
-    def get_plt_score_from_formula_at_field(self, x):
-        for f in self.result_formula_coeff.values():
-            if x >= self.input_score_max:
-                return max([max(p) for p in self.output_score_points])
-            if x <= self.input_score_min:
-                return 0
-            if f[1][0] <= x <= f[1][1] or f[1][0] >= x >= f[1][1]:
-                # x1 == x2 then return max(y1, y2)
-                if f[1][0] == f[1][1]:
-                    return max(f[2])
-                return round45r(f[0][0]*x + f[0][1])
-        return -1
-
     def __get_formula(self, field):
         # --step 1
         # claculate rawscore_endpoints
         if field in self.output_data.columns.values:
-            print('-- get input score endpoints ...')
-            # points_list = self.__get_raw_score_from_ratio(field, self.ratio_approx_mode)
+            print('   get input score endpoints ...')
+            # points_list = self.__get_raw_score_from_ratio(field, self.approx_mode)
             points_list = self.__get_formula_raw_seg_list(field=field,
-                                                          approx_mode=self.ratio_approx_mode,
-                                                          cum_mode=self.ratio_cum_mode,
+                                                          approx_mode=self.approx_mode,
+                                                          cum_mode=self.cumu_mode,
                                                           score_order=self.score_order,
                                                           score_max=self.input_score_max,
                                                           score_min=self.input_score_min,
@@ -1031,11 +1016,8 @@ class PltScore(ScoreTransformModel):
                 self.get_seg_from_map_table(
                                             map_table=map_table,
                                             field=field,
-                                            start_ratio=last_ratio,
                                             dest_ratio=dest_percent,
-                                            ratio_approx_mode=approx_mode)
-            print('<{}> def_ratio={:.2f} dest_ratio={:.4f} result_p={:.4f} result_x{}2={:3.0f}'.
-                  format(i+1, ratio, dest_percent, result_this_seg_percent, i+1, result_this_seg_endpoint))
+                                            approx_mode=approx_mode)
             last_ratio = ratio
             last_percent = result_this_seg_percent
             if ratio == raw_score_ratio_cum_list[-1]:
@@ -1045,6 +1027,12 @@ class PltScore(ScoreTransformModel):
             else:
                 result_raw_seg_list.append(result_this_seg_endpoint)
             result_ratio.append('{:.4f}'.format(result_this_seg_percent))
+            if result_raw_seg_list[-1] > 0:
+                print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => result_seg: ({:3.0f}, {:3.0f})'.
+                      format(i+1, ratio, dest_percent, result_this_seg_percent,
+                             result_raw_seg_list[-2], result_this_seg_endpoint))
+            else:
+                print('   <{}> {}'.format(i+1, '******'))
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
@@ -1053,10 +1041,9 @@ class PltScore(ScoreTransformModel):
     def get_seg_from_map_table(self,
                                map_table,
                                field,
-                               start_ratio,
                                dest_ratio,
-                               ratio_approx_mode):
-        _mode = ratio_approx_mode.lower().strip()
+                               approx_mode):
+        _mode = approx_mode.lower().strip()
         result_seg_endpoint = min(map_table[field+'_percent']) \
             if self.score_order in ['descending', 'd'] \
             else max(map_table[field])
@@ -1156,23 +1143,25 @@ class PltScore(ScoreTransformModel):
 
         # statistics for raw and out score
         _output_report_doc += '-- '*40 + '\n'
-        _output_report_doc += '           statistics: raw_mean={:2.2f}, raw_std={:2.2f})  ' \
-                              'out_mean={:2.2f}, out_std={:2.2f})\n'.\
+        _output_report_doc += '           statistics: raw_mean={:2.2f}, raw_std={:2.2f}  ' \
+                              'out_mean={:2.2f}, out_std={:2.2f}\n'.\
                               format(self.input_data[field].mean(), self.input_data[field].std(),
                                      self.output_data[field+'_plt'].mean(), self.output_data[field+'_plt'].std())
 
         # differece between raw and out score
         _diff_raw_out = self.output_data[field+'_plt']-self.output_data[field]
-        _output_report_doc += '  difference(out-raw): max={:3.1f}  min={:3.1f}  lower_percent={:.2f}%\n'.format(
-            max(_diff_raw_out), min(_diff_raw_out), _diff_raw_out[_diff_raw_out<0].count()/_diff_raw_out.count()*100
-            )
+        _output_report_doc += '  difference(out-raw): shift_max={:3.1f}  shift_min={:3.1f}  ' \
+                              'shift_down_percent={:.2f}%\n'.format(
+                              max(_diff_raw_out), min(_diff_raw_out),
+                              _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
+                              )
         _diff_list = []
         for coeff in self.result_formula_coeff.values():
             rseg = coeff[1]
             oseg = coeff[2]
             a = coeff[0][0]
             b = coeff[0][1]
-            print(rseg, oseg)
+            # print(rseg, oseg)
             if rseg[0] >= oseg[0]:
                 if rseg[1] > oseg[1]:
                     _diff_list.append(rseg)
@@ -1180,7 +1169,7 @@ class PltScore(ScoreTransformModel):
                 _diff_list.append((int(rseg[0]), int(round45r(b/(1-a)))))
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
                 _diff_list.append((int(round45r(b/(1-a), 0)), int(rseg[1])))
-        _output_report_doc += '   each lower segment:' + str(_diff_list) + '\n'
+        _output_report_doc += '   shift down segment:' + str(_diff_list) + '\n'
         while True:
             _diff_loop = False
             for i in range(len(_diff_list)-1):
@@ -1191,6 +1180,7 @@ class PltScore(ScoreTransformModel):
                     break
             if not _diff_loop:
                 break
+        _diff_list = [x for x in _diff_list if x[0] != x[1]]
         _output_report_doc += '       lower segments:' + str(_diff_list) + '\n'
         _output_report_doc += '---'*40 + '\n'
 
@@ -1605,7 +1595,7 @@ class GradeScore(ScoreTransformModel):
     def __init__(self):
         super(GradeScore, self).__init__('grade')
         __zhejiang_ratio = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        self.ratio_approx_mode_set = 'upper_min, lower_max, near_max, near_min'
+        self.approx_mode_set = 'upper_min, lower_max, near_max, near_min'
 
         self.input_score_max = 150
         self.input_score_min = 0
@@ -1614,7 +1604,7 @@ class GradeScore(ScoreTransformModel):
         self.grade_score_table = [100 - x * 3 for x in range(len(self.ratio_grade_table))]
         self.grade_no = [x for x in range(1, len(self.ratio_grade_table) + 1)]
         self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
-        self.ratio_approx_mode = 'near'
+        self.approx_mode = 'near'
 
         self.map_table = None
         self.output_data = None
@@ -1636,8 +1626,8 @@ class GradeScore(ScoreTransformModel):
                  minscore=None,
                  grade_ratio_table=None,
                  grade_score_table=None,
-                 ratio_approx_mode=None,
-                 ratio_cum_mode=None
+                 approx_mode=None,
+                 cumu_mode=None
                  ):
         if isinstance(maxscore, int):
             if len(self.field_list) > 0:
@@ -1662,8 +1652,8 @@ class GradeScore(ScoreTransformModel):
         self.grade_no = [x+1 for x in range(len(self.ratio_grade_table))]
         self.grade_order = 'd' if self.grade_score_table[0] > self.grade_score_table[-1] else 'a'
         self.ratio_grade_table = [1] + self.ratio_grade_table
-        if ratio_approx_mode in self.ratio_approx_mode_set:
-            self.ratio_approx_mode = ratio_approx_mode
+        if approx_mode in self.approx_mode_set:
+            self.approx_mode = approx_mode
 
     def run(self):
         if len(self.field_list) == 0:
@@ -1743,7 +1733,7 @@ class GradeScore(ScoreTransformModel):
         print('percent:{} not found in {}'.format(p, self.ratio_grade_table))
         return self.grade_no[-1]
 
-    # calculate grade score by ratio_approx_mode
+    # calculate grade score by approx_mode
     def get_grade_map_by_approx(self):
         ratio_table = [1-x for x in self.ratio_grade_table[1:]]
         for sf in self.field_list:
@@ -1767,13 +1757,13 @@ class GradeScore(ScoreTransformModel):
                     d1 = abs(curr_grade_ratio - last_p)
                     d2 = abs(curr_grade_ratio - curr_p)
                     if d1 < d2:
-                        if self.ratio_approx_mode in 'upper_min, near':
+                        if self.approx_mode in 'upper_min, near':
                             curr_to_new_grade = True
                     elif d1 == d2:
-                        if self.ratio_approx_mode in 'upper_min, near_min, near_min':
+                        if self.approx_mode in 'upper_min, near_min, near_min':
                             curr_to_new_grade = True
                     else:  # d2 < d1
-                        if self.ratio_approx_mode in 'upper_min':
+                        if self.approx_mode in 'upper_min':
                             curr_to_new_grade = True
                     if curr_to_new_grade:
                         curr_grade_no += 1
@@ -1892,7 +1882,7 @@ class GradeScoreTao(ScoreTransformModel):
         self.run_create_output_data()
 
     def run_create_grade_dist_list(self):
-        # ratio_approx_mode = 'near'
+        # approx_mode = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.input_score_max,
                      segmin=self.input_score_min,
