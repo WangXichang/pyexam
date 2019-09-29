@@ -2444,9 +2444,12 @@ def round45r(number, digits=0):
     if digits > 16 or int_len + digits > 16:
         print('float cannot support {} digits precision'.format(digits))
         raise NotImplementedError
-    add_err = 2 * 10 ** -(16 - int_len + 1) * (1 if number > 0 else -1)
-    if format(number, '.' + str(16 - digits - int_len) + 'f').rstrip('0') <= str(number):
-        return round(number + add_err, digits) + add_err
+    add_err = 10**-12       # valid for 0-16000
+    # add_err = 3.55275*10**-15
+    # add_err = 2*10**-14
+    # add_err = 2 * 10 ** -(16 - int_len + 1) * (1 if number > 0 else -1)
+    # if format(number, '.' + str(16 - digits - int_len) + 'f').rstrip('0') <= str(number):
+    #     return round(number + add_err, digits) + add_err
     return round(number+add_err, digits)
 
 
