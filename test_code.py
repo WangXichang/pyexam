@@ -29,3 +29,13 @@ def _seek(data1=(), data2=(), loc=None):
     for i, (score, seg) in enumerate(zip(data1, data2)):
         if score >= loc and i > 0:
             return (data1[i-1], data2[i-1]), (score, seg)
+
+
+def round45r(number, digits=0):
+    int_len = len(str(int(abs(number))))
+    err_place = 16 - int_len - digits - 1
+    if err_place > 0:
+        err_ = 10**-err_place
+        return round(number + err_, digits)
+    else:
+        raise NotImplemented
