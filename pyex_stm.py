@@ -1102,6 +1102,23 @@ class PltScore(ScoreTransformModel):
         else:
             return _seg, _percent
 
+    def get_seg_from_fr(self, mapdf, field, ratio):
+        _r = fr.Fraction(ratio).limit_denominator(1000000)
+        last_fr = -1
+        last_seg = -1
+        start = 0
+        for row_id, row in mapdf.iterrows():
+            this_fr = row[field+'_fr']
+            this_seg = row['seg']
+            if (_r <= this_fr) or (start == len(mapdf)):
+                if (start == 0) or (_r == this_fr):
+                    return (this_seg, this_fr, _r-last_fr), (this_seg, this_fr, this_fr-_r)
+                return (last_seg, last_fr, _r-last_fr), (this_seg, this_fr, this_fr-_r)
+            last_fr = this_fr
+            last_seg = this_seg
+            start += 1
+
+
     def __get_report_doc(self, field=''):
         p = 0 if self.score_order in ['ascending', 'a'] else 1
         self.result_formula_text_list = []

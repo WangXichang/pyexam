@@ -6,13 +6,16 @@ import functools as ft
 
 
 def test(df=None, f='', r=0.3):
-    percent_list = [0 for j in range(100)]
+    _r = fra.Fraction(r).limit_denominator(10000)
+    print(_r)
+    # for x, y in zip(list(df['seg']), list(df[f+'_fr'])):
+    #     if fra.Fraction(y) <= _r:
+    #         print(x, y)
     for ri, row in df.iterrows():
         _fr = row[f+'_fr']
-        for j in range(100):
-            if fra.Fraction(j/100) < _fr <= fra.Fraction((j+1)/100):
-                percent_list[j] += 1
-    return percent_list
+        if _r <= _fr:
+            print(_r, _fr, _r >= _fr)
+            return r, row['seg'], row[f+'_percent'], _fr
 
 
 def test_reduce():
