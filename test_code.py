@@ -33,9 +33,10 @@ def _seek(data1=(), data2=(), loc=None):
 
 def round45r(number, digits=0):
     int_len = len(str(int(abs(number))))
-    err_place = 16 - int_len - digits - 1
+    signal_ = 1 if number >= 0 else -1
+    err_place = 16 - int_len - 1
     if err_place > 0:
         err_ = 10**-err_place
-        return round(number + err_, digits)
+        return round(number + err_*signal_, digits) + err_ * signal_
     else:
         raise NotImplemented
