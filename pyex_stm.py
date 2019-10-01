@@ -1103,6 +1103,9 @@ class PltScore(ScoreTransformModel):
             return _seg, _percent
 
     def get_seg_from_fr(self, mapdf, field, ratio):
+        # comments:
+        #   use limit_denominator in Fraction
+        #   because of the error in pandas.field(Fraction) is not valid
         _r = fr.Fraction(ratio).limit_denominator(1000000)
         last_fr = -1
         last_seg = -1
