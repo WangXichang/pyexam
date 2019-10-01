@@ -1138,8 +1138,15 @@ class PltScore(ScoreTransformModel):
             else:
                 self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
 
+        # report start
+        # tiltle
         field_title = '---<< score field: [{}] >>---' + '---'*30 + '\n'
         _output_report_doc = field_title.format(field)
+
+        # algorithm stratedy
+        _output_report_doc += '           stratedies: approx_mode: {}   cumu_mode: {}\n'.\
+            format(self.approx_mode, self.cumu_mode)
+        _output_report_doc += '-- '*40 + '\n'
 
         # calculating for ratio and segment
         plist = self.input_score_ratio_cum
