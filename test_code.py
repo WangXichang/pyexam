@@ -32,11 +32,34 @@ def _seek(data1=(), data2=(), loc=None):
 
 
 def round45r(number, digits=0):
-    int_len = len(str(int(abs(number))))
+    # ( 1)                9 bit=4
+    # ( 2)               99 bit=7
+    # ( 3)              999 bit=10
+    # ( 4)             9999 bit=14
+    # ( 5)            99999 bit=17
+    # ( 6)           999999 bit=20
+    # ( 7)          9999999 bit=24
+    # ( 8)         99999999 bit=27
+    # ( 9)        999999999 bit=30
+    # (10)       9999999999 bit=34
+    # (11)      99999999999 bit=37
+    # (12)     999999999999 bit=40
+    # (13)    9999999999999 bit=44
+    # (14)   99999999999999 bit=47
+    # (15)  999999999999999 bit=50
+    # (16) 9999999999999999 bit=54
+    # ---------------------------------------------
+    # format(ttc.round45r(999999999.145,2), '.20f')
+    # '999999999.15000021457672119141'
+    # note: valid digits is less than 52-int_bit_len
+    #       err_ must be after round place
+    #       int_bit + digits + 1 >= 52
+    # ---------------------------------------------
+    int_bit_len = int(number).bit_length()
     signal_ = 1 if number >= 0 else -1
-    err_place = 16 - int_len - 1
-    if err_place > 0:
-        err_ = 10**-err_place
-        return round(number + err_*signal_, digits) + err_ * signal_
+    err_place2 = 52 - int_bit_len
+    if err_place2 > 1:
+        err_ = signal_*2**-err_place2
+        return round(number + err_, digits) + err_
     else:
         raise NotImplemented
