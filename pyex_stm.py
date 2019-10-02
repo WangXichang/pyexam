@@ -174,14 +174,15 @@ CONST_DICT = {'zhejiang': (CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
               }
 
 
-def about():
+def about_stm():
     print(__doc__)
 
 
-def test(model='shandong',
-         max_score=100,
-         min_score=0,
-         data_size=1000):
+def test_stm(
+        model='shandong',
+        max_score=100,
+        min_score=0,
+        data_size=1000):
 
     model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
                   'M7', 'guangdong', 'hainan', 'tao']
@@ -219,7 +220,8 @@ def test(model='shandong',
 
 
 # interface to use model for some typical application
-def run(name='shandong',
+def run_stm(
+        name='shandong',
         df=None,
         field_list='',
         ratio_list=None,
@@ -380,8 +382,8 @@ def run(name='shandong',
         return tm
 
 
-def plot():
-    ms_dict = get_mean_std()
+def plot_stm():
+    ms_dict = stm_mean_std()
     plt.figure('Noew Gaokao Grade Score Distribution of Models')
     plt.rcParams.update({'font.size': 16})
 
@@ -414,7 +416,7 @@ def plot():
     plt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
 
 
-def get_mean_std():
+def stm_mean_std():
     name_list = ['shandong', 'shanghai', 'zhejiang', 'guangdong', 'm7', 'beijing', 'tianjin']
     mean_std_dict = dict()
     for _name in name_list:
@@ -432,7 +434,7 @@ def get_mean_std():
             if _name =='m7':
                 ratio_lst = CONST_M7_RATIO
                 score_seg = CONST_M7_SEGMENT
-            mean_std_dict.update({_name: __calc_mean_std(
+            mean_std_dict.update({_name: __calc_stm_mean_std(
                 name=_name, ratio_lst=ratio_lst, score_seg=score_seg, score_max=score_max)})
         if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
             if _name =='shanghai':
@@ -444,12 +446,12 @@ def get_mean_std():
                 ratio_lst = CONST_BEIJING_RATIO
             if _name =='tianjin':
                 ratio_lst = CONST_TIANJIN_RATIO
-            mean_std_dict.update({_name: __calc_mean_std(
+            mean_std_dict.update({_name: __calc_stm_mean_std(
                 name=_name, ratio_lst=ratio_lst, score_max=score_max, score_gap=score_gap)})
     return mean_std_dict
 
 
-def __calc_mean_std(name='shandong', ratio_lst=None, score_seg=None, score_max=100, score_gap=3):
+def __calc_stm_mean_std(name='shandong', ratio_lst=None, score_seg=None, score_max=100, score_gap=3):
     _mean, _std = -1, -1
     _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(CONST_DICT[name][0], CONST_DICT[name][1])])
     _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * CONST_DICT[name][0][i]
@@ -476,12 +478,38 @@ def mentcaro(ratio=tuple(CONST_SHANDONG_RATIO),
     ndata = [x if 0 <= x <= 100 else (0 if x < 0 else 100) for x in ndata]
     print('mu={:.2f}, sigma={:.2f} std={:.2f}, mean={:.2f}'.
           format(_mu, _sigma, np.std(ndata), np.mean(ndata)))
-    m = run(df=pd.DataFrame({'fs':ndata}), field_list='fs')
+    m = run_stm(df=pd.DataFrame({'fs':ndata}), field_list='fs')
     return m
 
 
+def run_seg(
+            input_data:pd.DataFrame,
+            field_list:list,
+            segmax=100,
+            segmin=0,
+            segsort='d',
+            segstep= 1,
+            display=False,
+            usealldata=False
+            ):
+    seg = SegTable()
+    seg.set_data(
+        input_data=input_data,
+        field_list=field_list
+    )
+    seg.set_para(
+        segmax=segmax,
+        segmin=segmin,
+        segstep=segstep,
+        display=display,
+        useseglist=usealldata
+    )
+    seg.run()
+    return seg
+
+
 # test dataset
-class Testdata():
+class test_data():
     def __init__(self, mean=60, max=100, min=0, std=18, size=1000000):
         self.data_mean = mean
         self.data_max = max
@@ -830,21 +858,34 @@ class PltScore(ScoreTransformModel):
 
         # calculate seg table
         print('--- start calculating map_table ...')
-        # import pyex_seg as psg
-        seg = SegTable()
-        seg.set_data(input_data=self.input_data,
-                     field_list=self.field_list)
-        seg.set_para(segmax=self.input_score_max,
-                     segmin=self.input_score_min,
-                     segsort='a' if self.score_order in ['ascending', 'a'] else 'd',
-                     segstep=1,
-                     display=False,
-                     usealldata=False)
-        seg.run()
-        self.seg_model = seg
-        self.map_table = seg.output_data.copy(deep=True)
+        # from pyex_tool import pyex_seg as psg
+        # seg = SegTable()
+        # seg.set_data(
+        #           input_data=self.input_data,
+        #           field_list=self.field_list)
+        # seg.set_para(
+        #              segmax=self.input_score_max,
+        #              segmin=self.input_score_min,
+        #              segsort='a' if self.score_order in ['ascending', 'a'] else 'd',
+        #              segstep=1,
+        #              display=False,
+        #              usealldata=False)
+        # seg.run()
+        # self.seg = run_seg()
+        self.seg_model = run_seg(
+                  input_data=self.input_data,
+                  field_list=self.field_list,
+                  segmax=self.input_score_max,
+                  segmin=self.input_score_min,
+                  segsort='a' if self.score_order in ['ascending', 'a'] else 'd',
+                  segstep=1,
+                  display=False,
+                  usealldata=False
+                  )
+        self.map_table = self.seg_model.output_data.copy(deep=True)
         for f in self.field_list:
             max_sum = max(self.map_table[f+'_sum'])
+            max_sum = 1 if max_sum == 0 else max_sum
             self.map_table[f+'_fr'] = self.map_table[f+'_sum'].apply(
                 lambda x: fr.Fraction(x, max_sum))
             self.map_table.astype({f+'_fr': fr.Fraction})
@@ -2453,7 +2494,10 @@ def round45r(number, digits=0):
     int_len = len(str(int(abs(number))))
     if int_len + abs(digits) <= 16:
         err_ = (1 if number >= 0 else -1)*10**-(16-int_len)
-        return round(number + err_, digits) + err_
+        if digits > 0:
+            return round(number + err_, digits) + err_
+        else:
+            return int(round(number + err_, digits))
     else:
         raise NotImplemented
 
