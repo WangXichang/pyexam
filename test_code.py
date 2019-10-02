@@ -53,7 +53,7 @@ def round45r(number, digits=0):
     # '999999999.15000021457672119141'
     # note: valid digits is less than 52-int_bit_len
     #       err_ must be after round place
-    #       int_bit + digits + 1 >= 52
+    #       int_bit + digits(10?) + 1 >= 52
     # ---------------------------------------------
     int_bit_len = int(number).bit_length()
     signal_ = 1 if number >= 0 else -1
