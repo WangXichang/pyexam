@@ -55,11 +55,15 @@ def round45r(number, digits=0):
     #       err_ must be after round place
     #       int_bit + digits(10?) + 1 >= 52
     # ---------------------------------------------
+    bit_list = [4, 7, 10, 14, 17, 20, 24, 27, 30, 34, 37, 40, 44, 47, 50]
     int_bit_len = int(number).bit_length()
+    int_len = len(str(int(abs(number))))
+    if int_len + abs(digits) > 16:
+        raise ValueError
     signal_ = 1 if number >= 0 else -1
-    err_place2 = 52 - int_bit_len
+    err_place2 = 52 - int_bit_len - bit_list[int_len]
     if err_place2 > 1:
-        err_ = signal_*2**-err_place2
+        err_ = signal_*2**-(52-int_bit_len)
         return round(number + err_, digits) + err_
     else:
         raise NotImplemented
