@@ -54,6 +54,7 @@ def round45r(number, digits=0):
     # note: valid digits is less than 52-int_bit_len
     #       err_ must be after round place
     #       int_bit + digits(10?) + 1 >= 52
+    # '999'problem
     # ---------------------------------------------
     bit_list = [4, 7, 10, 14, 17, 20, 24, 27, 30, 34, 37, 40, 44, 47, 50]
     int_bit_len = int(number).bit_length()
