@@ -56,15 +56,13 @@ def round45r(number, digits=0):
     #       int_bit + digits(10?) + 1 >= 52
     # '999'problem
     # ---------------------------------------------
-    bit_list = [4, 7, 10, 14, 17, 20, 24, 27, 30, 34, 37, 40, 44, 47, 50]
-    int_bit_len = int(number).bit_length()
+    # bit_list = [0, 4, 7, 10, 14, 17, 20, 24, 27, 30, 34, 37, 40, 44, 47]
+    # int_bit_len = int(number).bit_length()
+    # err_place2 = 52 - int_bit_len - bit_list[digits]
+    # print(err_place2, int_len, int_bit_len)
     int_len = len(str(int(abs(number))))
-    if int_len + abs(digits) > 16:
-        raise ValueError
-    signal_ = 1 if number >= 0 else -1
-    err_place2 = 52 - int_bit_len - bit_list[int_len]
-    if err_place2 > 1:
-        err_ = signal_*2**-(52-int_bit_len)
+    if int_len + abs(digits) <= 16:
+        err_ = (1 if number >= 0 else -1)*10**-(16-int_len)
         return round(number + err_, digits) + err_
     else:
         raise NotImplemented

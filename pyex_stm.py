@@ -2450,6 +2450,15 @@ def round45i(v: float, dec=0):
 
 
 def round45r(number, digits=0):
+    int_len = len(str(int(abs(number))))
+    if int_len + abs(digits) <= 16:
+        err_ = (1 if number >= 0 else -1)*10**-(16-int_len)
+        return round(number + err_, digits) + err_
+    else:
+        raise NotImplemented
+
+
+def round45r_old2(number, digits=0):
     __doc__ = '''
     float is not precise at digit 16 from decimal point.
     if hope that round(1.265, 3): 1.264999... to 1.265000...
@@ -2460,17 +2469,18 @@ def round45r(number, digits=0):
         1.2*10**-16 => 0.0...0(52)100010100...
     so 10**-16 can not definitely represented in float 1+52bit
 
+    (16 - int_len) is ok, 17 is unstable
     test result:
-    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(17)4671'
+    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(16)4671'      ## digit-16 is reliable
     format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
     format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
-    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(17)4671'
+    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(16)4671'
     '''
-    snum = str(number)
-    int_len = snum.find('.')
-    if digits > 16 or int_len + digits > 16:
+
+    int_len = str(abs(number)).find('.')
+    if int_len + digits > 16:
         print('float cannot support {} digits precision'.format(digits))
-        raise NotImplementedError
+        raise ValueError
     add_err = 10**-12       # valid for 0-16000
     # add_err = 3.55275*10**-15
     # add_err = 2*10**-14
