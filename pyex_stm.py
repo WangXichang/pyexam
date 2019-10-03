@@ -877,6 +877,22 @@ class PltScore(ScoreTransformModel):
 
         # transform score on each field
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
+        self.output_report_doc += '---'*40 + '\n'
+        # algorithm stratedy
+        self.output_report_doc += '           strategies: ' \
+                              'ratio_approx={}, ratio_cumu={}, ' \
+                              'score_order={}, end_share={}(unimplemented)\n'.\
+            format(self.mode_approx,
+                   self.mode_cumu,
+                   self.mode_mode_score_order,
+                   self.mode_endpoint_share)
+        self.output_report_doc += '  raw score seg ratio: {}\n'.\
+            format([format(x-self.input_score_ratio_cum[i-1] if i >0 else x, '.2f')
+                    for i, x in  enumerate(self.input_score_ratio_cum)])
+        self.output_report_doc += 'output score segments: {}\n'.\
+            format(self.output_score_points)
+        self.output_report_doc += '---'*40 + '\n'
+
         self.result_dict = dict()
         self.output_data = self.input_data.copy(deep=True)
         for i, fs in enumerate(self.field_list):
@@ -1165,18 +1181,8 @@ class PltScore(ScoreTransformModel):
 
         # report start
         # tiltle
-        field_title = '<< score field: [{}] >>\n' + '---'*40 + '\n'
+        field_title = '<< score field: [{}] >>\n' + '- -'*40 + '\n'
         _output_report_doc = field_title.format(field)
-
-        # algorithm stratedy
-        _output_report_doc += '           strategies: ' \
-                              'ratio_approx={}, ratio_cumu={}, ' \
-                              'score_order={}, end_share={}(unimplemented)\n'.\
-            format(self.mode_approx,
-                   self.mode_cumu,
-                   self.mode_mode_score_order,
-                   self.mode_endpoint_share)
-        _output_report_doc += '-- '*40 + '\n'
 
         # calculating for ratio and segment
         plist = self.input_score_ratio_cum
@@ -1193,14 +1199,14 @@ class PltScore(ScoreTransformModel):
             format([x[2] for x in self.result_formula_coeff.values()])
 
         # transforming formulas
-        _output_report_doc += '-- '*40 + '\n'
+        _output_report_doc += '- -'*40 + '\n'
         for i, fs in enumerate(self.result_formula_text_list):
             if i == 0:
                 _output_report_doc += 'transforming formulas:\n'
             _output_report_doc += '                       {}\n'.format(fs)
 
         # statistics for raw and out score
-        _output_report_doc += '-- '*40 + '\n'
+        _output_report_doc += '- -'*40 + '\n'
         _output_report_doc += '           statistics: raw_mean={:2.2f}, raw_std={:2.2f}  ' \
                               'out_mean={:2.2f}, out_std={:2.2f}\n'.\
                               format(self.input_data[field].mean(), self.input_data[field].std(),
