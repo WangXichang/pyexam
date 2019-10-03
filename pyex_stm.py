@@ -617,7 +617,7 @@ class ScoreTransformModel(object):
         elif mode.lower() == 'raw':
             self.__plot_raw_score()
         else:
-            print('error mode={}, valid mode: out or raw'.format(mode))
+            # print('error mode={}, valid mode: out or raw'.format(mode))
             return False
         return True
 
@@ -836,7 +836,7 @@ class PltScore(ScoreTransformModel):
 
     def run(self):
 
-        print('stm begin running ...\n'+'-'*50)
+        print('stm-run begin...\n'+'-'*50)
         stime = time.time()
 
         # check valid
@@ -916,7 +916,7 @@ class PltScore(ScoreTransformModel):
                 df_map[fs_name] = df_map[fs_name].astype('int')
 
         print('-'*50)
-        print('stm end, sonsuming-time:', time.time() - stime)
+        print('stm-run end, elapsed-time:', time.time() - stime)
 
     # run end
 
@@ -1262,19 +1262,38 @@ class PltScore(ScoreTransformModel):
             print('\"{}\" is invalid'.format(mode))
 
     def __plot_bar(self):
-        x = range(self.input_score_max+1)
+        x = np.arange(self.input_score_max+1)
         for f in self.field_list:
             raw_label = [str(x) for x in self.map_table['seg']][::-1]
             raw_data = list(self.map_table[f+'_count'])[::-1]
-            out_seg = run_seg(self.map_table, [f+'_plt'],
+            out_seg = run_seg(self.output_data,
+                              [f+'_plt'],
                               segmax=self.output_score_max,
                               segmin=self.output_score_min)
-            out_data = [out_seg.output_data[f+'_plt_count'] if x in out_seg.output_data.seg else 0
-                        for x in raw_label]
+            # out_data = [(x[0], x[1]) for x in out_seg.output_data[['seg', f+'_plt_count']].values]
+            out_data = [0 for _ in raw_label]
+            for ri, row in out_seg.output_data.iterrows():
+                for i, s in enumerate(raw_label):
+                    if int(s) == int(row['seg']):
+                        out_data[i] = row[f+'_plt_count']
+            # print(out_data)
             fig, ax = plt.subplots()
-            width = 0.1
+            ax.set_xticks(x)
+            ax.set_xticklabels(raw_label)
+            ax.legend()
+            width = 0.3
             rects1 = ax.bar(x - width / 2, raw_data, width, label=f)
-            rects2 = ax.bar(x - width / 2, out_data, width, label=f+'_plt')
+            rects2 = ax.bar(x + width / 2, out_data, width, label=f+'_plt')
+            """Attach a text label above each bar in *rects*, displaying its height."""
+            for rects in [rects1, rects2]:
+                for rect in rects:
+                    height = rect.get_height()
+                    ax.annotate('{}'.format(int(height)),
+                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xytext=(0, 3),  # 3 points vertical offset
+                                textcoords="offset points",
+                                ha='center', va='bottom')
+            fig.tight_layout()
             plt.show()
 
     def __plot_dist(self):
