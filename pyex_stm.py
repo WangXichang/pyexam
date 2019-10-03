@@ -1169,9 +1169,9 @@ class PltScore(ScoreTransformModel):
         _output_report_doc = field_title.format(field)
 
         # algorithm stratedy
-        _output_report_doc += '           stratedies: ' \
+        _output_report_doc += '           strategies: ' \
                               'ratio_approx={}, ratio_cumu={}, ' \
-                              'score_order={}, end_share={}\n'.\
+                              'score_order={}, end_share={}(unimplemented)\n'.\
             format(self.mode_approx,
                    self.mode_cumu,
                    self.mode_mode_score_order,
@@ -1248,16 +1248,51 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift']:
-            print('valid mode is: raw, out, model,shift')
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar']:
+            print('valid mode is: raw, out, model,shift, dist, bar')
             return
-        if mode == 'model':
+        if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
-            self.__plotmodel()
+            self.__plot_model()
+        if mode in 'dist':
+            self.__plot_dist()
+        if mode in 'bar':
+            self.__plot_bar()
         elif not super(PltScore, self).plot(mode):
-            print('mode {} is invalid'.format(mode))
+            print('\"{}\" is invalid'.format(mode))
 
-    def __plotmodel(self):
+    def __plot_bar(self):
+        x = range(self.input_score_max+1)
+        for f in self.field_list:
+            raw_label = [str(x) for x in self.map_table['seg']][::-1]
+            raw_data = list(self.map_table[f+'_count'])[::-1]
+            out_seg = run_seg(self.map_table, [f+'_plt'],
+                              segmax=self.output_score_max,
+                              segmin=self.output_score_min)
+            out_data = [out_seg.output_data[f+'_plt_count'] if x in out_seg.output_data.seg else 0
+                        for x in raw_label]
+            fig, ax = plt.subplots()
+            width = 0.1
+            rects1 = ax.bar(x - width / 2, raw_data, width, label=f)
+            rects2 = ax.bar(x - width / 2, out_data, width, label=f+'_plt')
+            plt.show()
+
+    def __plot_dist(self):
+        for f in self.field_list:
+            fig, ax = plt.subplots()
+            ax.plot(list(self.map_table.seg)[::-1],
+                    list(self.map_table[f + '_count'])[::-1],
+                    'o-',
+                    label='score:' + f)
+            ax.plot(list(self.map_table[f+'_plt'])[::-1],
+                    list(self.map_table[f + '_count'])[::-1],
+                    'o-',
+                    label='score:' + f + '_plt')
+            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
+        # legend.get_frame().set_facecolor('C0')
+        plt.show()
+
+    def __plot_model(self):
         # 分段线性转换模型
         plt.rcParams['font.sans-serif'] = ['SimHei']
         plt.rcParams.update({'font.size': 8})
