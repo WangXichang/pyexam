@@ -737,7 +737,7 @@ class PltScore(ScoreTransformModel):
         self.mode_approx = 'upper_min'
         self.mode_cumu = 'yes'
         self.mode_mode_score_order = 'descending'
-        self.mode_endpoint_link = 'no'
+        self.mode_endpoint_share = 'no'
         # self.use_min_rawscore_as_endpoint = True
         # self.use_max_rawscore_as_endpoint = True
 
@@ -1169,8 +1169,13 @@ class PltScore(ScoreTransformModel):
         _output_report_doc = field_title.format(field)
 
         # algorithm stratedy
-        _output_report_doc += '           stratedies: approx: {}   cumu: {}\n'.\
-            format(self.mode_approx, self.mode_cumu)
+        _output_report_doc += '           stratedies: ' \
+                              'ratio_approx={}, ratio_cumu={}, ' \
+                              'score_order={}, end_share={}\n'.\
+            format(self.mode_approx,
+                   self.mode_cumu,
+                   self.mode_mode_score_order,
+                   self.mode_endpoint_share)
         _output_report_doc += '-- '*40 + '\n'
 
         # calculating for ratio and segment
