@@ -1208,10 +1208,14 @@ class PltScore(ScoreTransformModel):
 
         # differece between raw and out score
         _diff_raw_out = self.output_data[field+'_plt']-self.output_data[field]
-        _output_report_doc += '  difference(out-raw): shift_max={:3.1f}  shift_min={:3.1f}  ' \
-                              'shift_down_percent={:.2f}%\n'.format(
-                              max(_diff_raw_out), min(_diff_raw_out),
-                              _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
+        _output_report_doc += 'score shift(out-raw): ' \
+                              'shift_max={:3.1f}  ' \
+                              'shift_min={:3.1f}  ' \
+                              'shift_down_percent={:.2f}%\n'.\
+                              format(
+                                    max(_diff_raw_out),
+                                    min(_diff_raw_out),
+                                    _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
                               )
         _diff_list = []
         for coeff in self.result_formula_coeff.values():
@@ -1227,7 +1231,7 @@ class PltScore(ScoreTransformModel):
                 _diff_list.append((int(rseg[0]), int(round45r(b/(1-a)))))
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
                 _diff_list.append((int(round45r(b/(1-a), 0)), int(rseg[1])))
-        _output_report_doc += '   shift down segment:' + str(_diff_list) + '\n'
+        _output_report_doc += '   shift down segment: ' + str(_diff_list) + '\n'
         while True:
             _diff_loop = False
             for i in range(len(_diff_list)-1):
@@ -1239,7 +1243,7 @@ class PltScore(ScoreTransformModel):
             if not _diff_loop:
                 break
         _diff_list = [x for x in _diff_list if x[0] != x[1]]
-        _output_report_doc += '       lower segments:' + str(_diff_list) + '\n'
+        _output_report_doc += '       lower segments: ' + str(_diff_list) + '\n'
         _output_report_doc += '---'*40 + '\n'
 
         return _output_report_doc
@@ -1254,9 +1258,9 @@ class PltScore(ScoreTransformModel):
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
             self.__plot_model()
-        if mode in 'dist':
+        elif mode in 'dist':
             self.__plot_dist()
-        if mode in 'bar':
+        elif mode in 'bar':
             self.__plot_bar()
         elif not super(PltScore, self).plot(mode):
             print('\"{}\" is invalid'.format(mode))
@@ -1270,18 +1274,16 @@ class PltScore(ScoreTransformModel):
                               [f+'_plt'],
                               segmax=self.output_score_max,
                               segmin=self.output_score_min)
-            # out_data = [(x[0], x[1]) for x in out_seg.output_data[['seg', f+'_plt_count']].values]
             out_data = [0 for _ in raw_label]
             for ri, row in out_seg.output_data.iterrows():
                 for i, s in enumerate(raw_label):
                     if int(s) == int(row['seg']):
                         out_data[i] = row[f+'_plt_count']
-            # print(out_data)
             fig, ax = plt.subplots()
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
             ax.legend()
-            width = 0.3
+            width = 0.4
             rects1 = ax.bar(x - width / 2, raw_data, width, label=f)
             rects2 = ax.bar(x + width / 2, out_data, width, label=f+'_plt')
             """Attach a text label above each bar in *rects*, displaying its height."""
@@ -1299,12 +1301,23 @@ class PltScore(ScoreTransformModel):
     def __plot_dist(self):
         for f in self.field_list:
             fig, ax = plt.subplots()
-            ax.plot(list(self.map_table.seg)[::-1],
+            x_data = list(self.map_table.seg)[::-1]
+            ax.plot(x_data,
                     list(self.map_table[f + '_count'])[::-1],
                     'o-',
                     label='score:' + f)
-            ax.plot(list(self.map_table[f+'_plt'])[::-1],
-                    list(self.map_table[f + '_count'])[::-1],
+            out_seg = run_seg(self.output_data,
+                              [f+'_plt'],
+                              segmax=self.output_score_max,
+                              segmin=self.output_score_min)
+            # out_data = [0 for _ in self.map_table['seg']]
+            # for ri, row in out_seg.output_data.iterrows():
+            #     for i, s in enumerate(x_data):
+            #         if int(s) == int(row['seg']):
+            #             out_data[i] = row[f+'_plt_count']
+            #
+            ax.plot(list(out_seg.output_data['seg'])[::-1],
+                    list(out_seg.output_data[f+'_plt_count'])[::-1],
                     'o-',
                     label='score:' + f + '_plt')
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
