@@ -125,11 +125,12 @@ import warnings
 import numpy as np
 import pandas as pd
 import fractions as fr
-import decimal as dc
-import matplotlib.pyplot as plt
+# import decimal as dc
+import matplotlib.pyplot as pyplt
 import scipy.stats as sts
 import seaborn as sbn
 from pyex_tool import pyex_ptt as ptt
+
 
 warnings.filterwarnings('ignore')
 
@@ -164,14 +165,17 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
-CONST_DICT = {'zhejiang': (CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
-              'shanghai': (CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
-              'beijing': (CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
-              'tianjin': (CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
-              'shandong': (CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
-              'guangdong': (CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-              'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)
-              }
+plt_models_dict = {
+    'zhejiang': (CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
+    'shanghai': (CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
+    'beijing': (CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
+    'tianjin': (CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
+    'shandong': (CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
+    'guangdong': (CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
+    'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)
+    }
+stm_models_name = ['z', 't', 'hainan', 'tao'] + \
+                  list(plt_models_dict.keys())
 
 
 def about_stm():
@@ -184,10 +188,8 @@ def test_stm(
         min_score=0,
         data_size=1000):
 
-    model_list = ['z', 't', 'shandong', 'shanghai', 'zhejiang', 'tianjin', 'beijing',
-                  'M7', 'guangdong', 'hainan', 'tao']
-    if model.lower() not in model_list:
-        print('correct model name in: [{}]'.format(','.join(model_list)))
+    if model.lower() not in stm_models_name:
+        print('correct model name in: [{}]'.format(','.join(stm_models_name)))
         return None
 
     # create data set
@@ -198,7 +200,7 @@ def test_stm(
     norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
     dfscore = pd.DataFrame({'kmx': norm_data})
 
-    if model in model_list[2:]:
+    if model in stm_models_name[2:]:
         print('test model={}'.format(model))
         print('data set size={}, score range from 0 to 100'.format(data_size))
         m = run_stm(name=model, df=dfscore, field_list='kmx')
@@ -230,7 +232,7 @@ def run_stm(
         mode_approx='lower_max',
         mode_cumu='yes',
         mode_score_order='descending',
-        model_dict=CONST_DICT
+        model_dict=plt_models_dict
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -382,36 +384,36 @@ def run_stm(
 
 def plot_stm():
     ms_dict = stm_mean_std()
-    plt.figure('Noew Gaokao Grade Score Distribution of Models')
-    plt.rcParams.update({'font.size': 16})
+    pyplt.figure('Noew Gaokao Grade Score Distribution of Models')
+    pyplt.rcParams.update({'font.size': 16})
 
-    plt.subplot(241)
-    plt.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO[::-1])
-    plt.title('Shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
+    pyplt.subplot(241)
+    pyplt.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO[::-1])
+    pyplt.title('Shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
 
-    plt.subplot(242)
-    plt.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
-    plt.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
+    pyplt.subplot(242)
+    pyplt.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
+    pyplt.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
 
-    plt.subplot(243)
-    plt.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
-    plt.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
+    pyplt.subplot(243)
+    pyplt.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
+    pyplt.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
 
-    plt.subplot(244)
-    plt.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
-    plt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
+    pyplt.subplot(244)
+    pyplt.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
+    pyplt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
 
-    plt.subplot(245)
+    pyplt.subplot(245)
     sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    plt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
+    pyplt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
 
-    plt.subplot(246)
+    pyplt.subplot(246)
     sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT][::-1], CONST_GUANGDONG_RATIO[::-1])
-    plt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
+    pyplt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
 
-    plt.subplot(247)
+    pyplt.subplot(247)
     sbn.barplot([np.mean(x) for x in CONST_M7_SEGMENT][::-1], CONST_M7_RATIO[::-1])
-    plt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
+    pyplt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
 
 
 def stm_mean_std():
@@ -449,7 +451,7 @@ def stm_mean_std():
     return mean_std_dict
 
 
-def __calc_stm_mean_std(name='shandong', model_dict=CONST_DICT):
+def __calc_stm_mean_std(name='shandong', model_dict=plt_models_dict):
     _mean, _std = -1, -1
     _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(model_dict[name][0], model_dict[name][1])])
     _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * model_dict[name][0][i]
@@ -625,16 +627,16 @@ class ScoreTransformModel(object):
         if not self.field_list:
             print('no field:{0} assign in {1}!'.format(self.field_list, self.input_data))
             return
-        # plt.figure(self.model_name + ' out score figure')
+        # pyplt.figure(self.model_name + ' out score figure')
         labelstr = 'Output Score '
         for fs in self.field_list:
-            plt.figure(fs)
+            pyplt.figure(fs)
             if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
                 sbn.distplot(self.output_data[fs + '_plt'])
-                plt.title(labelstr + fs)
+                pyplt.title(labelstr + fs)
             elif fs + '_grade' in self.output_data.columns:  # find sf_outscore field
                 sbn.distplot(self.output_data[fs + '_grade'])
-                plt.title(labelstr + fs)
+                pyplt.title(labelstr + fs)
             else:
                 print('mode=out only for plt and grade model!')
         return
@@ -645,9 +647,9 @@ class ScoreTransformModel(object):
             return
         labelstr = 'Raw Score '
         for sf in self.field_list:
-            plt.figure(sf)
+            pyplt.figure(sf)
             sbn.distplot(self.input_data[sf])
-            plt.title(labelstr + sf)
+            pyplt.title(labelstr + sf)
         return
 
 
@@ -736,7 +738,7 @@ class PltScore(ScoreTransformModel):
         # para
         self.mode_approx = 'upper_min'
         self.mode_cumu = 'yes'
-        self.mode_mode_score_order = 'descending'
+        self.mode_score_order = 'descending'
         self.mode_endpoint_share = 'no'
         # self.use_min_rawscore_as_endpoint = True
         # self.use_max_rawscore_as_endpoint = True
@@ -786,7 +788,7 @@ class PltScore(ScoreTransformModel):
         :param input_score_min: min value to transform
         :param input_score_max: max value to transform
         :param mode_approx:  upper_min, lower_max, near_min, near_max
-        :param mode_mode_score_order: search ratio points from high score to low score if 'descending' or
+        :param mode_score_order: search ratio points from high score to low score if 'descending' or
                             low to high if 'descending'
         :param decimals: decimal digit number to remain in output score
         """
@@ -818,7 +820,7 @@ class PltScore(ScoreTransformModel):
 
         self.mode_approx = mode_approx
         self.mode_cumu = mode_cumu
-        self.mode_mode_score_order = mode_score_order
+        self.mode_score_order = mode_score_order
 
     def check_parameter(self):
         if not self.field_list:
@@ -860,37 +862,33 @@ class PltScore(ScoreTransformModel):
                   field_list=self.field_list,
                   segmax=self.input_score_max,
                   segmin=self.input_score_min,
-                  segsort='a' if self.mode_mode_score_order in ['ascending', 'a'] else 'd',
+                  segsort='a' if self.mode_score_order in ['ascending', 'a'] else 'd',
                   segstep=1,
                   display=False,
                   usealldata=False
                   )
         self.map_table = self.seg_model.output_data   # .copy(deep=True)
+
+        # create field_fr in map_table
+        #   strange error!!: some seg percent to zero
+        #   self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
         for f in self.field_list:
             max_sum = max(self.map_table[f+'_sum'])
             max_sum = 1 if max_sum == 0 else max_sum
-            self.map_table[f+'_fr'] = self.map_table[f+'_sum'].apply(
-                lambda x: fr.Fraction(x, max_sum))
+            self.map_table[f+'_fr'] = self.map_table[f+'_sum'].\
+                                      apply(lambda x: fr.Fraction(x, max_sum))
             self.map_table.astype({f+'_fr': fr.Fraction})
-            # strange error!!: some seg percent to zero
-            # self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
 
         # transform score on each field
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
         self.output_report_doc += '---'*40 + '\n'
+
         # algorithm stratedy
-        self.output_report_doc += '           strategies: ' \
-                              'ratio_approx={}, ratio_cumu={}, ' \
-                              'score_order={}, end_share={}(unimplemented)\n'.\
-            format(self.mode_approx,
-                   self.mode_cumu,
-                   self.mode_mode_score_order,
-                   self.mode_endpoint_share)
-        self.output_report_doc += '  raw score seg ratio: {}\n'.\
-            format([format(x-self.input_score_ratio_cum[i-1] if i >0 else x, '.2f')
-                    for i, x in  enumerate(self.input_score_ratio_cum)])
-        self.output_report_doc += 'output score segments: {}\n'.\
-            format(self.output_score_points)
+        self.output_report_doc += format('strategies: ', '>23') + '\n'
+        self.output_report_doc += ' '*23 + 'ratio_approx = {}'.format(self.mode_approx) + '\n'
+        self.output_report_doc += ' '*23 + 'ratio_cumu = {},'.format(self.mode_cumu) + '\n'
+        self.output_report_doc += ' '*23 + 'score_order = {},'.format(self.mode_score_order) + '\n'
+        self.output_report_doc += ' '*23 + 'endpoints_share = {},'.format(self.mode_endpoint_share) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
         self.result_dict = dict()
@@ -988,7 +986,7 @@ class PltScore(ScoreTransformModel):
             points_list = self.__get_formula_raw_seg_list(field=field,
                                                           mode_approx=self.mode_approx,
                                                           cum_mode=self.mode_cumu,
-                                                          mode_score_order=self.mode_mode_score_order,
+                                                          mode_score_order=self.mode_score_order,
                                                           score_max=self.input_score_max,
                                                           score_min=self.input_score_min,
                                                           raw_score_ratio_cum_list=self.input_score_ratio_cum,
@@ -1015,7 +1013,7 @@ class PltScore(ScoreTransformModel):
 
         # calculate coefficient
         x_points = self.result_input_data_points
-        step = 1 if self.mode_mode_score_order in ['ascending', 'a'] else -1
+        step = 1 if self.mode_score_order in ['ascending', 'a'] else -1
         x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
               for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         y_list = self.output_score_points
@@ -1085,9 +1083,10 @@ class PltScore(ScoreTransformModel):
                                field,
                                dest_ratio,
                                mode_approx):
+
         _mode = mode_approx.lower().strip()
         result_seg_endpoint = min(map_table[field+'_percent']) \
-            if self.mode_mode_score_order in ['descending', 'd'] \
+            if self.mode_score_order in ['descending', 'd'] \
             else max(map_table[field])
         _seg = -1
         _percent = -1
@@ -1164,7 +1163,7 @@ class PltScore(ScoreTransformModel):
 
 
     def __get_report_doc(self, field=''):
-        p = 0 if self.mode_mode_score_order in ['ascending', 'a'] else 1
+        p = 0 if self.mode_score_order in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
         for k in self.result_formula_coeff:
             formula = self.result_formula_coeff[k]
@@ -1285,7 +1284,7 @@ class PltScore(ScoreTransformModel):
                 for i, s in enumerate(raw_label):
                     if int(s) == int(row['seg']):
                         out_data[i] = row[f+'_plt_count']
-            fig, ax = plt.subplots()
+            fig, ax = pyplt.subplots()
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
             ax.legend()
@@ -1302,11 +1301,11 @@ class PltScore(ScoreTransformModel):
                                 textcoords="offset points",
                                 ha='center', va='bottom')
             fig.tight_layout()
-            plt.show()
+            pyplt.show()
 
     def __plot_dist(self):
         for f in self.field_list:
-            fig, ax = plt.subplots()
+            fig, ax = pyplt.subplots()
             x_data = list(self.map_table.seg)[::-1]
             ax.plot(x_data,
                     list(self.map_table[f + '_count'])[::-1],
@@ -1328,12 +1327,12 @@ class PltScore(ScoreTransformModel):
                     label='score:' + f + '_plt')
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
         # legend.get_frame().set_facecolor('C0')
-        plt.show()
+        pyplt.show()
 
     def __plot_model(self):
         # 分段线性转换模型
-        plt.rcParams['font.sans-serif'] = ['SimHei']
-        plt.rcParams.update({'font.size': 8})
+        pyplt.rcParams['font.sans-serif'] = ['SimHei']
+        pyplt.rcParams.update({'font.size': 8})
         for i, fs in enumerate(self.field_list):
             result = self.result_dict[fs]
             input_points = result['input_score_points']
@@ -1341,33 +1340,33 @@ class PltScore(ScoreTransformModel):
             ou_min = min([min(p) for p in self.output_score_points])
             ou_max = max([max(p) for p in self.output_score_points])
 
-            plt.figure(fs+'_plt')
-            plt.rcParams.update({'font.size': 10})
-            plt.title(u'转换模型({})'.format(fs))
-            plt.xlim(min(input_points), max(input_points))
-            plt.ylim(ou_min, ou_max)
-            plt.xlabel(u'\n原始分数')
-            plt.ylabel(u'转换分数')
-            plt.xticks([])
-            plt.yticks([])
+            pyplt.figure(fs+'_plt')
+            pyplt.rcParams.update({'font.size': 10})
+            pyplt.title(u'转换模型({})'.format(fs))
+            pyplt.xlim(min(input_points), max(input_points))
+            pyplt.ylim(ou_min, ou_max)
+            pyplt.xlabel(u'\n原始分数')
+            pyplt.ylabel(u'转换分数')
+            pyplt.xticks([])
+            pyplt.yticks([])
 
             formula = self.result_dict[fs]['coeff']
             for cfi, cf in enumerate(formula.values()):
-                x = cf[1] if self.mode_mode_score_order in ['ascending', 'a'] else cf[1][::-1]
-                y = cf[2] if self.mode_mode_score_order in ['ascending', 'a'] else cf[2][::-1]
-                plt.plot(x, y)
+                x = cf[1] if self.mode_score_order in ['ascending', 'a'] else cf[1][::-1]
+                y = cf[2] if self.mode_score_order in ['ascending', 'a'] else cf[2][::-1]
+                pyplt.plot(x, y)
                 for j in [0, 1]:
-                    plt.plot([x[j], x[j]], [0, y[j]], '--')
-                    plt.plot([0, x[j]], [y[j], y[j]], '--')
+                    pyplt.plot([x[j], x[j]], [0, y[j]], '--')
+                    pyplt.plot([0, x[j]], [y[j], y[j]], '--')
                 for j, xx in enumerate(x):
-                    plt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
+                    pyplt.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
-                    plt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
+                    pyplt.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
 
             # darw y = x for showing score shift
-            plt.plot((0, in_max), (0, in_max), 'ro-')
+            pyplt.plot((0, in_max), (0, in_max), 'ro-')
 
-        plt.show()
+        pyplt.show()
         return
 
     def report_map_table(self):
@@ -2168,7 +2167,7 @@ class SegTable(object):
         self.__segSort = 'd'
         self.__usealldata = True
         self.__display = True
-        self.__percent_decimal = 8
+        self.__percent_decimal = 10
         # result data
         self.__output_dataframe = None
         # run status
@@ -2517,32 +2516,32 @@ class SegTable(object):
         for sf in self.field_list:
             step += 1
             legendlist.append(sf)
-            plt.figure('map_table figure({})'.
+            pyplt.figure('map_table figure({})'.
                        format('Descending' if self.__segSort in 'aA' else 'Ascending'))
-            plt.subplot(221)
-            plt.hist(self.input_data[sf], 20)
-            plt.title('histogram')
+            pyplt.subplot(221)
+            pyplt.hist(self.input_data[sf], 20)
+            pyplt.title('histogram')
             if step == len(self.field_list):
-                plt.legend(legendlist)
-            plt.subplot(222)
-            plt.plot(self.output_data.seg, self.output_data[sf+'_count'])
+                pyplt.legend(legendlist)
+            pyplt.subplot(222)
+            pyplt.plot(self.output_data.seg, self.output_data[sf+'_count'])
             if step == len(self.field_list):
-                plt.legend(legendlist)
-            plt.title('distribution')
-            plt.xlim([self.__segMin, self.__segMax])
-            plt.subplot(223)
-            plt.plot(self.output_data.seg, self.output_data[sf + '_sum'])
-            plt.title('cumsum')
-            plt.xlim([self.__segMin, self.__segMax])
+                pyplt.legend(legendlist)
+            pyplt.title('distribution')
+            pyplt.xlim([self.__segMin, self.__segMax])
+            pyplt.subplot(223)
+            pyplt.plot(self.output_data.seg, self.output_data[sf + '_sum'])
+            pyplt.title('cumsum')
+            pyplt.xlim([self.__segMin, self.__segMax])
             if step == len(self.field_list):
-                plt.legend(legendlist)
-            plt.subplot(224)
-            plt.plot(self.output_data.seg, self.output_data[sf + '_percent'])
-            plt.title('percentage')
-            plt.xlim([self.__segMin, self.__segMax])
+                pyplt.legend(legendlist)
+            pyplt.subplot(224)
+            pyplt.plot(self.output_data.seg, self.output_data[sf + '_percent'])
+            pyplt.title('percentage')
+            pyplt.xlim([self.__segMin, self.__segMax])
             if step == len(self.field_list):
-                plt.legend(legendlist)
-            plt.show()
+                pyplt.legend(legendlist)
+            pyplt.show()
 # SegTable class end
 
 
