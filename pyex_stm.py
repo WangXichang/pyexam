@@ -1041,9 +1041,9 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         # start and end points for raw score segments
         raw_score_start = score_min if mode_score_order in ['a', 'ascending'] \
-                          else score_max
+                          else self.input_data[field].max()     # score_max
         raw_score_end = score_max if mode_score_order in ['a', 'ascending'] \
-                          else score_min
+                          else self.input_data[field].min()     # score_min
         result_raw_seg_list = [raw_score_start]
         last_ratio = 0
         last_percent = 0

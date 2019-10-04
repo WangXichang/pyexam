@@ -60,6 +60,7 @@ def round45r(number, digits=0):
     # int_bit_len = int(number).bit_length()
     # err_place2 = 52 - int_bit_len - bit_list[digits]
     # print(err_place2, int_len, int_bit_len)
+
     int_len = len(str(int(abs(number))))
     if int_len + abs(digits) <= 16:
         err_ = (1 if number >= 0 else -1)*10**-(16-int_len)
