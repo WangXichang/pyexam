@@ -229,7 +229,7 @@ def run_stm(
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        mode_approx='lower_max',
+        mode_approx='upper_min',
         mode_cumu='yes',
         mode_score_order='descending',
         model_dict=plt_models_dict
