@@ -732,9 +732,9 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict = {
             'mode_ratio_approx': 'upper_min',
             'mode_ratio_cumu': 'yes',
-            'mode_score_order':'descending',
-            'mode_seg_degraded':'max',
-            'mode_score_zero':'use',
+            'mode_score_order': 'descending',
+            'mode_seg_degraded': 'max',
+            'mode_score_zero': 'use',
             'mode_score_max': 'real',
             'mode_score_min': 'real',
             'mode_score_empty': 'ignore',
@@ -838,7 +838,7 @@ class PltScore(ScoreTransformModel):
 
     def run(self):
 
-        print('stm-run begin...\n'+'-'*50)
+        print('stm-run begin...\n'+'='*100)
         stime = time.time()
 
         # check valid
@@ -846,10 +846,8 @@ class PltScore(ScoreTransformModel):
             return
 
         if self.input_score_max is None:
-            # self.input_score_max = max([self.input_data[fs].max() for fs in self.field_list])
             self.input_score_max = max(self.input_data[self.field_list].max())
         if self.input_score_min is None:
-            # self.input_score_min = min([self.input_data[fs].min() for fs in self.field_list])
             self.input_score_min = min(self.input_data[self.field_list].min())
         if self.output_score_points is not None:
             self.output_score_max = max([max(x) for x in self.output_score_points])
@@ -890,33 +888,6 @@ class PltScore(ScoreTransformModel):
             self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
                 format(k+' = '+self.strategy_dict[k],
                        plt_models_strategies_dict[k]) + '\n'
-
-        # self.output_report_doc += ' '*23 + '{:<30s} {}'.\
-        #     format('score_order ='+self.mode_score_order,
-        #            plt_models_strategies_dict['mode_score_order']) + '\n'
-        # self.output_report_doc += ' '*23 + '{:<30s} {}'.\
-        #     format('ratio_approx ='+self.mode_ratio_approx,
-        #            plt_models_strategies_dict['mode_ratio_approx']) + '\n'
-        # self.output_report_doc += ' '*23 + 'ratio_cumu = {:<15s} {}'.\
-        #     format(self.mode_ratio_cumu,
-        #            plt_models_strategies_dict['mode_ratio_cumu']) + '\n'
-        # self.output_report_doc += ' '*23 + 'seg_degraded = {:<15s} {}'.\
-        #     format(self.mode_seg_degraded, plt_models_strategies_dict['mode_seg_degraded']) + '\n'
-        # self.output_report_doc += ' '*23 + 'score_zero = {:<15s} {}'.\
-        #     format(self.mode_score_zero, plt_models_strategies_dict['mode_score_zero']) + '\n'
-        # self.output_report_doc += ' '*23 + 'score_max = {:<15s} {}'.\
-        #     format(self.mode_score_max, plt_models_strategies_dict['mode_score_max']) + '\n'
-        # self.output_report_doc += ' '*23 + 'score_min = {:<15s} {}'.\
-        #     format(self.mode_score_min, plt_models_strategies_dict['mode_score_min']) + '\n'
-        # self.output_report_doc += ' '*23 + 'score_empty = {:<15s} {}'.\
-        #     format(self.mode_score_empty, plt_models_strategies_dict['mode_score_empty']) + '\n'
-        # self.output_report_doc += ' '*23 + 'endpoints_share = {:<15s} {}'.\
-        #     format(self.mode_endpoint_share, plt_models_strategies_dict['mode_endpoint_share']) + '\n'
-
-        # self.output_report_doc += '- -'*40 + '\n'
-        # for k in plt_models_strategies_dict.keys():
-        #     self.output_report_doc += ' ' * 23 + '{} = {}'.\
-        #         format(k, plt_models_strategies_dict[k]) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
         self.result_dict = dict()
@@ -924,16 +895,14 @@ class PltScore(ScoreTransformModel):
         for i, fs in enumerate(self.field_list):
             print('--- transform score field:[{}]'.format(fs))
 
-            # get formula
+            # get formula and save
             if not self.__get_formula(fs):
-                print('fail to get formula !')
+                print('getting formula fail !')
                 return
-
-            # save result_formula, seg
             self.result_dict[fs] = {
-                'input_score_points': copy.deepcopy(self.result_input_data_points),
-                'coeff': copy.deepcopy(self.result_formula_coeff),
-                'formulas': copy.deepcopy(self.result_formula_text_list)}
+                                    'input_score_points': copy.deepcopy(self.result_input_data_points),
+                                    'coeff': copy.deepcopy(self.result_formula_coeff),
+                                    'formulas': copy.deepcopy(self.result_formula_text_list)}
 
             # get field_plt in output_data
             print('   calculate: {0} => {0}_plt'.format(fs))
@@ -957,7 +926,7 @@ class PltScore(ScoreTransformModel):
             if self.output_data_decimal == 0:
                 df_map[fs_name] = df_map[fs_name].astype('int')
 
-        print('-'*50)
+        print('='*100)
         print('stm-run end, elapsed-time:', time.time() - stime)
 
     # run end
@@ -990,9 +959,9 @@ class PltScore(ScoreTransformModel):
     # formula-3 new, recommend to use
     # y = (a*x + b) / c : a=(y2-y1), b=y1x2-y2x1, c=(x2-x1)
     def get_plt_score_from_formula3(self, field, x):
-        if x >= self.input_score_max:
+        if x > self.input_score_max:
             return self.output_score_max
-        if x <= self.input_score_min:
+        if x < self.input_score_min:
             return self.output_score_min
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
@@ -1011,14 +980,15 @@ class PltScore(ScoreTransformModel):
         if field in self.output_data.columns.values:
             print('   get input score endpoints ...')
             # points_list = self.__get_raw_score_from_ratio(field, self.mode_ratio_approx)
-            points_list = self.__get_formula_raw_seg_list(field=field,
-                                                          mode_ratio_approx=self.mode_ratio_approx,
-                                                          cum_mode=self.mode_ratio_cumu,
-                                                          mode_score_order=self.mode_score_order,
-                                                          score_max=self.input_score_max,
-                                                          score_min=self.input_score_min,
-                                                          raw_score_ratio_cum_list=self.input_score_ratio_cum,
-                                                          map_table=self.map_table)
+            points_list = self.__get_formula_raw_seg_list(
+                field=field,
+                mode_ratio_approx=self.mode_ratio_approx,
+                cum_mode=self.mode_ratio_cumu,
+                mode_score_order=self.mode_score_order,
+                score_max=self.input_score_max,
+                score_min=self.input_score_min,
+                raw_score_ratio_cum_list=self.input_score_ratio_cum,
+                map_table=self.map_table)
             self.result_input_data_points = points_list
             if len(points_list) == 0:
                 return False
@@ -1039,17 +1009,27 @@ class PltScore(ScoreTransformModel):
     #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
     def __get_formula_coeff(self):
 
-        # calculate coefficient
+        # create raw score segments list
         x_points = self.result_input_data_points
         step = 1 if self.mode_score_order in ['ascending', 'a'] else -1
         x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
-              for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
+                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
+        x_list = [(-1, -1) if (x[0] < 0 or min(x) < self.input_score_min) else x
+                  for x in x_list]
+
+        # calculate coefficient
         y_list = self.output_score_points
-        for i, endpointxy in enumerate(zip(x_list, y_list)):
-            x, y = endpointxy
+        for i, (x, y) in enumerate(zip(x_list, y_list)):
             v = x[1] - x[0]
             if v == 0:
-                a, b = 0, max(y)                    # x1 == x2 : y = max(y1, y2)
+                a = 0
+                # mode_seg_degraded
+                if self.mode_seg_degraded == 'max':     # x1 == x2 : y = max(y1, y2)
+                    b = max(y)
+                elif self.mode_seg_degraded == 'min':   # x1 == x2 : y = min(y1, y2)
+                    b = min(y)
+                else:                                   # x1 == x2 : y = mean(y1, y2)
+                    b = np.mean(y)
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
                 b = (y[0]*x[1]-y[1]*x[0])/v         # (y1x2 - y2x1) / (x2 - x1)
@@ -1087,20 +1067,22 @@ class PltScore(ScoreTransformModel):
                                             mode_ratio_approx=mode_ratio_approx)
             last_ratio = ratio
             last_percent = result_this_seg_percent
-            if ratio == raw_score_ratio_cum_list[-1]:
-                result_this_seg_endpoint = raw_score_end
-            if result_this_seg_endpoint < 0:
-                result_raw_seg_list.append(raw_score_end)
-            else:
-                result_raw_seg_list.append(result_this_seg_endpoint)
+
+            # set result ratio
             result_ratio.append('{:.4f}'.format(result_this_seg_percent))
-            # if result_raw_seg_list[-1] >= 0:
+
+            # set result endpoints (linked, share)
+            if ratio == raw_score_ratio_cum_list[-1]:       # last ratio segment
+                # if last endpoit is at bottom, this is set to -1
+                if result_raw_seg_list[-1] in [self.input_score_min, self.input_score_max]:
+                    result_this_seg_endpoint = -1
+            result_raw_seg_list.append(result_this_seg_endpoint)
+
             print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {:3.0f}]'.
                   format(i+1, ratio, dest_percent, result_this_seg_percent,
-                         result_raw_seg_list[-2] if i==0 else result_raw_seg_list[-2]-1,
+                         result_raw_seg_list[-2] if i == 0 else
+                         (result_raw_seg_list[-2]-1 if result_this_seg_endpoint > 0 else -1),
                          result_this_seg_endpoint))
-            # else:
-            #     print('   <{}> {}'.format(i+1, '******'))
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
@@ -1113,9 +1095,9 @@ class PltScore(ScoreTransformModel):
                                mode_ratio_approx):
 
         _mode = mode_ratio_approx.lower().strip()
-        result_seg_endpoint = min(map_table[field+'_percent']) \
-            if self.mode_score_order in ['descending', 'd'] \
-            else max(map_table[field])
+        # result_seg_endpoint = min(map_table[field+'_percent']) \
+        #     if self.mode_score_order in ['descending', 'd'] \
+        #     else max(map_table[field])
         _seg = -1
         _percent = -1
         last_percent = -1
@@ -1137,7 +1119,7 @@ class PltScore(ScoreTransformModel):
                 if last_seg is None:
                     _use_last = False
 
-                # dealing with tragedies
+                # dealing with strategies
                 if 'near' in _mode:
                     # this ratio is near
                     if _diff < last_diff:
@@ -1167,8 +1149,7 @@ class PltScore(ScoreTransformModel):
             last_percent = _percent
         if _use_last:
             return last_seg, last_percent
-        else:
-            return _seg, _percent
+        return _seg, _percent
 
     def get_seg_from_fr(self, mapdf, field, ratio):
         # comments:
@@ -1195,16 +1176,21 @@ class PltScore(ScoreTransformModel):
         self.result_formula_text_list = []
         for k in self.result_formula_coeff:
             formula = self.result_formula_coeff[k]
+            if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
+                self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
+                continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
                     ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3:2d}'.
                          format(k+1, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + max({3:2d}, {4:2d})'.
-                         format(k + 1, formula[0][0], formula[1][p], formula[2][0], formula[2][1])]
-            else:
-                self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
+                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3}({4:2d}, {5:2d})'.
+                     format(k + 1,
+                            formula[0][0], formula[1][p],
+                            self.mode_seg_degraded,
+                            formula[2][0], formula[2][1])
+                     ]
 
         # report start
         # tiltle
@@ -1299,7 +1285,7 @@ class PltScore(ScoreTransformModel):
             print('\"{}\" is invalid'.format(mode))
 
     def __plot_bar(self):
-        x = np.arange(self.input_score_max+1)
+        x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
         for f in self.field_list:
             raw_label = [str(x) for x in self.map_table['seg']][::-1]
             raw_data = list(self.map_table[f+'_count'])[::-1]
@@ -1312,13 +1298,17 @@ class PltScore(ScoreTransformModel):
                 for i, s in enumerate(raw_label):
                     if int(s) == int(row['seg']):
                         out_data[i] = row[f+'_plt_count']
+
             fig, ax = pyplt.subplots()
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
             ax.legend()
             width = 0.4
-            rects1 = ax.bar(x - width / 2, raw_data, width, label=f)
-            rects2 = ax.bar(x + width / 2, out_data, width, label=f+'_plt')
+            bar_wid = [p - width/2 for p in x]
+            rects1 = ax.bar(bar_wid, raw_data, width, label=f)
+            bar_wid = [p + width/2 for p in x]
+            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_plt')
+
             """Attach a text label above each bar in *rects*, displaying its height."""
             for rects in [rects1, rects2]:
                 for rect in rects:
