@@ -16,21 +16,23 @@ class Score():
                                   usecols=('wl', 'hx', 'sw'))
         self.df18wen = pd.read_csv('d:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
                                    usecols=('zz', 'ls', 'dl'))
+        self.m = None
 
     def run_stm(self,
                 name='shandong',
                 year='17',
                 kl='like',
-                mode_approx='upper_min',
-                mode_cumu='yes',
+                mode_ratio_approx='upper_min',
+                mode_ratio_cumu='yes',
                 mode_score_order='d'
                 ):
         pb.reload(stm)
         dfs = {'17like': self.df17li, '17wenke': self.df17wen,
                '18like': self.df18li, '18wenke': self.df18wen}
-        return stm.run_stm(name=name, df=dfs[year+kl],
-                           field_list=list(dfs[year+kl]),
-                           mode_approx=mode_approx,
-                           mode_cumu=mode_cumu,
-                           mode_score_order=mode_score_order
-                           )
+        self.m = stm.run_stm(
+            name=name, df=dfs[year+kl],
+            field_list=list(dfs[year+kl]),
+            mode_ratio_approx=mode_ratio_approx,
+            mode_ratio_cumu=mode_ratio_cumu,
+            mode_score_order=mode_score_order
+            )

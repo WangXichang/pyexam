@@ -118,14 +118,19 @@
 """
 
 
+# built-in import
 import copy
 import time
 import os
 import warnings
+import fractions as fr
+from collections import namedtuple
+# import decimal as dc
+
+
+# external import
 import numpy as np
 import pandas as pd
-import fractions as fr
-# import decimal as dc
 import matplotlib.pyplot as pyplt
 import scipy.stats as sts
 import seaborn as sbn
@@ -165,14 +170,15 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
+Plt = namedtuple('Plt', ['ratio', 'seg'])
 plt_models_dict = {
-    'zhejiang': (CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
-    'shanghai': (CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
-    'beijing': (CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
-    'tianjin': (CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
-    'shandong': (CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
-    'guangdong': (CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-    'm7': (CONST_M7_RATIO, CONST_M7_SEGMENT)
+    'zhejiang': Plt(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
+    'shanghai': Plt(CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
+    'beijing': Plt(CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
+    'tianjin': Plt(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
+    'shandong': Plt(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
+    'guangdong': Plt(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
+    'm7': Plt(CONST_M7_RATIO, CONST_M7_SEGMENT)
     }
 plt_models_strategies_dict ={
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
@@ -242,8 +248,7 @@ def run_stm(
         output_score_decimal=0,
         mode_ratio_approx='upper_min',
         mode_ratio_cumu='yes',
-        mode_score_order='descending',
-        plt_models_dict=plt_models_dict
+        mode_score_order='descending'
         ):
     """
     :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
@@ -272,10 +277,9 @@ def run_stm(
     :return: model
     """
     # check name
-    name_set = 'zhejiang, shanghai, shandong, beijing, tianjin, guangdong, M7, tao, ' \
-               'tscore, zscore, tlinear'
-    if name.lower() not in name_set:
-        print('invalid name, not in {}'.format(name_set))
+    name = name.lower()
+    if name.lower() not in stm_models_name:
+        print('invalid name, not in {}'.format(stm_models_name))
         return
 
     # check input data
@@ -304,17 +308,17 @@ def run_stm(
         print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
         return
 
-    # shandong score model
-    if name.lower() in plt_models_dict.keys():        # ['shandong', 'guangdong', 'm7',
+    # plt score models
+    if name in plt_models_dict.keys():        # ['shandong', 'guangdong', 'm7',
                                                       # 'zhejiang', 'shanghai', 'beijing', 'tianjin']:
-        ratio_list = [x*0.01 for x in plt_models_dict[name.lower()][0]]
+        ratio_list = [x*0.01 for x in plt_models_dict[name].ratio]
         pltmodel = PltScore()
         pltmodel.model_name = name
         pltmodel.output_data_decimal = 0
         pltmodel.set_data(input_data=input_data,
                           field_list=field_list)
         pltmodel.set_para(input_score_ratio_list=ratio_list,
-                          output_score_points_list=plt_models_dict[name.lower()][1],
+                          output_score_points_list=plt_models_dict[name].seg,
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
                           mode_ratio_approx=mode_ratio_approx,
@@ -324,37 +328,7 @@ def run_stm(
         pltmodel.run()
         return pltmodel
 
-    # deprecated ...
-    if name.lower() in 'zhejiang, shanghai, beijing, tianjin':
-        grade_max = 100
-        grade_diff = 3
-        ratio_list = None
-        if name.lower() == 'zhejiang':
-            ratio_list = CONST_ZHEJIANG_RATIO
-        elif name.lower() == 'shanghai':
-            grade_max = 70
-            ratio_list = CONST_SHANGHAI_RATIO
-        elif name.lower() == 'beijing':
-            ratio_list = CONST_BEIJING_RATIO
-        elif name.lower() == 'tianjin':
-            ratio_list = CONST_TIANJIN_RATIO
-
-        grade_score = [grade_max - j * grade_diff for j in range(len(ratio_list))]
-
-        m = GradeScore()
-        m.model_name = name.lower()
-        m.set_data(input_data=input_data, field_list=field_list)
-        m.set_para(maxscore=input_score_max,
-                   minscore=input_score_min,
-                   grade_ratio_table=ratio_list,
-                   grade_score_table=grade_score,
-                   mode_ratio_approx=mode_ratio_approx,
-                   mode_ratio_cumu=mode_ratio_cumu,
-                   )
-        m.run()
-        return m
-
-    if name.lower() == 'tao':
+    if name == 'tao':
         m = GradeScoreTao()
         m.grade_num = 50
         m.set_data(input_data=input_data,
@@ -364,27 +338,27 @@ def run_stm(
         m.run()
         return m
 
-    if name.lower() == 'zscore':
+    if name == 'zscore':
         zm = Zscore()
-        zm.model_name = name.lower()
+        zm.model_name = name
         zm.set_data(input_data=input_data, field_list=field_list)
         zm.set_para(std_num=4, rawscore_max=150, rawscore_min=0)
         zm.run()
         zm.report()
         return zm
 
-    if name.lower() == 'tscore':
+    if name == 'tscore':
         tm = Tscore()
-        tm.model_name = name.lower()
+        tm.model_name = name
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_para(rawscore_max=150, rawscore_min=0)
         tm.run()
         tm.report()
         return tm
 
-    if name.lower() == 'tlinear':
+    if name == 'tlinear':
         tm = TscoreLinear()
-        tm.model_name = name.lower()
+        tm.model_name = name
         tm.set_data(input_data=input_data, field_list=field_list)
         tm.set_para(input_score_max=input_score_max,
                     input_score_min=input_score_min)
@@ -431,40 +405,41 @@ def stm_mean_std():
     name_list = ['shandong', 'shanghai', 'zhejiang', 'guangdong', 'm7', 'beijing', 'tianjin']
     mean_std_dict = dict()
     for _name in name_list:
-        score_max = 100
-        score_gap = 3
-        ratio_lst = None
-        score_seg = None
-        if _name in ['shandong', 'guangdong', 'm7']:
-            if _name =='shandong':
-                ratio_lst = CONST_SHANDONG_RATIO
-                score_seg = CONST_SHANDONG_SEGMENT
-            if _name =='guangdong':
-                ratio_lst = CONST_GUANGDONG_RATIO
-                score_seg = CONST_GUANGDONG_SEGMENT
-            if _name =='m7':
-                ratio_lst = CONST_M7_RATIO
-                score_seg = CONST_M7_SEGMENT
-            mean_std_dict.update({_name: __calc_stm_mean_std(name=_name)})
-        if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
-            if _name =='shanghai':
-                ratio_lst = CONST_SHANGHAI_RATIO
-                score_max = 70
-            if _name =='zhejiang':
-                ratio_lst = CONST_ZHEJIANG_RATIO
-            if _name =='beijing':
-                ratio_lst = CONST_BEIJING_RATIO
-            if _name =='tianjin':
-                ratio_lst = CONST_TIANJIN_RATIO
-            mean_std_dict.update({_name: __calc_stm_mean_std(name=_name)})
+        mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
+        # score_max = 100
+        # score_gap = 3
+        # ratio_lst = None
+        # score_seg = None
+        # if _name in ['shandong', 'guangdong', 'm7']:
+        #     if _name =='shandong':
+        #         ratio_lst = CONST_SHANDONG_RATIO
+        #         score_seg = CONST_SHANDONG_SEGMENT
+        #     if _name =='guangdong':
+        #         ratio_lst = CONST_GUANGDONG_RATIO
+        #         score_seg = CONST_GUANGDONG_SEGMENT
+        #     if _name =='m7':
+        #         ratio_lst = CONST_M7_RATIO
+        #         score_seg = CONST_M7_SEGMENT
+        #     mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
+        # if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
+        #     if _name =='shanghai':
+        #         ratio_lst = CONST_SHANGHAI_RATIO
+        #         score_max = 70
+        #     if _name =='zhejiang':
+        #         ratio_lst = CONST_ZHEJIANG_RATIO
+        #     if _name =='beijing':
+        #         ratio_lst = CONST_BEIJING_RATIO
+        #     if _name =='tianjin':
+        #         ratio_lst = CONST_TIANJIN_RATIO
+        #     mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
     return mean_std_dict
 
 
-def __calc_stm_mean_std(name='shandong'):
+def calc_stm_mean_std(name='shandong'):
     _mean, _std = -1, -1
-    _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name][0], plt_models_dict[name][1])])
-    _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * plt_models_dict[name][0][i]
-                        for i, s in enumerate(plt_models_dict[name][1])]) / 100)
+    _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
+    _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * plt_models_dict[name].ratio[i]
+                        for i, s in enumerate(plt_models_dict[name].seg)]) / 100)
     return _mean, _std
 
 
@@ -748,6 +723,11 @@ class PltScore(ScoreTransformModel):
         self.mode_ratio_approx = 'upper_min'
         self.mode_ratio_cumu = 'yes'
         self.mode_score_order = 'descending'
+        self.mode_seg_degraded = 'max'
+        self.mode_score_zero = 'use'
+        self.mode_score_max = 'real'
+        self.mode_score_min = 'real'
+        self.mode_score_empty = 'ignore'
         self.mode_endpoint_share = 'no'
         # self.use_min_rawscore_as_endpoint = True
         # self.use_max_rawscore_as_endpoint = True
@@ -892,12 +872,32 @@ class PltScore(ScoreTransformModel):
         self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
         self.output_report_doc += '---'*40 + '\n'
 
-        # algorithm stratedy
+        # algorithm strategy
         self.output_report_doc += format('strategies: ', '>23') + '\n'
-        self.output_report_doc += ' '*23 + 'ratio_approx = {}'.format(self.mode_ratio_approx) + '\n'
-        self.output_report_doc += ' '*23 + 'ratio_cumu = {},'.format(self.mode_ratio_cumu) + '\n'
-        self.output_report_doc += ' '*23 + 'score_order = {},'.format(self.mode_score_order) + '\n'
-        self.output_report_doc += ' '*23 + 'endpoints_share = {},'.format(self.mode_endpoint_share) + '\n'
+
+        self.output_report_doc += ' '*23 + 'score_order = {},\t\t\t\t {}'.\
+            format(self.mode_score_order, plt_models_strategies_dict['mode_score_order']) + '\n'
+        self.output_report_doc += ' '*23 + 'ratio_approx = {},\t {}'.\
+            format(self.mode_ratio_approx, plt_models_strategies_dict['mode_ratio_approx']) + '\n'
+        self.output_report_doc += ' '*23 + 'ratio_cumu = {},\t\t\t {}'.\
+            format(self.mode_ratio_cumu, plt_models_strategies_dict['mode_ratio_cumu']) + '\n'
+        self.output_report_doc += ' '*23 + 'seg_degraded = {},\t\t\t {}'.\
+            format(self.mode_seg_degraded, plt_models_strategies_dict['mode_seg_degraded']) + '\n'
+        self.output_report_doc += ' '*23 + 'score_zero = {},\t\t\t {}'.\
+            format(self.mode_score_zero, plt_models_strategies_dict['mode_score_zero']) + '\n'
+        self.output_report_doc += ' '*23 + 'score_max = {},\t\t\t {}'.\
+            format(self.mode_score_max, plt_models_strategies_dict['mode_score_max']) + '\n'
+        self.output_report_doc += ' '*23 + 'score_min = {},\t\t\t {}'.\
+            format(self.mode_score_min, plt_models_strategies_dict['mode_score_min']) + '\n'
+        self.output_report_doc += ' '*23 + 'score_empty = {},\t\t {}'.\
+            format(self.mode_score_empty, plt_models_strategies_dict['mode_score_empty']) + '\n'
+        self.output_report_doc += ' '*23 + 'endpoints_share = {},\t\t {}'.\
+            format(self.mode_endpoint_share, plt_models_strategies_dict['mode_endpoint_share']) + '\n'
+
+        # self.output_report_doc += '- -'*40 + '\n'
+        # for k in plt_models_strategies_dict.keys():
+        #     self.output_report_doc += ' ' * 23 + '{} = {}'.\
+        #         format(k, plt_models_strategies_dict[k]) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
         self.result_dict = dict()
