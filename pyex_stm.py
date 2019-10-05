@@ -729,6 +729,17 @@ class PltScore(ScoreTransformModel):
         self.mode_score_min = 'real'
         self.mode_score_empty = 'ignore'
         self.mode_endpoint_share = 'no'
+        self.strategy_dict = {
+            'mode_ratio_approx': 'upper_min',
+            'mode_ratio_cumu': 'yes',
+            'mode_score_order':'descending',
+            'mode_seg_degraded':'max',
+            'mode_score_zero':'use',
+            'mode_score_max': 'real',
+            'mode_score_min': 'real',
+            'mode_score_empty': 'ignore',
+            'mode_endpoint_share': 'no'
+        }
         # self.use_min_rawscore_as_endpoint = True
         # self.use_max_rawscore_as_endpoint = True
 
@@ -875,24 +886,32 @@ class PltScore(ScoreTransformModel):
         # algorithm strategy
         self.output_report_doc += format('strategies: ', '>23') + '\n'
 
-        self.output_report_doc += ' '*23 + 'score_order = {},\t\t\t\t {}'.\
-            format(self.mode_score_order, plt_models_strategies_dict['mode_score_order']) + '\n'
-        self.output_report_doc += ' '*23 + 'ratio_approx = {},\t {}'.\
-            format(self.mode_ratio_approx, plt_models_strategies_dict['mode_ratio_approx']) + '\n'
-        self.output_report_doc += ' '*23 + 'ratio_cumu = {},\t\t\t {}'.\
-            format(self.mode_ratio_cumu, plt_models_strategies_dict['mode_ratio_cumu']) + '\n'
-        self.output_report_doc += ' '*23 + 'seg_degraded = {},\t\t\t {}'.\
-            format(self.mode_seg_degraded, plt_models_strategies_dict['mode_seg_degraded']) + '\n'
-        self.output_report_doc += ' '*23 + 'score_zero = {},\t\t\t {}'.\
-            format(self.mode_score_zero, plt_models_strategies_dict['mode_score_zero']) + '\n'
-        self.output_report_doc += ' '*23 + 'score_max = {},\t\t\t {}'.\
-            format(self.mode_score_max, plt_models_strategies_dict['mode_score_max']) + '\n'
-        self.output_report_doc += ' '*23 + 'score_min = {},\t\t\t {}'.\
-            format(self.mode_score_min, plt_models_strategies_dict['mode_score_min']) + '\n'
-        self.output_report_doc += ' '*23 + 'score_empty = {},\t\t {}'.\
-            format(self.mode_score_empty, plt_models_strategies_dict['mode_score_empty']) + '\n'
-        self.output_report_doc += ' '*23 + 'endpoints_share = {},\t\t {}'.\
-            format(self.mode_endpoint_share, plt_models_strategies_dict['mode_endpoint_share']) + '\n'
+        for k in plt_models_strategies_dict:
+            self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
+                format(k+' = '+self.strategy_dict[k],
+                       plt_models_strategies_dict[k]) + '\n'
+
+        # self.output_report_doc += ' '*23 + '{:<30s} {}'.\
+        #     format('score_order ='+self.mode_score_order,
+        #            plt_models_strategies_dict['mode_score_order']) + '\n'
+        # self.output_report_doc += ' '*23 + '{:<30s} {}'.\
+        #     format('ratio_approx ='+self.mode_ratio_approx,
+        #            plt_models_strategies_dict['mode_ratio_approx']) + '\n'
+        # self.output_report_doc += ' '*23 + 'ratio_cumu = {:<15s} {}'.\
+        #     format(self.mode_ratio_cumu,
+        #            plt_models_strategies_dict['mode_ratio_cumu']) + '\n'
+        # self.output_report_doc += ' '*23 + 'seg_degraded = {:<15s} {}'.\
+        #     format(self.mode_seg_degraded, plt_models_strategies_dict['mode_seg_degraded']) + '\n'
+        # self.output_report_doc += ' '*23 + 'score_zero = {:<15s} {}'.\
+        #     format(self.mode_score_zero, plt_models_strategies_dict['mode_score_zero']) + '\n'
+        # self.output_report_doc += ' '*23 + 'score_max = {:<15s} {}'.\
+        #     format(self.mode_score_max, plt_models_strategies_dict['mode_score_max']) + '\n'
+        # self.output_report_doc += ' '*23 + 'score_min = {:<15s} {}'.\
+        #     format(self.mode_score_min, plt_models_strategies_dict['mode_score_min']) + '\n'
+        # self.output_report_doc += ' '*23 + 'score_empty = {:<15s} {}'.\
+        #     format(self.mode_score_empty, plt_models_strategies_dict['mode_score_empty']) + '\n'
+        # self.output_report_doc += ' '*23 + 'endpoints_share = {:<15s} {}'.\
+        #     format(self.mode_endpoint_share, plt_models_strategies_dict['mode_endpoint_share']) + '\n'
 
         # self.output_report_doc += '- -'*40 + '\n'
         # for k in plt_models_strategies_dict.keys():
