@@ -958,19 +958,13 @@ class PltScore(ScoreTransformModel):
         return -1
 
     # -----------------------------------------------------------------------------------
-    # formula-3 new, recommend to use
-    # y = (a*x + b) / c
-    # a=(y2-y1)
-    # b=y1x2-y2x1
-    # c=(x2-x1)
+    # formula-3 new, recommend to use,  int/int to float
+    # original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
+    # variant:  y = (a*x + b) / c
+    #           a=(y2-y1)
+    #           b=y1x2-y2x1
+    #           c=(x2-x1)
     def get_plt_score_from_formula3(self, field, x):
-        # docstring = """
-        # x=(0, 30), y=(21, 30)
-        # >>> a1 = (30-21)/(30-0)
-        # >>> b1 = 21
-        # >>> a1*(15-0) + b1 == (15*(30-21) + (21*30-30*0))/(30-0)
-        # """
-
         if x > self.input_score_max:
             return self.output_score_max
         if x < self.input_score_min:
@@ -980,9 +974,15 @@ class PltScore(ScoreTransformModel):
                 a = (cf[2][1]-cf[2][0])
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
-                # x1 == x2 then return max(y1, y2)
-                if c == 0:
-                    return max(cf[2])
+                if c == 0:  # x1 == x2: use mode_seg_degraded: max, min, mean(y1, y2)
+                    if self.strategy_dict['mode_seg_degraded'] == 'max':
+                        return max(cf[2])
+                    elif self.strategy_dict['mode_seg_degraded'] == 'min':
+                        return min(cf[2])
+                    elif self.strategy_dict['mode_seg_degraded'] == 'mean':
+                        return round45r(np.mean(cf[2]))
+                    else:
+                        return -1
                 return round45r((a*x + b)/c)
         return -1
 
@@ -1178,11 +1178,11 @@ class PltScore(ScoreTransformModel):
                 continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3:2d}'.
+                    ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
                          format(k+1, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0}) y = {1:0.6f}*(x-{2:2d}) + {3}({4:2d}, {5:2d})'.
+                    ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3}({4:2d}, {5:2d})'.
                      format(k + 1,
                             formula[0][0], formula[1][p],
                             self.strategy_dict['mode_seg_degraded'],
