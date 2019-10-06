@@ -170,29 +170,28 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
-Plt = namedtuple('Plt', ['ratio', 'seg'])
+PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
 plt_models_dict = {
-    'zhejiang': Plt(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
-    'shanghai': Plt(CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
-    'beijing': Plt(CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
-    'tianjin': Plt(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
-    'shandong': Plt(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
-    'guangdong': Plt(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-    'm7': Plt(CONST_M7_RATIO, CONST_M7_SEGMENT)
+    'zhejiang': PltRatioSeg_namedtuple(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
+    'shanghai': PltRatioSeg_namedtuple(CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
+    'beijing': PltRatioSeg_namedtuple(CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
+    'tianjin': PltRatioSeg_namedtuple(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
+    'shandong': PltRatioSeg_namedtuple(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
+    'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
+    'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT)
     }
-plt_models_strategies_dict ={
+plt_strategies_dict ={
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
     'mode_ratio_approx': ['upper_min', 'lower_max', 'near_max', 'near_min'],
-    'mode_ratio_cumu': ['yes', 'y', 'no', 'n'],
-    'mode_endpoint_share': ['yes', 'y', 'no', 'n'],
+    'mode_ratio_cumu': ['y', 'yes', 'n', 'no'],
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_zero': ['use', 'ignore'],
     'mode_score_empty': ['use', 'ignore'],
     'mode_score_max': ['real', 'full_mark'],
-    'mode_score_min': ['real', 'zero']
+    'mode_score_min': ['real', 'zero'],
+    'mode_endpoint_share': ['yes', 'y', 'no', 'n']
     }
-stm_models_name = ['z', 't', 'hainan', 'tao'] + \
-                  list(plt_models_dict.keys())
+stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
 
 
 def about_stm():
@@ -222,12 +221,14 @@ def test_stm(
         print('data set size={}, score range from 0 to 100'.format(data_size))
         m = run_stm(name=model, df=dfscore, field_list='kmx')
         return m
+
     elif model.lower() == 'z':
         m = Zscore()
         m.set_data(dfscore, field_list=['km'])
         m.set_para(rawscore_max=max_score, rawscore_min=min_score)
         m.run()
         return m
+
     elif model.lower() == 't':
         m = Tscore()
         m.set_data(dfscore, field_list=['km'])
@@ -720,15 +721,6 @@ class PltScore(ScoreTransformModel):
         self.output_score_min = None
 
         # para
-        self.mode_ratio_approx = 'upper_min'
-        self.mode_ratio_cumu = 'yes'
-        self.mode_score_order = 'descending'
-        self.mode_seg_degraded = 'max'
-        self.mode_score_zero = 'use'
-        self.mode_score_max = 'real'
-        self.mode_score_min = 'real'
-        self.mode_score_empty = 'ignore'
-        self.mode_endpoint_share = 'no'
         self.strategy_dict = {
             'mode_ratio_approx': 'upper_min',
             'mode_ratio_cumu': 'yes',
@@ -884,10 +876,10 @@ class PltScore(ScoreTransformModel):
         # algorithm strategy
         self.output_report_doc += format('strategies: ', '>23') + '\n'
 
-        for k in plt_models_strategies_dict:
+        for k in plt_strategies_dict:
             self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
-                format(k+' = '+self.strategy_dict[k],
-                       plt_models_strategies_dict[k]) + '\n'
+                format(k +' = ' + self.strategy_dict[k],
+                       plt_strategies_dict[k]) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
         self.result_dict = dict()
@@ -979,16 +971,7 @@ class PltScore(ScoreTransformModel):
         # claculate rawscore_endpoints
         if field in self.output_data.columns.values:
             print('   get input score endpoints ...')
-            # points_list = self.__get_raw_score_from_ratio(field, self.mode_ratio_approx)
-            points_list = self.__get_formula_raw_seg_list(
-                field=field,
-                mode_ratio_approx=self.mode_ratio_approx,
-                cum_mode=self.mode_ratio_cumu,
-                mode_score_order=self.mode_score_order,
-                score_max=self.input_score_max,
-                score_min=self.input_score_min,
-                raw_score_ratio_cum_list=self.input_score_ratio_cum,
-                map_table=self.map_table)
+            points_list = self.__get_formula_raw_seg_list(field=field)
             self.result_input_data_points = points_list
             if len(points_list) == 0:
                 return False
@@ -1024,9 +1007,10 @@ class PltScore(ScoreTransformModel):
             if v == 0:
                 a = 0
                 # mode_seg_degraded
-                if self.mode_seg_degraded == 'max':     # x1 == x2 : y = max(y1, y2)
+                _mode_seg_degraded = self.strategy_dict['mode_seg_degraded']
+                if _mode_seg_degraded == 'max':     # x1 == x2 : y = max(y1, y2)
                     b = max(y)
-                elif self.mode_seg_degraded == 'min':   # x1 == x2 : y = min(y1, y2)
+                elif _mode_seg_degraded == 'min':   # x1 == x2 : y = min(y1, y2)
                     b = min(y)
                 else:                                   # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
@@ -1037,67 +1021,60 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    def __get_formula_raw_seg_list(self,
-                                   field,
-                                   mode_ratio_approx='lower_max',
-                                   cum_mode='yes',
-                                   mode_score_order='d',  # from high to low
-                                   score_min=0,
-                                   score_max=100,
-                                   raw_score_ratio_cum_list=None,
-                                   map_table=None):
+    def __get_formula_raw_seg_list(self, field):
         result_ratio = []
-        # start and end points for raw score segments
-        raw_score_start = score_min if mode_score_order in ['a', 'ascending'] \
-                          else self.input_data[field].max()     # score_max
-        raw_score_end = score_max if mode_score_order in ['a', 'ascending'] \
-                          else self.input_data[field].min()     # score_min
+        if self.strategy_dict['mode_score_min'] == 'real':
+            _score_min = self.input_data[field].min()
+            _score_max = self.input_data[field].max()
+        else:
+            _score_min = self.input_score_min
+            _score_max = self.input_score_max
+        _mode_cumu = self.strategy_dict['mode_ratio_cumu']
+        _mode_order = self.strategy_dict['mode_score_order']
+        _ratio_cum_list = self.input_score_ratio_cum
+
+        # start points for raw score segments
+        raw_score_start = _score_min if _mode_order in ['a', 'ascending'] \
+                          else _score_max
         result_raw_seg_list = [raw_score_start]
+
         last_ratio = 0
         last_percent = 0
-        for i, ratio in enumerate(raw_score_ratio_cum_list):
-            dest_percent = ratio if cum_mode == 'no' else ratio-last_ratio+last_percent
-            if i == len(raw_score_ratio_cum_list)-1:
+        for i, ratio in enumerate(_ratio_cum_list):
+            dest_percent = ratio if _mode_cumu == 'no' else ratio-last_ratio+last_percent
+            if i == len(_ratio_cum_list)-1:
                 dest_percent = 1.0
-            result_this_seg_endpoint, result_this_seg_percent = \
-                self.get_seg_from_map_table(
-                                            map_table=map_table,
-                                            field=field,
-                                            dest_ratio=dest_percent,
-                                            mode_ratio_approx=mode_ratio_approx)
+
+            this_seg_endpoint, this_seg_percent = self.get_seg_from_map_table(field, dest_percent)
+
             last_ratio = ratio
-            last_percent = result_this_seg_percent
+            last_percent = this_seg_percent
 
             # set result ratio
-            result_ratio.append('{:.4f}'.format(result_this_seg_percent))
+            result_ratio.append('{:.8f}'.format(this_seg_percent))
 
             # set result endpoints (linked, share)
-            if ratio == raw_score_ratio_cum_list[-1]:       # last ratio segment
+            if ratio == _ratio_cum_list[-1]:       # last ratio segment
                 # if last endpoit is at bottom, this is set to -1
                 if result_raw_seg_list[-1] in [self.input_score_min, self.input_score_max]:
-                    result_this_seg_endpoint = -1
-            result_raw_seg_list.append(result_this_seg_endpoint)
+                    this_seg_endpoint = -1
+            result_raw_seg_list.append(this_seg_endpoint)
 
             print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {:3.0f}]'.
-                  format(i+1, ratio, dest_percent, result_this_seg_percent,
+                  format(i+1, ratio, dest_percent, this_seg_percent,
                          result_raw_seg_list[-2] if i == 0 else
-                         (result_raw_seg_list[-2]-1 if result_this_seg_endpoint > 0 else -1),
-                         result_this_seg_endpoint))
+                         (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
+                         this_seg_endpoint))
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
 
     # new at 2019-09-09
-    def get_seg_from_map_table(self,
-                               map_table,
-                               field,
-                               dest_ratio,
-                               mode_ratio_approx):
+    def get_seg_from_map_table(self, field, dest_ratio):
 
-        _mode = mode_ratio_approx.lower().strip()
-        # result_seg_endpoint = min(map_table[field+'_percent']) \
-        #     if self.mode_score_order in ['descending', 'd'] \
-        #     else max(map_table[field])
+        _mode = self.strategy_dict['mode_ratio_approx']
+        map_table = self.map_table
+
         _seg = -1
         _percent = -1
         last_percent = -1
