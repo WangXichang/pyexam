@@ -369,79 +369,76 @@ def run_stm(
 
 
 def plot_stm():
-    ms_dict = stm_mean_std()
-    pyplt.figure('Noew Gaokao Grade Score Distribution of Models')
+    # calculate mean, std
+    # ms_dict = stm_mean_std()
+    ms_dict = dict()
+    for _name in plt_models_dict.keys():
+        ms_dict.update({_name: calc_stm_mean_std(name=_name)})
+
+
+    pyplt.figure('New Gaokao Score Models: name(mean, std, skewness)')
     pyplt.rcParams.update({'font.size': 16})
+    for i, k in enumerate(plt_models_dict.keys()):
+        pyplt.subplot(240+i+1)
+        _wid = 2
+        if k in ['shanghai']:
+            x_data = range(40, 71, 3)
+        elif k in ['zhejiang', 'beijing', 'tianjin']:
+            x_data = range(40, 101, 3)
+        elif k in ['shandong']:
+            x_data = [x for x in range(25, 101, 10)]
+            _wid = 8
+        elif k in ['guangdong', 'm7']:
+            x_data = [np.mean(x) for x in plt_models_dict[k].seg][::-1]
+            _wid = 8
+        else:
+            raise ValueError
+        # print(x_data)
 
-    pyplt.subplot(241)
-    pyplt.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO[::-1])
-    pyplt.title('Shanghai({:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
+        pyplt.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
+        pyplt.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
-    pyplt.subplot(242)
-    pyplt.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
-    pyplt.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
-
-    pyplt.subplot(243)
-    pyplt.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
-    pyplt.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
-
-    pyplt.subplot(244)
-    pyplt.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
-    pyplt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
-
-    pyplt.subplot(245)
-    sbn.barplot([x for x in range(25, 101, 10)], [CONST_SHANDONG_RATIO[j] for j in range(8)])
-    pyplt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
-
-    pyplt.subplot(246)
-    sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT][::-1], CONST_GUANGDONG_RATIO[::-1])
-    pyplt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
-
-    pyplt.subplot(247)
-    sbn.barplot([np.mean(x) for x in CONST_M7_SEGMENT][::-1], CONST_M7_RATIO[::-1])
-    pyplt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
-
-
-def stm_mean_std():
-    name_list = ['shandong', 'shanghai', 'zhejiang', 'guangdong', 'm7', 'beijing', 'tianjin']
-    mean_std_dict = dict()
-    for _name in name_list:
-        mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
-        # score_max = 100
-        # score_gap = 3
-        # ratio_lst = None
-        # score_seg = None
-        # if _name in ['shandong', 'guangdong', 'm7']:
-        #     if _name =='shandong':
-        #         ratio_lst = CONST_SHANDONG_RATIO
-        #         score_seg = CONST_SHANDONG_SEGMENT
-        #     if _name =='guangdong':
-        #         ratio_lst = CONST_GUANGDONG_RATIO
-        #         score_seg = CONST_GUANGDONG_SEGMENT
-        #     if _name =='m7':
-        #         ratio_lst = CONST_M7_RATIO
-        #         score_seg = CONST_M7_SEGMENT
-        #     mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
-        # if _name in ['shanghai', 'zhejiang', 'beijing', 'tianjin']:
-        #     if _name =='shanghai':
-        #         ratio_lst = CONST_SHANGHAI_RATIO
-        #         score_max = 70
-        #     if _name =='zhejiang':
-        #         ratio_lst = CONST_ZHEJIANG_RATIO
-        #     if _name =='beijing':
-        #         ratio_lst = CONST_BEIJING_RATIO
-        #     if _name =='tianjin':
-        #         ratio_lst = CONST_TIANJIN_RATIO
-        #     mean_std_dict.update({_name: calc_stm_mean_std(name=_name)})
-    return mean_std_dict
+    # pyplt.subplot(241)
+    # pyplt.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO)
+    # pyplt.title('Shanghai({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
+    #
+    # pyplt.subplot(242)
+    # pyplt.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
+    # pyplt.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
+    #
+    # pyplt.subplot(243)
+    # pyplt.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
+    # pyplt.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
+    #
+    # pyplt.subplot(244)
+    # pyplt.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
+    # pyplt.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
+    #
+    # pyplt.subplot(245)
+    # sbn.barplot([x for x in range(25, 101, 10)], CONST_SHANDONG_RATIO)
+    # pyplt.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
+    #
+    # pyplt.subplot(246)
+    # sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT][::-1], CONST_GUANGDONG_RATIO[::-1])
+    # pyplt.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
+    #
+    # pyplt.subplot(247)
+    # sbn.barplot([int(np.mean(x)) for x in CONST_M7_SEGMENT][::-1], CONST_M7_RATIO[::-1])
+    # pyplt.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
 
 
 def calc_stm_mean_std(name='shandong'):
-    _mean, _std = -1, -1
     _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
-    _std = np.sqrt(sum([(sum(s)/2-_mean) ** 2 * plt_models_dict[name].ratio[i]
+    _std = np.sqrt(sum([plt_models_dict[name].ratio[i] * (sum(s)/2-_mean) ** 2
                         for i, s in enumerate(plt_models_dict[name].seg)]) / 100)
-    return _mean, _std
+    _skewnumer = sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**3
+                    for i, s in enumerate(plt_models_dict[name].seg)])
+    # print(name, _skewnumer)
+    if _skewnumer == 0:
+        return _mean, _std, 0
+    _skewness = _skewnumer / sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean) ** 2
+                                 for i, s in enumerate(plt_models_dict[name].seg)]) **(3/2)
+    return _mean, _std, _skewness
 
 
 def mentcaro(ratio=tuple(CONST_SHANDONG_RATIO),
