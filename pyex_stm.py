@@ -180,7 +180,7 @@ plt_models_dict = {
     'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
     'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT)
     }
-plt_strategies_dict ={
+plt_strategies_dict = {
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
     'mode_ratio_approx': ['upper_min', 'lower_max', 'near_max', 'near_min'],
     'mode_ratio_cumu': ['y', 'yes', 'n', 'no'],
@@ -260,9 +260,6 @@ def run_stm(
                         default = None, set to a list by the model's name
                         must be set to a list if name is not in module preassigned list
                         must be set for new model
-    :param grade_diff: difference value between two neighbor grade score
-                        default = None, that will be set to 3 if name in 'zhejiang, shanghai, beijing, tianjin'
-                        must be set for new model
     :param grade_max: max value for grade score
                        default = None, will be set to 100 for zhejiang,shanghai,beijing,tianjin, shandong
                        must be set for new model
@@ -310,8 +307,7 @@ def run_stm(
         return
 
     # plt score models
-    if name in plt_models_dict.keys():        # ['shandong', 'guangdong', 'm7',
-                                                      # 'zhejiang', 'shanghai', 'beijing', 'tianjin']:
+    if name in plt_models_dict.keys():
         ratio_list = [x*0.01 for x in plt_models_dict[name].ratio]
         pltmodel = PltScore()
         pltmodel.model_name = name
@@ -388,13 +384,14 @@ def plot_stm():
         elif k in ['shandong']:
             x_data = [x for x in range(25, 101, 10)]
             _wid = 8
-        elif k in ['guangdong', 'm7']:
+        elif k in ['guangdong']:
             x_data = [np.mean(x) for x in plt_models_dict[k].seg][::-1]
-            _wid = 8
+            _wid = 10
+        elif k in ['m7']:
+            x_data = [int(np.mean(x)) for x in plt_models_dict[k].seg][::-1]
+            _wid = 10
         else:
             raise ValueError
-        # print(x_data)
-
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
@@ -487,7 +484,7 @@ def run_seg(
 
 
 # test dataset
-class test_data():
+class TestData():
     def __init__(self, mean=60, max=100, min=0, std=18, size=1000000):
         self.data_mean = mean
         self.data_max = max
@@ -772,16 +769,6 @@ class PltScore(ScoreTransformModel):
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  output_decimal_digits=None):
-        """
-        :param input_score_ratio_list: ratio points for raw score interval
-        :param output_score_points_list: score points for output score interval
-        :param input_score_min: min value to transform
-        :param input_score_max: max value to transform
-        :param mode_ratio_approx:  upper_min, lower_max, near_min, near_max
-        :param mode_score_order: search ratio points from high score to low score if 'descending' or
-                            low to high if 'descending'
-        :param output_decimal_digits: decimal digit number to remain in output score
-        """
         if (type(input_score_ratio_list) != list) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
@@ -1051,8 +1038,7 @@ class PltScore(ScoreTransformModel):
         _ratio_cum_list = self.input_score_ratio_cum
 
         # start points for raw score segments
-        raw_score_start = _score_min if _mode_order in ['a', 'ascending'] \
-                          else _score_max
+        raw_score_start = _score_min if _mode_order in ['a', 'ascending'] else _score_max
         result_raw_seg_list = [raw_score_start]
 
         last_ratio = 0
