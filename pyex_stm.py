@@ -1246,8 +1246,8 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar']:
-            print('valid mode is: raw, out, model,shift, dist, bar')
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff']:
+            print('valid mode is: raw, out, model,shift, dist, bar, diff')
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
@@ -1256,13 +1256,45 @@ class PltScore(ScoreTransformModel):
             self.__plot_dist()
         elif mode in 'bar':
             self.__plot_bar()
+        elif mode in 'diff':
+            self.__plot_diff()
         elif not super(PltScore, self).plot(mode):
             print('\"{}\" is invalid'.format(mode))
 
+    def __plot_diff(self):
+        x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
+        raw_label = [str(x) for x in self.map_table['seg']][::-1]
+        for f in self.fs:
+            raw_data = list(self.map_table['seg'])[::-1]
+            out_data = list(self.map_table[f + '_plt'])[::-1]
+
+            fig, ax = plot.subplots()
+            ax.set_xticks(x)
+            ax.set_xticklabels(raw_label)
+            width = 0.4
+            bar_wid = [p - width/2 for p in x]
+            rects1 = ax.bar(bar_wid, raw_data, width, label=f)
+            bar_wid = [p + width/2 for p in x]
+            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_plt')
+
+            """Attach a text label above each bar in *rects*, displaying its height."""
+            for i, rects in enumerate([rects1, rects2]):
+                for rect in rects:
+                    notes = rect.get_height() if i == 0 else rect.get_height() - rect.get_x()
+                    height = rect.get_height()
+                    ax.annotate('{}'.format(int(notes)),
+                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xytext=(0, 3),  # 3 points vertical offset
+                                textcoords="offset points",
+                                ha='center', va='bottom')
+            ax.legend(loc='upper left', shadow=True, fontsize='x-large')
+            fig.tight_layout()
+            plot.show()
+
     def __plot_bar(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
+        raw_label = [str(x) for x in self.map_table['seg']][::-1]
         for f in self.fs:
-            raw_label = [str(x) for x in self.map_table['seg']][::-1]
             raw_data = list(self.map_table[f+'_count'])[::-1]
             out_seg = run_seg(self.output_data,
                               [f+'_plt'],
@@ -1277,7 +1309,6 @@ class PltScore(ScoreTransformModel):
             fig, ax = plot.subplots()
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
-            ax.legend()
             width = 0.4
             bar_wid = [p - width/2 for p in x]
             rects1 = ax.bar(bar_wid, raw_data, width, label=f)
@@ -1293,6 +1324,7 @@ class PltScore(ScoreTransformModel):
                                 xytext=(0, 3),  # 3 points vertical offset
                                 textcoords="offset points",
                                 ha='center', va='bottom')
+            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()
             plot.show()
 
@@ -1308,12 +1340,6 @@ class PltScore(ScoreTransformModel):
                               [f+'_plt'],
                               segmax=self.output_score_max,
                               segmin=self.output_score_min)
-            # out_data = [0 for _ in self.map_table['seg']]
-            # for ri, row in out_seg.output_data.iterrows():
-            #     for i, s in enumerate(x_data):
-            #         if int(s) == int(row['seg']):
-            #             out_data[i] = row[f+'_plt_count']
-            #
             ax.plot(list(out_seg.output_data['seg'])[::-1],
                     list(out_seg.output_data[f+'_plt_count'])[::-1],
                     'o-',
