@@ -1077,56 +1077,42 @@ class PltScore(ScoreTransformModel):
 
         _mode = self.strategy_dict['mode_ratio_approx']
         map_table = self.map_table
-
+        _tiny = 10**-8
         _seg = -1
         _percent = -1
         last_percent = -1
         last_seg = None
         last_diff = 1000
-        _use_last = None
+        _use_last = False
         for index, row in map_table.iterrows():
             _percent = row[field+'_percent']
             _seg = row['seg']
             _diff = abs(_percent - dest_ratio)
 
-            # at bottom
-            if index == map_table.index.max():
-                _use_last = False
+            # at table bottom or lowest score, use_current
+            # may process strategy later in seg_list for score_min = 'real/zero'
+            if (index == map_table.index.max()) or (_percent >= 1):
                 break
 
             # reach bigger than or equal to ratio
             # no effect on stratedy: mode_score_empty
-            if (_percent >= dest_ratio) or (_percent >= 1):
-                # at top
+            if _percent >= dest_ratio:
+                # at top row
                 if last_seg is None:
-                    _use_last = False
                     break
-
                 # dealing with strategies
                 if 'near' in _mode:
-                    # this ratio is near
-                    if _diff < last_diff:
-                        _use_last = False
-                    # last ratio is near
-                    elif _diff > last_diff:
+                    # (distances are same, and _mode is near_min) or (last is near)
+                    if ((abs(_diff-last_diff) < _tiny) and ('near_min' in _mode)) or \
+                       (_diff > last_diff):
                         _use_last = True
-                    # distances are same
-                    else:
-                        # mode is near_min
-                        if 'near_min' in _mode:
-                            _use_last = True
-                        # mode is near_max
-                        else:
-                            _use_last = False
                 elif _mode == 'lower_max':
-                    if _percent == dest_ratio:
-                        _use_last = False
-                    else:
+                    if abs(_percent-dest_ratio) > _tiny:
                         _use_last = True
                 elif _mode == 'upper_min':
-                    _use_last = False
-                break
-            if _use_last is not None:
+                    pass
+                else:
+                    raise ValueError
                 break
             last_seg = _seg
             last_diff = _diff
@@ -1204,17 +1190,22 @@ class PltScore(ScoreTransformModel):
 
         # statistics for raw and out score
         _output_report_doc += '- -'*40 + '\n'
-        _output_report_doc += '           statistics: raw_mean={:2.2f}, raw_std={:2.2f}  ' \
-                              'out_mean={:2.2f}, out_std={:2.2f}\n'.\
-                              format(self.input_data[field].mean(), self.input_data[field].std(),
-                                     self.output_data[field+'_plt'].mean(), self.output_data[field+'_plt'].std())
+        _output_report_doc += format('statistics:', '>22s')
+        _output_report_doc += ' raw_max={:3.2f}, raw_min={:3.2f}\n' .\
+                              format(self.input_data[field].max(), self.input_data[field].min())
+        _output_report_doc += ' '*23 + 'raw_mean={:2.2f}, raw_std={:2.2f}\n' .\
+                              format(self.input_data[field].mean(), self.input_data[field].std())
+        _output_report_doc += ' ' * 23 + 'out_max={:3.2f}, out_min={:3.2f}\n'.\
+                              format(self.output_data[field+'_plt'].max(), self.output_data[field+'_plt'].min())
+        _output_report_doc += ' ' * 23 + 'out_mean={:2.2f}, out_std={:2.2f}\n'.\
+                              format(self.output_data[field+'_plt'].mean(), self.output_data[field+'_plt'].std())
 
         # differece between raw and out score
         _diff_raw_out = self.output_data[field+'_plt']-self.output_data[field]
-        _output_report_doc += 'score shift(out-raw): ' \
-                              'shift_max={:3.1f}  ' \
-                              'shift_min={:3.1f}  ' \
-                              'shift_down_percent={:.2f}%\n'.\
+        _output_report_doc += ' score shift(out-raw):' \
+                              ' shift_max={:3.1f}' \
+                              '  shift_min={:3.1f}' \
+                              '  shift_down_percent={:.2f}%\n'.\
                               format(
                                     max(_diff_raw_out),
                                     min(_diff_raw_out),
