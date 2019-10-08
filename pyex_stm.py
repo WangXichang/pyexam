@@ -183,13 +183,13 @@ plt_models_dict = {
 plt_strategies_dict = {
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
     'mode_ratio_approx': ['upper_min', 'lower_max', 'near_max', 'near_min'],
-    'mode_ratio_cumu': ['y', 'yes', 'n', 'no'],
+    'mode_ratio_cumu': ['yes', 'no'],
     'mode_seg_degraded': ['max', 'min', 'mean'],
+    'mode_score_max': ['real', 'full'],
+    'mode_score_min': ['real', 'zero'],
+    'mode_endpoint_share': ['yes', 'no'],
     'mode_score_zero': ['use', 'ignore'],
     'mode_score_empty': ['use', 'ignore'],
-    'mode_score_max': ['real', 'full_mark'],
-    'mode_score_min': ['real', 'zero'],
-    'mode_endpoint_share': ['yes', 'y', 'no', 'n']
     }
 stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
 
