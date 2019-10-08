@@ -1062,11 +1062,11 @@ class PltScore(ScoreTransformModel):
                 if result_raw_seg_list[-1] in [self.input_score_min, self.input_score_max]:
                     this_seg_endpoint = -1
             result_raw_seg_list.append(this_seg_endpoint)
-
-            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {:3.0f}]'.
+            # print(this_seg_endpoint)
+            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {}]'.
                   format(i+1, ratio, dest_percent, this_seg_percent,
                          result_raw_seg_list[-2] if i == 0 else
-                         (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
+                            (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
                          this_seg_endpoint))
 
         self.result_ratio_dict[field] = result_ratio
@@ -1092,12 +1092,15 @@ class PltScore(ScoreTransformModel):
             # at bottom
             if index == map_table.index.max():
                 _use_last = False
+                break
 
             # reach bigger than or equal to ratio
-            if _percent >= dest_ratio:
+            # no effect on stratedy: mode_score_empty
+            if (_percent >= dest_ratio) or (_percent >= 1):
                 # at top
                 if last_seg is None:
                     _use_last = False
+                    break
 
                 # dealing with strategies
                 if 'near' in _mode:
@@ -1122,6 +1125,7 @@ class PltScore(ScoreTransformModel):
                         _use_last = True
                 elif _mode == 'upper_min':
                     _use_last = False
+                break
             if _use_last is not None:
                 break
             last_seg = _seg
