@@ -1392,7 +1392,7 @@ class PltScore(ScoreTransformModel):
                     plot.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
 
             # darw y = x for showing score shift
-            plot.plot((0, in_max), (0, in_max), 'ro-')
+            plot.plot((0, in_max), (0, in_max), 'ro--')
 
         plot.show()
         return
