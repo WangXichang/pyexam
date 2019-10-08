@@ -492,6 +492,7 @@ class TestData():
         self.data_std = std
         self.data_size = size
         self.data_set = None
+        self.get_data()
 
     def get_data(self):
         self.data_set = pd.DataFrame({
@@ -1265,8 +1266,9 @@ class PltScore(ScoreTransformModel):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
         raw_label = [str(x) for x in self.map_table['seg']][::-1]
         for f in self.fs:
-            raw_data = list(self.map_table['seg'])[::-1]
+            raw_data = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
             out_data = list(self.map_table[f + '_plt'])[::-1]
+            out_data = [out if raw > 0 else 0 for raw, out in zip(raw_data, out_data)]
 
             fig, ax = plot.subplots()
             ax.set_xticks(x)
@@ -1280,7 +1282,13 @@ class PltScore(ScoreTransformModel):
             """Attach a text label above each bar in *rects*, displaying its height."""
             for i, rects in enumerate([rects1, rects2]):
                 for rect in rects:
-                    notes = rect.get_height() if i == 0 else rect.get_height() - rect.get_x()
+                    if i == 0:
+                        notes = rect.get_height()
+                    else:
+                        if rect.get_height() > 0:
+                            notes = rect.get_height() - rect.get_x()
+                        else:
+                            notes = 0
                     height = rect.get_height()
                     ax.annotate('{}'.format(int(notes)),
                                 xy=(rect.get_x() + rect.get_width() / 2, height),
