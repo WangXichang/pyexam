@@ -187,9 +187,9 @@ plt_strategies_dict = {
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
-    'mode_endpoint_share': ['yes', 'no'],
     'mode_score_zero': ['use', 'ignore'],
     'mode_score_empty': ['use', 'ignore'],
+    'mode_endpoint_share': ['yes', 'no']
     }
 stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
 
