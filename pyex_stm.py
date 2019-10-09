@@ -187,9 +187,9 @@ plt_strategies_dict = {
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
-    'mode_endpoint_share': ['yes', 'no'],
     'mode_score_zero': ['use', 'ignore'],
     'mode_score_empty': ['use', 'ignore'],
+    'mode_endpoint_share': ['yes', 'no']
     }
 stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
 
@@ -256,20 +256,13 @@ def run_stm(
                       'guangdong', 'M7', default = 'shandong'
     :param df: dataframe, input data, default = None
     :param fs: score fields list in input dataframe, default = None and set to digit fields in running
-    :param ratio_list: ratio list used to create intervals of raw score for each grade
-                        default = None, set to a list by the model's name
-                        must be set to a list if name is not in module preassigned list
-                        must be set for new model
-    :param grade_max: max value for grade score
-                       default = None, will be set to 100 for zhejiang,shanghai,beijing,tianjin, shandong
-                       must be set for new model
     :param input_score_max: max value in raw score
                        default = None, set to 150 in ScoreTransform, set to real max value in PltScore, GradeScore
     :param input_score_min: min value in raw score
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param mode_ratio_approx: lower_max, upper_min, near(near_max, near_min)  default=lower_max  # for shandong new project
+    :param mode_ratio_approx: lower_max, upper_min, near(near_max, near_min)  default=lower_max
     :param mode_ratio_cumu: yes, no  default=yes                     # for shandong new project
     :param mode_score_order: descending(from max to min), ascending(from min to max)
     :return: model
@@ -409,32 +402,13 @@ def calc_stm_mean_std(name='shandong'):
     return _mean, _std, _skewness
 
 
-def mentcaro(ratio=tuple(CONST_SHANDONG_RATIO),
-             seg=tuple(CONST_SHANDONG_SEGMENT),
-             size=1000,
-             ):
-    _loc=[x/100*sum(y)/2 for x, y in zip(ratio, seg)]
-    _max = max([max(x) for x in seg])
-    _min = min([min(x) for x in seg])
-    _mu = (_max + _min)/2
-    _sigma = (_max - _min + 1)/6
-    raw_mean = 50
-    raw_std = (100-raw_mean)/3
-    ndata = np.random.normal(raw_mean, raw_std, size=size)
-    ndata = [x if 0 <= x <= 100 else (0 if x < 0 else 100) for x in ndata]
-    print('mu={:.2f}, sigma={:.2f} std={:.2f}, mean={:.2f}'.
-          format(_mu, _sigma, np.std(ndata), np.mean(ndata)))
-    m = run_stm(df=pd.DataFrame({'fs':ndata}), fs='fs')
-    return m
-
-
 def run_seg(
             input_data:pd.DataFrame,
-            fs:list,
+            fs: list,
             segmax=100,
             segmin=0,
             segsort='d',
-            segstep= 1,
+            segstep=1,
             display=False,
             usealldata=False
             ):
@@ -447,6 +421,7 @@ def run_seg(
         segmax=segmax,
         segmin=segmin,
         segstep=segstep,
+        segsort=segsort,
         display=display,
         useseglist=usealldata
     )
@@ -455,19 +430,20 @@ def run_seg(
 
 
 # test dataset
-class TestData():
-    def __init__(self, mean=60, max=100, min=0, std=18, size=1000000):
-        self.data_mean = mean
-        self.data_max = max
-        self.data_min = min
-        self.data_std = std
-        self.data_size = size
-        self.data_set = None
-        self.get_data()
+class TestData:
+    def __init__(self, mean_value=60, max_value=100, min_value=0, std=18, size=1000000):
+        self.df = None
+        self.df_mean = mean_value
+        self.df_max = max_value
+        self.df_min = min_value
+        self.df_std = std
+        self.df_size = size
+        self.dist = 'norm'
+        self.__make_data()
 
-    def get_data(self):
-        self.data_set = pd.DataFrame({
-            'no': [str(x).zfill(7) for x in range(1, self.data_size+1)],
+    def __make_data(self):
+        self.df = pd.DataFrame({
+            'no': [str(x).zfill(7) for x in range(1, self.df_size+1)],
             'km1': self.get_score(),
             'km2': self.get_score(),
             'km3': self.get_score(),
@@ -475,9 +451,11 @@ class TestData():
 
     def get_score(self):
         print('create score...')
-        score_list = sts.norm.rvs(loc=self.data_mean, scale=self.data_std, size=self.data_size)
-        score_list = [(int(x) if x <= 100 else 100) if x >= 0 else 0
-                      for x in score_list]
+        score_list = None
+        if self.dist == 'norm':
+            norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
+            score_list = [(int(x) if x < self.df_max else self.df_max) if x >= self.df_min else self.df_min
+                          for x in norm_list]
         return score_list
 
 
@@ -839,7 +817,7 @@ class PltScore(ScoreTransformModel):
 
         for k in plt_strategies_dict:
             self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
-                format(k +' = ' + self.strategy_dict[k],
+                format(k + ' = ' + self.strategy_dict[k],
                        plt_strategies_dict[k]) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
@@ -1093,7 +1071,10 @@ class PltScore(ScoreTransformModel):
             return last_seg, last_percent
         return _seg, _percent
 
-    def get_seg_from_fr(self, mapdf, field, ratio):
+    @classmethod
+    def get_seg_from_fr(mapdf: pd.DataFrame,
+                        field,
+                        ratio):
         # comments:
         #   use limit_denominator in Fraction
         #   because of the error in pandas.field(Fraction) is not valid
@@ -1124,7 +1105,7 @@ class PltScore(ScoreTransformModel):
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
                     ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
-                         format(k+1, formula[0][0], formula[1][p], formula[2][p])]
+                     format(k+1, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 self.result_formula_text_list += \
                     ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3}({4:2d}, {5:2d})'.
