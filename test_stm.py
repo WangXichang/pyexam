@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-import pyex_stm as stm
+import stm as stm
 import importlib as pb
 
 class TestModel():
@@ -33,8 +33,8 @@ class TestModel():
             name=name,
             df=dfs[year+kl],
             fs=list(dfs[year+kl]),
-            mode_ratio_approx=mode_ratio_approx,
-            mode_ratio_cumu=mode_ratio_cumu,
+            mode_ratio_loc=mode_ratio_approx,
+            mode_ratio_cum=mode_ratio_cumu,
             mode_score_order=mode_score_order
             )
         self.model_dict.update({year+'_'+kl+'_'+mode_ratio_approx+'_'+mode_ratio_cumu: m})

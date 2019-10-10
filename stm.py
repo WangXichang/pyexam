@@ -12,7 +12,7 @@
 
     [functions] 模块中的函数
        run(name, df, fs, ratio_list, grade_max, grade_diff, input_score_max, input_score_min,
-           output_score_decimal=0, mode_ratio_approx='near', mode_ratio_cumu='yes')
+           output_score_decimal=0, mode_ratio_loc='near', mode_ratio_cum='yes')
           运行各个模型的调用函数 calling model function
           ---
           参数描述
@@ -48,7 +48,7 @@
           output_score_decimal: grade score precision, decimal digit number
           输出分数精度，小数位数
           --
-          mode_ratio_approx: how to approxmate score points of raw score for each ratio vlaue
+          mode_ratio_loc: how to approxmate score points of raw score for each ratio vlaue
           计算等级时的逼近方式（目前设计的比例值逼近策略)：
               'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
               'lower_max': get score with max value in less 大于该比例值的分值中最小的值
@@ -58,7 +58,7 @@
               注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
               注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
 
-              拟改进为（2019.09.09） mode_ratio_approx：
+              拟改进为（2019.09.09） mode_ratio_loc：
               'near':    look up the nearest in all ratios to given-ratio 最接近的比例
               'upper_min':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
               'lower_max':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
@@ -66,7 +66,7 @@
               仍然使用四种模式(2019.09.25)： upper_min, lower_max, near_min, near_max
 
           拟增加比例累加控制(2019.09.09)：
-          mode_ratio_cumu:
+          mode_ratio_cum:
               'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
               'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
 
@@ -182,8 +182,8 @@ plt_models_dict = {
     }
 plt_strategies_dict = {
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
-    'mode_ratio_approx': ['upper_min', 'lower_max', 'near_max', 'near_min'],
-    'mode_ratio_cumu': ['yes', 'no'],
+    'mode_ratio_loc': ['upper_min', 'lower_max', 'near_max', 'near_min'],
+    'mode_ratio_cum': ['yes', 'no'],
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
@@ -247,8 +247,8 @@ def run_stm(
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
-        mode_ratio_approx='upper_min',
-        mode_ratio_cumu='yes',
+        mode_ratio_loc='upper_min',
+        mode_ratio_cum='no',
         mode_score_order='descending'
         ):
     """
@@ -262,8 +262,8 @@ def run_stm(
                        default = None, set to 0 in ScoreTransform, set to real min value in PltScore, GradeScore
     :param output_score_decimal: output score decimal digits
                                   default = 0 for int score at output score
-    :param mode_ratio_approx: lower_max, upper_min, near(near_max, near_min)  default=lower_max
-    :param mode_ratio_cumu: yes, no  default=yes                     # for shandong new project
+    :param mode_ratio_loc: lower_max, upper_min, near(near_max, near_min)  default=lower_max
+    :param mode_ratio_cum: yes, no  default=yes                     # for shandong new project
     :param mode_score_order: descending(from max to min), ascending(from min to max)
     :return: model
     """
@@ -290,13 +290,13 @@ def run_stm(
         print('invalid fs!')
         return
 
-    # check mode_ratio_approx
-    if mode_ratio_approx not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
-        print('invalid approx mode: {}'.format(mode_ratio_approx))
+    # check mode_ratio_loc
+    if mode_ratio_loc not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
+        print('invalid approx mode: {}'.format(mode_ratio_loc))
         print('  valid approx mode: lower_max, upper_min, near_min, near_max')
         return
-    if mode_ratio_cumu not in ['yes', 'no']:
-        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
+    if mode_ratio_cum not in ['yes', 'no']:
+        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cum))
         return
 
     # plt score models
@@ -311,8 +311,8 @@ def run_stm(
                           output_score_points_list=plt_models_dict[name].seg,
                           input_score_max=input_score_max,
                           input_score_min=input_score_min,
-                          mode_ratio_approx=mode_ratio_approx,
-                          mode_ratio_cumu=mode_ratio_cumu,
+                          mode_ratio_loc=mode_ratio_loc,
+                          mode_ratio_cum=mode_ratio_cum,
                           mode_score_order=mode_score_order,
                           output_decimal_digits=output_score_decimal)
         pltmodel.run()
@@ -695,8 +695,8 @@ class PltScore(ScoreTransformModel):
 
         # para
         self.strategy_dict = {
-            'mode_ratio_approx': 'upper_min',
-            'mode_ratio_cumu': 'yes',
+            'mode_ratio_loc': 'upper_min',
+            'mode_ratio_cum': 'yes',
             'mode_score_order': 'descending',
             'mode_seg_degraded': 'max',
             'mode_score_zero': 'use',
@@ -743,8 +743,8 @@ class PltScore(ScoreTransformModel):
                  output_score_points_list=None,
                  input_score_min=None,
                  input_score_max=None,
-                 mode_ratio_approx='upper_min',
-                 mode_ratio_cumu='yes',
+                 mode_ratio_loc='upper_min',
+                 mode_ratio_cum='yes',
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  output_decimal_digits=None):
@@ -754,8 +754,8 @@ class PltScore(ScoreTransformModel):
         if len(input_score_ratio_list) != len(output_score_points_list):
             print('the number of input score points is not same as output score points!')
             return
-        if mode_ratio_cumu not in 'yes, no':
-            print('mode_ratio_cumu value error:{}'.format(mode_ratio_cumu))
+        if mode_ratio_cum not in 'yes, no':
+            print('mode_ratio_cum value error:{}'.format(mode_ratio_cum))
 
         if isinstance(output_decimal_digits, int):
             self.output_decimal_digits = output_decimal_digits
@@ -773,11 +773,11 @@ class PltScore(ScoreTransformModel):
         self.input_score_min = input_score_min
         self.input_score_max = input_score_max
 
-        # self.mode_ratio_approx = mode_ratio_approx
-        # self.mode_ratio_cumu = mode_ratio_cumu
+        # self.mode_ratio_loc = mode_ratio_loc
+        # self.mode_ratio_cum = mode_ratio_cum
         # self.mode_score_order = mode_score_order
-        self.strategy_dict['mode_ratio_approx'] = mode_ratio_approx
-        self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
+        self.strategy_dict['mode_ratio_loc'] = mode_ratio_loc
+        self.strategy_dict['mode_ratio_cum'] = mode_ratio_cum
         self.strategy_dict['mode_score_order'] = mode_score_order
         self.strategy_dict['mode_endpoint_share'] = mode_endpoint_share
 
@@ -1012,7 +1012,7 @@ class PltScore(ScoreTransformModel):
         else:
             _score_min = self.input_score_min
             _score_max = self.input_score_max
-        _mode_cumu = self.strategy_dict['mode_ratio_cumu']
+        _mode_cumu = self.strategy_dict['mode_ratio_cum']
         _mode_order = self.strategy_dict['mode_score_order']
         _ratio_cum_list = self.input_score_ratio_cum
 
@@ -1054,7 +1054,7 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):
 
-        _mode = self.strategy_dict['mode_ratio_approx']
+        _mode = self.strategy_dict['mode_ratio_loc']
         map_table = self.map_table
         _tiny = 10**-8
         _seg = -1
@@ -1300,16 +1300,16 @@ class PltScore(ScoreTransformModel):
             ax.set_xticklabels(raw_label)
             width = 0.4
             bar_wid = [p - width/2 for p in x]
-            rects1 = ax.bar(bar_wid, raw_data, width, label=f)
+            raw_bar = ax.bar(bar_wid, raw_data, width, label=f)
             bar_wid = [p + width/2 for p in x]
-            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_plt')
+            out_bar = ax.bar(bar_wid, out_data, width, label=f+'_plt')
 
             """Attach a text label above each bar in *rects*, displaying its height."""
-            for rects in [rects1, rects2]:
-                for rect in rects:
-                    height = rect.get_height()
+            for bars in [raw_bar, out_bar]:
+                for _bar in bars:
+                    height = _bar.get_height()
                     ax.annotate('{}'.format(int(height)),
-                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xy=(_bar.get_x() + _bar.get_width() / 2, height),
                                 xytext=(0, 3),  # 3 points vertical offset
                                 textcoords="offset points",
                                 ha='center', va='bottom')
@@ -1781,7 +1781,7 @@ class GradeScoreTao(ScoreTransformModel):
         self.run_create_output_data()
 
     def run_create_grade_dist_list(self):
-        # mode_ratio_approx = 'near'
+        # mode_ratio_loc = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.input_score_max,
                      segmin=self.input_score_min,

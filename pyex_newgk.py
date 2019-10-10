@@ -598,7 +598,7 @@ class StmStats(object):
 
     @staticmethod
     def show_mean_std(ms, modelname):
-        import pyex_stm as stm
+        import stm as stm
         years = ['15', '16', '17']
         wkkm = ['lsn', 'dln', 'zzn']
         lkkm = ['wln', 'hxn', 'swn']
