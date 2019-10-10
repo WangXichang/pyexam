@@ -388,35 +388,6 @@ def plot_stm():
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
-    # plot.subplot(241)
-    # plot.bar(range(40, 71, 3), CONST_SHANGHAI_RATIO)
-    # plot.title('Shanghai({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict['shanghai']))
-    #
-    # plot.subplot(242)
-    # plot.bar(range(40, 101, 3), CONST_ZHEJIANG_RATIO[::-1])
-    # plot.title('Zhejiang({:.2f}, {:.2f})'.format(*ms_dict['zhejiang']))
-    #
-    # plot.subplot(243)
-    # plot.bar(range(40, 101, 3), CONST_BEIJING_RATIO[::-1])
-    # plot.title('Beijing({:.2f}, {:.2f})'.format(*ms_dict['beijing']))
-    #
-    # plot.subplot(244)
-    # plot.bar(range(40, 101, 3), CONST_TIANJIN_RATIO[::-1])
-    # plot.title('Tianjin({:.2f}, {:.2f})'.format(*ms_dict['tianjin']))
-    #
-    # plot.subplot(245)
-    # sbn.barplot([x for x in range(25, 101, 10)], CONST_SHANDONG_RATIO)
-    # plot.title('Shandong:({:.2f}, {:.2f})'.format(*ms_dict['shandong']))
-    #
-    # plot.subplot(246)
-    # sbn.barplot([np.mean(x) for x in CONST_GUANGDONG_SEGMENT][::-1], CONST_GUANGDONG_RATIO[::-1])
-    # plot.title('Guangdong({:.2f}, std={:.2f})'.format(*ms_dict['guangdong']))
-    #
-    # plot.subplot(247)
-    # sbn.barplot([int(np.mean(x)) for x in CONST_M7_SEGMENT][::-1], CONST_M7_RATIO[::-1])
-    # plot.title('Jiangsu..({:.2f}, std={:.2f})'.format(*ms_dict['m7']))
-
-
 def calc_stm_mean_std(name='shandong'):
     _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
     _std = np.sqrt(sum([plt_models_dict[name].ratio[i] * (sum(s)/2-_mean) ** 2
@@ -1042,11 +1013,15 @@ class PltScore(ScoreTransformModel):
                     this_seg_endpoint = -1
             result_raw_seg_list.append(this_seg_endpoint)
             # print(this_seg_endpoint)
-            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {}]'.
+            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => '
+                  'seg_raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}]'.
                   format(i+1, ratio, dest_percent, this_seg_percent,
                          result_raw_seg_list[-2] if i == 0 else
                             (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
-                         this_seg_endpoint))
+                         this_seg_endpoint,
+                         self.output_score_points[i][0],
+                         self.output_score_points[i][1]
+                  ))
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
@@ -1281,19 +1256,14 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
     def __plot_bar(self):
-        x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
-        raw_label = [str(x) for x in self.map_table['seg']][::-1]
+        raw_label = [str(x) for x in range(self.output_score_max+1)]
+        x = list(range(self.output_score_max+1))
         for f in self.fs:
-            raw_data = list(self.map_table[f+'_count'])[::-1]
-            out_seg = run_seg(self.output_data,
-                              [f+'_plt'],
-                              segmax=self.output_score_max,
-                              segmin=self.output_score_min)
-            out_data = [0 for _ in raw_label]
-            for ri, row in out_seg.output_data.iterrows():
-                for i, s in enumerate(raw_label):
-                    if int(s) == int(row['seg']):
-                        out_data[i] = row[f+'_plt_count']
+            raw_data = [self.map_table.query('seg=='+x)[f+'_count'].values[0]
+                        if int(x) in self.map_table.seg else 0
+                        for x in raw_label]
+            out_ = self.output_data.groupby(f+'_plt').count()[f]    # .sort_index(ascending=False)
+            out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
 
             fig, ax = plot.subplots()
             ax.set_xticks(x)
