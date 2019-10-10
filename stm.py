@@ -20,9 +20,9 @@
           调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
           caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
           -
-          name:= 'zscore'/'tscore'/'tlinear'
+          name:= 'zscore'/'t_score'/'tlinear'
           计算Z分数、T分数、线性转换T分数
-          caculate Z,T,liear T score by name = 'zscore'/ 'tscore' / 'tlinear'
+          caculate Z,T,liear T score by name = 'zscore'/ 't_score' / 'tlinear'
           --
           df: input raw score data, type DataFrame of pandas
           输入原始分数数据，类型为DataFrame
@@ -101,8 +101,8 @@
        GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
        TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
        Zscore: Z分数转换模型 zscore model
-       Tscore: T分数转换模型 tscore model
-       Tlinear: T分数线性转换模型 tscore model by linear transform mode
+       Tscore: T分数转换模型 t_score model
+       Tlinear: T分数线性转换模型 t_score model by linear transform mode
        SegTable: 计算分段表模型 segment table model
 
     [CONSTANTS] 模块中的常量
@@ -225,15 +225,15 @@ def test_stm(
     elif model.lower() == 'z':
         m = Zscore()
         m.set_data(dfscore, fs=['km'])
-        m.set_para(rawscore_max=max_score, rawscore_min=min_score)
+        m.set_para(raw_score_max=max_score, raw_score_min=min_score)
         m.run()
         return m
 
     elif model.lower() == 't':
         m = Tscore()
         m.set_data(dfscore, fs=['km'])
-        m.set_para(rawscore_max=100, rawscore_min=0,
-                   tscore_mean=500, tscore_std=100, tscore_stdnum=4)
+        m.set_para(raw_score_max=100, raw_score_min=0,
+                   t_score_mean=500, t_score_std=100, t_score_stdnum=4)
         m.run()
         return m
     return None
@@ -252,7 +252,7 @@ def run_stm(
         mode_score_order='descending'
         ):
     """
-    :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore', 'tlinear'
+    :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 't_score', 'tlinear'
                       'guangdong', 'M7', default = 'shandong'
     :param df: dataframe, input data, default = None
     :param fs: score fields list in input dataframe, default = None and set to digit fields in running
@@ -332,16 +332,16 @@ def run_stm(
         zm = Zscore()
         zm.model_name = name
         zm.set_data(input_data=input_data, fs=fs)
-        zm.set_para(std_num=4, rawscore_max=150, rawscore_min=0)
+        zm.set_para(std_num=4, raw_score_max=150, raw_score_min=0)
         zm.run()
         zm.report()
         return zm
 
-    if name == 'tscore':
+    if name == 't_score':
         tm = Tscore()
         tm.model_name = name
         tm.set_data(input_data=input_data, fs=fs)
-        tm.set_para(rawscore_max=150, rawscore_min=0)
+        tm.set_para(raw_score_max=150, raw_score_min=0)
         tm.run()
         tm.report()
         return tm
@@ -560,10 +560,10 @@ class ScoreTransformModel(object):
         labelstr = 'Output Score '
         for fs in self.fs:
             plot.figure(fs)
-            if fs + '_plt' in self.output_data.columns:  # find sf_outscore field
+            if fs + '_plt' in self.output_data.columns:  # find sf_out_score field
                 sbn.distplot(self.output_data[fs + '_plt'])
                 plot.title(labelstr + fs)
-            elif fs + '_grade' in self.output_data.columns:  # find sf_outscore field
+            elif fs + '_grade' in self.output_data.columns:  # find sf_out_score field
                 sbn.distplot(self.output_data[fs + '_grade'])
                 plot.title(labelstr + fs)
             else:
@@ -676,8 +676,8 @@ class PltScore(ScoreTransformModel):
             'mode_score_empty': 'ignore',
             'mode_endpoint_share': 'no'
         }
-        # self.use_min_rawscore_as_endpoint = True
-        # self.use_max_rawscore_as_endpoint = True
+        # self.use_min_raw_score_as_endpoint = True
+        # self.use_max_raw_score_as_endpoint = True
 
         # result
         self.seg_model = None
@@ -757,7 +757,7 @@ class PltScore(ScoreTransformModel):
             print('no score field assign in fs!')
             return False
         if (type(self.input_score_ratio_cum) != list) | (type(self.output_score_points) != list):
-            print('rawscorepoints or stdscorepoints is not list type!')
+            print('raw_scorepoints or stdscorepoints is not list type!')
             return False
         if (len(self.input_score_ratio_cum) != len(self.output_score_points)) | \
                 len(self.input_score_ratio_cum) == 0:
@@ -922,7 +922,7 @@ class PltScore(ScoreTransformModel):
 
     def __get_formula(self, field):
         # --step 1
-        # claculate rawscore_endpoints
+        # claculate raw_score_endpoints
         if field in self.output_data.columns.values:
             print('   get input score endpoints ...')
             points_list = self.__get_formula_raw_seg_list(field=field)
@@ -1385,11 +1385,11 @@ class Zscore(ScoreTransformModel):
         self.input_data = input_data
         self.fs = fs
 
-    def set_para(self, std_num=3, rawscore_max=100, rawscore_min=0,
+    def set_para(self, std_num=3, raw_score_max=100, raw_score_min=0,
                        output_decimal=6):
         self.stdNum = std_num
-        self.maxRawscore = rawscore_max
-        self.minRawscore = rawscore_min
+        self.maxRawscore = raw_score_max
+        self.minRawscore = raw_score_min
         self.output_data_decimal = output_decimal
 
     def check_parameter(self):
@@ -1407,11 +1407,6 @@ class Zscore(ScoreTransformModel):
             return
         # create and calculate output_data
         print('start run...')
-        # deprecated for time cost
-        # if self._normtable is None:
-        #     print('create norm table')
-        #     self._normtable = get_norm_dist_table(self._samplesize, stdnum=4)
-        #     self._normtable.loc[max(self._normtable.index), 'cdf'] = 1
         self.output_data = self.input_data.copy()
         self.map_table = \
             self.__get_map_table(self.output_data, self.maxRawscore, self.minRawscore, self.fs)
@@ -1466,12 +1461,6 @@ class Zscore(ScoreTransformModel):
                 self.map_table[sf + '_percent'].apply(self.lookup_zscore)
         else:
             print('error: not found field{}+"_percent"!'.format(sf))
-        # deprecated for time cost
-        # if sf+'_percent' in self.map_table.columns.values:
-        #     self.map_table.loc[:, sf + '_zscore'] = \
-        #         self.map_table[sf + '_percent'].apply(self.__get_zscore_from_normtable)
-        # else:
-        #     print('error: not found field{}+"_percent"!'.format(sf))
 
     def __get_zscore_from_normtable(self, p):
         df = self._normtable.loc[self._normtable.cdf >= p - Zscore.MinError][['sv']].head(1).sv
@@ -1513,7 +1502,7 @@ class Zscore(ScoreTransformModel):
             print('output score desc:\n', self.output_data.describe())
         else:
             print('output score data is not ready!')
-        print('data fields in rawscore:{}'.format(self.fs))
+        print('data fields in raw_score:{}'.format(self.fs))
         print('para:')
         print('\tzscore stadard diff numbers:{}'.format(self.stdNum))
         print('\tmax score in raw score:{}'.format(self.maxRawscore))
@@ -1538,14 +1527,14 @@ class Tscore(ScoreTransformModel):
         super(Tscore, self).__init__('t')
         # self.model_name = 't'
 
-        self.rscore_max = 150
-        self.rscore_min = 0
-        self.tscore_std = 10
-        self.tscore_mean = 50
-        self.tscore_stdnum = 4
+        self.raw_score_max = 150
+        self.raw_score_min = 0
+        self.t_score_std = 10
+        self.t_score_mean = 50
+        self.t_score_stdnum = 4
 
         self.output_data_decimal = 0
-        self.zscore_decimal = 6
+        self.zscore_decimal = 8
 
         self.map_table = None
 
@@ -1553,33 +1542,35 @@ class Tscore(ScoreTransformModel):
         self.input_data = input_data
         self.fs = fs
 
-    def set_para(self, rawscore_max=150, rawscore_min=0,
-                       tscore_mean=500, tscore_std=100, tscore_stdnum=4,
-                       output_decimal=0):
-        self.rscore_max = rawscore_max
-        self.rscore_min = rawscore_min
-        self.tscore_mean = tscore_mean
-        self.tscore_std = tscore_std
-        self.tscore_stdnum = tscore_stdnum
+    def set_para(self, 
+                 raw_score_max=150, 
+                 raw_score_min=0,
+                 t_score_mean=500, 
+                 t_score_std=100, 
+                 t_score_stdnum=4,
+                 output_decimal=0):
+        self.raw_score_max = raw_score_max
+        self.raw_score_min = raw_score_min
+        self.t_score_mean = t_score_mean
+        self.t_score_std = t_score_std
+        self.t_score_stdnum = t_score_stdnum
         self.output_data_decimal = output_decimal
 
     def run(self):
         zm = Zscore()
         zm.set_data(self.input_data, self.fs)
-        zm.set_para(std_num=self.tscore_stdnum,
-                          rawscore_min=self.rscore_min,
-                          rawscore_max=self.rscore_max,
+        zm.set_para(std_num=self.t_score_stdnum,
+                          raw_score_min=self.raw_score_min,
+                          raw_score_max=self.raw_score_max,
                           output_decimal=self.zscore_decimal)
         zm.run()
         self.output_data = zm.output_data
         namelist = self.output_data.columns
+        formula = lambda x: round45r(x * self.t_score_std + self.t_score_mean, self.output_data_decimal)
         for sf in namelist:
             if '_zscore' in sf:
-                newsf = sf.replace('_zscore', '_tscore')
-                self.output_data.loc[:, newsf] = \
-                    self.output_data[sf].apply(
-                        lambda x: round45r(x * self.tscore_std + self.tscore_mean,
-                                           self.output_data_decimal))
+                new_sf = sf.replace('_zscore', '_t_score')
+                self.output_data.loc[:, new_sf] = self.output_data[sf].apply(formula)
         self.map_table = zm.map_table
 
     def report(self):
@@ -1593,19 +1584,19 @@ class Tscore(ScoreTransformModel):
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
-            out_fields = [f+'_tscore' for f in self.fs]
+            out_fields = [f+'_t_score' for f in self.fs]
             print('T-score desc:')
             print('    fields:', out_fields)
             print(self.output_data[out_fields].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print('data fields in rawscore:{}'.format(self.fs))
+        print('data fields in raw_score:{}'.format(self.fs))
         print('-' * 50)
         print('para:')
-        print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
-        print('\tmax score in raw score:{}'.format(self.rscore_max))
-        print('\tmin score in raw score:{}'.format(self.rscore_min))
+        print('\tzscore stadard deviation numbers:{}'.format(self.t_score_std))
+        print('\tmax score in raw score:{}'.format(self.raw_score_max))
+        print('\tmin score in raw score:{}'.format(self.raw_score_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
@@ -1618,11 +1609,11 @@ class TscoreLinear(ScoreTransformModel):
         super(TscoreLinear, self).__init__('tzl')
 
         self.model_name = 'tzl'
-        self.rawscore_max = 150
-        self.rawscore_min = 0
-        self.tscore_mean = 50
-        self.tscore_std = 10
-        self.tscore_stdnum = 4
+        self.raw_score_max = 150
+        self.raw_score_min = 0
+        self.t_score_mean = 50
+        self.t_score_std = 10
+        self.t_score_stdnum = 4
 
     def set_data(self, input_data=None, fs=None):
         self.input_data = input_data
@@ -1631,25 +1622,25 @@ class TscoreLinear(ScoreTransformModel):
     def set_para(self,
                        input_score_max=150,
                        input_score_min=0,
-                       tscore_std=10,
-                       tscore_mean=50,
-                       tscore_stdnum=4):
-        self.rawscore_max = input_score_max
-        self.rawscore_min = input_score_min
-        self.tscore_mean = tscore_mean
-        self.tscore_std = tscore_std
-        self.tscore_stdnum = tscore_stdnum
+                       t_score_std=10,
+                       t_score_mean=50,
+                       t_score_stdnum=4):
+        self.raw_score_max = input_score_max
+        self.raw_score_min = input_score_min
+        self.t_score_mean = t_score_mean
+        self.t_score_std = t_score_std
+        self.t_score_stdnum = t_score_stdnum
 
     def check_data(self):
         super(TscoreLinear, self).check_data()
         return True
 
     def check_parameter(self):
-        if self.rawscore_max <= self.rawscore_min:
+        if self.raw_score_max <= self.raw_score_min:
             print('raw score max and min error!')
             return False
-        if self.tscore_std <= 0 | self.tscore_stdnum <= 0:
-            print('t_score std number error:std={}, stdnum={}'.format(self.tscore_std, self.tscore_stdnum))
+        if self.t_score_std <= 0 | self.t_score_stdnum <= 0:
+            print('t_score std number error:std={}, stdnum={}'.format(self.t_score_std, self.t_score_stdnum))
             return False
         return True
 
@@ -1660,10 +1651,10 @@ class TscoreLinear(ScoreTransformModel):
             rmean, rstd = self.output_data[[sf]].describe().loc[['mean', 'std']].values[:, 0]
             self.output_data[sf + '_zscore'] = \
                 self.output_data[sf].apply(
-                    lambda x: min(max((x - rmean) / rstd, -self.tscore_stdnum), self.tscore_stdnum))
-            self.output_data.loc[:, sf + '_tscore'] = \
+                    lambda x: min(max((x - rmean) / rstd, -self.t_score_stdnum), self.t_score_stdnum))
+            self.output_data.loc[:, sf + '_t_score'] = \
                 self.output_data[sf + '_zscore'].\
-                apply(lambda x: x * self.tscore_std + self.tscore_mean)
+                apply(lambda x: x * self.t_score_std + self.t_score_mean)
 
     def report(self):
         print('TZ-score by linear transform report')
@@ -1676,16 +1667,16 @@ class TscoreLinear(ScoreTransformModel):
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            print(self.output_data[[f+'_tscore' for f in self.fs]].describe())
+            print(self.output_data[[f+'_t_score' for f in self.fs]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
-        print('data fields in rawscore:{}'.format(self.fs))
+        print('data fields in raw_score:{}'.format(self.fs))
         print('-' * 50)
         print('para:')
-        print('\tzscore stadard deviation numbers:{}'.format(self.tscore_std))
-        print('\tmax score in raw score:{}'.format(self.rawscore_max))
-        print('\tmin score in raw score:{}'.format(self.rawscore_min))
+        print('\tzscore stadard deviation numbers:{}'.format(self.t_score_std))
+        print('\tmax score in raw score:{}'.format(self.raw_score_max))
+        print('\tmin score in raw score:{}'.format(self.raw_score_min))
         print('-' * 50)
 
     def plot(self, mode='raw'):
