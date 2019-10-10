@@ -1014,7 +1014,7 @@ class PltScore(ScoreTransformModel):
             result_raw_seg_list.append(this_seg_endpoint)
             # print(this_seg_endpoint)
             print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => '
-                  'seg_raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}]'.
+                  'interval(raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}])'.
                   format(i+1, ratio, dest_percent, this_seg_percent,
                          result_raw_seg_list[-2] if i == 0 else
                             (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
@@ -1264,7 +1264,6 @@ class PltScore(ScoreTransformModel):
                         for x in raw_label]
             out_ = self.output_data.groupby(f+'_plt').count()[f]    # .sort_index(ascending=False)
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
-
             fig, ax = plot.subplots()
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
@@ -1273,8 +1272,6 @@ class PltScore(ScoreTransformModel):
             raw_bar = ax.bar(bar_wid, raw_data, width, label=f)
             bar_wid = [p + width/2 for p in x]
             out_bar = ax.bar(bar_wid, out_data, width, label=f+'_plt')
-
-            """Attach a text label above each bar in *rects*, displaying its height."""
             for bars in [raw_bar, out_bar]:
                 for _bar in bars:
                     height = _bar.get_height()
