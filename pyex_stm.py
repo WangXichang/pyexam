@@ -1013,11 +1013,15 @@ class PltScore(ScoreTransformModel):
                     this_seg_endpoint = -1
             result_raw_seg_list.append(this_seg_endpoint)
             # print(this_seg_endpoint)
-            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => raw_seg: [{:3.0f}, {}]'.
+            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => '
+                  'seg_raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}]'.
                   format(i+1, ratio, dest_percent, this_seg_percent,
                          result_raw_seg_list[-2] if i == 0 else
                             (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.input_score_min else -1),
-                         this_seg_endpoint))
+                         this_seg_endpoint,
+                         self.output_score_points[i][0],
+                         self.output_score_points[i][1]
+                  ))
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
