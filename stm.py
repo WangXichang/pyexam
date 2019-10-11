@@ -939,17 +939,17 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
         result_ratio = []
-        self.input_score_ratio_cum[0] = 0
-        self.input_score_ratio_cum[-1] = 100
+        # self.input_score_ratio_cum[0] = 0
+        self.input_score_ratio_cum[-1] = 1
         for ri, row in self.map_table.iterrows():
             x = row['seg']
             for si, sr in enumerate(self.input_score_ratio_cum):
-                _p = row[col+'_percent']*100
+                _p = row[col+'_percent']
                 if (abs(_p - sr) < 10**-8) or (_p < sr):
                     y = 900 - si
                     row[col+'_plt'] = y
                     coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
-                    result_ratio.append(format(_p/100, '.4f'))
+                    result_ratio.append(format(_p, '.4f'))
                     break
         self.result_formula_coeff = coeff_dict
         self.result_dict[col] = {'input_score_points': self.result_input_data_points,
@@ -1158,7 +1158,7 @@ class PltScore(ScoreTransformModel):
                          ]
                 else:
                     self.result_formula_text_list += \
-                        ['(seg-{0:3d}) y = {1:.8f}*(x-{2:3d}) + {3:3d}'.
+                        ['(seg-{0:3d}) y = 1.0*(x-{2:3d}) + {3:3d}'.
                          format(k + 1,
                                 formula[0][0],
                                 formula[1][p],

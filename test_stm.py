@@ -44,10 +44,10 @@ class TestModel():
             '17wenke': self.df17wen,
             '18like': self.df18like,
             '18wenke': self.df18wen}
-        m = stm.run_stm(
+        m = stm.run(
             name=name,
             df=dfs[year+kl],
-            fs=list(dfs[year+kl]),
+            cols=list(dfs[year+kl]),
             mode_ratio_loc=mode_ratio_approx,
             mode_ratio_cum=mode_ratio_cumu,
             mode_score_order=mode_score_order
