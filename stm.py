@@ -171,7 +171,7 @@ CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
 # Haina standard score
-norm_cdf = [sts.norm.cdf((v-500)/100)*100 for v in range(100, 901)]
+norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
 CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0 else norm_cdf[i]*100 for i in range(801)]
 CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 99, -1)]
 
@@ -1141,20 +1141,29 @@ class PltScore(ScoreTransformModel):
         for k in self.result_formula_coeff:
             formula = self.result_formula_coeff[k]
             if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
-                self.result_formula_text_list += ['(seg-{:2d}) ******'.format(k+1)]
+                self.result_formula_text_list += ['(seg-{:3d}) ******'.format(k+1)]
                 continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
                     ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
                      format(k+1, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
-                self.result_formula_text_list += \
-                    ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
-                     format(k + 1,
-                            formula[0][0], formula[1][p],
-                            self.strategy_dict['mode_seg_degraded'],
-                            formula[2][0], formula[2][1])
-                     ]
+                if formula[2][0] != formula[2][1]:
+                    self.result_formula_text_list += \
+                        ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
+                         format(k + 1,
+                                formula[0][0], formula[1][p],
+                                self.strategy_dict['mode_seg_degraded'],
+                                formula[2][0], formula[2][1])
+                         ]
+                else:
+                    self.result_formula_text_list += \
+                        ['(seg-{0:3d}) y = {1:.8f}*(x-{2:3d}) + {3:3d}'.
+                         format(k + 1,
+                                formula[0][0],
+                                formula[1][p],
+                                formula[2][0])
+                         ]
 
         # report start
         # tiltle
