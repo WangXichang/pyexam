@@ -170,6 +170,12 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
+# Haina standard score
+norm_cdf = [sts.norm.cdf((v-500)/100)*100 for v in range(100, 901)]
+CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0 else norm_cdf[i]*100 for i in range(801)]
+CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 99, -1)]
+
+
 PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
 plt_models_dict = {
     'zhejiang': PltRatioSeg_namedtuple(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
@@ -178,7 +184,8 @@ plt_models_dict = {
     'tianjin': PltRatioSeg_namedtuple(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
     'shandong': PltRatioSeg_namedtuple(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
     'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-    'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT)
+    'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT),
+    'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT)
     }
 plt_strategies_dict = {
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
@@ -219,7 +226,7 @@ def test_model(
     if model in stm_models_name[2:]:
         print('test model={}'.format(model))
         print('data set size={}, score range from 0 to 100'.format(data_size))
-        m = run_stm(name=model, df=dfscore, cols='kmx')
+        m = run(name=model, df=dfscore, cols='kmx')
         return m
 
     elif model.lower() == 'z':
@@ -827,9 +834,12 @@ class PltScore(ScoreTransformModel):
             print('--- transform score field:[{}]'.format(col))
 
             # get formula and save
-            if not self.__get_formula(col):
-                print('getting formula fail !')
-                return
+            if self.model_name == 'hainan':
+                self.__get_formula_hainan(col)
+            else:
+                if not self.__get_formula(col):
+                    print('getting formula fail !')
+                    return
             self.result_dict[col] = {
                                     'input_score_points': copy.deepcopy(self.result_input_data_points),
                                     'coeff': copy.deepcopy(self.result_formula_coeff),
@@ -919,6 +929,33 @@ class PltScore(ScoreTransformModel):
                         return -1
                 return round45r((a*x + b)/c)
         return -1
+
+    # formula hainan
+    # y = x for x in [x, x]
+    # coeff: (a=0, b=x), (x, x), (y, y))
+    # len(ratio_list) = len(map_table['seg'])
+    def __get_formula_hainan(self, col):
+        self.result_input_data_points = [x for x in self.map_table['seg']]
+        self.map_table.loc[:, col+'_plt'] = -1
+        coeff_dict = dict()
+        result_ratio = []
+        self.input_score_ratio_cum[0] = 0
+        self.input_score_ratio_cum[-1] = 100
+        for ri, row in self.map_table.iterrows():
+            x = row['seg']
+            for si, sr in enumerate(self.input_score_ratio_cum):
+                _p = row[col+'_percent']*100
+                if (abs(_p - sr) < 10**-8) or (_p < sr):
+                    y = 900 - si
+                    row[col+'_plt'] = y
+                    coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
+                    result_ratio.append(format(_p/100, '.4f'))
+                    break
+        self.result_formula_coeff = coeff_dict
+        self.result_dict[col] = {'input_score_points': self.result_input_data_points,
+                                 'coeff': coeff_dict,
+                                 'formula': ''}
+        self.result_ratio_dict[col] = result_ratio
 
     def __get_formula(self, field):
         # --step 1
@@ -1104,15 +1141,15 @@ class PltScore(ScoreTransformModel):
         for k in self.result_formula_coeff:
             formula = self.result_formula_coeff[k]
             if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
-                self.result_formula_text_list += ['(seg-{0}) ******'.format(k + 1)]
+                self.result_formula_text_list += ['(seg-{:2d}) ******'.format(k+1)]
                 continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
+                    ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
                      format(k+1, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0}) y = {1:0.8f}*(x-{2:2d}) + {3}({4:2d}, {5:2d})'.
+                    ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
                      format(k + 1,
                             formula[0][0], formula[1][p],
                             self.strategy_dict['mode_seg_degraded'],
@@ -1126,11 +1163,18 @@ class PltScore(ScoreTransformModel):
 
         # calculating for ratio and segment
         plist = self.input_score_ratio_cum
-        _output_report_doc += '  raw score seg ratio: {}\n'.\
-            format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
-                    for j in range(len(plist))])
-        _output_report_doc += '  raw score cum ratio: {}\n'.\
-            format([format(x, '0.4f') for x in self.input_score_ratio_cum])
+        if len(plist) > 10:
+            _output_report_doc += '  raw score seg ratio: {}...\n'. \
+                format([format(plist[j] - plist[j - 1] if j > 0 else plist[0], '0.4f')
+                        for j in range(10)])
+            _output_report_doc += '  raw score cum ratio: {}...\n'. \
+                format([format(x, '0.4f') for x in self.input_score_ratio_cum[:10]])
+        else:
+            _output_report_doc += '  raw score seg ratio: {}\n'.\
+                format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
+                        for j in range(len(plist))])
+            _output_report_doc += '  raw score cum ratio: {}\n'.\
+                format([format(x, '0.4f') for x in self.input_score_ratio_cum])
         _output_report_doc += '  raw score set ratio: {}\n'.\
             format(self.result_ratio_dict[field])
         _output_report_doc += '  raw score endpoints: {}\n'.\
