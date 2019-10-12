@@ -840,10 +840,6 @@ class PltScore(ScoreTransformModel):
                 if not self.__get_formula(col):
                     print('getting formula fail !')
                     return
-            self.result_dict[col] = {
-                                    'input_score_points': copy.deepcopy(self.result_input_data_points),
-                                    'coeff': copy.deepcopy(self.result_formula_coeff),
-                                    'formulas': copy.deepcopy(self.result_formula_text_list)}
 
             # get field_plt in output_data
             print('   calculate: {0} => {0}_plt'.format(col))
@@ -975,6 +971,10 @@ class PltScore(ScoreTransformModel):
         # calculate Coefficients
         if not self.__get_formula_coeff():
             return False
+        self.result_dict[field] = {
+            'input_score_points': copy.deepcopy(self.result_input_data_points),
+            'coeff': copy.deepcopy(self.result_formula_coeff),
+            'formulas': copy.deepcopy(self.result_formula_text_list)}
         return True
 
     # -----------------------------------------------------------------------------------
