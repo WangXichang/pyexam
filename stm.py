@@ -206,37 +206,45 @@ def about_stm():
 
 
 def test_model(
-        model='shandong',
+        name='shandong',
         max_score=100,
         min_score=0,
         data_size=1000):
 
-    if model.lower() not in stm_models_name:
-        print('correct model name in: [{}]'.format(','.join(stm_models_name)))
+    if name.lower() not in stm_models_name:
+        print('Invalid model name:{}! \ncorrect model name in: [{}]'.
+              format(name, ','.join(stm_models_name)))
         return None
 
     # create data set
     print('create test dataset...')
     # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
-    norm_data = [sts.norm.rvs() for _ in range(data_size)]
-    norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
-    norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
+    # norm_data = [sts.norm.rvs() for _ in range(data_size)]
+    # norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
+    # norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
+    norm_data = []
+    for x in range(0, 100, 5):
+        if x < 50:
+            norm_data += [x] * (x % 3)
+        else:
+            norm_data += [x] * (100-x+2)
     dfscore = pd.DataFrame({'kmx': norm_data})
+    # return dfscore
 
-    if model in stm_models_name[2:]:
-        print('test model={}'.format(model))
+    if name in plt_models_dict.keys():
+        print('plt model={}'.format(name))
         print('data set size={}, score range from 0 to 100'.format(data_size))
-        m = run(name=model, df=dfscore, cols='kmx')
+        m = run(name=name, df=dfscore, cols=['kmx'])
         return m
 
-    elif model.lower() == 'z':
+    elif name.lower() == 'z':
         m = Zscore()
         m.set_data(dfscore, cols=['km'])
         m.set_para(raw_score_max=max_score, raw_score_min=min_score)
         m.run()
         return m
 
-    elif model.lower() == 't':
+    elif name.lower() == 't':
         m = Tscore()
         m.set_data(dfscore, cols=['km'])
         m.set_para(raw_score_max=100, raw_score_min=0,
@@ -250,7 +258,7 @@ def test_model(
 def run(
         name='shandong',
         df=None,
-        cols='',
+        cols=[],
         input_score_max=None,
         input_score_min=None,
         output_score_decimal=0,
@@ -294,7 +302,7 @@ def run(
     if isinstance(cols, str):
         cols = [cols]
     elif not isinstance(cols, list):
-        print('invalid col!')
+        print('invalid cols!')
         return
 
     # check mode_ratio_loc
@@ -309,21 +317,20 @@ def run(
     # plt score models
     if name in plt_models_dict.keys():
         ratio_list = [x*0.01 for x in plt_models_dict[name].ratio]
-        pltmodel = PltScore()
-        pltmodel.model_name = name
-        pltmodel.output_decimal_digits = 0
-        pltmodel.set_data(input_data=input_data,
-                          cols=cols)
-        pltmodel.set_para(input_score_ratio_list=ratio_list,
-                          output_score_points_list=plt_models_dict[name].seg,
-                          input_score_max=input_score_max,
-                          input_score_min=input_score_min,
-                          mode_ratio_loc=mode_ratio_loc,
-                          mode_ratio_cum=mode_ratio_cum,
-                          mode_score_order=mode_score_order,
-                          output_decimal_digits=output_score_decimal)
-        pltmodel.run()
-        return pltmodel
+        plt_model = PltScore()
+        plt_model.model_name = name
+        plt_model.output_decimal_digits = 0
+        plt_model.set_data(input_data=input_data, cols=cols)
+        plt_model.set_para(input_score_ratio_list=ratio_list,
+                           output_score_points_list=plt_models_dict[name].seg,
+                           input_score_max=input_score_max,
+                           input_score_min=input_score_min,
+                           mode_ratio_loc=mode_ratio_loc,
+                           mode_ratio_cum=mode_ratio_cum,
+                           mode_score_order=mode_score_order,
+                           output_decimal_digits=output_score_decimal)
+        plt_model.run()
+        return plt_model
 
     if name == 'tao':
         m = GradeScoreTao()
@@ -344,7 +351,7 @@ def run(
         zm.report()
         return zm
 
-    if name == 't_score':
+    if name == 'tscore':
         tm = Tscore()
         tm.model_name = name
         tm.set_data(input_data=input_data, cols=cols)
@@ -1351,6 +1358,7 @@ class PltScore(ScoreTransformModel):
 
     def __plot_bar(self):
         raw_label = [str(x) for x in range(self.output_score_max+1)]
+        print(raw_label)
         x = list(range(self.output_score_max+1))
         for f in self.cols:
             raw_data = [self.map_table.query('seg=='+x)[f+'_count'].values[0]
