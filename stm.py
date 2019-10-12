@@ -364,16 +364,15 @@ def run(
         return tm
 
 
-def plot_stm():
+def plot_stm(font_size=12):
     # calculate mean, std
     # ms_dict = stm_mean_std()
     ms_dict = dict()
     for _name in plt_models_dict.keys():
         ms_dict.update({_name: calc_stm_mean_std(name=_name)})
 
-
     plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
-    plot.rcParams.update({'font.size': 16})
+    plot.rcParams.update({'font.size': font_size})
     for i, k in enumerate(plt_models_dict.keys()):
         plot.subplot(240+i+1)
         _wid = 2
