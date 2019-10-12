@@ -382,7 +382,7 @@ def plot_stm():
         elif k in ['zhejiang', 'beijing', 'tianjin']:
             x_data = range(40, 101, 3)
         elif k in ['shandong']:
-            x_data = [x for x in range(25, 101, 10)]
+            x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
             x_data = [np.mean(x) for x in plt_models_dict[k].seg][::-1]
@@ -399,11 +399,14 @@ def plot_stm():
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 def calc_stm_mean_std(name='shandong'):
-    _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
-    _std = np.sqrt(sum([plt_models_dict[name].ratio[i] * (sum(s)/2-_mean) ** 2
-                        for i, s in enumerate(plt_models_dict[name].seg)]) / 100)
-    _skewnumer = sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**3
-                    for i, s in enumerate(plt_models_dict[name].seg)])
+    if name == 'hainan':
+        _mean, _std, _skewnumer = 500, 100, 0
+    else:
+        _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
+        _std = np.sqrt(sum([plt_models_dict[name].ratio[i] * (sum(s)/2-_mean) ** 2
+                            for i, s in enumerate(plt_models_dict[name].seg)]) / 100)
+        _skewnumer = sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**3
+                          for i, s in enumerate(plt_models_dict[name].seg)])
     # print(name, _skewnumer)
     if _skewnumer == 0:
         return _mean, _std, 0
