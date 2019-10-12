@@ -194,8 +194,8 @@ plt_strategies_dict = {
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
-    'mode_score_zero': ['use', 'ignore'],
-    'mode_score_empty': ['use', 'ignore'],
+    'mode_score_zero': ['use_to_low', 'use_to_real', 'ignore'],
+    'mode_score_empty': ['use_to_min', 'use_to_max', 'use_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
     }
 stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
@@ -390,6 +390,9 @@ def plot_stm():
         elif k in ['m7']:
             x_data = [int(np.mean(x)) for x in plt_models_dict[k].seg][::-1]
             _wid = 10
+        elif k in ['hainan']:
+            x_data = [x for x in range(100, 901)]
+            _wid = 1
         else:
             raise ValueError
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
@@ -404,8 +407,8 @@ def calc_stm_mean_std(name='shandong'):
     # print(name, _skewnumer)
     if _skewnumer == 0:
         return _mean, _std, 0
-    _skewness = _skewnumer / sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean) ** 2
-                                 for i, s in enumerate(plt_models_dict[name].seg)]) **(3/2)
+    _skewness = _skewnumer / sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**2
+                                 for i, s in enumerate(plt_models_dict[name].seg)])**(3/2)
     return _mean, _std, _skewness
 
 
@@ -677,7 +680,7 @@ class PltScore(ScoreTransformModel):
             'mode_ratio_cum': 'yes',
             'mode_score_order': 'descending',
             'mode_seg_degraded': 'max',
-            'mode_score_zero': 'use',
+            'mode_score_zero': 'use_to_real',
             'mode_score_max': 'real',
             'mode_score_min': 'real',
             'mode_score_empty': 'ignore',
@@ -816,7 +819,8 @@ class PltScore(ScoreTransformModel):
             self.map_table.astype({f+'_fr': fr.Fraction})
 
         # transform score on each field
-        self.output_report_doc = 'Transform Model: [{}]\n'.format(self.model_name)
+        self.output_report_doc = 'Transform Model: [{}]   {}\n'.\
+            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.output_report_doc += '---'*40 + '\n'
 
         # algorithm strategy
@@ -939,13 +943,44 @@ class PltScore(ScoreTransformModel):
         self.input_score_ratio_cum[-1] = 1
         for ri, row in self.map_table.iterrows():
             x = row['seg']
+            # score_zero processing
+            if abs(x) < 10**-8:
+                _mode = self.strategy_dict['mode_score_zero']
+                if 'ignore' in _mode:
+                    pass
+                elif 'use_to_low' in _mode:
+                    y = self.output_score_min
+                    break
+                elif 'use_to_real' in _mode:
+                    pass
             for si, sr in enumerate(self.input_score_ratio_cum):
                 _p = row[col+'_percent']
                 if (abs(_p - sr) < 10**-8) or (_p < sr):
-                    y = 900 - si
+                    # strategies
+                    _mode = self.strategy_dict['mode_ratio_loc']
+                    y = -1
+                    if (abs(_p - sr) < 10**-8) or (si == 0):
+                        y = 900 - si
+                    elif _mode == 'upper_min':
+                        y = 900 - si
+                    elif _mode == 'lower_max':
+                        if si > 0:
+                            y = 900 - si + 1
+                        else:
+                            y = 900 -si
+                    elif 'near' in _mode:
+                        if abs(_p-sr) < abs(_p-self.input_score_ratio_cum[si-1]):
+                            y = 900 - si
+                        elif abs(_p-sr) > abs(_p-self.input_score_ratio_cum[si-1]):
+                            y = 900 - si + 1
+                        else:
+                            if 'near_max' in _mode:
+                                y = 900 - si
+                            else:
+                                y = 900 - si + 1
                     row[col+'_plt'] = y
                     coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
-                    result_ratio.append(format(_p, '.4f'))
+                    result_ratio.append(format(_p, '.6f'))
                     break
         self.result_formula_coeff = coeff_dict
         self.result_dict[col] = {'input_score_points': self.result_input_data_points,
@@ -1041,7 +1076,7 @@ class PltScore(ScoreTransformModel):
             last_percent = this_seg_percent
 
             # set result ratio
-            result_ratio.append('{:.4f}'.format(this_seg_percent))
+            result_ratio.append('{:.6f}'.format(this_seg_percent))
 
             # set result endpoints (linked, share)
             if ratio == _ratio_cum_list[-1]:       # last ratio segment
@@ -1051,7 +1086,7 @@ class PltScore(ScoreTransformModel):
             result_raw_seg_list.append(this_seg_endpoint)
 
             # print(this_seg_endpoint)
-            print('   <{}> ratio: [def:{:.2f} dest:{:.4f} result:{:.4f}] => '
+            print('   <{}> ratio: [spec:{:.2f}  locate:{:.4f}  result:{:.4f}] => '
                   'intervals:(raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}])'.
                   format(i+1,
                          ratio,
@@ -1178,16 +1213,16 @@ class PltScore(ScoreTransformModel):
         plist = self.input_score_ratio_cum
         if len(plist) > 10:
             _output_report_doc += '  raw score seg ratio: {}...\n'. \
-                format([format(plist[j] - plist[j - 1] if j > 0 else plist[0], '0.4f')
+                format([format(plist[j] - plist[j - 1] if j > 0 else plist[0], '0.6f')
                         for j in range(10)])
             _output_report_doc += '  raw score cum ratio: {}...\n'. \
-                format([format(x, '0.4f') for x in self.input_score_ratio_cum[:10]])
+                format([format(x, '0.6f') for x in self.input_score_ratio_cum[:10]])
         else:
             _output_report_doc += '  raw score seg ratio: {}\n'.\
-                format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.4f')
+                format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
                         for j in range(len(plist))])
             _output_report_doc += '  raw score cum ratio: {}\n'.\
-                format([format(x, '0.4f') for x in self.input_score_ratio_cum])
+                format([format(x, '0.6f') for x in self.input_score_ratio_cum])
         _output_report_doc += '  raw score set ratio: {}\n'.\
             format(self.result_ratio_dict[field])
         _output_report_doc += '  raw score endpoints: {}\n'.\
