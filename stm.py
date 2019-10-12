@@ -207,9 +207,12 @@ def about_stm():
 
 def test_model(
         name='shandong',
+        mode_ratio_cum='no',
+        mode_ratio_loc='upper_min',
         max_score=100,
         min_score=0,
-        data_size=1000):
+        data_size=1000
+        ):
 
     if name.lower() not in stm_models_name:
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
@@ -234,7 +237,10 @@ def test_model(
     if name in plt_models_dict.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from 0 to 100'.format(data_size))
-        m = run(name=name, df=dfscore, cols=['kmx'])
+        m = run(name=name, df=dfscore, cols=['kmx'],
+                mode_ratio_loc=mode_ratio_loc,
+                mode_ratio_cum=mode_ratio_cum
+                )
         return m
 
     elif name.lower() == 'z':
@@ -400,7 +406,7 @@ def plot_stm(font_size=12):
             x_data = [x for x in range(100, 901)]
             _wid = 1
         else:
-            raise ValueError
+            raise ValueError(k)
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
@@ -1000,25 +1006,19 @@ class PltScore(ScoreTransformModel):
     def __get_formula(self, field):
         # --step 1
         # claculate raw_score_endpoints
-        if field in self.output_data.columns.values:
-            print('   get input score endpoints ...')
-            points_list = self.__get_formula_raw_seg_list(field=field)
-            self.result_input_data_points = points_list
-            if len(points_list) == 0:
-                return False
-        else:
-            print('score field({}) not in output_dataframe columns:{}!'.format(field, self.output_data.columns.values))
-            print('the field should be in input_dataframe columns:{}'.format(self.input_data.columns.values))
+        print('   get input score endpoints ...')
+        points_list = self.__get_formula_raw_seg_list(field=field)
+        self.result_input_data_points = points_list
+        if len(points_list) == 0:
             return False
-
         # --step 2
         # calculate Coefficients
-        if not self.__get_formula_coeff():
-            return False
+        self.__get_formula_coeff()
         self.result_dict[field] = {
             'input_score_points': copy.deepcopy(self.result_input_data_points),
             'coeff': copy.deepcopy(self.result_formula_coeff),
-            'formulas': copy.deepcopy(self.result_formula_text_list)}
+            'formulas': copy.deepcopy(self.result_formula_text_list)
+            }
         return True
 
     # -----------------------------------------------------------------------------------
@@ -1032,8 +1032,13 @@ class PltScore(ScoreTransformModel):
         step = 1 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else -1
         x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
                   for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
-        x_list = [(-1, -1) if (x[0] < 0 or min(x) < self.input_score_min) else x
-                  for x in x_list]
+        # 3-problems: minus score,
+        #             less than min,
+        #             no ratio interval(not found because of last too large ratio!)
+        x_list = [(-1, -1)
+                  if p[0] < 0 or min(p) < self.input_score_min or (p[0]-p[1])*step > 0
+                  else p
+                  for p in x_list]
 
         # calculate coefficient
         y_list = self.output_score_points
@@ -1358,21 +1363,21 @@ class PltScore(ScoreTransformModel):
 
     def __plot_bar(self):
         raw_label = [str(x) for x in range(self.output_score_max+1)]
-        print(raw_label)
-        x = list(range(self.output_score_max+1))
+        x_data = list(range(self.output_score_max+1))
+        seg_list = list(self.map_table.seg)
         for f in self.cols:
-            raw_data = [self.map_table.query('seg=='+x)[f+'_count'].values[0]
-                        if int(x) in self.map_table.seg else 0
-                        for x in raw_label]
+            raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+                        if xv in seg_list else 0
+                        for xv in x_data]
             out_ = self.output_data.groupby(f+'_plt').count()[f]    # .sort_index(ascending=False)
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
             fig, ax = plot.subplots()
-            ax.set_xticks(x)
+            ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
-            bar_wid = [p - width/2 for p in x]
+            bar_wid = [p - width/2 for p in x_data]
             raw_bar = ax.bar(bar_wid, raw_data, width, label=f)
-            bar_wid = [p + width/2 for p in x]
+            bar_wid = [p + width/2 for p in x_data]
             out_bar = ax.bar(bar_wid, out_data, width, label=f+'_plt')
             for bars in [raw_bar, out_bar]:
                 for _bar in bars:
