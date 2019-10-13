@@ -125,6 +125,7 @@ import os
 import warnings
 import fractions as fr
 from collections import namedtuple
+import bisect as bst
 # import decimal as dc
 
 
@@ -211,7 +212,8 @@ def test_model(
         mode_ratio_loc='upper_min',
         max_score=100,
         min_score=0,
-        data_size=1000
+        data_size=1000,
+        data_no=1
         ):
 
     if name.lower() not in stm_models_name:
@@ -221,18 +223,33 @@ def test_model(
 
     # create data set
     print('create test dataset...')
+    # --- normal data set
     # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
-    # norm_data = [sts.norm.rvs() for _ in range(data_size)]
-    # norm_data = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data]
-    # norm_data = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data]
-    norm_data = []
+    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
+    norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
+    norm_data1 = [int(x*(max_score-min_score)/8 + (max_score+min_score)/2) for x in norm_data1]
+
+    # --- discrete data set
+    norm_data2 = []
     for x in range(0, 100, 5):
         if x < 50:
-            norm_data += [x] * (x % 3)
+            norm_data2 += [x] * (x % 3)
         else:
-            norm_data += [x] * (100-x+2)
+            norm_data2 += [x] * (100-x+2)
+
+    # --- jump data set
+    norm_data3 = []
+    for x in range(0, 100):
+        if np.mod(x, 5) > 0:
+            norm_data3.append(x)
+        if x < 50:
+            norm_data3 += [x] * (x % 3)
+        else:
+            norm_data3 += [x] * (100-x+2)
+
+    norm_data = norm_data1 if data_no == 1 else (norm_data2 if data_no == 2 else norm_data3)
     dfscore = pd.DataFrame({'kmx': norm_data})
-    # return dfscore
+
 
     if name in plt_models_dict.keys():
         print('plt model={}'.format(name))
@@ -253,8 +270,11 @@ def test_model(
     elif name.lower() == 'tscore':
         m = Tscore()
         m.set_data(dfscore, cols=['kmx'])
-        m.set_para(raw_score_max=100, raw_score_min=0,
-                   t_score_mean=500, t_score_std=100, t_score_stdnum=4)
+        m.set_para(raw_score_max=100,
+                   raw_score_min=0,
+                   t_score_mean=500,
+                   t_score_std=100,
+                   t_score_stdnum=4)
         m.run()
         return m
     return None
@@ -1542,10 +1562,13 @@ class Zscore(ScoreTransformModel):
     # new method for uniform algorithm with strategies
     def get_zscore(self, percent_list):
         z_list = [None for _ in percent_list]
+        _len = self.norm_table_len
         for i, _p in enumerate(percent_list):
-            diff = [abs(_p-p) for p in self.norm_table]
-            z_list[i] = 2*(diff.index(min(diff))-self.norm_table_len/2) \
-                        / self.norm_table_len*self.std_num
+            pos = bst.bisect(self.norm_table, _p)
+            z_list[i] = 2*(pos - _len/2) / _len * self.std_num
+            # diff = [abs(_p-p) for p in self.norm_table]
+            # z_list[i] = 2 * (diff.index(min(diff)) - self.norm_table_len / 2) \
+            #             / self.norm_table_len * self.std_num
         return z_list
 
     @staticmethod
@@ -1573,7 +1596,7 @@ class Zscore(ScoreTransformModel):
         else:
             print('not support this mode!')
 
-    # === Zscore model end ===
+# === Zscore model end ===
 
 
 class Tscore(ScoreTransformModel):
@@ -1586,7 +1609,7 @@ class Tscore(ScoreTransformModel):
         super(Tscore, self).__init__('t')
         # self.model_name = 't'
 
-        self.raw_score_max = 150
+        self.raw_score_max = 100
         self.raw_score_min = 0
         self.t_score_std = 10
         self.t_score_mean = 50
@@ -1602,10 +1625,10 @@ class Tscore(ScoreTransformModel):
         self.cols = cols
 
     def set_para(self, 
-                 raw_score_max=150, 
+                 raw_score_max=100,
                  raw_score_min=0,
-                 t_score_mean=500, 
-                 t_score_std=100, 
+                 t_score_mean=50,
+                 t_score_std=10,
                  t_score_stdnum=4,
                  output_decimal=0):
         self.raw_score_max = raw_score_max
