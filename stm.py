@@ -187,7 +187,7 @@ plt_models_dict = {
     'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT),
     'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT)
     }
-plt_strategies_dict = {
+stm_strategies_dict = {
     'mode_score_order': ['a', 'ascending', 'd', 'descending'],
     'mode_ratio_loc': ['upper_min', 'lower_max', 'near_max', 'near_min'],
     'mode_ratio_cum': ['yes', 'no'],
@@ -245,14 +245,14 @@ def test_model(
 
     elif name.lower() == 'zscore':
         m = Zscore()
-        m.set_data(dfscore, cols=['km'])
+        m.set_data(dfscore, cols=['kmx'])
         m.set_para(input_score_max=max_score, input_score_min=min_score)
         m.run()
         return m
 
     elif name.lower() == 'tscore':
         m = Tscore()
-        m.set_data(dfscore, cols=['km'])
+        m.set_data(dfscore, cols=['kmx'])
         m.set_para(raw_score_max=100, raw_score_min=0,
                    t_score_mean=500, t_score_std=100, t_score_stdnum=4)
         m.run()
@@ -559,7 +559,7 @@ class ScoreTransformModel(object):
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.output_report_doc)
 
-    def save_map_table_to_file(self,filename):
+    def save_map_table_to_file(self, filename):
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(ptt.make_mpage(self.map_table, page_line_num=50))
 
@@ -841,10 +841,10 @@ class PltScore(ScoreTransformModel):
         # algorithm strategy
         self.output_report_doc += format('strategies: ', '>23') + '\n'
 
-        for k in plt_strategies_dict:
+        for k in stm_strategies_dict:
             self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
                 format(k + ' = ' + self.strategy_dict[k],
-                       plt_strategies_dict[k]) + '\n'
+                       stm_strategies_dict[k]) + '\n'
         self.output_report_doc += '---'*40 + '\n'
 
         self.result_dict = dict()
@@ -983,7 +983,7 @@ class PltScore(ScoreTransformModel):
                         if si > 0:
                             y = 900 - si + 1
                         else:
-                            y = 900 -si
+                            y = 900 - si
                     elif 'near' in _mode:
                         if abs(_p-sr) < abs(_p-self.input_score_ratio_cum[si-1]):
                             y = 900 - si
@@ -1521,31 +1521,31 @@ class Zscore(ScoreTransformModel):
         # check data and parameter in super
         if not super(Zscore, self).run():
             return
-        # create and calculate output_data
         print('start run...')
         st = time.clock()
         self.output_data = self.input_data.copy()
-        # df = self.output_data
-        self.map_table = \
-            self.get_map_table(self.output_data, self.input_score_max, self.input_score_min, self.cols, seg_order='d')
+        self.map_table = self.get_map_table(
+            self.output_data,
+            self.input_score_max,
+            self.input_score_min,
+            self.cols,
+            seg_order='a')
         for col in self.cols:
             print('calc zscore on field: {}...'.format(col))
-            _zscore_list = self.get_zscore(self.std_num, self.map_table[col+'_percent'])
-            self.map_table[col+'_zscore'] = _zscore_list
+            self.map_table[col+'_zscore'] = self.get_zscore(self.map_table[col+'_percent'])
             map_dict = {rscore: zscore for rscore, zscore in
                         zip(self.map_table['seg'], self.map_table[col + '_zscore'])}
             self.output_data.loc[:, col + '_zscore'] = \
-                self.map_table[col].apply(lambda x: map_dict.get(x, -999))
-
+                self.output_data[col].apply(lambda x: map_dict.get(x, -999))
         print('zscore finished with {} consumed'.format(round(time.clock()-st, 2)))
-        # self.output_data = df
 
     # new method for uniform algorithm with strategies
     def get_zscore(self, percent_list):
         z_list = [None for _ in percent_list]
         for i, _p in enumerate(percent_list):
             diff = [abs(_p-p) for p in self.norm_table]
-            z_list[i] = diff.index(min(diff))
+            z_list[i] = 2*(diff.index(min(diff))-self.norm_table_len/2) \
+                        / self.norm_table_len*self.std_num
         return z_list
 
     @staticmethod
