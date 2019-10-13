@@ -246,7 +246,7 @@ def test_model(
     elif name.lower() == 'zscore':
         m = Zscore()
         m.set_data(dfscore, cols=['km'])
-        m.set_para(raw_score_max=max_score, raw_score_min=min_score)
+        m.set_para(input_score_max=max_score, input_score_min=min_score)
         m.run()
         return m
 
@@ -352,7 +352,7 @@ def run(
         zm = Zscore()
         zm.model_name = name
         zm.set_data(input_data=input_data, cols=cols)
-        zm.set_para(std_num=4, raw_score_max=150, raw_score_min=0)
+        zm.set_para(std_num=4, input_score_max=150, input_score_min=0)
         zm.run()
         zm.report()
         return zm
@@ -1475,37 +1475,41 @@ class Zscore(ScoreTransformModel):
     MinError = 0.1 ** 9
 
     def __init__(self):
-        super(Zscore, self).__init__('zt')
+        super(Zscore, self).__init__('zscore')
         self.model_name = 'zscore'
-        self.stdNum = 3
-        self.maxRawscore = 150
-        self.minRawscore = 0
-        self.map_table = None
-        self.output_data_decimal = 0
-        # self.__currentfield = None
+        self.std_num = 4
+        self.input_score_max = 150
+        self.input_score_min = 0
 
-        # deprecated
-        # create norm table
-        self._samplesize = 100000    # cdf error is less than 0.0001
-        self._normtable = None
+        self.map_table = None
+
+        self.output_data_decimal = 0
+        self.output_score_number = 100
+        self.mode_ratio_loc = 'near'
 
     def set_data(self, input_data=None, cols=None):
         self.input_data = input_data
         self.cols = cols
 
-    def set_para(self, std_num=3, raw_score_max=100, raw_score_min=0,
-                       output_decimal=6):
-        self.stdNum = std_num
-        self.maxRawscore = raw_score_max
-        self.minRawscore = raw_score_min
+    def set_para(self,
+                 std_num=4,
+                 input_score_max=100,
+                 input_score_min=0,
+                 mode_ratio_loc='near',
+                 output_decimal=8
+                 ):
+        self.std_num = std_num
+        self.input_score_max = input_score_max
+        self.input_score_min = input_score_min
+        self.mode_ratio_loc = mode_ratio_loc
         self.output_data_decimal = output_decimal
 
     def check_parameter(self):
-        if self.maxRawscore <= self.minRawscore:
-            print('max raw score or min raw score error!')
+        if self.input_score_max <= self.input_score_min:
+            print('error: max raw score is less than min raw score!')
             return False
-        if self.stdNum <= 0:
-            print('std number is error!')
+        if self.std_num <= 0:
+            print('error: std number {} is error!'.format(self.std_num))
             return False
         return True
 
@@ -1516,41 +1520,28 @@ class Zscore(ScoreTransformModel):
             return
         # create and calculate output_data
         print('start run...')
+        st = time.clock()
         self.output_data = self.input_data.copy()
         self.map_table = \
-            self.get_map_table(self.output_data, self.maxRawscore, self.minRawscore, self.cols, seg_order='d')
+            self.get_map_table(self.output_data, self.input_score_max, self.input_score_min, self.cols, seg_order='d')
+        print('start run on field: {}...'.format(sf))
         for col in self.cols:
-            if __name__ == '__main__':
-                if __name__ == '__main__':
-                    self.map_table[col+'_zscore'] = self.map_table.loc[col].\
-                        apply()
+            self.map_table[col+'_zscore'] = self.map_table.loc[col].\
+                apply(self.get_zsore(col))
 
-        for sf in self.cols:
-            print('start run on field: {}...'.format(sf))
-            st = time.clock()
-            self._get_zscore_in_map_table(sf)
-            df = self.output_data
-            print('zscore calculating(1): create field {}_zscore ...'.format(sf))
-            df.loc[:, sf+'_zscore'] = \
-                df[sf].apply(lambda x: x if x in self.map_table.seg.values else -999)
-            print('zscore calculating(1)...use time{}'.format(time.clock()-st))
-            print('zscore calculating(2): get zscore from map_table...')
-            df.loc[:, sf+'_zscore'] = \
-                df[sf + '_zscore'].replace(self.map_table.seg.values,
-                                           self.map_table[sf + '_zscore'].values)
-            self.output_data = df
-            print('{}_zscore finished with {} consumed'.format(sf, round(time.clock()-st, 2)))
+        print('{}_zscore finished with {} consumed'.format(sf, round(time.clock()-st, 2)))
+        self.output_data = df
 
     # new method for uniform algorithm with strategies
-    def get_zscore(self, percent_list, out_score_number=101, mode_ratio_loc='near'):
-        low_p = sts.norm.cdf(-self.stdNum)
-        _mode_loc = mode_ratio_loc
+    def get_zscore(self, col):
+        percent_list = self.map_table[col+'_percent']
+        ratio_loc = self.mode_ratio_loc
         err = 10**(-8)
-        _len = out_score_number-1
-        _step = 2 * self.stdNum / _len
-        _step_int = 2 * self.stdNum
+        _len = self.output_score_number
+        _step = 2 * self.std_num / _len
+        _step_int = 2 * self.std_num
         ratio_list = [sts.norm.cdf(r/_len)
-                      for r in range(-self.stdNum*_len, self.stdNum*_len, _step_int)]
+                      for r in range(-self.std_num * _len, self.std_num * _len, _step_int)]
         ratio_list[-1] = 1  # stop condition
         zscore_list = []    # map from percent_list
         for pi, p in enumerate(percent_list):
@@ -1558,29 +1549,29 @@ class Zscore(ScoreTransformModel):
             for ri, r in enumerate(ratio_list):
                 # equal to r
                 if abs(p-r) < err:
-                    zscore_list.append((ri, -self.stdNum + ri*_step))
+                    zscore_list.append((ri, -self.std_num + ri * _step))
                     _loc = True
                     break
                 if p < r:
                     if ri == 0:
-                        zscore_list.append((ri, -self.stdNum + ri*_step))
+                        zscore_list.append((ri, -self.std_num + ri * _step))
                         _loc = True
                         break
-                    if _mode_loc == 'near':
+                    if ratio_loc == 'near':
                         if abs(p-r) < abs(p-ratio_list[ri-1]):
-                            zscore_list.append((ri-1, -self.stdNum + (ri-1) * _step))
+                            zscore_list.append((ri - 1, -self.std_num + (ri - 1) * _step))
                             _loc = True
                             break
                         else:
-                            zscore_list.append((ri, -self.stdNum + ri * _step))
+                            zscore_list.append((ri, -self.std_num + ri * _step))
                             _loc = True
                             break
-                    if _mode_loc == 'upper_min':
-                        zscore_list.append((ri, -self.stdNum + ri*_step))
+                    if ratio_loc == 'upper_min':
+                        zscore_list.append((ri, -self.std_num + ri * _step))
                         _loc = True
                         break
-                    if _mode_loc == 'lower_max':
-                        zscore_list.append((ri-1, -self.stdNum + (ri-1)*_step))
+                    if ratio_loc == 'lower_max':
+                        zscore_list.append((ri - 1, -self.std_num + (ri - 1) * _step))
                         _loc = True
                         break
             if not _loc:
@@ -1628,9 +1619,9 @@ class Zscore(ScoreTransformModel):
             print('output score data is not ready!')
         print('data fields in raw_score:{}'.format(self.cols))
         print('para:')
-        print('\tzscore stadard diff numbers:{}'.format(self.stdNum))
-        print('\tmax score in raw score:{}'.format(self.maxRawscore))
-        print('\tmin score in raw score:{}'.format(self.minRawscore))
+        print('\tzscore stadard diff numbers:{}'.format(self.std_num))
+        print('\tmax score in raw score:{}'.format(self.input_score_max))
+        print('\tmin score in raw score:{}'.format(self.input_score_min))
 
     def plot(self, mode='out'):
         if mode in 'raw,out':
@@ -1684,9 +1675,9 @@ class Tscore(ScoreTransformModel):
         zm = Zscore()
         zm.set_data(self.input_data, self.cols)
         zm.set_para(std_num=self.t_score_stdnum,
-                          raw_score_min=self.raw_score_min,
-                          raw_score_max=self.raw_score_max,
-                          output_decimal=self.zscore_decimal)
+                    input_score_min=self.raw_score_min,
+                    input_score_max=self.raw_score_max,
+                    output_decimal=self.zscore_decimal)
         zm.run()
         self.output_data = zm.output_data
         namelist = self.output_data.columns
