@@ -198,7 +198,7 @@ plt_strategies_dict = {
     'mode_score_empty': ['use_to_min', 'use_to_max', 'use_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
     }
-stm_models_name = list(plt_models_dict.keys()) + ['z', 't', 'hainan', 'tao']
+stm_models_name = list(plt_models_dict.keys()) + ['zscore', 'tscore', 'tao', 'tlinear']
 
 
 def about_stm():
@@ -243,14 +243,14 @@ def test_model(
                 )
         return m
 
-    elif name.lower() == 'z':
+    elif name.lower() == 'zscore':
         m = Zscore()
         m.set_data(dfscore, cols=['km'])
         m.set_para(raw_score_max=max_score, raw_score_min=min_score)
         m.run()
         return m
 
-    elif name.lower() == 't':
+    elif name.lower() == 'tscore':
         m = Tscore()
         m.set_data(dfscore, cols=['km'])
         m.set_para(raw_score_max=100, raw_score_min=0,
@@ -956,10 +956,11 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         # self.input_score_ratio_cum[0] = 0
         self.input_score_ratio_cum[-1] = 1
+        ep = 10**-8
         for ri, row in self.map_table.iterrows():
             x = row['seg']
-            # score_zero processing
-            if abs(x) < 10**-8:
+            # processing-0: raw score == 0
+            if abs(x) < ep:
                 _mode = self.strategy_dict['mode_score_zero']
                 if 'ignore' in _mode:
                     pass
@@ -970,11 +971,11 @@ class PltScore(ScoreTransformModel):
                     pass
             for si, sr in enumerate(self.input_score_ratio_cum):
                 _p = row[col+'_percent']
-                if (abs(_p - sr) < 10**-8) or (_p < sr):
+                if (abs(_p - sr) < ep) or (_p < sr):
                     # strategies
                     _mode = self.strategy_dict['mode_ratio_loc']
                     y = -1
-                    if (abs(_p - sr) < 10**-8) or (si == 0):
+                    if (abs(_p - sr) < ep) or (si == 0):
                         y = 900 - si
                     elif _mode == 'upper_min':
                         y = 900 - si
@@ -1508,6 +1509,7 @@ class Zscore(ScoreTransformModel):
             return False
         return True
 
+    # Zscore run
     def run(self):
         # check data and parameter in super
         if not super(Zscore, self).run():
@@ -1516,7 +1518,12 @@ class Zscore(ScoreTransformModel):
         print('start run...')
         self.output_data = self.input_data.copy()
         self.map_table = \
-            self.__get_map_table(self.output_data, self.maxRawscore, self.minRawscore, self.cols)
+            self.get_map_table(self.output_data, self.maxRawscore, self.minRawscore, self.cols, seg_order='d')
+        for col in self.cols:
+            if __name__ == '__main__':
+                if __name__ == '__main__':
+                    self.map_table[col+'_zscore'] = self.map_table.loc[col].\
+                        apply()
 
         for sf in self.cols:
             print('start run on field: {}...'.format(sf))
@@ -1534,32 +1541,51 @@ class Zscore(ScoreTransformModel):
             self.output_data = df
             print('{}_zscore finished with {} consumed'.format(sf, round(time.clock()-st, 2)))
 
-    # new method for time reason
-    def lookup_zscore(self, percent):
-        low_z = -self.stdNum
-        high_z = self.stdNum
-        curr_z = low_z
-        if sts.norm.cdf(low_z) >= percent:
-            return round45r(low_z, self.output_data_decimal)
-        elif sts.norm.cdf(high_z) <= percent:
-            return round45r(high_z, self.output_data_decimal)
-        err = 10**(-7)
-        iter_num = 1000
-        while True:
-            iter_num = iter_num - 1
-            curr_p = sts.norm.cdf(curr_z)
-            if abs(curr_p - percent) < err:
-                break
-                # return curr_z
-            if iter_num < 0:
-                break
-                # return curr_z
-            if curr_p > percent:
-                high_z = curr_z
-            elif curr_p < percent:
-                low_z = curr_z
-            curr_z = (low_z + high_z) / 2
-        return round45r(curr_z, self.output_data_decimal)
+    # new method for uniform algorithm with strategies
+    def get_zscore(self, percent_list, out_score_number=101, mode_ratio_loc='near'):
+        low_p = sts.norm.cdf(-self.stdNum)
+        _mode_loc = mode_ratio_loc
+        err = 10**(-8)
+        _len = out_score_number-1
+        _step = 2 * self.stdNum / _len
+        _step_int = 2 * self.stdNum
+        ratio_list = [sts.norm.cdf(r/_len)
+                      for r in range(-self.stdNum*_len, self.stdNum*_len, _step_int)]
+        ratio_list[-1] = 1  # stop condition
+        zscore_list = []    # map from percent_list
+        for pi, p in enumerate(percent_list):
+            _loc = False
+            for ri, r in enumerate(ratio_list):
+                # equal to r
+                if abs(p-r) < err:
+                    zscore_list.append((ri, -self.stdNum + ri*_step))
+                    _loc = True
+                    break
+                if p < r:
+                    if ri == 0:
+                        zscore_list.append((ri, -self.stdNum + ri*_step))
+                        _loc = True
+                        break
+                    if _mode_loc == 'near':
+                        if abs(p-r) < abs(p-ratio_list[ri-1]):
+                            zscore_list.append((ri-1, -self.stdNum + (ri-1) * _step))
+                            _loc = True
+                            break
+                        else:
+                            zscore_list.append((ri, -self.stdNum + ri * _step))
+                            _loc = True
+                            break
+                    if _mode_loc == 'upper_min':
+                        zscore_list.append((ri, -self.stdNum + ri*_step))
+                        _loc = True
+                        break
+                    if _mode_loc == 'lower_max':
+                        zscore_list.append((ri-1, -self.stdNum + (ri-1)*_step))
+                        _loc = True
+                        break
+            if not _loc:
+                zscore_list.append((-1, None))
+        return zscore_list
 
     def _get_zscore_in_map_table(self, sf):
         # use method lookup_zscore
@@ -1569,20 +1595,11 @@ class Zscore(ScoreTransformModel):
         else:
             print('error: not found field{}+"_percent"!'.format(sf))
 
-    def __get_zscore_from_normtable(self, p):
-        df = self._normtable.loc[self._normtable.cdf >= p - Zscore.MinError][['sv']].head(1).sv
-        y = df.values[0] if len(df) > 0 else None
-        if y is None:
-            print('error: cdf value[{}] can not find zscore in normtable!'.format(p))
-            return y
-        return max(-self.stdNum, min(y, self.stdNum))
-
     @staticmethod
-    def __get_map_table(df, maxscore, minscore, scorefieldnamelist):
-        """no sort problem in this map_table usage"""
+    def get_map_table(df, maxscore, minscore, cols, seg_order='a'):
         seg = SegTable()
-        seg.set_data(df, scorefieldnamelist)
-        seg.set_para(segmax=maxscore, segmin=minscore, segsort='a')
+        seg.set_data(df, cols)
+        seg.set_para(segmax=maxscore, segmin=minscore, segsort=seg_order)
         seg.run()
         return seg.output_data
 
@@ -1676,7 +1693,7 @@ class Tscore(ScoreTransformModel):
         formula = lambda x: round45r(x * self.t_score_std + self.t_score_mean, self.output_data_decimal)
         for sf in namelist:
             if '_zscore' in sf:
-                new_sf = sf.replace('_zscore', '_t_score')
+                new_sf = sf.replace('_zscore', '_tscore')
                 self.output_data.loc[:, new_sf] = self.output_data[sf].apply(formula)
         self.map_table = zm.map_table
 
@@ -1691,7 +1708,7 @@ class Tscore(ScoreTransformModel):
         else:
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
-            out_fields = [f+'_t_score' for f in self.cols]
+            out_fields = [f+'_tscore' for f in self.cols]
             print('T-score desc:')
             print('    fields:', out_fields)
             print(self.output_data[out_fields].describe())
@@ -1759,7 +1776,7 @@ class TscoreLinear(ScoreTransformModel):
             self.output_data[sf + '_zscore'] = \
                 self.output_data[sf].apply(
                     lambda x: min(max((x - rmean) / rstd, -self.t_score_stdnum), self.t_score_stdnum))
-            self.output_data.loc[:, sf + '_t_score'] = \
+            self.output_data.loc[:, sf + '_tscore'] = \
                 self.output_data[sf + '_zscore'].\
                 apply(lambda x: x * self.t_score_std + self.t_score_mean)
 
@@ -1774,7 +1791,7 @@ class TscoreLinear(ScoreTransformModel):
             print('output score data is not ready!')
         if type(self.output_data) == pd.DataFrame:
             print('raw,T,Z score desc:')
-            print(self.output_data[[f+'_t_score' for f in self.cols]].describe())
+            print(self.output_data[[f+'_tscore' for f in self.cols]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
