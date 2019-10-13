@@ -1478,8 +1478,11 @@ class Zscore(ScoreTransformModel):
         super(Zscore, self).__init__('zscore')
         self.model_name = 'zscore'
         self.std_num = 4
+        self.norm_table_len = 10000
         self.input_score_max = 150
         self.input_score_min = 0
+        self.norm_table = [sts.norm.cdf(-self.std_num*(1-2*x/(self.norm_table_len-1)))
+                           for x in range(self.norm_table_len)]
 
         self.map_table = None
 
@@ -1522,69 +1525,28 @@ class Zscore(ScoreTransformModel):
         print('start run...')
         st = time.clock()
         self.output_data = self.input_data.copy()
+        # df = self.output_data
         self.map_table = \
             self.get_map_table(self.output_data, self.input_score_max, self.input_score_min, self.cols, seg_order='d')
-        print('start run on field: {}...'.format(sf))
         for col in self.cols:
-            self.map_table[col+'_zscore'] = self.map_table.loc[col].\
-                apply(self.get_zsore(col))
+            print('calc zscore on field: {}...'.format(col))
+            _zscore_list = self.get_zscore(self.std_num, self.map_table[col+'_percent'])
+            self.map_table[col+'_zscore'] = _zscore_list
+            map_dict = {rscore: zscore for rscore, zscore in
+                        zip(self.map_table['seg'], self.map_table[col + '_zscore'])}
+            self.output_data.loc[:, col + '_zscore'] = \
+                self.map_table[col].apply(lambda x: map_dict.get(x, -999))
 
-        print('{}_zscore finished with {} consumed'.format(sf, round(time.clock()-st, 2)))
-        self.output_data = df
+        print('zscore finished with {} consumed'.format(round(time.clock()-st, 2)))
+        # self.output_data = df
 
     # new method for uniform algorithm with strategies
-    def get_zscore(self, col):
-        percent_list = self.map_table[col+'_percent']
-        ratio_loc = self.mode_ratio_loc
-        err = 10**(-8)
-        _len = self.output_score_number
-        _step = 2 * self.std_num / _len
-        _step_int = 2 * self.std_num
-        ratio_list = [sts.norm.cdf(r/_len)
-                      for r in range(-self.std_num * _len, self.std_num * _len, _step_int)]
-        ratio_list[-1] = 1  # stop condition
-        zscore_list = []    # map from percent_list
-        for pi, p in enumerate(percent_list):
-            _loc = False
-            for ri, r in enumerate(ratio_list):
-                # equal to r
-                if abs(p-r) < err:
-                    zscore_list.append((ri, -self.std_num + ri * _step))
-                    _loc = True
-                    break
-                if p < r:
-                    if ri == 0:
-                        zscore_list.append((ri, -self.std_num + ri * _step))
-                        _loc = True
-                        break
-                    if ratio_loc == 'near':
-                        if abs(p-r) < abs(p-ratio_list[ri-1]):
-                            zscore_list.append((ri - 1, -self.std_num + (ri - 1) * _step))
-                            _loc = True
-                            break
-                        else:
-                            zscore_list.append((ri, -self.std_num + ri * _step))
-                            _loc = True
-                            break
-                    if ratio_loc == 'upper_min':
-                        zscore_list.append((ri, -self.std_num + ri * _step))
-                        _loc = True
-                        break
-                    if ratio_loc == 'lower_max':
-                        zscore_list.append((ri - 1, -self.std_num + (ri - 1) * _step))
-                        _loc = True
-                        break
-            if not _loc:
-                zscore_list.append((-1, None))
-        return zscore_list
-
-    def _get_zscore_in_map_table(self, sf):
-        # use method lookup_zscore
-        if sf+'_percent' in self.map_table.columns.values:
-            self.map_table.loc[:, sf + '_zscore'] = \
-                self.map_table[sf + '_percent'].apply(self.lookup_zscore)
-        else:
-            print('error: not found field{}+"_percent"!'.format(sf))
+    def get_zscore(self, percent_list):
+        z_list = [None for _ in percent_list]
+        for i, _p in enumerate(percent_list):
+            diff = [abs(_p-p) for p in self.norm_table]
+            z_list[i] = diff.index(min(diff))
+        return z_list
 
     @staticmethod
     def get_map_table(df, maxscore, minscore, cols, seg_order='a'):
@@ -1593,24 +1555,6 @@ class Zscore(ScoreTransformModel):
         seg.set_para(segmax=maxscore, segmin=minscore, segsort=seg_order)
         seg.run()
         return seg.output_data
-
-    # deprecated for time cost
-    @staticmethod
-    def get_normtable(stdnum=4, precise=4):
-        cdf_list = []
-        sv_list = []
-        pdf_list = []
-        cdf0 = 0
-        scope = stdnum * 2 * 10**precise + 1
-        for x in range(scope):
-            sv = -stdnum + x/10**precise
-            cdf = sts.norm.cdf(sv)
-            pdf = cdf - cdf0
-            cdf0 = cdf
-            pdf_list.append(pdf)
-            sv_list.append(sv)
-            cdf_list.append(cdf)
-        return pd.DataFrame({'pdf': pdf_list, 'sv': sv_list, 'cdf': cdf_list})
 
     def report(self):
         if type(self.output_data) == pd.DataFrame:
