@@ -497,7 +497,7 @@ class TestData:
 
     def get_score(self):
         print('create score...')
-        score_list = None
+        norm_list = None
         if self.dist == 'norm':
             norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
             norm_list[np.where(norm_list>self.df_max)] = self.df_max
@@ -1272,33 +1272,33 @@ class PltScore(ScoreTransformModel):
         _output_report_doc += '- -'*40 + '\n'
         _output_report_doc += format('statistics:', '>22s')
         # raw score data describing
-        _max, _min, _mean, _median, _mode, _std, _skew, _kurtosis = \
-                         self.input_data[field].max(),\
-                         self.input_data[field].min(),\
-                         self.input_data[field].mean(),\
-                         self.input_data[field].median(), \
-                         self.input_data[field].mode()[0], \
-                         self.input_data[field].std(),\
-                         self.input_data[field].skew(),\
-                         self.input_data[field].kurtosis()
+        _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
+            self.input_data[field].max(),\
+            self.input_data[field].min(),\
+            self.input_data[field].mean(),\
+            self.input_data[field].median(), \
+            self.input_data[field].mode()[0], \
+            self.input_data[field].std(),\
+            self.input_data[field].skew(),\
+            self.input_data[field].kurtosis()
         _output_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                              format(_std, _std/_mean, _max-_min, _skew, _kurtosis)
+                              format(_std, _std/_mean, _max-_min, _skew, _kurt)
         # out score data describing
-        _max, _min, _mean, _median, _mode, _std, _skew, _kurtosis = \
-                         self.output_data[field+'_plt'].max(),\
-                         self.output_data[field+'_plt'].min(),\
-                         self.output_data[field+'_plt'].mean(),\
-                         self.output_data[field+'_plt'].median(), \
-                         self.output_data[field+'_plt'].mode()[0],\
-                         self.output_data[field+'_plt'].std(),\
-                         self.output_data[field+'_plt'].skew(), \
-                         self.output_data[field+'_plt'].kurtosis()
+        _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
+            self.output_data[field+'_plt'].max(),\
+            self.output_data[field+'_plt'].min(),\
+            self.output_data[field+'_plt'].mean(),\
+            self.output_data[field+'_plt'].median(), \
+            self.output_data[field+'_plt'].mode()[0],\
+            self.output_data[field+'_plt'].std(),\
+            self.output_data[field+'_plt'].skew(), \
+            self.output_data[field+'_plt'].kurtosis()
         _output_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                              format(_std, _std/_mean, _max-_min, _skew, _kurtosis)
+                              format(_std, _std/_mean, _max-_min, _skew, _kurt)
 
         # differece between raw and out score
         _output_report_doc += '- -'*40 + '\n'
