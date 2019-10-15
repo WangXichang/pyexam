@@ -239,19 +239,16 @@ def test(
         else:
             norm_data2 += [x] * (100-x+2)
 
-    # --- jump data set
+    # --- triangle data set
     norm_data3 = []
-    for x in range(0, 100):
-        if np.mod(x, 5) > 0:
-            norm_data3.append(x)
+    for x in range(0, 101):
         if x < 50:
-            norm_data3 += [x] * (x % 3)
+            norm_data3 += [x]*(2*x+1)
         else:
-            norm_data3 += [x] * (100-x+2)
+            norm_data3 += [x]*2*(100-x+1)
 
     test_data = [norm_data1, norm_data2, norm_data3]
-    dfscore = pd.DataFrame({'kmx': test_data[data_no]})
-
+    dfscore = pd.DataFrame({'kmx': test_data[data_no-1]})
 
     if name in plt_models_dict.keys():
         print('plt model={}'.format(name))
@@ -886,9 +883,6 @@ class PltScore(ScoreTransformModel):
                 self.output_data[col] = self.output_data[col].astype('int')
                 self.output_data[col+'_plt'] = self.output_data[col+'_plt'].astype('int')
 
-            print('   create report ...')
-            self.output_report_doc += self.__get_report_doc(col)
-
         # get col_plt in map_table
         df_map = self.map_table
         for col in self.cols:
@@ -897,6 +891,9 @@ class PltScore(ScoreTransformModel):
                 lambda x: self.get_plt_score_from_formula3(col, x))
             if self.output_decimal_digits == 0:
                 df_map[col_name] = df_map[col_name].astype('int')
+
+            print('   create report ...')
+            self.output_report_doc += self.__get_report_doc(col)
 
         print('='*100)
         print('stm-run end, elapsed-time:', time.time() - stime)
@@ -1271,6 +1268,7 @@ class PltScore(ScoreTransformModel):
         # statistics for raw and out score
         _output_report_doc += '- -'*40 + '\n'
         _output_report_doc += format('statistics:', '>22s')
+
         # raw score data describing
         _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
             self.input_data[field].max(),\
@@ -1285,6 +1283,10 @@ class PltScore(ScoreTransformModel):
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                               format(_std, _std/_mean, _max-_min, _skew, _kurt)
+        _count_zero = self.map_table.query(field+'_count==0')['seg'].values
+        _output_report_doc += ' '*28 + 'empty_value={}\n' .\
+                              format(_count_zero)
+
         # out score data describing
         _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
             self.output_data[field+'_plt'].max(),\
@@ -1299,6 +1301,9 @@ class PltScore(ScoreTransformModel):
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                               format(_std, _std/_mean, _max-_min, _skew, _kurt)
+        _count_zero = self.map_table.query(field+'_count==0')[field+'_plt'].values
+        _output_report_doc += ' '*28 + 'empty_value={}\n' .\
+                              format(_count_zero)
 
         # differece between raw and out score
         _output_report_doc += '- -'*40 + '\n'
