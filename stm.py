@@ -1352,7 +1352,7 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff']:
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'normtest']:
             print('valid mode is: raw, out, model,shift, dist, bar, diff')
             return
         if mode in 'shift, model':
@@ -1364,8 +1364,14 @@ class PltScore(ScoreTransformModel):
             self.__plot_bar()
         elif mode in 'diff':
             self.__plot_diff()
+        elif mode in 'normtest':
+            self.__plot_normtest()
         elif not super(PltScore, self).plot(mode):
             print('\"{}\" is invalid'.format(mode))
+
+    def __plot_normtest(self):
+        for col in self.cols:
+            x = self.output_data[col+'_plt']
 
     def __plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
