@@ -127,6 +127,7 @@ import fractions as fr
 from collections import namedtuple
 import bisect as bst
 import array
+import functools as func
 # import decimal as dc
 
 
@@ -804,6 +805,7 @@ class PltScore(ScoreTransformModel):
         return True
     # --------------data and para setting end
 
+    # plt score run
     def run(self):
 
         print('stm-run begin...\n'+'='*100)
@@ -847,19 +849,6 @@ class PltScore(ScoreTransformModel):
             self.map_table.astype({f+'_fr': fr.Fraction})
 
         # transform score on each field
-        self.output_report_doc = 'Transform Model: [{}]   {}\n'.\
-            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
-        self.output_report_doc += '---'*40 + '\n'
-
-        # algorithm strategy
-        self.output_report_doc += format('strategies: ', '>23') + '\n'
-
-        for k in stm_strategies_dict:
-            self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
-                format(k + ' = ' + self.strategy_dict[k],
-                       stm_strategies_dict[k]) + '\n'
-        self.output_report_doc += '---'*40 + '\n'
-
         self.result_dict = dict()
         self.output_data = self.input_data.copy(deep=True)
         for i, col in enumerate(self.cols):
@@ -883,7 +872,18 @@ class PltScore(ScoreTransformModel):
                 self.output_data[col] = self.output_data[col].astype('int')
                 self.output_data[col+'_plt'] = self.output_data[col+'_plt'].astype('int')
 
-        # get col_plt in map_table
+        # create report and col_plt in map_table
+        self.output_report_doc = 'Transform Model: [{}]   {}\n'.\
+            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
+        self.output_report_doc += '---'*40 + '\n'
+        self.output_report_doc += format('strategies: ', '>23') + '\n'
+
+        for k in stm_strategies_dict:
+            self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
+                format(k + ' = ' + self.strategy_dict[k],
+                       stm_strategies_dict[k]) + '\n'
+        self.output_report_doc += '---'*40 + '\n'
+        # col_plt in map_table
         df_map = self.map_table
         for col in self.cols:
             col_name = col + '_plt'
@@ -891,7 +891,6 @@ class PltScore(ScoreTransformModel):
                 lambda x: self.get_plt_score_from_formula3(col, x))
             if self.output_decimal_digits == 0:
                 df_map[col_name] = df_map[col_name].astype('int')
-
             print('   create report ...')
             self.output_report_doc += self.__get_report_doc(col)
 
@@ -1352,7 +1351,7 @@ class PltScore(ScoreTransformModel):
         print(self.output_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'normtest']:
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'norm']:
             print('valid mode is: raw, out, model,shift, dist, bar, diff')
             return
         if mode in 'shift, model':
@@ -1364,21 +1363,24 @@ class PltScore(ScoreTransformModel):
             self.__plot_bar()
         elif mode in 'diff':
             self.__plot_diff()
-        elif mode in 'normtest':
-            self.__plot_normtest()
+        elif mode in 'norm':
+            self.__plot_norm_graph()
         elif not super(PltScore, self).plot(mode):
             print('\"{}\" is invalid'.format(mode))
 
-    def __plot_normtest(self):
+    def __plot_norm_graph(self):
+        self.norm_test = dict()
         for col in self.cols:
-            x = []
-            for ri, row in self.map_table.iterrows():
-                x.append([row[col+'_plt']*row[col+'_count']])
-                _len = len(x)
-                y = [(i-0.375)/(_len-1) for i, _ in enumerate(x)]
-                fig, ax = plot.subplots()
-                ax.plot(x, y, 'o-', label='score:' + col)
-                pass
+            _len = self.map_table[col+'_count'].sum()
+            x1 = sorted(self.output_data[col])
+            x2 = sorted(self.output_data[col+'_plt'])
+            y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
+            fig, ax = plot.subplots()
+            ax.plot(x1, y, 'o-', label='score:' + col)
+            ax.plot(x2, y, 'o-', label='score:' + col)
+            # use djusted score (to norm dist)
+            # x1_log = [xv**2/100**2*100 if xv < 60 else xv**1.2/100**1.2*100 for xv in x1]
+            # ax.plot(x1_log, y, 'o-', label='score:' + col)
 
     def __plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
