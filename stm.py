@@ -1371,7 +1371,14 @@ class PltScore(ScoreTransformModel):
 
     def __plot_normtest(self):
         for col in self.cols:
-            x = self.output_data[col+'_plt']
+            x = []
+            for ri, row in self.map_table.iterrows():
+                x.append([row[col+'_plt']*row[col+'_count']])
+                _len = len(x)
+                y = [(i-0.375)/(_len-1) for i, _ in enumerate(x)]
+                fig, ax = plot.subplots()
+                ax.plot(x, y, 'o-', label='score:' + col)
+                pass
 
     def __plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.input_score_max+1)
