@@ -30,11 +30,12 @@ class TestModel():
 
     def run_stm(self,
                 name='shandong',
-                year='17',
-                kl='like',
+                year='16',
+                kl='wenke',
                 mode_ratio_approx='upper_min',
                 mode_ratio_cumu='no',
-                mode_score_order='d'
+                mode_score_order='d',
+                all='no'
                 ):
         pb.reload(stm)
         dfs = {
@@ -44,12 +45,23 @@ class TestModel():
             '17wenke': self.df17wen,
             '18like': self.df18like,
             '18wenke': self.df18wen}
-        m = stm.run(
-            name=name,
-            df=dfs[year+kl],
-            cols=list(dfs[year+kl]),
-            mode_ratio_loc=mode_ratio_approx,
-            mode_ratio_cum=mode_ratio_cumu,
-            mode_score_order=mode_score_order
-            )
-        self.model_dict.update({name+'_'+year+'_'+kl+'_'+mode_ratio_approx+'_'+mode_ratio_cumu: m})
+        if all == 'no':
+            _all = [(year, kl)]
+        else:
+            _all = [(s[:2], s[2:]) for s in dfs.keys()]
+        for _run in _all:
+            m = stm.run(
+                name=name,
+                df=dfs[_run[0]+_run[1]],
+                cols=list(dfs[_run[0]+_run[1]]),
+                mode_ratio_loc=mode_ratio_approx,
+                mode_ratio_cum=mode_ratio_cumu,
+                mode_score_order=mode_score_order
+                )
+            self.model_dict.update({name+'_'+_run[0]+'_'+_run[1]+'_'+mode_ratio_approx+'_'+mode_ratio_cumu: m})
+
+
+    def save_report(self):
+        for k in self.model_dict:
+            _root = 'd:/mywrite/newgk/gkdata/report/report_'
+            self.model_dict[k].save_report_to_file(_root + k + '.txt')

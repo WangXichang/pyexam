@@ -1204,8 +1204,8 @@ class PltScore(ScoreTransformModel):
     def __get_report_doc(self, field=''):
         p = 0 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
-        for k in self.result_formula_coeff:
-            formula = self.result_formula_coeff[k]
+        for k in self.result_dict[field]['coeff']:
+            formula = self.result_dict[field]['coeff'][k]
             if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
                 self.result_formula_text_list += ['(seg-{:3d}) ******'.format(k+1)]
                 continue
@@ -1253,9 +1253,9 @@ class PltScore(ScoreTransformModel):
         _output_report_doc += '  raw score set ratio: {}\n'.\
             format(self.result_ratio_dict[field])
         _output_report_doc += '  raw score endpoints: {}\n'.\
-            format([x[1] for x in self.result_formula_coeff.values()])
+            format([x[1] for x in self.result_dict[field]['coeff'].values()])
         _output_report_doc += '  out score endpoints: {}\n'.\
-            format([x[2] for x in self.result_formula_coeff.values()])
+            format([x[2] for x in self.result_dict[field]['coeff'].values()])
 
         # transforming formulas
         _output_report_doc += '- -'*40 + '\n'
@@ -1277,7 +1277,7 @@ class PltScore(ScoreTransformModel):
             self.input_data[field].mode()[0], \
             self.input_data[field].std(),\
             self.input_data[field].skew(),\
-            self.input_data[field].kurtosis()
+            sts.kurtosis(self.input_data[field], fisher=False)
         _output_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
@@ -1295,7 +1295,7 @@ class PltScore(ScoreTransformModel):
             self.output_data[field+'_plt'].mode()[0],\
             self.output_data[field+'_plt'].std(),\
             self.output_data[field+'_plt'].skew(), \
-            self.output_data[field+'_plt'].kurtosis()
+            sts.kurtosis(self.output_data[field+'_plt'], fisher=False)
         _output_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                               format(_max, _min, _mean, _median, _mode)
         _output_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
