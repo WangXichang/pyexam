@@ -127,7 +127,7 @@ import fractions as fr
 from collections import namedtuple
 import bisect as bst
 import array
-import functools as func
+# import functools as func
 # import decimal as dc
 
 
@@ -190,7 +190,6 @@ plt_models_dict = {
     'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT),
     'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT)
     }
-
 stm_strategies_dict = {
     'mode_score_order': ['ascending', 'descending'],
     'mode_ratio_loc': ['upper_min', 'lower_max', 'near_max', 'near_min'],
@@ -762,7 +761,8 @@ class PltScore(ScoreTransformModel):
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  output_decimal_digits=None):
-        if (type(input_score_ratio_list) not in  (list, tuple)) | (type(output_score_points_list) != list):
+        if (type(input_score_ratio_list) not in \
+           (list, tuple)) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
         if len(input_score_ratio_list) != len(output_score_points_list):
