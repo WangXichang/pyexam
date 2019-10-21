@@ -209,78 +209,6 @@ def about_stm():
     print(__doc__)
 
 
-def test(
-        name='shandong',
-        mode_ratio_cum='no',
-        mode_ratio_loc='upper_min',
-        score_max=100,
-        score_min=0,
-        data_size=1000,
-        data_no=1
-        ):
-
-    if name.lower() not in stm_models_name:
-        print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(stm_models_name)))
-        return None
-
-    # create data set
-    print('create test dataset...')
-    # --- normal data set
-    # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
-    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
-    norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
-    norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
-
-    # --- discrete data set
-    norm_data2 = []
-    for x in range(score_min, score_max, 5):
-        if x < (score_min+score_max)/2:
-            norm_data2 += [x] * (x % 3)
-        else:
-            norm_data2 += [x] * (100-x+2)
-
-    # --- triangle data set
-    norm_data3 = []
-    for x in range(0, score_max+1):
-        if x < (score_min+score_max)/2:
-            norm_data3 += [x]*(2*x+1)
-        else:
-            norm_data3 += [x]*2*(score_max-x+1)
-
-    test_data = [norm_data1, norm_data2, norm_data3]
-    dfscore = pd.DataFrame({'kmx': test_data[data_no-1]})
-
-    if name in plt_models_dict.keys():
-        print('plt model={}'.format(name))
-        print('data set size={}, score range from {} to {}'.
-              format(data_size, score_min, score_max))
-        m = run(name=name, df=dfscore, cols=['kmx'],
-                mode_ratio_loc=mode_ratio_loc,
-                mode_ratio_cum=mode_ratio_cum
-                )
-        return m
-
-    elif name.lower() == 'zscore':
-        m = Zscore()
-        m.set_data(dfscore, cols=['kmx'])
-        m.set_para(input_score_max=score_max, input_score_min=score_min)
-        m.run()
-        return m
-
-    elif name.lower() == 'tscore':
-        m = Tscore()
-        m.set_data(dfscore, cols=['kmx'])
-        m.set_para(raw_score_max=score_max,
-                   raw_score_min=score_min,
-                   t_score_mean=50,
-                   t_score_std=10,
-                   t_score_stdnum=4)
-        m.run()
-        return m
-    return None
-
-
 # interface to use model for some typical application
 def run(
         name='shandong',
@@ -446,62 +374,6 @@ def calc_stm_mean_std(name='shandong'):
     _skewness = _skewnumer / sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**2
                                  for i, s in enumerate(plt_models_dict[name].seg)])**(3/2)
     return _mean, _std, _skewness
-
-
-def run_seg(
-            input_data:pd.DataFrame,
-            cols: list,
-            segmax=100,
-            segmin=0,
-            segsort='d',
-            segstep=1,
-            display=False,
-            usealldata=False
-            ):
-    seg = SegTable()
-    seg.set_data(
-        input_data=input_data,
-        cols=cols
-    )
-    seg.set_para(
-        segmax=segmax,
-        segmin=segmin,
-        segstep=segstep,
-        segsort=segsort,
-        display=display,
-        useseglist=usealldata
-    )
-    seg.run()
-    return seg
-
-
-# test dataset
-class TestData:
-    def __init__(self, mean=60, std=18, size=100000, max_value=100, min_value=0):
-        self.df = None
-        self.df_mean = mean
-        self.df_max = max_value
-        self.df_min = min_value
-        self.df_std = std
-        self.df_size = size
-        self.dist = 'norm'
-        self.__make_data()
-
-    def __make_data(self):
-        self.df = pd.DataFrame({
-            'no': [str(x).zfill(7) for x in range(1, self.df_size+1)],
-            'km1': self.get_score(),
-            'km2': self.get_score(),
-        })
-
-    def get_score(self):
-        print('create score...')
-        norm_list = None
-        if self.dist == 'norm':
-            norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
-            norm_list[np.where(norm_list>self.df_max)] = self.df_max
-            norm_list[np.where(norm_list<self.df_min)] = self.df_min
-        return norm_list
 
 
 # Score Transform Model Interface
@@ -762,7 +634,7 @@ class PltScore(ScoreTransformModel):
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  output_decimal_digits=None):
-        if (type(input_score_ratio_list) not in \
+        if (type(input_score_ratio_list) not in
            (list, tuple)) | (type(output_score_points_list) != list):
             print('input score points or output score points is not list!')
             return
@@ -971,6 +843,7 @@ class PltScore(ScoreTransformModel):
         # self.input_score_ratio_cum[0] = 0
         self.input_score_ratio_cum[-1] = 1
         ep = 10**-8
+        _max = self.output_score_max
         for ri, row in self.map_table.iterrows():
             x = row['seg']
             # processing-0: raw score == 0
@@ -990,24 +863,24 @@ class PltScore(ScoreTransformModel):
                     _mode = self.strategy_dict['mode_ratio_loc']
                     y = -1
                     if (abs(_p - sr) < ep) or (si == 0):
-                        y = 900 - si
+                        y = _max - si
                     elif _mode == 'upper_min':
-                        y = 900 - si
+                        y = _max - si
                     elif _mode == 'lower_max':
                         if si > 0:
-                            y = 900 - si + 1
+                            y = _max - si + 1
                         else:
-                            y = 900 - si
+                            y = _max - si
                     elif 'near' in _mode:
                         if abs(_p-sr) < abs(_p-self.input_score_ratio_cum[si-1]):
-                            y = 900 - si
+                            y = _max - si
                         elif abs(_p-sr) > abs(_p-self.input_score_ratio_cum[si-1]):
-                            y = 900 - si + 1
+                            y = _max - si + 1
                         else:
                             if 'near_max' in _mode:
-                                y = 900 - si
+                                y = _max - si
                             else:
-                                y = 900 - si + 1
+                                y = _max - si + 1
                     row[col+'_plt'] = y
                     coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
                     result_ratio.append(format(_p, '.6f'))
@@ -1452,26 +1325,23 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
     def __plot_dist(self):
+        def plot_hist_fit(field):
+            x_data = self.output_data[field]
+            _mu = np.mean(x_data)
+            _std = np.std(x_data)
+            count, bins, patches = ax.hist(x_data, 35)
+            x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
+            x_fit = x_fit * max(count)/max(x_fit)
+            _color = 'y--' if '_plt' in field else 'g--'
+            ax.plot(bins, x_fit, _color, label='raw score')
+            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
+
         for f in self.cols:
             fig, ax = plot.subplots()
             # fit raw score distribution
-            x_data = self.output_data[f]
-            _mu = np.mean(x_data)
-            _std = np.std(x_data)
-            n, bins, patches = ax.hist(x_data, 35)
-            x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
-            x_fit = x_fit * max(bins)/max(x_fit)
-            ax.plot(bins, x_fit, 'g--', label='raw score')
+            plot_hist_fit(f)
             # fit out score distribution
-            x_data = self.output_data[f+'_plt']
-            _mu = np.mean(x_data)
-            _std = np.std(x_data)
-            n, bins, patches = ax.hist(x_data, 35)
-            x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
-            x_fit = x_fit * max(bins)/max(x_fit)
-            ax.plot(bins, x_fit, 'r--', label='out score')
-            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
-        # ax.legend.get_frame().set_facecolor('C0')
+            plot_hist_fit(f+'_plt')
         plot.show()
 
     def __plot_model(self):
@@ -1917,6 +1787,34 @@ class GradeScoreTao(ScoreTransformModel):
     def print_map_table(self):
         # print(ptt.make_mpage(self.map_table))
         print(self.map_table)
+
+
+# call SegTable.run() return instance of SegTable
+def run_seg(
+            input_data:pd.DataFrame,
+            cols: list,
+            segmax=100,
+            segmin=0,
+            segsort='d',
+            segstep=1,
+            display=False,
+            usealldata=False
+            ):
+    seg = SegTable()
+    seg.set_data(
+        input_data=input_data,
+        cols=cols
+    )
+    seg.set_para(
+        segmax=segmax,
+        segmin=segmin,
+        segstep=segstep,
+        segsort=segsort,
+        display=display,
+        useseglist=usealldata
+    )
+    seg.run()
+    return seg
 
 
 # version 1.0.1 2018-09-24
