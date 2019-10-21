@@ -135,6 +135,7 @@ import array
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
+# plot.switch_backend('agg')
 import scipy.stats as sts
 import seaborn as sbn
 from pyex_tool import pyex_ptt as ptt
@@ -867,7 +868,7 @@ class PltScore(ScoreTransformModel):
             print('   calculate: {0} => {0}_plt'.format(col))
             self.output_data.loc[:, (col + '_plt')] = \
                 self.output_data[col].apply(
-                    lambda x: self.get_plt_score_from_formula3(col, x))
+                    lambda x: self.get_plt_score_from_formula_fraction(col, x))
 
             if self.output_decimal_digits == 0:
                 self.output_data[col] = self.output_data[col].astype('int')
@@ -889,7 +890,7 @@ class PltScore(ScoreTransformModel):
         for col in self.cols:
             col_name = col + '_plt'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.get_plt_score_from_formula3(col, x))
+                lambda x: self.get_plt_score_from_formula_fraction(col, x))
             if self.output_decimal_digits == 0:
                 df_map[col_name] = df_map[col_name].astype('int')
             print('   create report ...')
@@ -905,7 +906,7 @@ class PltScore(ScoreTransformModel):
     # y = a*x + b
     # a = (y2-y1)/(x2-x1)
     # b = -x1/(x2-x1) + y1
-    def get_plt_score_from_formula1(self, field, x):
+    def get_plt_score_from_formula_ax_b(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 return round45r(cf[0][0] * x + cf[0][1])
@@ -917,7 +918,7 @@ class PltScore(ScoreTransformModel):
     # a = (y2-y1)/(x2-x1)
     # b = x1
     # c = y1
-    def get_plt_score_from_formula2(self, field, x):
+    def get_plt_score_from_formula_ax_b_c(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 v = (cf[1][1]-cf[1][0])
@@ -936,7 +937,7 @@ class PltScore(ScoreTransformModel):
     #           a=(y2-y1)
     #           b=y1x2-y2x1
     #           c=(x2-x1)
-    def get_plt_score_from_formula3(self, field, x):
+    def get_plt_score_from_formula_fraction(self, field, x):
         if x > self.input_score_max:
             return self.output_score_max
         if x < self.input_score_min:
@@ -1459,18 +1460,16 @@ class PltScore(ScoreTransformModel):
             _std = np.std(x_data)
             n, bins, patches = ax.hist(x_data, 35)
             x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
-            _x_fit_max = max(x_fit)
-            x_fit = x_fit * max(bins)/_x_fit_max
-            ax.plot(bins, x_fit, 'g--')
+            x_fit = x_fit * max(bins)/max(x_fit)
+            ax.plot(bins, x_fit, 'g--', label='raw score')
             # fit out score distribution
             x_data = self.output_data[f+'_plt']
             _mu = np.mean(x_data)
             _std = np.std(x_data)
             n, bins, patches = ax.hist(x_data, 35)
             x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
-            _x_fit_max = max(x_fit)
-            x_fit = x_fit * max(bins)/_x_fit_max * 0.9
-            ax.plot(bins, x_fit, 'r-')
+            x_fit = x_fit * max(bins)/max(x_fit)
+            ax.plot(bins, x_fit, 'r--', label='out score')
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
         # ax.legend.get_frame().set_facecolor('C0')
         plot.show()
