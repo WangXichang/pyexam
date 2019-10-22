@@ -1113,24 +1113,23 @@ class PltScore(ScoreTransformModel):
 
         # calculating for ratio and segment
         plist = self.input_score_ratio_cum
-        if len(plist) > 10:
-            _output_report_doc += '  raw score seg ratio: {}...\n'. \
-                format([format(plist[j] - plist[j - 1] if j > 0 else plist[0], '0.6f')
-                        for j in range(10)])
-            _output_report_doc += '  raw score cum ratio: {}...\n'. \
-                format([format(x, '0.6f') for x in self.input_score_ratio_cum[:10]])
-        else:
-            _output_report_doc += '  raw score seg ratio: {}\n'.\
-                format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
-                        for j in range(len(plist))])
-            _output_report_doc += '  raw score cum ratio: {}\n'.\
-                format([format(x, '0.6f') for x in self.input_score_ratio_cum])
+        _output_report_doc += '  raw score seg ratio: {}\n'.\
+            format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
+                    for j in range(len(plist))])
+        _output_report_doc += '  raw score cum ratio: {}\n'.\
+            format([format(x, '0.6f') for x in self.input_score_ratio_cum])
         _output_report_doc += '  raw score set ratio: {}\n'.\
             format(self.result_ratio_dict[field])
+        _raw_seg_list = [x[1] for x in self.result_dict[field]['coeff'].values()]
+        if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
+            _raw_seg_list = [x[0] if x[0]==x[1] else x for x in _raw_seg_list]
         _output_report_doc += '  raw score endpoints: {}\n'.\
-            format([x[1] for x in self.result_dict[field]['coeff'].values()])
+            format(_raw_seg_list)
+        _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
+        if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
+            _out_seg_list = [x[0] if x[0]==x[1] else x for x in _out_seg_list]
         _output_report_doc += '  out score endpoints: {}\n'.\
-            format([x[2] for x in self.result_dict[field]['coeff'].values()])
+            format(_out_seg_list)
 
         # transforming formulas
         _output_report_doc += '- -'*40 + '\n'
@@ -1335,7 +1334,7 @@ class PltScore(ScoreTransformModel):
             _color = 'y--' if '_plt' in field else 'g--'
             ax.plot(bins, x_fit, _color, label='raw score')
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
-
+            # print(field, len(count), sum(count), count)
         for f in self.cols:
             fig, ax = plot.subplots()
             # fit raw score distribution
@@ -1370,17 +1369,17 @@ class PltScore(ScoreTransformModel):
                 _score_order = self.strategy_dict['mode_score_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
-                plot.plot(x, y)
+                plot.plot(x, y, linewidth=3)
                 for j in [0, 1]:
-                    plot.plot([x[j], x[j]], [0, y[j]], '--')
-                    plot.plot([0, x[j]], [y[j], y[j]], '--')
+                    plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=3)
+                    plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=3)
                 for j, xx in enumerate(x):
                     plot.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
                     plot.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
 
             # darw y = x for showing score shift
-            plot.plot((0, in_max), (0, in_max), 'ro--')
+            plot.plot((0, in_max), (0, in_max), 'm--', linewidth=3, markersize=3)
 
         plot.show()
         return
