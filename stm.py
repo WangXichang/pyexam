@@ -1327,7 +1327,7 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
     def __plot_dist(self):
-        def plot_hist_fit(field):
+        def plot_hist_fit(field, _label):
             x_data = self.output_data[field]
             _mu = np.mean(x_data)
             _std = np.std(x_data)
@@ -1335,15 +1335,15 @@ class PltScore(ScoreTransformModel):
             x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
             x_fit = x_fit * max(count)/max(x_fit)
             _color = 'y--' if '_plt' in field else 'g--'
-            ax.plot(bins, x_fit, _color, label='raw score')
+            ax.plot(bins, x_fit, _color, label=_label)
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             # print(field, len(count), sum(count), count)
         for f in self.cols:
             fig, ax = plot.subplots()
             # fit raw score distribution
-            plot_hist_fit(f)
+            plot_hist_fit(f, 'raw score')
             # fit out score distribution
-            plot_hist_fit(f+'_plt')
+            plot_hist_fit(f+'_plt', 'out score')
         plot.show()
 
     def __plot_model(self):
@@ -1374,8 +1374,8 @@ class PltScore(ScoreTransformModel):
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
                 plot.plot(x, y, linewidth=3)
                 for j in [0, 1]:
-                    plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=3)
-                    plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=3)
+                    plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=2)
+                    plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=2)
                 for j, xx in enumerate(x):
                     plot.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
