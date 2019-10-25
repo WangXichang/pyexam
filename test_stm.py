@@ -84,8 +84,8 @@ def test_stm_with_stat_data(
 
     # create data set
     print('create test dataset...')
+
     # --- normal data set
-    # dfscore = pd.DataFrame({'km': np.random.randint(0, max_score, data_size, 'int')})
     norm_data1 = [stm.sts.norm.rvs() for _ in range(data_size)]
     norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
     norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
@@ -106,8 +106,13 @@ def test_stm_with_stat_data(
         else:
             norm_data3 += [x]*2*(score_max-x+1)
 
-    test_data = [norm_data1, norm_data2, norm_data3]
-    dfscore = pd.DataFrame({'kmx': test_data[data_no-1]})
+    # --- triangle data set
+    norm_data4 = TestData(mean=58, size=500000)
+    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
+
+    test_data = map(lambda d: pd.DataFrame({'kmx': d}), [norm_data1, norm_data2, norm_data3, list(norm_data4.df.km1)])
+    test_data = list(test_data)
+    dfscore = test_data[data_no-1]
 
     if name in stm.plt_models_dict.keys():
         print('plt model={}'.format(name))

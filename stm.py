@@ -174,10 +174,22 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_M7_RATIO = [15, 35, 35, 13, 2]
 CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
-# Haina standard score
+# Haina standard score 100-900
 norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
-CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0 else norm_cdf[i]*100 for i in range(801)]
+CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
+                      else norm_cdf[i]*100 for i in range(801)]
+CONST_HAINAN_RATIO[-1] = 100 - sum(CONST_HAINAN_RATIO[:-1])         # ensure to sum==100
 CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 99, -1)]
+
+# Haina standard score for new Gaokao 60-300
+_start_point, end_point = 60, 300
+_mean = (_start_point + end_point) / 2
+_std = (_mean - _start_point) / 4
+norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(_start_point, end_point + 1)]
+CONST_HAINAN_RATIO2 = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
+                      else norm_cdf[i]*100 for i in range(end_point - _start_point + 1)]
+CONST_HAINAN_RATIO2[-1] = 100 - sum(CONST_HAINAN_RATIO2[:-1])         # ensure to sum==100
+CONST_HAINAN_SEGMENT2 = [(s, s) for s in range(end_point, _start_point - 1, -1)]
 
 
 PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
@@ -189,7 +201,8 @@ plt_models_dict = {
     'shandong': PltRatioSeg_namedtuple(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
     'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
     'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT),
-    'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT)
+    'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT),
+    'hainan2': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO2, CONST_HAINAN_SEGMENT2)
     }
 stm_strategies_dict = {
     'mode_score_order': ['ascending', 'descending'],
@@ -730,7 +743,7 @@ class PltScore(ScoreTransformModel):
             print('--- transform score field:[{}]'.format(col))
 
             # get formula and save
-            if self.model_name == 'hainan':
+            if 'hainan' in self.model_name:
                 self.__get_formula_hainan(col)
             else:
                 if not self.__get_formula(col):
@@ -841,8 +854,6 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
         result_ratio = []
-        # self.input_score_ratio_cum[0] = 0
-        self.input_score_ratio_cum[-1] = 1
         ep = 10**-8
         _max = self.output_score_max
         for ri, row in self.map_table.iterrows():
@@ -1078,24 +1089,33 @@ class PltScore(ScoreTransformModel):
             last_seg = this_seg
             start += 1
 
-
     def __get_report_doc(self, field=''):
+        score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
         p = 0 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
+        _fi = 1
         for k in self.result_dict[field]['coeff']:
             formula = self.result_dict[field]['coeff'][k]
+            _break = True
+            _step = 1 if formula[1][0] < formula[1][1] else -1
+            for _score in range(formula[1][0], formula[1][1]+1, _step):
+                if score_dict.get(_score, -1) > 0:
+                    _break = False
+                    break
+            if _break:
+                continue
             if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
-                self.result_formula_text_list += ['(seg-{:3d}) ******'.format(k+1)]
+                self.result_formula_text_list += ['(seg-{:3d}) ******'.format(_fi)]
                 continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
                     ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
-                     format(k+1, formula[0][0], formula[1][p], formula[2][p])]
+                     format(_fi, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 if formula[2][0] != formula[2][1]:
                     self.result_formula_text_list += \
                         ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
-                         format(k + 1,
+                         format(_fi,
                                 formula[0][0], formula[1][p],
                                 self.strategy_dict['mode_seg_degraded'],
                                 formula[2][0], formula[2][1])
@@ -1103,11 +1123,12 @@ class PltScore(ScoreTransformModel):
                 else:
                     self.result_formula_text_list += \
                         ['(seg-{0:3d}) y = 1.0*(x-{2:3d}) + {3:3d}'.
-                         format(k + 1,
+                         format(_fi,
                                 formula[0][0],
                                 formula[1][p],
                                 formula[2][0])
                          ]
+            _fi += 1
 
         # report start
         # tiltle
