@@ -16,9 +16,9 @@
           运行各个模型的调用函数 calling model function
           ---
           参数描述
-          name:= 'shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          name:= 'shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tai'
           调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
-          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tao'
+          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tai'
           -
           name:= 'zscore'/'t_score'/'tlinear'
           计算Z分数、T分数、线性转换T分数
@@ -99,7 +99,7 @@
     [classes] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
        GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
-       TaoScore: 陶百强等级分数模型（由陶百强在其论文中提出）Tao Baiqiang model
+       TaiScore: 台湾等级分数模型 Taiwan college entrance test and middle school achievement test model
        Zscore: Z分数转换模型 zscore model
        Tscore: T分数转换模型 t_score model
        Tlinear: T分数线性转换模型 t_score model by linear transform mode
@@ -202,7 +202,7 @@ stm_strategies_dict = {
     'mode_score_empty': ['use_to_min', 'use_to_max', 'use_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
     }
-stm_models_name = list(plt_models_dict.keys()) + ['zscore', 'tscore', 'tao', 'tlinear']
+stm_models_name = list(plt_models_dict.keys()) + ['zscore', 'tscore', 'tai', 'tlinear']
 
 
 def about_stm():
@@ -255,7 +255,7 @@ def run(
 
     # check col
     if isinstance(cols, str):
-        cols = (cols)
+        cols = cols,
     elif type(cols) not in (list, tuple):
         print('invalid cols type:{}!'.format(type(cols)))
         return
@@ -287,8 +287,8 @@ def run(
         plt_model.run()
         return plt_model
 
-    if name == 'tao':
-        m = GradeScoreTao()
+    if name == 'tai':
+        m = GradeScoreTai()
         m.grade_num = 50
         m.set_data(input_data=input_data,
                    cols=cols)
@@ -358,6 +358,7 @@ def plot_stm(font_size=12):
             raise ValueError(k)
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
+
 
 def calc_stm_mean_std(name='shandong'):
     if name == 'hainan':
@@ -852,7 +853,7 @@ class PltScore(ScoreTransformModel):
                 if 'ignore' in _mode:
                     pass
                 elif 'use_to_low' in _mode:
-                    y = self.output_score_min
+                    # y = self.output_score_min
                     break
                 elif 'use_to_real' in _mode:
                     pass
@@ -999,7 +1000,8 @@ class PltScore(ScoreTransformModel):
                          this_seg_endpoint,
                          self.output_score_points[i][0],
                          self.output_score_points[i][1]
-                  ))
+                         )
+                  )
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
@@ -1054,7 +1056,8 @@ class PltScore(ScoreTransformModel):
         return _seg, _percent
 
     @classmethod
-    def get_seg_from_fr(mapdf: pd.DataFrame,
+    def get_seg_from_fr(cls, 
+                        mapdf: pd.DataFrame,
                         field,
                         ratio):
         # comments:
@@ -1122,12 +1125,12 @@ class PltScore(ScoreTransformModel):
             format(self.result_ratio_dict[field])
         _raw_seg_list = [x[1] for x in self.result_dict[field]['coeff'].values()]
         if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
-            _raw_seg_list = [x[0] if x[0]==x[1] else x for x in _raw_seg_list]
+            _raw_seg_list = [x[0] if x[0] == x[1] else x for x in _raw_seg_list]
         _output_report_doc += '  raw score endpoints: {}\n'.\
             format(_raw_seg_list)
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
         if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
-            _out_seg_list = [x[0] if x[0]==x[1] else x for x in _out_seg_list]
+            _out_seg_list = [x[0] if x[0] == x[1] else x for x in _out_seg_list]
         _output_report_doc += '  out score endpoints: {}\n'.\
             format(_out_seg_list)
 
@@ -1558,7 +1561,10 @@ class Tscore(ScoreTransformModel):
         zm.run()
         self.output_data = zm.output_data
         namelist = self.output_data.columns
-        formula = lambda x: round45r(x * self.t_score_std + self.t_score_mean, self.output_data_decimal)
+
+        def formula(x):
+            return round45r(x * self.t_score_std + self.t_score_mean, self.output_data_decimal)
+
         for sf in namelist:
             if '_zscore' in sf:
                 new_sf = sf.replace('_zscore', '_tscore')
@@ -1675,9 +1681,9 @@ class TscoreLinear(ScoreTransformModel):
         super(TscoreLinear, self).plot(mode)
 
 
-class GradeScoreTao(ScoreTransformModel):
+class GradeScoreTai(ScoreTransformModel):
     """
-    grade Score model from Tao BaiQiang
+    grade Score model from Tai BaiQiang
     top_group = df.sort_values(field,ascending=False).head(int(df.count(0)[field]*0.01))[[field]]
     high_grade = top_group[field].describe().loc['mean', field]
     intervals = [minscore, high_grade*1/50], ..., [high_grade, max_score]
@@ -1687,8 +1693,8 @@ class GradeScoreTao(ScoreTransformModel):
     """
 
     def __init__(self):
-        super(GradeScoreTao, self).__init__('grade')
-        self.model_name = 'taobaiqiang'
+        super(GradeScoreTai, self).__init__('grade')
+        self.model_name = 'Taiwan'
 
         self.grade_num = 50
         self.input_score_max = 100
@@ -1790,7 +1796,7 @@ class GradeScoreTao(ScoreTransformModel):
 
 # call SegTable.run() return instance of SegTable
 def run_seg(
-            input_data:pd.DataFrame,
+            input_data: pd.DataFrame,
             cols: list,
             segmax=100,
             segmin=0,
@@ -1903,7 +1909,7 @@ class SegTable(object):
     def __init__(self):
         # raw data
         self.__input_dataframe = None
-        self.__segFields = []
+        self.__cols = []
 
         # parameter for model
         self.__segList = []
@@ -1936,12 +1942,12 @@ class SegTable(object):
         self.__input_dataframe = df
 
     @property
-    def fs(self):
-        return self.__segFields
+    def cols(self):
+        return self.__cols
 
-    @fs.setter
-    def fs(self, fs):
-        self.__segFields = fs
+    @cols.setter
+    def cols(self, cols):
+        self.__cols = cols
 
     @property
     def seglist(self):
@@ -2016,13 +2022,13 @@ class SegTable(object):
         self.__display = display
 
     def set_data(self, input_data, cols=None):
-        self.input_data = input_data
+        self.__input_dataframe = input_data
         if type(cols) == str:
             cols = [cols]
         if (not isinstance(cols, list)) & isinstance(input_data, pd.DataFrame):
-            self.cols = input_data.columns.values
+            self.__cols = input_data.columns.values
         else:
-            self.cols = cols
+            self.__cols = cols
         self.__check()
 
     def set_para(
@@ -2099,14 +2105,14 @@ class SegTable(object):
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        if not isinstance(self.cols, list):
-            if isinstance(self.cols, str):
-                self.cols = [self.cols]
+        if not isinstance(self.__cols, list):
+            if isinstance(self.__cols, str):
+                self.__cols = [self.__cols]
             else:
-                print('error: segfields type({}) error.'.format(type(self.cols)))
+                print('error: segfields type({}) error.'.format(type(self.__cols)))
                 return False
 
-        for f in self.cols:
+        for f in self.__cols:
             if f not in self.input_data.columns:
                 print("error: field('{}') is not in input_data fields({})".
                       format(f, self.input_data.columns.values))
@@ -2128,7 +2134,7 @@ class SegTable(object):
             seglist = sorted(seglist, reverse=True)
         self.__output_dataframe = pd.DataFrame({'seg': seglist})
         outdf = self.__output_dataframe
-        for f in self.cols:
+        for f in self.__cols:
             # calculate preliminary group count
             tempdf = self.input_data
             tempdf.loc[:, f] = tempdf[f].apply(round45r)
@@ -2263,7 +2269,7 @@ class SegTable(object):
             return
         legendlist = []
         step = 0
-        for sf in self.cols:
+        for sf in self.__cols:
             step += 1
             legendlist.append(sf)
             plot.figure('map_table figure({})'.
@@ -2271,11 +2277,11 @@ class SegTable(object):
             plot.subplot(221)
             plot.hist(self.input_data[sf], 20)
             plot.title('histogram')
-            if step == len(self.cols):
+            if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.subplot(222)
             plot.plot(self.output_data.seg, self.output_data[sf+'_count'])
-            if step == len(self.cols):
+            if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.title('distribution')
             plot.xlim([self.__segMin, self.__segMax])
@@ -2283,13 +2289,13 @@ class SegTable(object):
             plot.plot(self.output_data.seg, self.output_data[sf + '_sum'])
             plot.title('cumsum')
             plot.xlim([self.__segMin, self.__segMax])
-            if step == len(self.cols):
+            if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.subplot(224)
             plot.plot(self.output_data.seg, self.output_data[sf + '_percent'])
             plot.title('percentage')
             plot.xlim([self.__segMin, self.__segMax])
-            if step == len(self.cols):
+            if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.show()
 # SegTable class end
