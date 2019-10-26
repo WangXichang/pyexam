@@ -286,19 +286,21 @@ def run(
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
         plt_model.set_data(raw_data=raw_data, cols=cols)
-        plt_model.set_para(raw_score_ratio_list=ratio_list,
-                           out_score_points_list=plt_models_dict[name].seg,
-                           raw_score_range=raw_score_range,
-                           mode_ratio_loc=mode_ratio_loc,
-                           mode_ratio_cum=mode_ratio_cum,
-                           mode_score_order=mode_score_order,
-                           out_decimal_digits=out_score_decimal)
+        plt_model.set_para(
+            raw_score_ratio_list=ratio_list,
+            out_score_points_list=plt_models_dict[name].seg,
+            raw_score_range=raw_score_range,
+            mode_ratio_loc=mode_ratio_loc,
+            mode_ratio_cum=mode_ratio_cum,
+            mode_score_order=mode_score_order,
+            out_decimal_digits=out_score_decimal
+            )
         plt_model.run()
         return plt_model
 
     if name == 'tai':
         m = GradeScoreTai()
-        m.grade_num = 50
+        m.grade_num = 15    # TaiWan use 15 levels grade score system
         m.set_data(raw_data=raw_data,
                    cols=cols)
         m.set_para(maxscore=raw_score_range[1],
@@ -336,15 +338,14 @@ def run(
 
 
 def plot_stm(font_size=12):
-    # calculate mean, std
-    # ms_dict = stm_mean_std()
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'm7', 'hainan']
     ms_dict = dict()
-    for _name in plt_models_dict.keys():
-        ms_dict.update({_name: calc_stm_mean_std(name=_name)})
+    for _name in _names:
+        ms_dict.update({_name: get_stm_model_describe(name=_name)})
 
     plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
     plot.rcParams.update({'font.size': font_size})
-    for i, k in enumerate(plt_models_dict.keys()):
+    for i, k in enumerate(_names):
         plot.subplot(240+i+1)
         _wid = 2
         if k in ['shanghai']:
@@ -363,27 +364,38 @@ def plot_stm(font_size=12):
         elif k in ['hainan']:
             x_data = [x for x in range(100, 901)]
             _wid = 1
+        elif k in ['hainan2']:
+            x_data = [x for x in range(60, 301)]
+            _wid = 1
         else:
             raise ValueError(k)
         plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
-def calc_stm_mean_std(name='shandong'):
+def get_stm_model_describe(name='shandong'):
+    __ratio = plt_models_dict[name].ratio
+    __seg = plt_models_dict[name].seg
     if name == 'hainan':
-        _mean, _std, _skewnumer = 500, 100, 0
+        __mean, __std, __skewness = 500, 100, 0
+    elif name == 'hainan2':
+        __mean, __std, __skewness = 180, 30, 0
     else:
-        _mean = sum([r / 100 * sum(s) / 2 for r, s in zip(plt_models_dict[name].ratio, plt_models_dict[name].seg)])
-        _std = np.sqrt(sum([plt_models_dict[name].ratio[i] * (sum(s)/2-_mean) ** 2
-                            for i, s in enumerate(plt_models_dict[name].seg)]) / 100)
-        _skewnumer = sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**3
-                          for i, s in enumerate(plt_models_dict[name].seg)])
-    # print(name, _skewnumer)
-    if _skewnumer == 0:
-        return _mean, _std, 0
-    _skewness = _skewnumer / sum([plt_models_dict[name].ratio[i]/100 * (sum(s)/2-_mean)**2
-                                 for i, s in enumerate(plt_models_dict[name].seg)])**(3/2)
-    return _mean, _std, _skewness
+        samples = []
+        [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
+        __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(samples)
+
+    # __mean = sum([r / 100 * np.mean(s) for r, s in zip(__ratio, __seg)])
+    # __std = np.sqrt(sum([__ratio[i] * (np.mean(s) - __mean) ** 2
+    #                     for i, s in enumerate(__seg)]) / 100)
+    # __skew_numerator = sum([__ratio[i] * (np.mean(s) - __mean)**3
+    #                        for i, s in enumerate(__seg)])
+    # __skewness = __skew_numerator / sum([__ratio[i] * (np.mean(s)-__mean)**2
+    #                                      for i, s in enumerate(__seg)])**(3/2)
+    # if __skewness < 1e-4:
+    #     __skewness = 0
+
+    return __mean, __std, __skewness
 
 
 # Score Transform Model Interface
