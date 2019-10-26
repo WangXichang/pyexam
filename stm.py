@@ -751,7 +751,7 @@ class PltScore(ScoreTransformModel):
                     return
 
             # get field_plt in output_data
-            print('   calculate: {0} => {0}_plt'.format(col))
+            print('   calculate: data[{0}] => {0}_plt'.format(col))
             self.output_data.loc[:, (col + '_plt')] = \
                 self.output_data[col].apply(
                     lambda x: self.get_plt_score_from_formula_fraction(col, x))
@@ -760,27 +760,18 @@ class PltScore(ScoreTransformModel):
                 self.output_data[col] = self.output_data[col].astype('int')
                 self.output_data[col+'_plt'] = self.output_data[col+'_plt'].astype('int')
 
-        # create report and col_plt in map_table
-        self.output_report_doc = 'Transform Model: [{}]   {}\n'.\
-            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
-        self.output_report_doc += '---'*40 + '\n'
-        self.output_report_doc += format('strategies: ', '>23') + '\n'
-
-        for k in stm_strategies_dict:
-            self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
-                format(k + ' = ' + self.strategy_dict[k],
-                       stm_strategies_dict[k]) + '\n'
-        self.output_report_doc += '---'*40 + '\n'
-        # col_plt in map_table
+        # create col_plt in map_table
         df_map = self.map_table
         for col in self.cols:
+            print('   calculate: map_table[{0}] => [{0}_plt]'.format(col))
             col_name = col + '_plt'
             df_map.loc[:, col_name] = df_map['seg'].apply(
                 lambda x: self.get_plt_score_from_formula_fraction(col, x))
             if self.output_decimal_digits == 0:
                 df_map[col_name] = df_map[col_name].astype('int')
-            print('   create report ...')
-            self.output_report_doc += self.__get_report_doc(col)
+
+        # make report doc
+        self.make_report_doc()
 
         print('='*100)
         print('stm-run end, elapsed-time:', time.time() - stime)
@@ -855,44 +846,47 @@ class PltScore(ScoreTransformModel):
         coeff_dict = dict()
         result_ratio = []
         ep = 10**-8
-        _max = self.output_score_max
+        _mode_order = self.strategy_dict['mode_score_order']
+        _max = self.output_score_max if _mode_order in ['dscending', 'd'] else self.output_score_min
+        _step = -1 if _mode_order in ['dscending', 'd'] else 1
         for ri, row in self.map_table.iterrows():
             x = row['seg']
             # processing-0: raw score == 0
             if abs(x) < ep:
-                _mode = self.strategy_dict['mode_score_zero']
-                if 'ignore' in _mode:
+                _mode_zero = self.strategy_dict['mode_score_zero']
+                if 'ignore' in _mode_zero:
                     pass
-                elif 'use_to_low' in _mode:
-                    # y = self.output_score_min
+                elif 'use_to_low' in _mode_zero:
+                    if _mode_order in ['ascending', 'a']:
+                        y = self.output_score_min
                     break
-                elif 'use_to_real' in _mode:
+                elif 'use_to_real' in _mode_zero:
                     pass
             for si, sr in enumerate(self.input_score_ratio_cum):
                 _p = row[col+'_percent']
                 if (abs(_p - sr) < ep) or (_p < sr):
                     # strategies
-                    _mode = self.strategy_dict['mode_ratio_loc']
+                    _mode_zero = self.strategy_dict['mode_ratio_loc']
                     y = -1
                     if (abs(_p - sr) < ep) or (si == 0):
-                        y = _max - si
-                    elif _mode == 'upper_min':
-                        y = _max - si
-                    elif _mode == 'lower_max':
+                        y = _max + si*_step
+                    elif _mode_zero == 'upper_min':
+                        y = _max + si*_step
+                    elif _mode_zero == 'lower_max':
                         if si > 0:
-                            y = _max - si + 1
+                            y = _max + (si - 1)*_step
                         else:
-                            y = _max - si
-                    elif 'near' in _mode:
+                            y = _max + si*_step
+                    elif 'near' in _mode_zero:
                         if abs(_p-sr) < abs(_p-self.input_score_ratio_cum[si-1]):
                             y = _max - si
                         elif abs(_p-sr) > abs(_p-self.input_score_ratio_cum[si-1]):
-                            y = _max - si + 1
+                            y = _max + (si - 1)*_step
                         else:
-                            if 'near_max' in _mode:
-                                y = _max - si
+                            if 'near_max' in _mode_zero:
+                                y = _max + si*_step
                             else:
-                                y = _max - si + 1
+                                y = _max + (si - 1)*_step
                     row[col+'_plt'] = y
                     coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
                     result_ratio.append(format(_p, '.6f'))
@@ -1089,6 +1083,22 @@ class PltScore(ScoreTransformModel):
             last_seg = this_seg
             start += 1
 
+    # create report and col_plt in map_table
+    def make_report_doc(self):
+        self.output_report_doc = 'Transform Model: [{}]   {}\n'.\
+            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
+        self.output_report_doc += '---'*40 + '\n'
+        self.output_report_doc += format('strategies: ', '>23') + '\n'
+
+        for k in stm_strategies_dict:
+            self.output_report_doc += ' ' * 23 + '{:<32s} {}'. \
+                format(k + ' = ' + self.strategy_dict[k],
+                       stm_strategies_dict[k]) + '\n'
+        self.output_report_doc += '---'*40 + '\n'
+        for col in self.cols:
+            print('   create report ...')
+            self.output_report_doc += self.__get_report_doc(col)
+
     def __get_report_doc(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
         p = 0 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
@@ -1098,7 +1108,7 @@ class PltScore(ScoreTransformModel):
             formula = self.result_dict[field]['coeff'][k]
             _break = True
             _step = 1 if formula[1][0] < formula[1][1] else -1
-            for _score in range(formula[1][0], formula[1][1]+1, _step):
+            for _score in range(formula[1][0], formula[1][1]+_step, _step):
                 if score_dict.get(_score, -1) > 0:
                     _break = False
                     break
