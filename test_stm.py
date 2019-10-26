@@ -26,7 +26,7 @@ class TestModelWithGaokaoData():
         self.df18like.sw = self.df18like.sw.apply(lambda x: int(x*10/9))
         self.df18wen = pd.read_csv('d:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
                                    usecols=('zz', 'ls', 'dl'))
-        self.model_dict = dict()
+        self.models_list = []
 
     def run_stm(self,
                 name='shandong',
@@ -52,19 +52,19 @@ class TestModelWithGaokaoData():
         for _run in _all:
             m = stm.run(
                 name=name,
-                df=dfs[_run[0]+_run[1]],
+                data=dfs[_run[0]+_run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_loc=mode_ratio_approx,
                 mode_ratio_cum=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
-            self.model_dict.update({name+'_'+_run[0]+'_'+_run[1]+'_'+mode_ratio_approx+'_'+mode_ratio_cumu: m})
+            self.models_list.extend((name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_approx + '_' + mode_ratio_cumu, m))
 
 
     def save_report(self):
-        for k in self.model_dict:
+        for m in self.models_list:
             _root = 'd:/mywrite/newgk/gkdata/report/report_'
-            self.model_dict[k].save_report_to_file(_root + k + '.txt')
+            m[1].save_report_to_file(_root + m[0] + '.txt')
 
 
 def test_stm_with_stat_data(
