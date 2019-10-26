@@ -53,6 +53,7 @@ class TestModelWithGaokaoData():
             m = stm.run(
                 name=name,
                 data=dfs[_run[0]+_run[1]],
+                data=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_loc=mode_ratio_approx,
                 mode_ratio_cum=mode_ratio_cumu,
@@ -107,8 +108,9 @@ def test_stm_with_stat_data(
             norm_data3 += [x]*2*(score_max-x+1)
 
     # --- triangle data set
-    norm_data4 = TestData(mean=58, size=500000)
+    norm_data4 = TestData(mean=60, size=500000)
     norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
+    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: {35: 0, 36: 3, 37: 5}.get(x, 0) if 35<= x < 38 else x)
 
     test_data = map(lambda d: pd.DataFrame({'kmx': d}), [norm_data1, norm_data2, norm_data3, list(norm_data4.df.km1)])
     test_data = list(test_data)
@@ -118,10 +120,10 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = stm.run(name=name, df=dfscore, cols=['kmx'],
-                mode_ratio_loc=mode_ratio_loc,
-                mode_ratio_cum=mode_ratio_cum
-                )
+        m = stm.run(name=name, data=dfscore, cols=['kmx'],
+                    mode_ratio_loc=mode_ratio_loc,
+                    mode_ratio_cum=mode_ratio_cum
+                    )
         return m
 
     elif name.lower() == 'zscore':
