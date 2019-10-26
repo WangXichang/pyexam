@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import stm as stm
 import importlib as pb
+from collections import namedtuple as ntp
 
 class TestModelWithGaokaoData():
 
@@ -27,6 +28,7 @@ class TestModelWithGaokaoData():
         self.df18wen = pd.read_csv('d:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
                                    usecols=('zz', 'ls', 'dl'))
         self.models_list = []
+        self.model = ntp('model', ['name', 'model'])
 
     def run_stm(self,
                 name='shandong',
@@ -53,13 +55,13 @@ class TestModelWithGaokaoData():
             m = stm.run(
                 name=name,
                 data=dfs[_run[0]+_run[1]],
-                data=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_loc=mode_ratio_approx,
                 mode_ratio_cum=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
-            self.models_list.extend((name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_approx + '_' + mode_ratio_cumu, m))
+            self.models_list.append(
+                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_approx + '_' + mode_ratio_cumu, m))
 
 
     def save_report(self):

@@ -1276,8 +1276,8 @@ class PltScore(ScoreTransformModel):
         print(self.out_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'norm']:
-            print('valid mode is: raw, out, model,shift, dist, bar, diff')
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'normtest']:
+            print('valid mode is: raw, out, model,shift, dist, bar, diff, normtest')
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
@@ -1288,12 +1288,12 @@ class PltScore(ScoreTransformModel):
             self.__plot_bar()
         elif mode in 'diff':
             self.__plot_diff()
-        elif mode in 'norm':
-            self.__plot_norm_graph()
+        elif mode in 'normtest':
+            self.__plot_norm_test()
         elif not super(PltScore, self).plot(mode):
             print('\"{}\" is invalid'.format(mode))
 
-    def __plot_norm_graph(self):
+    def __plot_norm_test(self):
         self.norm_test = dict()
         for col in self.cols:
             _len = self.map_table[col+'_count'].sum()
@@ -1301,11 +1301,9 @@ class PltScore(ScoreTransformModel):
             x2 = sorted(self.out_data[col+'_plt'])
             y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
             fig, ax = plot.subplots()
+            ax.set_title(self.model_name+': norm test')
             ax.plot(x1, y, 'o-', label='score:' + col)
             ax.plot(x2, y, 'o-', label='score:' + col)
-            # use djusted score (to norm dist)
-            # x1_log = [xv**2/100**2*100 if xv < 60 else xv**1.2/100**1.2*100 for xv in x1]
-            # ax.plot(x1_log, y, 'o-', label='score:' + col)
 
     def __plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.raw_score_max+1)
@@ -1316,6 +1314,7 @@ class PltScore(ScoreTransformModel):
             out_data = [out if raw > 0 else 0 for raw, out in zip(raw_data, out_data)]
 
             fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: diffrence between raw and out')
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
             width = 0.4
@@ -1355,6 +1354,7 @@ class PltScore(ScoreTransformModel):
             out_ = self.out_data.groupby(f+'_plt').count()[f]    # .sort_index(ascending=False)
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
             fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: bar graph')
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
@@ -1388,6 +1388,7 @@ class PltScore(ScoreTransformModel):
             # print(field, len(count), sum(count), count)
         for f in self.cols:
             fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: distribution garph')
             # fit raw score distribution
             plot_hist_fit(f, 'raw score')
             # fit out score distribution
