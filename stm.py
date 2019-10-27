@@ -1283,7 +1283,7 @@ class PltScore(ScoreTransformModel):
             # mode: model describe the differrence of input and output score.
             self.__plot_model()
         elif mode in 'dist':
-            self.__plot_dist()
+            self.__plot_dist_seaborn()
         elif mode in 'bar':
             self.__plot_bar()
         elif mode in 'diff':
@@ -1394,6 +1394,13 @@ class PltScore(ScoreTransformModel):
             # fit out score distribution
             plot_hist_fit(f+'_plt', 'out score')
         plot.show()
+
+    def __plot_dist_seaborn(self):
+        for f in self.cols:
+            fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: distribution garph')
+            sbn.kdeplot(self.out_data[f], shade=True)
+            sbn.kdeplot(self.out_data[f+'_plt'], shade=True)
 
     def __plot_model(self):
         # 分段线性转换模型
