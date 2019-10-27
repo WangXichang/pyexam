@@ -135,7 +135,6 @@ import array
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
-# plot.switch_backend('agg')
 import scipy.stats as sts
 import seaborn as sbn
 from pyex_tool import pyex_ptt as ptt
@@ -234,17 +233,23 @@ def run(
         out_score_decimal=0
         ):
     """
-    :param name: str, 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 't_score', 'tlinear'
-                      'guangdong', 'M7', default = 'shandong'
-    :param data: dataframe, raw score data, default = None
-    :param cols: score fields list in input dataframe, default = None and set to digit fields in running
-    :param raw_score_range: raw score value range (test set:zero to full value)
+    :param name: str, model name, values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore',
+                                          'tlinear', 'guangdong', 'm7', 'hainan', 'hainan2'
+                 default = 'shandong'
+    :param data: dataframe, raw score data, score field type must be int or float
+                 default = None
+    :param cols: list, which elements are score fields in data,
+                 default = None
+    :param raw_score_range: tuple, raw score value range,
                             default = (0, 100)
-    :param out_score_decimal: output score decimal digits
-                              default = 0 for int score at output score
-    :param mode_ratio_loc: lower_max, upper_min, near(near_max, near_min)  default=lower_max
-    :param mode_ratio_cum: yes, no  default=yes                     # for shandong new project
-    :param mode_score_order: descending(from max to min), ascending(from min to max)
+    :param out_score_decimal: int, decimal digits of output score
+                              default = 0, thar means out score type is int
+    :param mode_ratio_loc: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
+                           default='upper_min'
+    :param mode_ratio_cum: string, strategy to cumulate ratio, values:'yes', 'no'
+                           default='no'
+    :param mode_score_order: string, strategy to sort score, values: 'descending', 'ascending'
+                             default='dscending'
     :return: model
     """
     # check name
@@ -1737,10 +1742,10 @@ class TscoreLinear(ScoreTransformModel):
 
 class GradeScoreTai(ScoreTransformModel):
     """
-    grade Score model from Tai BaiQiang
+    Grade Score Model used by Taiwan College Admission Test Center
     top_group = df.sort_values(field,ascending=False).head(int(df.count(0)[field]*0.01))[[field]]
-    high_grade = top_group[field].describe().loc['mean', field]
-    intervals = [minscore, high_grade*1/50], ..., [high_grade, max_score]
+    high_grade_score = round(top_group[field].mean(), 4)
+    intervals = [minscore, grade_level/grade_level_total_number], ..., [,high_grade]
     以原始分值切分，形成的分值相当于等距合并，粒度直接增加
     实质上失去了等级分数的意义
     本模型仍然存在高分区过度合并问题
@@ -1844,7 +1849,6 @@ class GradeScoreTai(ScoreTransformModel):
         print(self.out_data[[f+'_grade' for f in self.cols]].describe())
 
     def print_map_table(self):
-        # print(ptt.make_mpage(self.map_table))
         print(self.map_table)
 
 
