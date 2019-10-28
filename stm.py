@@ -308,8 +308,8 @@ def run(
         m.grade_num = 15    # TaiWan use 15 levels grade score system
         m.set_data(raw_data=raw_data,
                    cols=cols)
-        m.set_para(maxscore=raw_score_range[1],
-                   minscore=raw_score_range[0])
+        m.set_para(raw_score_max=raw_score_range[1],
+                   raw_score_min=raw_score_range[0])
         m.run()
         return m
 
@@ -863,8 +863,8 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         ep = 10**-8
         _mode_order = self.strategy_dict['mode_score_order']
-        _max = self.out_score_max if _mode_order in ['dscending', 'd'] else self.out_score_min
-        _step = -1 if _mode_order in ['dscending', 'd'] else 1
+        _max = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
+        _step = -1 if _mode_order in ['descending', 'd'] else 1
         for ri, row in self.map_table.iterrows():
             x = row['seg']
             # processing-0: raw score == 0
@@ -1460,11 +1460,9 @@ class PltScore(ScoreTransformModel):
 class Zscore(ScoreTransformModel):
     """
     transform raw score to Z-score according to percent position on normal cdf
-    input data:
-    rawdf = raw score dataframe
-    stdNum = standard error numbers
-    output data:
-    out_data = result score with raw score field name + '_z'
+    input data: raw_data = raw score dataframe
+    set parameters: stdNum = standard error numbers
+    output data: out_data = result score with raw score field name + '_z'
     """
     # HighPrecise = 0.9999999
     MinError = 0.1 ** 9
@@ -1472,19 +1470,25 @@ class Zscore(ScoreTransformModel):
     def __init__(self):
         super(Zscore, self).__init__('zscore')
         self.model_name = 'zscore'
+
+        # input data
+        self.raw_data = None
+        self.cols = None
+
+        # model parameters
         self.std_num = 4
-        self.norm_table_len = 100000
+        self.norm_table_len = 10000
         self.raw_score_max = 150
         self.raw_score_min = 0
-        self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
-                                            for x in range(self.norm_table_len)]
-                                      )
-
-        self.map_table = None
-
         self.out_data_decimal = 0
         self.out_score_number = 100
         self.mode_ratio_loc = 'near'
+        self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
+                                            for x in range(self.norm_table_len)]
+                                      )
+        # result data
+        self.map_table = None
+        self.out_data = None
 
     def set_data(self, raw_data=None, cols=None):
         self.raw_data = raw_data
@@ -1497,8 +1501,8 @@ class Zscore(ScoreTransformModel):
                  out_decimal=8
                  ):
         self.std_num = std_num
-        self.raw_score_max = raw_score_range(1)
-        self.raw_score_min = raw_score_range(0)
+        self.raw_score_max = raw_score_range[1]
+        self.raw_score_min = raw_score_range[0]
         self.mode_ratio_loc = mode_ratio_loc
         self.out_data_decimal = out_decimal
 
@@ -1576,7 +1580,11 @@ class Tscore(ScoreTransformModel):
     __doc__ = '''
     T分数是一种标准分常模,平均数为50,标准差为10的分数。
     即这一词最早由麦柯尔于1939年提出,是为了纪念推孟和桑代克
-    对智力测验,尤其是提出智商这一概念所作出的巨大贡献。'''
+    对智力测验,尤其是提出智商这一概念所作出的巨大贡献。
+    通过调整t_score_mean, t_score_std, 也可以进行其它标准分数转换，
+    如100-900分的标准分数转换。
+    本模型使用百分位-累计分布校准的方式计算转换分数。
+    '''
 
     def __init__(self):
         super(Tscore, self).__init__('t')
@@ -1717,13 +1725,13 @@ class TscoreLinear(ScoreTransformModel):
         print('TZ-score by linear transform report')
         print('-' * 50)
         if type(self.raw_data) == pd.DataFrame:
-            print('raw score desc:')
+            print('raw score description:')
             print(self.raw_data[[f for f in self.cols]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
         if type(self.out_data) == pd.DataFrame:
-            print('raw,T,Z score desc:')
+            print('raw,T,Z score description:')
             print(self.out_data[[f+'_tscore' for f in self.cols]].describe())
             print('-'*50)
         else:
@@ -1755,10 +1763,10 @@ class GradeScoreTai(ScoreTransformModel):
         super(GradeScoreTai, self).__init__('grade')
         self.model_name = 'Taiwan'
 
-        self.grade_num = 50
+        self.grade_num = 15
         self.raw_score_max = 100
         self.raw_score_min = 0
-        self.max_ratio = 0.01  # 1%
+        self.max_ratio = 0.01   # 1%
         self.raw_data = pd.DataFrame()
 
         self.grade_no = [x for x in range(self.grade_num+1)]
@@ -1773,20 +1781,20 @@ class GradeScoreTai(ScoreTransformModel):
             self.cols = cols
 
     def set_para(self,
-                 maxscore=None,
-                 minscore=None,
+                 raw_score_max=None,
+                 raw_score_min=None,
                  grade_num=None,
                  ):
-        if isinstance(maxscore, int):
+        if isinstance(raw_score_max, int):
             if len(self.cols) > 0:
-                if maxscore >= max([max(self.raw_data[f]) for f in self.cols]):
-                    self.raw_score_max = maxscore
+                if raw_score_max >= max([max(self.raw_data[f]) for f in self.cols]):
+                    self.raw_score_max = raw_score_max
                 else:
                     print('error: maxscore is too little to transform score!')
             else:
                 print('to set col first!')
-        if isinstance(minscore, int):
-            self.raw_score_min = minscore
+        if isinstance(raw_score_min, int):
+            self.raw_score_min = raw_score_min
         if isinstance(grade_num, int):
             self.grade_num = grade_num
         self.grade_no = [x for x in range(self.grade_num+1)]
