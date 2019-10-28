@@ -12,7 +12,7 @@
 
     [functions] 模块中的函数
        run(name, df, col, ratio_list, grade_max, grade_diff, raw_score_max, raw_score_min,
-           out_score_decimal=0, mode_ratio_loc='near', mode_ratio_cum='yes')
+           out_score_decimal=0, mode_ratio_seek='near', mode_ratio_cumu='yes')
           运行各个模型的调用函数 calling model function
           ---
           参数描述
@@ -48,7 +48,7 @@
           out_score_decimal: grade score precision, decimal digit number
           输出分数精度，小数位数
           --
-          mode_ratio_loc: how to approxmate score points of raw score for each ratio vlaue
+          mode_ratio_seek: how to approxmate score points of raw score for each ratio vlaue
           计算等级时的逼近方式（目前设计的比例值逼近策略)：
               'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
               'lower_max': get score with max value in less 大于该比例值的分值中最小的值
@@ -58,7 +58,7 @@
               注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
               注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
 
-              拟改进为（2019.09.09） mode_ratio_loc：
+              拟改进为（2019.09.09） mode_ratio_seek：
               'near':    look up the nearest in all ratios to given-ratio 最接近的比例
               'upper_min':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
               'lower_max':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
@@ -66,7 +66,7 @@
               仍然使用四种模式(2019.09.25)： upper_min, lower_max, near_min, near_max
 
           拟增加比例累加控制(2019.09.09)：
-          mode_ratio_cum:
+          mode_ratio_cumu:
               'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
               'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
 
@@ -113,8 +113,8 @@
         CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
         CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
         CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-        CONST_M7_RATIO = [2, 13, 35, 35, 15]
-        CONST_M7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+        CONST_SS7_RATIO = [2, 13, 35, 35, 15]
+        CONST_SS7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 """
 
 
@@ -168,10 +168,10 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 #   ration=(15%、35%、35%、13%, 2%), 5 levels
 #   segment=(30～40、41～55、56～70、71～85、86～100)
 #   predict: mean = 70.24, std = 21.76
-#            mean = sum([x/100*sum(y)/2 for x,y in zip(M7ratio,M7segment)])
-#            std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(M7ratio,M7segment)])/5)
-CONST_M7_RATIO = [15, 35, 35, 13, 2]
-CONST_M7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
+#            mean = sum([x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)])
+#            std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)])/5)
+CONST_SS7_RATIO = [15, 35, 35, 13, 2]
+CONST_SS7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
 # Haina standard score 100-900
 norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
@@ -199,14 +199,14 @@ plt_models_dict = {
     'tianjin': PltRatioSeg_namedtuple(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
     'shandong': PltRatioSeg_namedtuple(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
     'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-    'm7': PltRatioSeg_namedtuple(CONST_M7_RATIO, CONST_M7_SEGMENT),
+    'ss7': PltRatioSeg_namedtuple(CONST_SS7_RATIO, CONST_SS7_SEGMENT),
     'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT),
     'hainan2': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO2, CONST_HAINAN_SEGMENT2)
     }
 stm_strategies_dict = {
     'mode_score_order': ['ascending', 'descending'],
-    'mode_ratio_loc': ['upper_min', 'lower_max', 'near_max', 'near_min'],
-    'mode_ratio_cum': ['yes', 'no'],
+    'mode_ratio_seek': ['upper_min', 'lower_max', 'near_max', 'near_min'],
+    'mode_ratio_cumu': ['yes', 'no'],
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
@@ -226,15 +226,15 @@ def run(
         name='shandong',
         data=None,
         cols=(),
-        mode_ratio_loc='upper_min',
-        mode_ratio_cum='no',
+        mode_ratio_seek='upper_min',
+        mode_ratio_cumu='no',
         mode_score_order='descending',
         raw_score_range=(0, 100),
         out_score_decimal=0
         ):
     """
     :param name: str, model name, values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore',
-                                          'tlinear', 'guangdong', 'm7', 'hainan', 'hainan2'
+                                          'tlinear', 'guangdong', 'SS7', 'hainan', 'hainan2'
                  default = 'shandong'
     :param data: dataframe, raw score data, score field type must be int or float
                  default = None
@@ -244,12 +244,12 @@ def run(
                             default = (0, 100)
     :param out_score_decimal: int, decimal digits of output score
                               default = 0, thar means out score type is int
-    :param mode_ratio_loc: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
+    :param mode_ratio_seek: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
                            default='upper_min'
-    :param mode_ratio_cum: string, strategy to cumulate ratio, values:'yes', 'no'
+    :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
                            default='no'
     :param mode_score_order: string, strategy to sort score, values: 'descending', 'ascending'
-                             default='dscending'
+                             default='descending'
     :return: model
     """
     # check name
@@ -275,13 +275,13 @@ def run(
         print('invalid cols type:{}!'.format(type(cols)))
         return
 
-    # check mode_ratio_loc
-    if mode_ratio_loc not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
-        print('invalid approx mode: {}'.format(mode_ratio_loc))
+    # check mode_ratio_seek
+    if mode_ratio_seek not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
+        print('invalid approx mode: {}'.format(mode_ratio_seek))
         print('  valid approx mode: lower_max, upper_min, near_min, near_max')
         return
-    if mode_ratio_cum not in ['yes', 'no']:
-        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cum))
+    if mode_ratio_cumu not in ['yes', 'no']:
+        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
         return
 
     # plt score models
@@ -293,17 +293,17 @@ def run(
         plt_model.set_data(raw_data=raw_data, cols=cols)
         plt_model.set_para(
             raw_score_ratio_list=ratio_list,
-            out_score_points_list=plt_models_dict[name].seg,
+            out_score_seg_list=plt_models_dict[name].seg,
             raw_score_range=raw_score_range,
-            mode_ratio_loc=mode_ratio_loc,
-            mode_ratio_cum=mode_ratio_cum,
+            mode_ratio_seek=mode_ratio_seek,
+            mode_ratio_cumu=mode_ratio_cumu,
             mode_score_order=mode_score_order,
             out_decimal_digits=out_score_decimal
             )
         plt_model.run()
         return plt_model
 
-    if name == 'tai':
+    if name in ('tai', 'taiwan'):
         m = GradeScoreTai()
         m.grade_num = 15    # TaiWan use 15 levels grade score system
         m.set_data(raw_data=raw_data,
@@ -313,7 +313,7 @@ def run(
         m.run()
         return m
 
-    if name == 'zscore':
+    if name in ('zscore', 'Z', 'z'):
         zm = Zscore()
         zm.model_name = name
         zm.set_data(raw_data=raw_data, cols=cols)
@@ -322,7 +322,7 @@ def run(
         zm.report()
         return zm
 
-    if name == 'tscore':
+    if name in ('tscore', 'T', 't'):
         tm = Tscore()
         tm.model_name = name
         tm.set_data(raw_data=raw_data, cols=cols)
@@ -342,8 +342,11 @@ def run(
         return tm
 
 
-def plot_stm(font_size=12):
-    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'm7', 'hainan']
+def plot_stm(font_size=12, hainan='900'):
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hainan']
+    if hainan == '300':
+        _names.remove('hainan')
+        _names.append('hainan2')
     ms_dict = dict()
     for _name in _names:
         ms_dict.update({_name: get_stm_model_describe(name=_name)})
@@ -363,7 +366,7 @@ def plot_stm(font_size=12):
         elif k in ['guangdong']:
             x_data = [np.mean(x) for x in plt_models_dict[k].seg][::-1]
             _wid = 10
-        elif k in ['m7']:
+        elif k in ['ss7']:
             x_data = [int(np.mean(x)) for x in plt_models_dict[k].seg][::-1]
             _wid = 10
         elif k in ['hainan']:
@@ -585,7 +588,7 @@ class ScoreTransformModel(object):
     # ratio = [2, 15, 33, 33, 17]
     # gradescore = [(30, 40), (41, 58), (59, 70), (71, 82), (83, 100)]
     # meanscore ~= 35*0.02+48.5*0.13+64.5*0.35+76.5*0.35+92.5*0.15 = 70.23
-    # m7 Model Analysis
+    # SS7 Model Analysis
     # ratio = [2, 13, 35, 35, 15]
     # gradescore = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
     # meanscore ~= 35*0.02+48*0.13+63*0.35+78*0.35+93*0.15 = 70.24
@@ -611,8 +614,8 @@ class PltScore(ScoreTransformModel):
 
         # para
         self.strategy_dict = {
-            'mode_ratio_loc': 'upper_min',
-            'mode_ratio_cum': 'yes',
+            'mode_ratio_seek': 'upper_min',
+            'mode_ratio_cumu': 'yes',
             'mode_score_order': 'descending',
             'mode_seg_degraded': 'max',
             'mode_score_zero': 'use_to_real',
@@ -656,38 +659,38 @@ class PltScore(ScoreTransformModel):
     # plt
     def set_para(self,
                  raw_score_ratio_list=None,
-                 out_score_points_list=None,
+                 out_score_seg_list=None,
                  raw_score_range=(0, 100),
-                 mode_ratio_loc='upper_min',
-                 mode_ratio_cum='yes',
+                 mode_ratio_seek='upper_min',
+                 mode_ratio_cumu='yes',
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  out_decimal_digits=None):
         if (type(raw_score_ratio_list) not in
-           (list, tuple)) | (type(out_score_points_list) != list):
+           (list, tuple)) | (type(out_score_seg_list) != list):
             print('input score points or output score points is not list!')
             return
-        if len(raw_score_ratio_list) != len(out_score_points_list):
+        if len(raw_score_ratio_list) != len(out_score_seg_list):
             print('the number of input score points is not same as output score points!')
             return
-        if mode_ratio_cum not in 'yes, no':
-            print('mode_ratio_cum value error:{}'.format(mode_ratio_cum))
+        if mode_ratio_cumu not in 'yes, no':
+            print('mode_ratio_cumu value error:{}'.format(mode_ratio_cumu))
 
         if isinstance(out_decimal_digits, int):
             self.out_decimal_digits = out_decimal_digits
 
         if mode_score_order in ['descending', 'd']:
             raw_p = raw_score_ratio_list
-            out_pt = out_score_points_list
+            out_pt = out_score_seg_list
         else:
             raw_p = raw_score_ratio_list[::-1]
-            out_pt = out_score_points_list[::-1]
+            out_pt = out_score_seg_list[::-1]
         self.out_score_points = [x[::-1] for x in out_pt]
-        self.out_score_points = out_score_points_list
+        self.out_score_points = out_score_seg_list
         self.raw_score_ratio_cum = [sum(raw_p[0:x + 1]) for x in range(len(raw_p))]
 
-        self.strategy_dict['mode_ratio_loc'] = mode_ratio_loc
-        self.strategy_dict['mode_ratio_cum'] = mode_ratio_cum
+        self.strategy_dict['mode_ratio_seek'] = mode_ratio_seek
+        self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_score_order'] = mode_score_order
         self.strategy_dict['mode_endpoint_share'] = mode_endpoint_share
 
@@ -882,7 +885,7 @@ class PltScore(ScoreTransformModel):
                 _p = row[col+'_percent']
                 if (abs(_p - sr) < ep) or (_p < sr):
                     # strategies
-                    _mode_zero = self.strategy_dict['mode_ratio_loc']
+                    _mode_zero = self.strategy_dict['mode_ratio_seek']
                     y = -1
                     if (abs(_p - sr) < ep) or (si == 0):
                         y = _max + si*_step
@@ -979,7 +982,7 @@ class PltScore(ScoreTransformModel):
         else:
             _score_min = self.raw_score_min
             _score_max = self.raw_score_max
-        _mode_cumu = self.strategy_dict['mode_ratio_cum']
+        _mode_cumu = self.strategy_dict['mode_ratio_cumu']
         _mode_order = self.strategy_dict['mode_score_order']
         _ratio_cum_list = self.raw_score_ratio_cum
 
@@ -1030,7 +1033,7 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):
 
-        _mode = self.strategy_dict['mode_ratio_loc']
+        _mode = self.strategy_dict['mode_ratio_seek']
         map_table = self.map_table
         _tiny = 10**-8
         _seg = -1
@@ -1482,7 +1485,7 @@ class Zscore(ScoreTransformModel):
         self.raw_score_min = 0
         self.out_data_decimal = 0
         self.out_score_number = 100
-        self.mode_ratio_loc = 'near'
+        self.mode_ratio_seek = 'near'
         self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
                                             for x in range(self.norm_table_len)]
                                       )
@@ -1497,13 +1500,13 @@ class Zscore(ScoreTransformModel):
     def set_para(self,
                  std_num=4,
                  raw_score_range=(0, 100),
-                 mode_ratio_loc='near',
+                 mode_ratio_seek='near',
                  out_decimal=8
                  ):
         self.std_num = std_num
         self.raw_score_max = raw_score_range[1]
         self.raw_score_min = raw_score_range[0]
-        self.mode_ratio_loc = mode_ratio_loc
+        self.mode_ratio_seek = mode_ratio_seek
         self.out_data_decimal = out_decimal
 
     def check_parameter(self):
@@ -1804,7 +1807,7 @@ class GradeScoreTai(ScoreTransformModel):
         self.run_create_out_data()
 
     def run_create_grade_dist_list(self):
-        # mode_ratio_loc = 'near'
+        # mode_ratio_seek = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.raw_score_max,
                      segmin=self.raw_score_min,
