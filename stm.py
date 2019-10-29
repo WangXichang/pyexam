@@ -173,14 +173,14 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_SS7_RATIO = [15, 35, 35, 13, 2]
 CONST_SS7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
-# Haina standard score 100-900
+# Hainan standard score 100-900
 norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
 CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
                       else norm_cdf[i]*100 for i in range(801)]
 CONST_HAINAN_RATIO[-1] = 100 - sum(CONST_HAINAN_RATIO[:-1])         # ensure to sum==100
 CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 99, -1)]
 
-# Haina standard score for new Gaokao 60-300
+# Hainan2 standard score for new Gaokao 60-300
 _start_point, end_point = 60, 300
 _mean = (_start_point + end_point) / 2
 _std = (_mean - _start_point) / 4
@@ -189,6 +189,12 @@ CONST_HAINAN_RATIO2 = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start
                       else norm_cdf[i]*100 for i in range(end_point - _start_point + 1)]
 CONST_HAINAN_RATIO2[-1] = 100 - sum(CONST_HAINAN_RATIO2[:-1])         # ensure to sum==100
 CONST_HAINAN_SEGMENT2 = [(s, s) for s in range(end_point, _start_point - 1, -1)]
+
+# Hainan3 using plt for 60-300
+# f = sts.norm.cdf
+# CONST_HAINAN_RATIO3 = [(f(i+1)-f(i) if i < 3 else 1-f(i)) if i > -4 else f(i+1) for i in range(-4, 4)]
+CONST_HAINAN_RATIO3 = [0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14]
+CONST_HAINAN_SEGMENT3 = [(x, x-30+1 if x > 90 else x-30) for x in range(300, 60, -30)]
 
 
 PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
@@ -201,7 +207,8 @@ plt_models_dict = {
     'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
     'ss7': PltRatioSeg_namedtuple(CONST_SS7_RATIO, CONST_SS7_SEGMENT),
     'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT),
-    'hainan2': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO2, CONST_HAINAN_SEGMENT2)
+    'hainan2': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO2, CONST_HAINAN_SEGMENT2),
+    'hainan3': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO3, CONST_HAINAN_SEGMENT3)
     }
 stm_strategies_dict = {
     'mode_score_order': ['ascending', 'descending'],
@@ -391,7 +398,7 @@ def get_stm_model_describe(name='shandong'):
     else:
         samples = []
         [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
-        __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(samples)
+        __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
 
     # __mean = sum([r / 100 * np.mean(s) for r, s in zip(__ratio, __seg)])
     # __std = np.sqrt(sum([__ratio[i] * (np.mean(s) - __mean) ** 2
@@ -762,7 +769,7 @@ class PltScore(ScoreTransformModel):
             self.raw_score_min = self.raw_data[col].min()
 
             # get formula and save
-            if 'hainan' in self.model_name:
+            if self.model_name in ['hainan', 'hainan2']:
                 self.__get_formula_hainan(col)
             else:
                 if not self.__get_formula(col):
@@ -1013,7 +1020,7 @@ class PltScore(ScoreTransformModel):
             result_raw_seg_list.append(this_seg_endpoint)
 
             # print(this_seg_endpoint)
-            print('   <{}> ratio: [spec:{:.2f}  locate:{:.4f}  result:{:.4f}] => '
+            print('   <{}> ratio: [spec:{:.4f}  locate:{:.4f}  result:{:.4f}] => '
                   'intervals:(raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}])'.
                   format(i+1,
                          ratio,

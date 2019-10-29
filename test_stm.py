@@ -5,6 +5,10 @@ import numpy as np
 import stm as stm
 import importlib as pb
 from collections import namedtuple as ntp
+import functools as ft
+
+
+
 
 class TestModelWithGaokaoData():
 
