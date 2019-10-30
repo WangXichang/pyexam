@@ -862,7 +862,7 @@ class PltScore(ScoreTransformModel):
                 return round45r((a*x + b)/c)
         return -1
 
-    # formula hainan
+    # formula hainan, each segment is a single point
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
     # len(ratio_list) = len(map_table['seg'])
@@ -871,33 +871,40 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
         result_ratio = []
-        ep = 10**-8     # used to judge zero score(s==0) or equal to(s1==s2)
+        _tiny = 10**-8     # used to judge zero score(s==0) or equal to(s1==s2)
         _mode_order = self.strategy_dict['mode_score_order']
         _max = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
         for ri, row in self.map_table.iterrows():
-            x = row['seg']
-            # processing-0: raw score == 0
-            if abs(x) < ep:
+            _seg = row['seg']
+            _p = row[col + '_percent']
+
+            # raw score == 0
+            if abs(_seg) < _tiny:
                 _mode_zero = self.strategy_dict['mode_score_zero']
-                if 'ignore' in _mode_zero:
-                    pass
-                elif 'map_to_min' in _mode_zero:
+                if _mode_zero == 'ignore':
+                    continue
+                elif _mode_zero == 'map_to_min':
                     if _mode_order in ['ascending', 'a']:
                         y = self.out_score_min
                         row[col+'_plt'] = y
-                        coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
+                        coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                         result_ratio.append(format(_p, '.6f'))
                     continue
-                elif 'map_by_ratio' in _mode_zero:
+                elif _mode_zero == 'map_by_ratio':
                     pass
+                else:
+                    raise ValueError    # error mode_score_zero value
+
+            # raw score > 0
+            # seek ratio for percent intead of seeking percent for ratio
             for si, sr in enumerate(self.raw_score_ratio_cum):
-                _p = row[col+'_percent']
-                if (abs(_p - sr) < ep) or (_p < sr):
-                    # strategies
+                # _p <= some_ratio in raw_score_ratio of cumu list
+                if (abs(_p - sr) < _tiny) or (_p < sr):
+                    # strategies to seek matching percent for definded ratio
                     _mode_zero = self.strategy_dict['mode_ratio_seek']
                     y = -1
-                    if (abs(_p - sr) < ep) or (si == 0):
+                    if (abs(_p - sr) < _tiny) or (si == 0):
                         y = _max + si*_step
                     elif _mode_zero == 'upper_min':
                         y = _max + si*_step
@@ -917,9 +924,12 @@ class PltScore(ScoreTransformModel):
                             else:
                                 y = _max + (si - 1)*_step
                     row[col+'_plt'] = y
-                    coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
+                    coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                     result_ratio.append(format(_p, '.6f'))
                     break
+                # end scanning raw_score_ratio_list
+        # end scanning map_table
+
         self.result_formula_coeff = coeff_dict
         self.result_dict[col] = {'raw_score_points': self.result_raw_endpoints,
                                  'coeff': coeff_dict,
@@ -1005,43 +1015,48 @@ class PltScore(ScoreTransformModel):
         last_percent = 0
         for i, cumu_ratio in enumerate(_ratio_cum_list):
             this_seg_ratio = cumu_ratio-last_ratio
-            dest_percent = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio+last_percent
+            dest_percent = cumu_ratio if _mode_cumu == 'no' else \
+                this_seg_ratio + last_percent
 
             # It is defined in model: cumu_ratio[-1]==1
             # if i == len(_ratio_cum_list)-1:
             #     dest_percent = 1.0
 
             # seek first endpoint and real cumulative percent of each segment from map_table
-            this_seg_endpoint, this_seg_percent = self.get_seg_from_map_table(field, dest_percent)
-
-            # save last segment endpoint and percent
-            last_ratio = cumu_ratio
-            last_percent = this_seg_percent
-
-            # save to result ratio
-            result_ratio.append('{:.6f}'.format(this_seg_percent))
-
-            # set result endpoints (linked, share)
-            if cumu_ratio == _ratio_cum_list[-1]:       # last ratio segment
-                # if last endpoit is at bottom, this is set to -1
-                if result_raw_seg_list[-1] in [self.raw_score_min, self.raw_score_max]:
-                    this_seg_endpoint = -1
-            result_raw_seg_list.append(this_seg_endpoint)
+            this_seg_endpoint, real_percent = self.get_seg_from_map_table(field, dest_percent)
 
             # print(this_seg_endpoint)
-            print('   <{}> ratio: [spec:{:.4f}  locate:{:.4f}  result:{:.4f}] => '
-                  'intervals:(raw:[{:3.0f}, {:3.0f}]  out:[{:3.0f}, {:3.0f}])'.
+            if i == 0:
+                this_set_startpoint = result_raw_seg_list[0]
+            elif last_percent < 1:
+                this_set_startpoint = result_raw_seg_list[-2]-1
+            else:
+                # if last endpoint is at bottom, this is set to -1,
+                # because of no raw score in this segment
+                this_set_startpoint = -1
+                this_seg_endpoint = -1
+
+            # save to result ratio
+            result_ratio.append('{:.6f}'.format(real_percent))
+            # save result endpoints (linked, share)
+            result_raw_seg_list.append(this_seg_endpoint)
+
+            print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
+                  'map_interval: raw:[{4:3.0f}, {5:3.0f}]  out:[{6:3.0f}, {7:3.0f}]'.
                   format(i+1,
                          cumu_ratio,
                          dest_percent,
-                         this_seg_percent,
-                         result_raw_seg_list[-2] if i == 0 else
-                            (result_raw_seg_list[-2]-1 if this_seg_endpoint >= self.raw_score_min else -1),
+                         real_percent,
+                         this_set_startpoint,
                          this_seg_endpoint,
                          self.out_score_points[i][0],
                          self.out_score_points[i][1]
                          )
                   )
+
+            # save last segment endpoint and percent
+            last_ratio = cumu_ratio
+            last_percent = real_percent
 
         self.result_ratio_dict[field] = result_ratio
         return result_raw_seg_list
