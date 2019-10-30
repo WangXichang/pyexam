@@ -217,7 +217,7 @@ stm_strategies_dict = {
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['real', 'full'],
     'mode_score_min': ['real', 'zero'],
-    'mode_score_zero': ['use_to_low', 'use_to_real', 'ignore'],
+    'mode_score_zero': ['use_to_min', 'use_to_real', 'ignore'],
     'mode_score_empty': ['use_to_min', 'use_to_max', 'use_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
     }
@@ -871,7 +871,7 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
         result_ratio = []
-        ep = 10**-8
+        ep = 10**-8     # used to judge zero score(s==0) or equal to(s1==s2)
         _mode_order = self.strategy_dict['mode_score_order']
         _max = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
@@ -882,10 +882,13 @@ class PltScore(ScoreTransformModel):
                 _mode_zero = self.strategy_dict['mode_score_zero']
                 if 'ignore' in _mode_zero:
                     pass
-                elif 'use_to_low' in _mode_zero:
+                elif 'use_to_min' in _mode_zero:
                     if _mode_order in ['ascending', 'a']:
                         y = self.out_score_min
-                    break
+                        row[col+'_plt'] = y
+                        coeff_dict.update({ri: [(0, y), (x, x), (y, y)]})
+                        result_ratio.append(format(_p, '.6f'))
+                    continue
                 elif 'use_to_real' in _mode_zero:
                     pass
             for si, sr in enumerate(self.raw_score_ratio_cum):
