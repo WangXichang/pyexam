@@ -173,28 +173,37 @@ CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
 CONST_SS7_RATIO = [15, 35, 35, 13, 2]
 CONST_SS7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
 
+
 # Hainan standard score 100-900
-norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
-CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
-                      else norm_cdf[i]*100 for i in range(801)]
-CONST_HAINAN_RATIO[-1] = 100 - sum(CONST_HAINAN_RATIO[:-1])         # ensure to sum==100
-CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 99, -1)]
+def get_norm_table(start, end):
+    _start_point, end_point = start, end
+    _mean = (_start_point + end_point) / 2
+    _std = (_mean - _start_point) / 4
+    norm_cdf = tuple(sts.norm.cdf((v-_mean)/_std) for v in range(_start_point, end_point + 1))
+    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
+                  else norm_cdf[i]*100                          # set first ratio to (1 - cdf(-4))*100
+                  for i in range(end_point - _start_point + 1)]
+    norm_table[-1] = 100 - sum(norm_table[:-1])                 # guaranteeing sum==100
+    return norm_table
+
+
+# norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
+# CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
+#                       else norm_cdf[i]*100 for i in range(801)]
+# CONST_HAINAN_RATIO[-1] = 100 - sum(CONST_HAINAN_RATIO[:-1])
+CONST_HAINAN_RATIO = get_norm_table(100, 900)
+CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 100-1, -1)]
 
 # Hainan2 standard score for new Gaokao 60-300
-_start_point, end_point = 60, 300
-_mean = (_start_point + end_point) / 2
-_std = (_mean - _start_point) / 4
-norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(_start_point, end_point + 1)]
-CONST_HAINAN_RATIO2 = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
-                      else norm_cdf[i]*100 for i in range(end_point - _start_point + 1)]
+CONST_HAINAN_RATIO2 = get_norm_table(60, 300)
 CONST_HAINAN_RATIO2[-1] = 100 - sum(CONST_HAINAN_RATIO2[:-1])         # ensure to sum==100
-CONST_HAINAN_SEGMENT2 = [(s, s) for s in range(end_point, _start_point - 1, -1)]
+CONST_HAINAN_SEGMENT2 = [(s, s) for s in range(300, 60-1, -1)]
 
 # Hainan3 using plt for 60-300
 # f = sts.norm.cdf
-# CONST_HAINAN_RATIO3 = [(f(i+1)-f(i) if i < 3 else 1-f(i)) if i > -4 else f(i+1) for i in range(-4, 4)]
+# RATIO3 = [(f(i+1)-f(i) if i < 3 else 1-f(i)) if i > -4 else f(i+1) for i in range(-4, 4)]
 CONST_HAINAN_RATIO3 = [0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14]
-CONST_HAINAN_SEGMENT3 = [(x, x-30+1 if x > 90 else x-30) for x in range(300, 60, -30)]
+CONST_HAINAN_SEGMENT3 = [(x, x-30+1 if x > 90 else x-30) for x in range(300, 90-1, -30)]
 
 
 PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
@@ -216,7 +225,7 @@ stm_strategies_dict = {
     'mode_ratio_cumu': ['yes', 'no'],
     'mode_seg_degraded': ['max', 'min', 'mean'],
     'mode_score_max': ['map_to_max', 'map_by_ratio'],
-    'mode_score_min': [ 'map_to_min', 'map_by_ratio'],
+    'mode_score_min': ['map_to_min', 'map_by_ratio'],
     'mode_score_zero': ['map_to_min', 'map_by_ratio', 'ignore'],
     'mode_score_empty': ['map_to_min', 'map_to_max', 'map_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
@@ -1227,7 +1236,7 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += format('statistics:', '>22s')
 
         # raw score data describing
-        _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
+        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
             self.raw_data[field].max(),\
             self.raw_data[field].min(),\
             self.raw_data[field].mean(),\
@@ -1237,9 +1246,9 @@ class PltScore(ScoreTransformModel):
             self.raw_data[field].skew(),\
             sts.kurtosis(self.raw_data[field], fisher=False)
         _out_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
-                              format(_max, _min, _mean, _median, _mode)
+                              format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                              format(_std, _std/_mean, _max-_min, _skew, _kurt)
+                              format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_range[0], self.raw_score_range[1]+1)
@@ -1248,7 +1257,7 @@ class PltScore(ScoreTransformModel):
                               format(_count_zero)
 
         # out score data describing
-        _max, _min, _mean, _median, _mode, _std, _skew, _kurt = \
+        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
             self.out_data[field+'_plt'].max(),\
             self.out_data[field+'_plt'].min(),\
             self.out_data[field+'_plt'].mean(),\
@@ -1258,15 +1267,15 @@ class PltScore(ScoreTransformModel):
             self.out_data[field+'_plt'].skew(), \
             sts.kurtosis(self.out_data[field+'_plt'], fisher=False)
         _out_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
-                              format(_max, _min, _mean, _median, _mode)
+                           format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                              format(_std, _std/_mean, _max-_min, _skew, _kurt)
+                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')[field+'_plt'].values
         _count_non_zero = self.map_table.groupby(field+'_plt')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.out_score_min, self.out_score_max+1) 
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                              format(_count_zero)
+                           format(_count_zero)
 
         # differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
@@ -1416,10 +1425,11 @@ class PltScore(ScoreTransformModel):
     def __plot_dist(self):
         def plot_hist_fit(field, _label):
             x_data = self.out_data[field]
+            # local var _mu, __std
             _mu = np.mean(x_data)
-            _std = np.std(x_data)
+            __std = np.std(x_data)
             count, bins, patches = ax.hist(x_data, 35)
-            x_fit = ((1 / (np.sqrt(2 * np.pi) * _std)) * np.exp(-0.5 * (1 / _std * (bins - _mu))**2))
+            x_fit = ((1 / (np.sqrt(2 * np.pi) * __std)) * np.exp(-0.5 * (1 / __std * (bins - _mu))**2))
             x_fit = x_fit * max(count)/max(x_fit)
             _color = 'y--' if '_plt' in field else 'g--'
             ax.plot(bins, x_fit, _color, label=_label)
