@@ -84,9 +84,9 @@ def test_stm_with_stat_data(
         data_no=1
         ):
 
-    if name.lower() not in stm.stm_models_name:
+    if name.lower() not in stm.MODELS_NAME_LIST:
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(stm.stm_models_name)))
+              format(name, ','.join(stm.MODELS_NAME_LIST)))
         return None
 
     # create data set
@@ -122,7 +122,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in stm.plt_models_dict.keys():
+    if name in stm.MODELS_DICT.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))

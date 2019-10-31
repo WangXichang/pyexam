@@ -144,34 +144,34 @@ warnings.filterwarnings('ignore')
 
 
 # some constants for models: score grade ratio, shandong grade score interval
-CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-CONST_ZHEJIANG_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
-CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-CONST_SHANGHAI_SEGMENT = [(70-i*3, 70-i*3) for i in range(11)]
-CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-CONST_BEIJING_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
-CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-CONST_TIANJIN_SEGMENT = [(100-i*3, 100-i*3) for i in range(21)]
+CONST_ZHEJIANG_RATIO = (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1)
+CONST_ZHEJIANG_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
+CONST_SHANGHAI_RATIO = (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5)
+CONST_SHANGHAI_SEGMENT = ((70-i*3, 70-i*3) for i in range(11))
+CONST_BEIJING_RATIO = (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1)
+CONST_BEIJING_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
+CONST_TIANJIN_RATIO = (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1)
+CONST_TIANJIN_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
 
 # ShanDong
-# 8 levels, [3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%]
-# 8 segments: [100,91], ..., [30,21]
-CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-CONST_SHANDONG_SEGMENT = [(100-i*10, 100-i*10-9) for i in range(8)]
+# 8 levels, (3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%)
+# 8 segments: (100,91), ..., (30,21)
+CONST_SHANDONG_RATIO = (3, 7, 16, 24, 24, 16, 7, 3)
+CONST_SHANDONG_SEGMENT = ((100-i*10, 100-i*10-9) for i in range(8))
 
 # GuangDong
 #   predict: mean = 70.21, std = 20.95
-CONST_GUANGDONG_RATIO = [17, 33, 33, 15, 2]
-CONST_GUANGDONG_SEGMENT = [(100, 83), (82, 71), (70, 59), (58, 41), (40, 30)]
+CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
+CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 
 # JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
 #   ration=(15%、35%、35%、13%, 2%), 5 levels
 #   segment=(30～40、41～55、56～70、71～85、86～100)
 #   predict: mean = 70.24, std = 21.76
-#            mean = sum([x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)])
-#            std = math.sqrt(sum([(sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)])/5)
-CONST_SS7_RATIO = [15, 35, 35, 13, 2]
-CONST_SS7_SEGMENT = [(100, 86), (85, 71), (70, 56), (55, 41), (40, 30)]
+#            mean = sum((x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)))
+#            std = math.sqrt(sum(((sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)))/5)
+CONST_SS7_RATIO = (15, 35, 35, 13, 2)
+CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 # Hainan standard score 100-900
@@ -184,42 +184,35 @@ def get_norm_table(start, end):
                   else norm_cdf[i]*100                          # set first ratio to (1 - cdf(-4))*100
                   for i in range(end_point - _start_point + 1)]
     norm_table[-1] = 100 - sum(norm_table[:-1])                 # guaranteeing sum==100
-    return norm_table
+    return tuple(norm_table)
 
-
-# norm_cdf = [sts.norm.cdf((v-500)/100) for v in range(100, 901)]
-# CONST_HAINAN_RATIO = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0    # set start ratio to (1 - cdf(-4))*100
-#                       else norm_cdf[i]*100 for i in range(801)]
-# CONST_HAINAN_RATIO[-1] = 100 - sum(CONST_HAINAN_RATIO[:-1])
+# Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
 CONST_HAINAN_RATIO = get_norm_table(100, 900)
-CONST_HAINAN_SEGMENT = [(s, s) for s in range(900, 100-1, -1)]
+CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
 
-# Hainan2 standard score for new Gaokao 60-300
-CONST_HAINAN_RATIO2 = get_norm_table(60, 300)
-CONST_HAINAN_RATIO2[-1] = 100 - sum(CONST_HAINAN_RATIO2[:-1])         # ensure to sum==100
-CONST_HAINAN_SEGMENT2 = [(s, s) for s in range(300, 60-1, -1)]
+# Hainan2 standard score for new Gaokao 60-300 (mean=180, std=30)
+CONST_HAINAN2_RATIO = get_norm_table(60, 300)
+CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
 
-# Hainan3 using plt for 60-300
-# f = sts.norm.cdf
-# RATIO3 = [(f(i+1)-f(i) if i < 3 else 1-f(i)) if i > -4 else f(i+1) for i in range(-4, 4)]
-CONST_HAINAN_RATIO3 = [0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14]
-CONST_HAINAN_SEGMENT3 = [(x, x-30+1 if x > 90 else x-30) for x in range(300, 90-1, -30)]
+# Hainan3 using plt for 60-300, use plt method to transform
+CONST_HAINAN3_RATIO = (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14)
+CONST_HAINAN3_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 
-PltRatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
-plt_models_dict = {
-    'zhejiang': PltRatioSeg_namedtuple(CONST_ZHEJIANG_RATIO, CONST_ZHEJIANG_SEGMENT),
-    'shanghai': PltRatioSeg_namedtuple(CONST_SHANGHAI_RATIO, CONST_SHANGHAI_SEGMENT),
-    'beijing': PltRatioSeg_namedtuple(CONST_BEIJING_RATIO, CONST_BEIJING_SEGMENT),
-    'tianjin': PltRatioSeg_namedtuple(CONST_TIANJIN_RATIO, CONST_TIANJIN_SEGMENT),
-    'shandong': PltRatioSeg_namedtuple(CONST_SHANDONG_RATIO, CONST_SHANDONG_SEGMENT),
-    'guangdong': PltRatioSeg_namedtuple(CONST_GUANGDONG_RATIO, CONST_GUANGDONG_SEGMENT),
-    'ss7': PltRatioSeg_namedtuple(CONST_SS7_RATIO, CONST_SS7_SEGMENT),
-    'hainan': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO, CONST_HAINAN_SEGMENT),
-    'hainan2': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO2, CONST_HAINAN_SEGMENT2),
-    'hainan3': PltRatioSeg_namedtuple(CONST_HAINAN_RATIO3, CONST_HAINAN_SEGMENT3)
+RatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
+MODELS_DICT = {
+    'zhejiang': RatioSeg_namedtuple(tuple(CONST_ZHEJIANG_RATIO), tuple(CONST_ZHEJIANG_SEGMENT)),
+    'shanghai': RatioSeg_namedtuple(tuple(CONST_SHANGHAI_RATIO), tuple(CONST_SHANGHAI_SEGMENT)),
+    'beijing': RatioSeg_namedtuple(tuple(CONST_BEIJING_RATIO), tuple(CONST_BEIJING_SEGMENT)),
+    'tianjin': RatioSeg_namedtuple(tuple(CONST_TIANJIN_RATIO), tuple(CONST_TIANJIN_SEGMENT)),
+    'shandong': RatioSeg_namedtuple(tuple(CONST_SHANDONG_RATIO), tuple(CONST_SHANDONG_SEGMENT)),
+    'guangdong': RatioSeg_namedtuple(tuple(CONST_GUANGDONG_RATIO), tuple(CONST_GUANGDONG_SEGMENT)),
+    'ss7': RatioSeg_namedtuple(tuple(CONST_SS7_RATIO), tuple(CONST_SS7_SEGMENT)),
+    'hainan': RatioSeg_namedtuple(tuple(CONST_HAINAN_RATIO), tuple(CONST_HAINAN_SEGMENT)),
+    'hainan2': RatioSeg_namedtuple(tuple(CONST_HAINAN2_RATIO), tuple(CONST_HAINAN2_SEGMENT)),
+    'hainan3': RatioSeg_namedtuple(tuple(CONST_HAINAN3_RATIO), tuple(CONST_HAINAN3_SEGMENT))
     }
-stm_strategies_dict = {
+MODEL_STRATEGIES_DICT = {
     'mode_score_order': ['ascending', 'descending'],
     'mode_ratio_seek': ['upper_min', 'lower_max', 'near_max', 'near_min'],
     'mode_ratio_cumu': ['yes', 'no'],
@@ -230,7 +223,7 @@ stm_strategies_dict = {
     'mode_score_empty': ['map_to_min', 'map_to_max', 'map_to_mean', 'ignore'],
     'mode_endpoint_share': ['yes', 'no']
     }
-stm_models_name = list(plt_models_dict.keys()) + ['zscore', 'tscore', 'tai', 'tlinear']
+MODELS_NAME_LIST = list(MODELS_DICT.keys()) + ['zscore', 'tscore', 'tai', 'tlinear']
 
 
 def about():
@@ -270,8 +263,8 @@ def run(
     """
     # check name
     name = name.lower()
-    if name.lower() not in stm_models_name:
-        print('invalid name, not in {}'.format(stm_models_name))
+    if name.lower() not in MODELS_NAME_LIST:
+        print('invalid name, not in {}'.format(MODELS_NAME_LIST))
         return
 
     # check input data
@@ -301,15 +294,15 @@ def run(
         return
 
     # plt score models
-    if name in plt_models_dict.keys():
-        ratio_list = [x*0.01 for x in plt_models_dict[name].ratio]
+    if name in MODELS_DICT.keys():
+        ratio_tuple = [x * 0.01 for x in MODELS_DICT[name].ratio]
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
         plt_model.set_data(raw_data=raw_data, cols=cols)
         plt_model.set_para(
-            raw_score_ratio_list=ratio_list,
-            out_score_seg_list=plt_models_dict[name].seg,
+            raw_score_ratio_tuple=ratio_tuple,
+            out_score_seg_tuple=MODELS_DICT[name].seg,
             raw_score_range=raw_score_range,
             mode_ratio_seek=mode_ratio_seek,
             mode_ratio_cumu=mode_ratio_cumu,
@@ -380,10 +373,10 @@ def plot_stm(font_size=12, hainan='900'):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in plt_models_dict[k].seg][::-1]
+            x_data = [np.mean(x) for x in MODELS_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['ss7']:
-            x_data = [int(np.mean(x)) for x in plt_models_dict[k].seg][::-1]
+            x_data = [int(np.mean(x)) for x in MODELS_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['hainan']:
             x_data = [x for x in range(100, 901)]
@@ -393,13 +386,13 @@ def plot_stm(font_size=12, hainan='900'):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, plt_models_dict[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, MODELS_DICT[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
 def get_stm_model_describe(name='shandong'):
-    __ratio = plt_models_dict[name].ratio
-    __seg = plt_models_dict[name].seg
+    __ratio = MODELS_DICT[name].ratio
+    __seg = MODELS_DICT[name].seg
     if name == 'hainan':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'hainan2':
@@ -674,19 +667,18 @@ class PltScore(ScoreTransformModel):
 
     # plt
     def set_para(self,
-                 raw_score_ratio_list=None,
-                 out_score_seg_list=None,
+                 raw_score_ratio_tuple=None,
+                 out_score_seg_tuple=None,
                  raw_score_range=(0, 100),
                  mode_ratio_seek='upper_min',
-                 mode_ratio_cumu='yes',
+                 mode_ratio_cumu='no',
                  mode_score_order='descending',
                  mode_endpoint_share='no',
                  out_decimal_digits=None):
-        if (type(raw_score_ratio_list) not in
-           (list, tuple)) | (type(out_score_seg_list) != list):
-            print('input score points or output score points is not list!')
-            return
-        if len(raw_score_ratio_list) != len(out_score_seg_list):
+        # if (type(raw_score_ratio_tuple) != tuple) | (type(out_score_seg_tuple) != tuple):
+        #     print('the type of input score points or output score points is not tuple!')
+        #     return
+        if len(raw_score_ratio_tuple) != len(out_score_seg_tuple):
             print('the number of input score points is not same as output score points!')
             return
         if mode_ratio_cumu not in 'yes, no':
@@ -696,14 +688,16 @@ class PltScore(ScoreTransformModel):
             self.out_decimal_digits = out_decimal_digits
 
         if mode_score_order in ['descending', 'd']:
-            raw_p = raw_score_ratio_list
-            out_pt = out_score_seg_list
+            raw_p = raw_score_ratio_tuple
+            out_pt = out_score_seg_tuple
+            self.out_score_points = out_pt
         else:
-            raw_p = raw_score_ratio_list[::-1]
-            out_pt = out_score_seg_list[::-1]
-        self.out_score_points = [x[::-1] for x in out_pt]
-        self.out_score_points = out_score_seg_list
-        self.raw_score_ratio_cum = [sum(raw_p[0:x + 1]) for x in range(len(raw_p))]
+            raw_p = raw_score_ratio_tuple[::-1]
+            out_pt = out_score_seg_tuple[::-1]
+            self.out_score_points = tuple(x[::-1] for x in out_pt)
+        # self.out_score_points = out_score_seg_list
+        self.raw_score_ratio_cum = tuple(sum(raw_p[0:x + 1]) for x in range(len(raw_p)))
+        print(raw_p, out_pt)
 
         self.strategy_dict['mode_ratio_seek'] = mode_ratio_seek
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
@@ -714,12 +708,13 @@ class PltScore(ScoreTransformModel):
         if not self.cols:
             print('no score field assign in col!')
             return False
-        if (type(self.raw_score_ratio_cum) != list) | (type(self.out_score_points) != list):
-            print('raw_scorepoints or stdscorepoints is not list type!')
+        if (type(self.raw_score_ratio_cum) != tuple) | (type(self.out_score_points) != tuple):
+            print('raw_scorepoints or stdscorepoints is not tuple type!')
             return False
         if (len(self.raw_score_ratio_cum) != len(self.out_score_points)) | \
                 len(self.raw_score_ratio_cum) == 0:
-            print('len is 0 or not same for raw score percent and std score points list!')
+            print('ratio_tuple len==0 or len(raw_ratio)!=len(out_points)! \nraw={} \nout={}'.
+                  format(self.raw_score_ratio_cum, self.out_score_points))
             return False
         return True
     # --------------data and para setting end
@@ -1149,10 +1144,10 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>23') + '\n'
 
-        for k in stm_strategies_dict:
+        for k in MODEL_STRATEGIES_DICT:
             self.out_report_doc += ' ' * 23 + '{:<32s} {}'. \
                 format(k + ' = ' + self.strategy_dict[k],
-                       stm_strategies_dict[k]) + '\n'
+                       MODEL_STRATEGIES_DICT[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
