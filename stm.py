@@ -186,6 +186,7 @@ def get_norm_table(start, end):
     norm_table[-1] = 100 - sum(norm_table[:-1])                 # guaranteeing sum==100
     return tuple(norm_table)
 
+
 # Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
 CONST_HAINAN_RATIO = get_norm_table(100, 900)
 CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
@@ -295,7 +296,7 @@ def run(
 
     # plt score models
     if name in MODELS_DICT.keys():
-        ratio_tuple = [x * 0.01 for x in MODELS_DICT[name].ratio]
+        ratio_tuple = tuple(x * 0.01 for x in MODELS_DICT[name].ratio)
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
@@ -695,9 +696,7 @@ class PltScore(ScoreTransformModel):
             raw_p = raw_score_ratio_tuple[::-1]
             out_pt = out_score_seg_tuple[::-1]
             self.out_score_points = tuple(x[::-1] for x in out_pt)
-        # self.out_score_points = out_score_seg_list
         self.raw_score_ratio_cum = tuple(sum(raw_p[0:x + 1]) for x in range(len(raw_p)))
-        print(raw_p, out_pt)
 
         self.strategy_dict['mode_ratio_seek'] = mode_ratio_seek
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
