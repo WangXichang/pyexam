@@ -1248,15 +1248,15 @@ class PltScore(ScoreTransformModel):
             self.raw_data[field].skew(),\
             sts.kurtosis(self.raw_data[field], fisher=False)
         _out_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
-                              format(_max, _min, __mean, _median, _mode)
+                           format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                              format(__std, __std/__mean, _max-_min, _skew, _kurt)
+                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_range[0], self.raw_score_range[1]+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                              format(_count_zero)
+                           format(_count_zero)
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1283,13 +1283,13 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += '- -'*40 + '\n'
         _diff_raw_out = self.out_data[field+'_plt']-self.out_data[field]
         _out_report_doc += ' score shift(out-raw):' \
-                              ' shift_max={:3.1f}' \
-                              '  shift_min={:3.1f}' \
-                              '  shift_down_percent={:.2f}%\n'.\
-                              format(
-                                    max(_diff_raw_out),
-                                    min(_diff_raw_out),
-                                    _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
+                           ' shift_max={:3.1f}' \
+                           '  shift_min={:3.1f}' \
+                           '  shift_down_percent={:.2f}%\n'.\
+                           format(
+                                  max(_diff_raw_out),
+                                  min(_diff_raw_out),
+                                  _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
                               )
         _diff_list = []
         for coeff in self.result_formula_coeff.values():
@@ -1362,8 +1362,9 @@ class PltScore(ScoreTransformModel):
             raw_data = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
             out_data = list(self.map_table[f + '_plt'])[::-1]
             out_data = [out if raw > 0 else 0 for raw, out in zip(raw_data, out_data)]
-
+            # fig1 = plot.figure('subject: '+f)
             fig, ax = plot.subplots()
+            # ax.set_figure(fig1)
             ax.set_title(self.model_name+'['+f+']: diffrence between raw and out')
             ax.set_xticks(x)
             ax.set_xticklabels(raw_label)
@@ -2385,7 +2386,7 @@ class SegTable(object):
             step += 1
             legendlist.append(sf)
             plot.figure('map_table figure({})'.
-                       format('Descending' if self.__segSort in 'aA' else 'Ascending'))
+                        format('Descending' if self.__segSort in 'aA' else 'Ascending'))
             plot.subplot(221)
             plot.hist(self.raw_data[sf], 20)
             plot.title('histogram')
