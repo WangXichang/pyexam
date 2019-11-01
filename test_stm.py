@@ -122,7 +122,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in stm.MODELS_DICT.keys():
+    if name in stm.MODELS_RATIO_SEG_DICT.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))

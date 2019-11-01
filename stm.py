@@ -153,16 +153,19 @@ CONST_BEIJING_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
 CONST_TIANJIN_RATIO = (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1)
 CONST_TIANJIN_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
 
+
 # ShanDong
 # 8 levels, (3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%)
 # 8 segments: (100,91), ..., (30,21)
 CONST_SHANDONG_RATIO = (3, 7, 16, 24, 24, 16, 7, 3)
 CONST_SHANDONG_SEGMENT = ((100-i*10, 100-i*10-9) for i in range(8))
 
+
 # GuangDong
 #   predict: mean = 70.21, std = 20.95
 CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
 CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
+
 
 # JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
 #   ration=(15%、35%、35%、13%, 2%), 5 levels
@@ -174,7 +177,7 @@ CONST_SS7_RATIO = (15, 35, 35, 13, 2)
 CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
-# Hainan standard score 100-900
+# make norm table for standard score start-end(100-900, 60-300,...)
 def get_norm_table(start, end):
     _start_point, end_point = start, end
     _mean = (_start_point + end_point) / 2
@@ -199,32 +202,37 @@ CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
 CONST_HAINAN3_RATIO = (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14)
 CONST_HAINAN3_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
+# Hainan4 using plt for 60-300, use plt method to transform
+CONST_HAINAN4_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
+CONST_HAINAN4_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
-RatioSeg_namedtuple = namedtuple('Plt', ['ratio', 'seg'])
-MODELS_DICT = {
-    'zhejiang': RatioSeg_namedtuple(tuple(CONST_ZHEJIANG_RATIO), tuple(CONST_ZHEJIANG_SEGMENT)),
-    'shanghai': RatioSeg_namedtuple(tuple(CONST_SHANGHAI_RATIO), tuple(CONST_SHANGHAI_SEGMENT)),
-    'beijing': RatioSeg_namedtuple(tuple(CONST_BEIJING_RATIO), tuple(CONST_BEIJING_SEGMENT)),
-    'tianjin': RatioSeg_namedtuple(tuple(CONST_TIANJIN_RATIO), tuple(CONST_TIANJIN_SEGMENT)),
-    'shandong': RatioSeg_namedtuple(tuple(CONST_SHANDONG_RATIO), tuple(CONST_SHANDONG_SEGMENT)),
-    'guangdong': RatioSeg_namedtuple(tuple(CONST_GUANGDONG_RATIO), tuple(CONST_GUANGDONG_SEGMENT)),
-    'ss7': RatioSeg_namedtuple(tuple(CONST_SS7_RATIO), tuple(CONST_SS7_SEGMENT)),
-    'hainan': RatioSeg_namedtuple(tuple(CONST_HAINAN_RATIO), tuple(CONST_HAINAN_SEGMENT)),
-    'hainan2': RatioSeg_namedtuple(tuple(CONST_HAINAN2_RATIO), tuple(CONST_HAINAN2_SEGMENT)),
-    'hainan3': RatioSeg_namedtuple(tuple(CONST_HAINAN3_RATIO), tuple(CONST_HAINAN3_SEGMENT))
+
+RatioSeg = namedtuple('ModelRatioSeg', ['ratio', 'seg'])
+MODELS_RATIO_SEG_DICT = {
+    'zhejiang': RatioSeg(tuple(CONST_ZHEJIANG_RATIO), tuple(CONST_ZHEJIANG_SEGMENT)),
+    'shanghai': RatioSeg(tuple(CONST_SHANGHAI_RATIO), tuple(CONST_SHANGHAI_SEGMENT)),
+    'beijing': RatioSeg(tuple(CONST_BEIJING_RATIO), tuple(CONST_BEIJING_SEGMENT)),
+    'tianjin': RatioSeg(tuple(CONST_TIANJIN_RATIO), tuple(CONST_TIANJIN_SEGMENT)),
+    'shandong': RatioSeg(tuple(CONST_SHANDONG_RATIO), tuple(CONST_SHANDONG_SEGMENT)),
+    'guangdong': RatioSeg(tuple(CONST_GUANGDONG_RATIO), tuple(CONST_GUANGDONG_SEGMENT)),
+    'ss7': RatioSeg(tuple(CONST_SS7_RATIO), tuple(CONST_SS7_SEGMENT)),
+    'hainan': RatioSeg(tuple(CONST_HAINAN_RATIO), tuple(CONST_HAINAN_SEGMENT)),
+    'hainan2': RatioSeg(tuple(CONST_HAINAN2_RATIO), tuple(CONST_HAINAN2_SEGMENT)),
+    'hainan3': RatioSeg(tuple(CONST_HAINAN3_RATIO), tuple(CONST_HAINAN3_SEGMENT)),
+    'hainan4': RatioSeg(tuple(CONST_HAINAN4_RATIO), tuple(CONST_HAINAN4_SEGMENT))
     }
 MODEL_STRATEGIES_DICT = {
-    'mode_score_order': ['ascending', 'descending'],
-    'mode_ratio_seek': ['upper_min', 'lower_max', 'near_max', 'near_min'],
-    'mode_ratio_cumu': ['yes', 'no'],
-    'mode_seg_degraded': ['max', 'min', 'mean'],
-    'mode_score_max': ['map_to_max', 'map_by_ratio'],
-    'mode_score_min': ['map_to_min', 'map_by_ratio'],
-    'mode_score_zero': ['map_to_min', 'map_by_ratio', 'ignore'],
-    'mode_score_empty': ['map_to_min', 'map_to_max', 'map_to_mean', 'ignore'],
-    'mode_endpoint_share': ['yes', 'no']
+    'mode_score_order': ('ascending', 'descending'),
+    'mode_ratio_seek': ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_ratio_cumu': ('yes', 'no'),
+    'mode_seg_degraded': ('max', 'min', 'mean'),
+    'mode_score_max': ('map_to_max', 'map_by_ratio'),
+    'mode_score_min': ('map_to_min', 'map_by_ratio'),
+    'mode_score_zero': ('map_to_min', 'map_by_ratio', 'ignore'),
+    'mode_score_empty': ('map_to_min', 'map_to_max', 'map_to_mean', 'ignore'),
+    'mode_endpoint_share': ('yes', 'no')
     }
-MODELS_NAME_LIST = list(MODELS_DICT.keys()) + ['zscore', 'tscore', 'tai', 'tlinear']
+MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEG_DICT.keys()) + ['zscore', 'tscore', 'tai', 'tlinear'])
 
 
 def about():
@@ -243,8 +251,8 @@ def run(
         out_score_decimal=0
         ):
     """
-    :param name: str, model name, values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin', 'zscore', 'tscore',
-                                          'tlinear', 'guangdong', 'SS7', 'hainan', 'hainan2'
+    :param name: str, model name, values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
+                                          'guangdong', 'SS7', 'hainan', 'hainan2', 'zscore', 'tscore', 'tlinear'
                  default = 'shandong'
     :param data: dataframe, raw score data, score field type must be int or float
                  default = None
@@ -295,15 +303,15 @@ def run(
         return
 
     # plt score models
-    if name in MODELS_DICT.keys():
-        ratio_tuple = tuple(x * 0.01 for x in MODELS_DICT[name].ratio)
+    if name in MODELS_RATIO_SEG_DICT.keys():
+        ratio_tuple = tuple(x * 0.01 for x in MODELS_RATIO_SEG_DICT[name].ratio)
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
         plt_model.set_data(raw_data=raw_data, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=MODELS_DICT[name].seg,
+            out_score_seg_tuple=MODELS_RATIO_SEG_DICT[name].seg,
             raw_score_range=raw_score_range,
             mode_ratio_seek=mode_ratio_seek,
             mode_ratio_cumu=mode_ratio_cumu,
@@ -374,10 +382,10 @@ def plot_stm(font_size=12, hainan='900'):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in MODELS_DICT[k].seg][::-1]
+            x_data = [np.mean(x) for x in MODELS_RATIO_SEG_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['ss7']:
-            x_data = [int(np.mean(x)) for x in MODELS_DICT[k].seg][::-1]
+            x_data = [int(np.mean(x)) for x in MODELS_RATIO_SEG_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['hainan']:
             x_data = [x for x in range(100, 901)]
@@ -387,13 +395,13 @@ def plot_stm(font_size=12, hainan='900'):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, MODELS_DICT[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, MODELS_RATIO_SEG_DICT[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
 def get_stm_model_describe(name='shandong'):
-    __ratio = MODELS_DICT[name].ratio
-    __seg = MODELS_DICT[name].seg
+    __ratio = MODELS_RATIO_SEG_DICT[name].ratio
+    __seg = MODELS_RATIO_SEG_DICT[name].seg
     if name == 'hainan':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'hainan2':
