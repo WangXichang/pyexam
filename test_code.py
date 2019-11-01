@@ -3,6 +3,13 @@
 
 import fractions as fra
 import functools as ft
+import pandas as pd
+
+
+def read_csv_with_chinese_file_name(fname:str):
+    f = open(fname)
+    df = pd.read_csv(f)
+    return df
 
 
 def test(df=None, f='', r=0.3):

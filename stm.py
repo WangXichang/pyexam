@@ -1020,6 +1020,7 @@ class PltScore(ScoreTransformModel):
         # start points for raw score segments
         raw_score_start = _score_min if _mode_order in ['a', 'ascending'] else _score_max
         result_raw_seg_list = [raw_score_start]
+        _step = 1 if _mode_order in ['a', 'ascending'] else -1
 
         # ratio: predefined,  percent: computed from data
         last_ratio = 0
@@ -1038,13 +1039,13 @@ class PltScore(ScoreTransformModel):
 
             # print(this_seg_endpoint)
             if i == 0:
-                this_set_startpoint = result_raw_seg_list[0]
+                this_seg_startpoint = result_raw_seg_list[0]
             elif last_percent < 1:
-                this_set_startpoint = result_raw_seg_list[-2]-1
+                this_seg_startpoint = result_raw_seg_list[i] + _step
             else:
                 # if last endpoint is at bottom, this is set to -1,
                 # because of no raw score in this segment
-                this_set_startpoint = -1
+                this_seg_startpoint = -1
                 this_seg_endpoint = -1
 
             # save to result ratio
@@ -1058,7 +1059,7 @@ class PltScore(ScoreTransformModel):
                          cumu_ratio,
                          dest_percent,
                          real_percent,
-                         this_set_startpoint,
+                         this_seg_startpoint,
                          this_seg_endpoint,
                          self.out_score_points[i][0],
                          self.out_score_points[i][1]
