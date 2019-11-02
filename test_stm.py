@@ -5,9 +5,29 @@ import numpy as np
 import stm as stm
 import importlib as pb
 from collections import namedtuple as ntp
-import functools as ft
 
 
+def test_data_lv():
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/18wl.txt') as f_raw:
+        df_raw = pd.read_csv(f_raw)
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/out18wl_stand.csv') as f_out:
+        df_cumu_out = pd.read_csv(f_out)
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test1/结果/out2018lz_stand.csv') as f_out:
+        df_nocumu = pd.read_csv(f_out)
+    return ntp('Data', ['raw', 'cumu', 'nocumu'])(df_raw, df_cumu_out, df_nocumu)
+
+
+def test_stm_with_lvdata(df_raw=None, df_cumu_out=None, df_nocumu=None, mode_ratio_cumu='no'):
+    if mode_ratio_cumu == 'yes':
+        df_stm_cumu = stm.run(data=df_raw, cols=['wl'], mode_ratio_cumu='yes')
+        print(all (df_stm_cumu.out_data['wl_plt'] == df_cumu_out['wl_stand']))
+        return df_stm_cumu
+    else:
+        df_stm_nocumu = stm.run(data=df_nocumu, cols=['wl', 'hx', 'sw'], mode_ratio_cumu='no')
+        print(all (df_stm_nocumu.out_data['wl_plt'] == df_nocumu['wl_stand']))
+        print(all (df_stm_nocumu.out_data['hx_plt'] == df_nocumu['hx_stand']))
+        print(all (df_stm_nocumu.out_data['sw_plt'] == df_nocumu['sw_stand']))
+        return df_stm_nocumu
 
 
 class TestModelWithGaokaoData():
@@ -38,7 +58,7 @@ class TestModelWithGaokaoData():
                 name='shandong',
                 year='16',
                 kl='wenke',
-                mode_ratio_approx='upper_min',
+                mode_ratio_seek='upper_min',
                 mode_ratio_cumu='no',
                 mode_score_order='d',
                 all='no'
@@ -60,8 +80,8 @@ class TestModelWithGaokaoData():
                 name=name,
                 data=dfs[_run[0]+_run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
-                mode_ratio_loc=mode_ratio_approx,
-                mode_ratio_cum=mode_ratio_cumu,
+                mode_ratio_seek=mode_ratio_seek,
+                mode_ratio_cumu=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
             self.models_list.append(

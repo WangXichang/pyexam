@@ -1041,7 +1041,10 @@ class PltScore(ScoreTransformModel):
             if i == 0:
                 this_seg_startpoint = result_raw_seg_list[0]
             elif last_percent < 1:
-                this_seg_startpoint = result_raw_seg_list[i] + _step
+                if result_raw_seg_list[i] != this_seg_endpoint:
+                    this_seg_startpoint = result_raw_seg_list[i] + _step
+                else:
+                    this_seg_startpoint = -1
             else:
                 # if last endpoint is at bottom, this is set to -1,
                 # because of no raw score in this segment
@@ -1060,7 +1063,7 @@ class PltScore(ScoreTransformModel):
                          dest_percent,
                          real_percent,
                          this_seg_startpoint,
-                         this_seg_endpoint,
+                         this_seg_endpoint if this_seg_startpoint > 0 else -1,
                          self.out_score_points[i][0],
                          self.out_score_points[i][1]
                          )
@@ -1256,6 +1259,23 @@ class PltScore(ScoreTransformModel):
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_range[0], self.raw_score_range[1]+1)
                        if x not in _count_non_zero]
+        if len(_count_zero) > 0:
+            _concise_list = []
+            start_p = -1
+            end_p = -1
+            count_p = 0
+            for p in _count_zero:
+                if count_p == 0:
+                    start_p, end_p = p, p
+                if end_p > start_p+1:
+                    if count_p ==0:
+                        _concise_list.append([start_p, end_p])
+                    else:
+                        _concise_list.append([start_p, ..., end_p])
+                    count_p = 0
+                else:
+                    end_p, count_p = p, count_p+1
+
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
                            format(_count_zero)
 
@@ -1298,6 +1318,8 @@ class PltScore(ScoreTransformModel):
             oseg = coeff[2]
             a = coeff[0][0]
             b = coeff[0][1]
+            if rseg[0] < 0:
+                continue
             # print(rseg, oseg)
             if rseg[0] >= oseg[0]:
                 if rseg[1] > oseg[1]:
@@ -1307,6 +1329,7 @@ class PltScore(ScoreTransformModel):
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
                 _diff_list.append((int(round45r(b/(1-a), 0)), int(rseg[1])))
         _out_report_doc += '   shift down segment: ' + str(_diff_list) + ' => '
+        # merge to some continuous segments
         while True:
             _diff_loop = False
             for i in range(len(_diff_list)-1):
