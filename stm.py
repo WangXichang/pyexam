@@ -1255,6 +1255,7 @@ class PltScore(ScoreTransformModel):
                            format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
+
         # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_range[0], self.raw_score_range[1]+1)
@@ -1269,15 +1270,15 @@ class PltScore(ScoreTransformModel):
                     start_p, end_p = p, p
                 if end_p > start_p+1:
                     if count_p ==0:
-                        _concise_list.append([start_p, end_p])
+                        _concise_list += [start_p, end_p]
                     else:
-                        _concise_list.append([start_p, ..., end_p])
+                        _concise_list += [start_p, Ellipsis, end_p]
                     count_p = 0
                 else:
                     end_p, count_p = p, count_p+1
-
+            _count_zero = _concise_list
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(_count_zero)
+                           format(str(_count_zero).replace('Ellipsis', '...'))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
