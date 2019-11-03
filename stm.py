@@ -1063,7 +1063,7 @@ class PltScore(ScoreTransformModel):
                          dest_percent,
                          real_percent,
                          this_seg_startpoint,
-                         this_seg_endpoint if this_seg_startpoint > 0 else -1,
+                         this_seg_endpoint if this_seg_startpoint >= 0 else -1,
                          self.out_score_points[i][0],
                          self.out_score_points[i][1]
                          )
@@ -1215,14 +1215,14 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += '  raw score seg ratio: {}\n'.\
             format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
                     for j in range(len(plist))])
-        _out_report_doc += '  raw score cum ratio: {}\n'.\
+        _out_report_doc += '            cum ratio: {}\n'.\
             format([format(x, '0.6f') for x in self.raw_score_ratio_cum])
-        _out_report_doc += '  raw score set ratio: {}\n'.\
+        _out_report_doc += '            get ratio: {}\n'.\
             format(self.result_ratio_dict[field])
         _raw_seg_list = [x[1] for x in self.result_dict[field]['coeff'].values()]
         if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
             _raw_seg_list = [x[0] if x[0] == x[1] else x for x in _raw_seg_list]
-        _out_report_doc += '  raw score endpoints: {}\n'.\
+        _out_report_doc += '            endpoints: {}\n'.\
             format(_raw_seg_list)
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
         if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg

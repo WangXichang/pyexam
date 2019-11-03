@@ -4,45 +4,74 @@ import pandas as pd
 import numpy as np
 import stm as stm
 import importlib as pb
+import os
 from collections import namedtuple as ntp
 
 
-def test_data_lv(no='1'):
-    data_set = []
-    data_name = []
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/18wl.txt') as f_raw:
-        df_raw = pd.read_csv(f_raw)
-        data_set.append(df_raw)
-        data_name.append('raw')
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/out18wl_stand.csv') as f_out:
-        df_cumu_test = pd.read_csv(f_out)
-        data_set.append(df_cumu_test)
-        data_name.append('cumu')
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test1/结果/out2018lz_stand.csv') as f_out:
-        df_nocumu_test1 = pd.read_csv(f_out)
-        data_set.append(df_nocumu_test1)
-        data_name.append('test1')
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test2/结果/out_stand.csv') as f_out:
-        df_nocumu_test2 = pd.read_csv(f_out)
-        data_set.append(df_nocumu_test2)
-        data_name.append('test2')
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test3/结果/out2018wl_stand.csv') as f_out:
-        df_nocumu_test3 = pd.read_csv(f_out)
-        data_set.append(df_nocumu_test3)
-        data_name.append('test3')
-    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test4/结果/out18hx_stand.csv') as f_out:
-        df_nocumu_test4 = pd.read_csv(f_out)
-        data_set.append(df_nocumu_test4)
-        data_name.append('test4')
-        # find error: seek 0.5 at 0.50000, lv-wang: at 0.509924
+def data_lv():
+    file_path = 'f:/mywrite/新高考改革/modelstestdata/testdata/'
+    cumu_file_list = [file_path+'cumu/'+str(p)+'/out18wl_stand.csv' for p in range(1, 10)]
+    nocumu_file_dict = dict()
+    data_cumu = dict()
+    data_nocumu = dict()
+    for i, fname in enumerate(cumu_file_list):
+        if os.path.isfile(fname):
+            print('load: '+ fname)
+        else:
+            print('fail:' + fname)
+            continue
+        with open(fname) as f:
+            data_cumu.update({'cumu'+str(i): pd.read_csv(f)})
+    nocumu_file_dict.update({'test1': file_path+'nocumu/test1/结果/out2018lz_stand.csv'})
+    nocumu_file_dict.update({'test2': file_path+'nocumu/test2/结果/out_stand.csv'})
+    nocumu_file_dict.update({'test3': file_path+'nocumu/test3/结果/out2018wl_stand.csv'})
 
-    return ntp('Data', data_name)(*data_set)
+    nocumu_file_dict.update({'test4hx': file_path+'nocumu/test4/结果/out18hx_stand.csv'})
+    # test4hx-- find error: seek 0.5 at 0.50000, lv-wang: at 0.509924
+    nocumu_file_dict.update({'test4wl': file_path+'nocumu/test4/结果/out18wl_stand.csv'})
+
+    nocumu_file_dict.update({'test5sw': file_path+'nocumu/test5/结果/out18sw_stand.csv'})
+    # test5sw-- zero-max: [0, 0] => [21, 30]
+    nocumu_file_dict.update({'test5hx': file_path+'nocumu/test5/结果/out18hx_stand.csv'})
+    nocumu_file_dict.update({'test5wl': file_path+'nocumu/test5/结果/out18wl_stand.csv'})
+
+    nocumu_file_dict.update({'test6hx': file_path+'nocumu/test6/结果/out2018hx_stand.csv'})
+
+    nocumu_file_dict.update({'test7wl18': file_path+'nocumu/test7/结果/out18wl_stand.csv'})
+    nocumu_file_dict.update({'test7wl19': file_path+'nocumu/test7/结果/out19wl_stand.csv'})
+
+    nocumu_file_dict.update({'test8': file_path+'nocumu/test8/out18wl_stand.csv'})
+
+    for dname in nocumu_file_dict:
+        if os.path.isfile(nocumu_file_dict[dname]):
+            print('load: '+dname)
+        else:
+            print('fail: '+nocumu_file_dict[dname])
+            continue
+        with open(nocumu_file_dict[dname]) as f_out:
+            data_nocumu.update({dname: pd.read_csv(f_out)})
+
+    # merge test4
+    data_nocumu.update({'test4': pd.merge(data_nocumu['test4wl'], data_nocumu['test4hx'], on='ksh')})
+    data_nocumu.pop('test4wl')
+    data_nocumu.pop('test4hx')
+
+    # merge test5
+    for sub in ['wl', 'hx', 'sw']:
+        if sub == 'wl':
+            df = data_nocumu['test5wl'].__deepcopy__()
+        else:
+            df = pd.merge(df, data_nocumu['test5'+sub], on='ksh')
+        data_nocumu.pop('test5'+sub)
+    data_nocumu.update({'test5': df})
+
+    return data_cumu.update(data_nocumu)
 
 
-def test_stm_with_lvdata(data=None, cols=(), ex_data=None, cumu='no'):
+def test_stm_with_lvdata(data=None, cols=(), cumu='no'):
     mr = stm.run(data=data, cols=cols, mode_ratio_cumu=cumu)
     for col in cols:
-        print(all(mr.out_data[col+'_plt'] == ex_data[col+'_stand']))
+        print(all(mr.out_data[col+'_plt'] == data[col+'_stand']))
     return mr
 
 
