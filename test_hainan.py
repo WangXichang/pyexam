@@ -1,6 +1,11 @@
 # coding: utf8
 
 
+
+
+import stm
+import test_stm
+
 # hainan model problems:
 # (1) max score = 900(300) at reatio==1.0 for ascending score order
 #     but, min score may at 180-200(for 100-900) or 90-100(for 60-300)
@@ -9,12 +14,7 @@
 # (2) weight may decrease to 1/3 if common subject score is 900,
 #     it is reasonable if common subjects use raw score 150.
 #
-
-
-import stm
-import test_stm
-
-def test(num=1):
+def test_hainan(num=1):
     if num == 1:
         # data1
         #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)

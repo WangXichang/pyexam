@@ -7,30 +7,85 @@ import importlib as pb
 from collections import namedtuple as ntp
 
 
-def test_data_lv():
+def test_data_lv(no='1'):
+    data_set = []
+    data_name = []
     with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/18wl.txt') as f_raw:
         df_raw = pd.read_csv(f_raw)
+        data_set.append(df_raw)
+        data_name.append('raw')
     with open('f:/mywrite/新高考改革/modelstestdata/testdata/cumu/1/out18wl_stand.csv') as f_out:
-        df_cumu_out = pd.read_csv(f_out)
+        df_cumu_test = pd.read_csv(f_out)
+        data_set.append(df_cumu_test)
+        data_name.append('cumu')
     with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test1/结果/out2018lz_stand.csv') as f_out:
-        df_nocumu = pd.read_csv(f_out)
-    return ntp('Data', ['raw', 'cumu', 'nocumu'])(df_raw, df_cumu_out, df_nocumu)
+        df_nocumu_test1 = pd.read_csv(f_out)
+        data_set.append(df_nocumu_test1)
+        data_name.append('test1')
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test2/结果/out_stand.csv') as f_out:
+        df_nocumu_test2 = pd.read_csv(f_out)
+        data_set.append(df_nocumu_test2)
+        data_name.append('test2')
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test3/结果/out2018wl_stand.csv') as f_out:
+        df_nocumu_test3 = pd.read_csv(f_out)
+        data_set.append(df_nocumu_test3)
+        data_name.append('test3')
+    with open('f:/mywrite/新高考改革/modelstestdata/testdata/nocumu/test4/结果/out18hx_stand.csv') as f_out:
+        df_nocumu_test4 = pd.read_csv(f_out)
+        data_set.append(df_nocumu_test4)
+        data_name.append('test4')
+        # find error: seek 0.5 at 0.50000, lv-wang: at 0.509924
+
+    return ntp('Data', data_name)(*data_set)
 
 
-def test_stm_with_lvdata(df_raw=None, df_cumu_out=None, df_nocumu=None, mode_ratio_cumu='no'):
-    if mode_ratio_cumu == 'yes':
-        df_stm_cumu = stm.run(data=df_raw, cols=['wl'], mode_ratio_cumu='yes')
-        print(all (df_stm_cumu.out_data['wl_plt'] == df_cumu_out['wl_stand']))
-        return df_stm_cumu
-    else:
-        df_stm_nocumu = stm.run(data=df_nocumu, cols=['wl', 'hx', 'sw'], mode_ratio_cumu='no')
-        print(all (df_stm_nocumu.out_data['wl_plt'] == df_nocumu['wl_stand']))
-        print(all (df_stm_nocumu.out_data['hx_plt'] == df_nocumu['hx_stand']))
-        print(all (df_stm_nocumu.out_data['sw_plt'] == df_nocumu['sw_stand']))
-        return df_stm_nocumu
+def test_stm_with_lvdata(data=None, cols=(), ex_data=None, cumu='no'):
+    mr = stm.run(data=data, cols=cols, mode_ratio_cumu=cumu)
+    for col in cols:
+        print(all(mr.out_data[col+'_plt'] == ex_data[col+'_stand']))
+    return mr
 
 
-class TestModelWithGaokaoData():
+# hainan model problems:
+# (1) max score = 900(300) at reatio==1.0 for ascending score order
+#     but, min score may at 180-200(for 100-900) or 90-100(for 60-300)
+#     with descending order, problem occur at max score.
+#
+# (2) weight may decrease to 1/3 if common subject score is 900,
+#     it is reasonable if common subjects use raw score 150.
+#
+def test_hainan(num=1):
+    if num == 1:
+        # data1
+        #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
+        test_data1 = TestData(mean=60, std=14, size=60000)
+        # use model100-900
+        # score_order=='ascending', out_score_min==277, max==900, second_max=784
+        #              'descending', out_score_max==784, second_min==101, 110, 123
+        ht1a = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht1d = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        # use model60-300
+        # score_order=='ascending', out_score_min==
+        ht2a = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht2d = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+
+    if num == 2:
+        # data2
+        test_data1 = TestData(mean=50, std=14, size=60000)
+        # use model100-900
+        # score_order=='ascending', out_score_min==150(raw==0, count==12), max==900(count==11), second_max=856(count==6)
+        #              'descending', out_score_max==861(count==9), min=100(raw=0, count==7), second_min==132,143 ,158
+        ht1a = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht1d = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        # use model60-300
+        # score_order=='ascending', out_score_min==69,73    max==300(100, 9), second_max==288(99, 5)
+        #              'descending', out_score_max==288, second_min==60, 69, 73
+        ht2a = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht2d = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        return ht1a, ht1d, ht2a, ht2d
+
+
+class TestStmWithSdData():
 
     def __init__(self):
         self.df16like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
@@ -85,8 +140,7 @@ class TestModelWithGaokaoData():
                 mode_score_order=mode_score_order
                 )
             self.models_list.append(
-                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_approx + '_' + mode_ratio_cumu, m))
-
+                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_seek + '_' + mode_ratio_cumu, m))
 
     def save_report(self):
         for m in self.models_list:
@@ -96,8 +150,8 @@ class TestModelWithGaokaoData():
 
 def test_stm_with_stat_data(
         name='shandong',
-        mode_ratio_cum='no',
-        mode_ratio_loc='upper_min',
+        mode_ratio_cumu='no',
+        mode_ratio_seek='upper_min',
         score_max=100,
         score_min=0,
         data_size=1000,
@@ -146,30 +200,12 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = stm.run(name=name, data=dfscore, cols=['kmx'],
-                    mode_ratio_loc=mode_ratio_loc,
-                    mode_ratio_cum=mode_ratio_cum
+        m = stm.run(name=name,
+                    data=dfscore, cols=['kmx'],
+                    mode_ratio_seek=mode_ratio_seek,
+                    mode_ratio_cumu=mode_ratio_cumu
                     )
         return m
-
-    elif name.lower() == 'zscore':
-        m = stm.Zscore()
-        m.set_data(dfscore, cols=['kmx'])
-        m.set_para(input_score_max=score_max, input_score_min=score_min)
-        m.run()
-        return m
-
-    elif name.lower() == 'tscore':
-        m = stm.Tscore()
-        m.set_data(dfscore, cols=['kmx'])
-        m.set_para(raw_score_max=score_max,
-                   raw_score_min=score_min,
-                   t_score_mean=50,
-                   t_score_std=10,
-                   t_score_stdnum=4)
-        m.run()
-        return m
-    return None
 
 
 # test dataset
