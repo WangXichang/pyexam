@@ -71,7 +71,7 @@ def data_lv():
 def test_stm_with_lvdata(data=None, cols=(), cumu='no'):
     mr = stm.run(data=data, cols=cols, mode_ratio_cumu=cumu)
     for col in cols:
-        print(all(mr.out_data[col+'_plt'] == data[col+'_stand']))
+        assert all(mr.out_data[col+'_plt'] == data[col+'_stand'])
     return mr
 
 

@@ -2545,16 +2545,19 @@ def use_ellipsis(digit_seq):
             if p == _digit_seq[-1]:
                 if count_p == 1:
                     ellipsis_list += [start_p, p]
-                elif count_p > 1:
-                    if p > end_p+1:
-                        ellipsis_list += [start_p, Ellipsis, end_p, p]
-                    else:
-                        ellipsis_list += [start_p, Ellipsis, p]
+                elif p == end_p + 1:
+                    ellipsis_list += [start_p, Ellipsis, p]
+                elif count_p == 2:
+                    ellipsis_list += [start_p, end_p, p]
+                else:
+                    ellipsis_list += [start_p, Ellipsis, end_p, p]
                 break
             if p > end_p + 1:
                 if count_p == 1:
                     ellipsis_list += [start_p]
-                elif count_p > 1:
+                elif count_p == 2:
+                    ellipsis_list += [start_p, end_p]
+                else:
                     ellipsis_list += [start_p, Ellipsis, end_p]
                 count_p = 1
                 start_p, end_p = p, p
