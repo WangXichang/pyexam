@@ -1260,25 +1260,8 @@ class PltScore(ScoreTransformModel):
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_range[0], self.raw_score_range[1]+1)
                        if x not in _count_non_zero]
-        if len(_count_zero) > 0:
-            _concise_list = []
-            start_p = -1
-            end_p = -1
-            count_p = 0
-            for p in _count_zero:
-                if count_p == 0:
-                    start_p, end_p = p, p
-                if end_p > start_p+1:
-                    if count_p ==0:
-                        _concise_list += [start_p, end_p]
-                    else:
-                        _concise_list += [start_p, Ellipsis, end_p]
-                    count_p = 0
-                else:
-                    end_p, count_p = p, count_p+1
-            _count_zero = _concise_list
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(str(_count_zero).replace('Ellipsis', '...'))
+                           format(use_ellipsis(_count_zero))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1299,7 +1282,7 @@ class PltScore(ScoreTransformModel):
         _count_zero = [x for x in range(self.out_score_min, self.out_score_max+1) 
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(_count_zero)
+                           format(use_ellipsis(_count_zero))
 
         # differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
@@ -2544,3 +2527,37 @@ def get_norm_dist_table(size=400, std=1, mean=0, stdnum=4):
     pdflist = [sts.norm.pdf(v) for v in varset]
     ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf': pdflist})
     return ndf
+
+
+def use_ellipsis(digit_seq):
+    _digit_seq = None
+    if type(digit_seq) == str:
+        _digit_seq = tuple(int(x) for x in digit_seq)
+    elif type(digit_seq) in (list, tuple):
+        _digit_seq = digit_seq
+    ellipsis_list = []
+    if len(_digit_seq) > 0:
+        start_p, end_p, count_p = -1, -1, -1
+        for p in _digit_seq:
+            if p == _digit_seq[0]:
+                start_p, end_p = p, p
+                count_p = 1
+            if p == _digit_seq[-1]:
+                if count_p == 1:
+                    ellipsis_list += [start_p, p]
+                elif count_p > 1:
+                    if p > end_p+1:
+                        ellipsis_list += [start_p, Ellipsis, end_p, p]
+                    else:
+                        ellipsis_list += [start_p, Ellipsis, p]
+                break
+            if p > end_p + 1:
+                if count_p == 1:
+                    ellipsis_list += [start_p]
+                elif count_p > 1:
+                    ellipsis_list += [start_p, Ellipsis, end_p]
+                count_p = 1
+                start_p, end_p = p, p
+            elif p == end_p + 1:
+                end_p, count_p = p, count_p + 1
+    return str(ellipsis_list).replace('Ellipsis', '...')
