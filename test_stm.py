@@ -5,7 +5,19 @@ import numpy as np
 import stm as stm
 import importlib as pb
 import os
+import time
 from collections import namedtuple as ntp
+
+
+def timer(fun):
+
+    def dec_fun(*args, **kwargs):
+        st = time.time()
+        result = fun(*args, **kwargs)
+        print('elapsed time: {:.3f}'.format(time.time() - st))
+        return result
+
+    return dec_fun
 
 
 def data_lv():
@@ -57,6 +69,7 @@ def data_lv():
     data_nocumu.pop('test4hx')
 
     # merge test5
+    df = None
     for sub in ['wl', 'hx', 'sw']:
         if sub == 'wl':
             df = data_nocumu['test5wl'].__deepcopy__()
@@ -65,14 +78,41 @@ def data_lv():
         data_nocumu.pop('test5'+sub)
     data_nocumu.update({'test5': df})
 
-    return data_cumu.update(data_nocumu)
+    data_cumu.update(data_nocumu)
+
+    return data_cumu
 
 
-def test_stm_with_lvdata(data=None, cols=(), cumu='no'):
+def test_lv(data):
+    r_dict = dict()
+    for num in range(9):
+        r = test_stm_with_lvdata(data=data['cumu'+str(num)], cols=['wl'], cumu='yes', name='cumu_'+str(num))
+        r_dict.update({'cumu'+str(num): r})
+    nocumu_fields = []
+    nocumu_fields.append(['wl', 'hx', 'sw'])
+    nocumu_fields.append(['wl', 'hx', 'sw'])
+    nocumu_fields.append(['wl'])
+    nocumu_fields.append(['wl', 'hx'])
+    nocumu_fields.append(['wl', 'hx', 'sw'])
+    nocumu_fields.append(['hx'])
+    nocumu_fields.append(['wl'])
+    nocumu_fields.append(['wl'])
+    nocumu_fields.append(['wl'])
+    nocumu = ['test'+str(i) for i in range(1, 6)] + ['test6hx', 'test7wl18', 'test7wl19', 'test8']
+    for num in range(9):
+        r = test_stm_with_lvdata(data=data[nocumu[num]], cols=nocumu_fields[num], cumu='yes', name=nocumu[num])
+        r_dict.update({nocumu[num]: r})
+    return r_dict
+
+
+@timer
+def test_stm_with_lvdata(data=None, cols=(), cumu='no', name=''):
     mr = stm.run(data=data, cols=cols, mode_ratio_cumu=cumu)
+    mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'txt')
+    result = []
     for col in cols:
-        assert all(mr.out_data[col+'_plt'] == data[col+'_stand'])
-    return mr
+        result.append([col, len(mr.out_data.query(col+'_plt !='+col+'_stand')) == 0])
+    return result
 
 
 # hainan model problems:
