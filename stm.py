@@ -156,7 +156,7 @@ CONST_TIANJIN_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
 
 # ShanDong
 # 8 levels, (3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%)
-# 8 segments: (100,91), ..., (30,21)
+# 8 segments: (100, 91), ..., (30, 21)
 CONST_SHANDONG_RATIO = (3, 7, 16, 24, 24, 16, 7, 3)
 CONST_SHANDONG_SEGMENT = ((100-i*10, 100-i*10-9) for i in range(8))
 
@@ -167,8 +167,9 @@ CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
 CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 
 
-# JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
-#   ration=(15%、35%、35%、13%, 2%), 5 levels
+# ShengShi-7: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
+#   5 levels
+#   ration=(15%、35%、35%、13%, 2%),
 #   segment=(30～40、41～55、56～70、71～85、86～100)
 #   predict: mean = 70.24, std = 21.76
 #            mean = sum((x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)))
@@ -178,24 +179,27 @@ CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 # make norm table for standard score start-end(100-900, 60-300,...)
-def get_norm_table(start, end):
+def get_seg_ratio_from_norm_cdf(start, end):
     _start_point, end_point = start, end
     _mean = (_start_point + end_point) / 2
     _std = (_mean - _start_point) / 4
     norm_cdf = tuple(sts.norm.cdf((v-_mean)/_std) for v in range(_start_point, end_point + 1))
+    #    seg[0] = (1 - cdf(-4))*100,
+    # seg_ratio = cdf[i+1] - cdf[i],
+    #   seg[-1] = 100 - sum(seg[:-1]),   sum==100
     norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
-                  else norm_cdf[i]*100                          # set first ratio to (1 - cdf(-4))*100
+                  else norm_cdf[i]*100
                   for i in range(end_point - _start_point + 1)]
-    norm_table[-1] = 100 - sum(norm_table[:-1])                 # guaranteeing sum==100
+    norm_table[-1] = 100 - sum(norm_table[:-1])
     return tuple(norm_table)
 
 
 # Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
-CONST_HAINAN_RATIO = get_norm_table(100, 900)
+CONST_HAINAN_RATIO = get_seg_ratio_from_norm_cdf(100, 900)
 CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
 
 # Hainan2 standard score for new Gaokao 60-300 (mean=180, std=30)
-CONST_HAINAN2_RATIO = get_norm_table(60, 300)
+CONST_HAINAN2_RATIO = get_seg_ratio_from_norm_cdf(60, 300)
 CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
 
 # Hainan3 using plt for 60-300, use plt method to transform
@@ -2441,7 +2445,7 @@ def round45r(number, digits=0):
 
 
 def round45r_old2(number, digits=0):
-    __doc__ = '''
+    '''
     float is not precise at digit 16 from decimal point.
     if hope that round(1.265, 3): 1.264999... to 1.265000...
     need to add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
@@ -2485,7 +2489,7 @@ def round45r_old(number, digits=0):
     return round(number, digits)
 
 
-def get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
+def get_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
     create a score dataframe with fields 'score', used to test some application
@@ -2504,7 +2508,7 @@ def get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, dec
 
 
 # create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
-def get_norm_dist_table(size=400, std=1, mean=0, stdnum=4):
+def get_norm_table2(size=400, std=1, mean=0, stdnum=4):
     """
     function
         生成正态分布量表
