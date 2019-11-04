@@ -13,8 +13,9 @@ def timer(fun):
 
     def dec_fun(*args, **kwargs):
         st = time.time()
+        print('process start: {}'.format(fun))
         result = fun(*args, **kwargs)
-        print('elapsed time: {:.3f}'.format(time.time() - st))
+        print('process[{}] elapsed time: {:.3f}'.format(fun, time.time() - st))
         return result
 
     return dec_fun
@@ -64,59 +65,53 @@ def data_lv():
             data_nocumu.update({dname: pd.read_csv(f_out)})
 
     # merge test4
-    data_nocumu.update({'test4': pd.merge(data_nocumu['test4wl'], data_nocumu['test4hx'], on='ksh')})
-    data_nocumu.pop('test4wl')
-    data_nocumu.pop('test4hx')
-
-    # merge test5
-    df = None
-    for sub in ['wl', 'hx', 'sw']:
-        if sub == 'wl':
-            df = data_nocumu['test5wl'].__deepcopy__()
-        else:
-            df = pd.merge(df, data_nocumu['test5'+sub], on='ksh')
-        data_nocumu.pop('test5'+sub)
-    data_nocumu.update({'test5': df})
+    # data_nocumu.update({'test4': pd.merge(data_nocumu['test4wl'], data_nocumu['test4hx'], on='ksh')})
+    # data_nocumu.pop('test4wl')
+    # data_nocumu.pop('test4hx')
+    #
+    # # merge test5
+    # df = None
+    # for sub in ['sw', 'hx', 'wl']:
+    #     if sub == 'sw':
+    #         df = data_nocumu['test5wl'].__deepcopy__()
+    #     else:
+    #         df = pd.merge(df, data_nocumu['test5'+sub], on='ksh')
+    #     data_nocumu.pop('test5'+sub)
+    # data_nocumu.update({'test5': df})
 
     data_cumu.update(data_nocumu)
 
     return data_cumu
 
 
+@timer
 def test_lv(data):
     r_dict = dict()
     for num in range(9):
         r = test_stm_with_lvdata(data=data['cumu'+str(num)], cols=['wl'], cumu='yes', name='cumu_'+str(num))
-        r_dict.update({'cumu'+str(num): r})
-    nocumu_fields = []
-    nocumu_fields.append(['wl', 'hx', 'sw'])
-    nocumu_fields.append(['wl', 'hx', 'sw'])
-    nocumu_fields.append(['wl'])
-    nocumu_fields.append(['wl', 'hx'])
-    nocumu_fields.append(['wl', 'hx', 'sw'])
-    nocumu_fields.append(['hx'])
-    nocumu_fields.append(['wl'])
-    nocumu_fields.append(['wl'])
-    nocumu_fields.append(['wl'])
-    nocumu = ['test'+str(i) for i in range(1, 6)] + ['test6hx', 'test7wl18', 'test7wl19', 'test8']
-    for num in range(9):
-        r = test_stm_with_lvdata(data=data[nocumu[num]], cols=nocumu_fields[num], cumu='yes', name=nocumu[num])
-        r_dict.update({nocumu[num]: r})
+        r_dict.update({'cumu'+str(num): r[0]})
+    nocumu_names = ['test'+str(i) for i in range(1, 4)] + \
+                   ['test4wl', 'test4hx', 'test5wl', 'test5hx', 'test5sw', 'test6hx', 'test7wl18', 'test7wl19', 'test8']
+    for num in range(len(nocumu_names)):
+        r = test_stm_with_lvdata(data=data[nocumu_names[num]],
+                                 cols=('wl', 'hx', 'sw'), cumu='no', name=nocumu_names[num])
+        r_dict.update({nocumu_names[num]: r[0]})
     return r_dict
 
 
-@timer
-def test_stm_with_lvdata(data=None, cols=(), cumu='no', name=''):
-    mr = stm.run(data=data, cols=cols, mode_ratio_cumu=cumu)
-    mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'txt')
+def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name=''):
+    cols_real = [f for f in cols if f in data.columns]
+    mr = stm.run(data=data, cols=cols_real, mode_ratio_cumu=cumu)
+    mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'.txt')
     result = []
-    for col in cols:
+    for col in cols_real:
         result.append([col, len(mr.out_data.query(col+'_plt !='+col+'_stand')) == 0])
-    return result
+    return result, mr
 
 
 # hainan model problems:
-# (1) max score = 900(300) at reatio==1.0 for ascending score order
+# (1) if use old ratio assigning method
+#     max score = 900(300) at reatio==1.0 for ascending score order
 #     but, min score may at 180-200(for 100-900) or 90-100(for 60-300)
 #     with descending order, problem occur at max score.
 #
