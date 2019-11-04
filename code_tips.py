@@ -7,8 +7,7 @@
 #  13-xxx: ...
 
 
-# cook-1001
-#   grammar problem
+# cook-1001: [] and () in Python
 #   notation: disusage []
 #   do not use [] for fun,
 #   do not use () for list, ruple, array, ..., and other sequence type var
@@ -17,8 +16,7 @@ def use_correct_brackets():
     # error a(1) == 1
 
 
-# cook-1002
-#    immutable and hashable
+# cook-1002:  immutable and hashable object
 #       1. All of Python's immutable build-in objects is hashable, for exp. : number, str, function, tuple
 #       2. Hashable object has method: __hash__, __eq__, they use hash value to compare equal
 #       3. Hashable object can be used as key in dict and as element in set, that need hash value
@@ -29,3 +27,5 @@ def use_correct_brackets():
 #    but type var list is not immutable and hashable
 def hash_test():
     print(hash(list), hash(set), hash(dict))
+    a = [1, 2, 3]
+    # hash(a)
