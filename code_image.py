@@ -54,7 +54,7 @@ def resize_image(im, x_wid=640):
     x, y = im.size
     y_s = int(y * x_wid / x)
     out = im.resize((x_wid, y_s), Image.ANTIALIAS)
-    print('new iamge size={}, size='.format(out.size))
+    print('new iamge size={}'.format(out.size))
     return out
 
 
