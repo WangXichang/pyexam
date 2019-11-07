@@ -1363,6 +1363,7 @@ class PltScore(ScoreTransformModel):
             x2 = sorted(self.out_data[col+'_plt'])
             y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
             fig, ax = plot.subplots()
+            # fig.suptitle('norm test for stm models')
             ax.set_title(self.model_name+': norm test')
             ax.plot(x1, y, 'o-', label='score:' + col)
             ax.plot(x2, y, 'o-', label='score:' + col)
