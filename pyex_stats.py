@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import os
 from scipy import stats
-from pyex_tool import pyex_seg as ps, pyex_lib as pl
+from pytools import pyex_seg as ps, pyex_lib as pl
 
 
 # ywmean = df.yw.mean(), wlmean = df.wl.mean()

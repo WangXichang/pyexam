@@ -8,7 +8,7 @@ import numpy as np
 import importlib as pb
 import scipy.stats as stt
 import matplotlib.pyplot as plt
-from pyex_tool import pyex_seg as sg, pyex_ptt as ptt, pyex_lib as pl
+from pytools import pyex_seg as sg, pyex_ptt as ptt, pyex_lib as pl
 
 # constant data
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
