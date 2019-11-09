@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-import stm as stm
+from pyex import stm as stm
 import importlib as pb
 import os
 import time

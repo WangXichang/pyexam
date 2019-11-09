@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import importlib as imp
 
-from pyex_bzy0702 import closed_filter
+from pyex.pyex_bzy0702 import closed_filter
 from pytools import pyex_ptt as ptt
-import pyex_bzy_exp
+from pyex import pyex_bzy_exp
 
 
 def getzyfun():

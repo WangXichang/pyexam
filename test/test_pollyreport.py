@@ -1,8 +1,8 @@
 # -*- utf8 -*-
 
+
 import PollyReports as prt
 import reportlab.pdfgen.canvas as canvas
-import pyex_bzy as bzy
 
 
 def test(f='d:/test.pdf', df=None):

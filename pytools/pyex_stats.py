@@ -118,7 +118,7 @@ def cross_seg(df, keyf,
     segmodel.set_data(df, keyf)
     segmodel.set_parameters(segmax=max(df[keyf]))
     segmodel.run()
-    dfseg = segmodel.segdf
+    dfseg = segmodel.output_data
     dfcount = dfseg[keyf+'_cumsum'].tail(1).values[0]
     vfseg = {x:[] for x in vfseglist}
     vfper = {x:[] for x in vfseglist}

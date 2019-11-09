@@ -2,7 +2,7 @@
 
 import glob
 import numpy as np
-import weebar as wb
+from pybar import weebar as wb
 import matplotlib.pyplot as plt
 
 

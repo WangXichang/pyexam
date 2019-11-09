@@ -1,10 +1,9 @@
 # coding: utf8
 
 
+from pyex import stm
+from test import test_stm
 
-
-import stm
-import test_stm
 
 # hainan model problems:
 # (1) max score = 900(300) at reatio==1.0 for ascending score order
