@@ -1493,7 +1493,7 @@ class PltScore(ScoreTransformModel):
                 _score_order = self.strategy_dict['mode_score_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
-                plot.plot(x, y, linewidth=3)
+                plot.plot(x, y, linewidth=2)
                 for j in [0, 1]:
                     plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=2)
                     plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=2)
@@ -1503,7 +1503,7 @@ class PltScore(ScoreTransformModel):
                     plot.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
 
             # darw y = x for showing score shift
-            plot.plot((0, in_max), (0, in_max), 'm--', linewidth=3, markersize=3)
+            plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
 
         plot.show()
         return
@@ -2446,7 +2446,7 @@ def round45r(number, digits=0):
 
 
 def round45r_old2(number, digits=0):
-    '''
+    """
     float is not precise at digit 16 from decimal point.
     if hope that round(1.265, 3): 1.264999... to 1.265000...
     need to add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
@@ -2462,7 +2462,7 @@ def round45r_old2(number, digits=0):
     format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
     format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
     format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(16)4671'
-    '''
+    """
 
     int_len = str(abs(number)).find('.')
     if int_len + digits > 16:

@@ -5,20 +5,27 @@ import numpy as np
 from pyex import stm as stm
 import importlib as pb
 import os
-import time
+from pytools import wrapper
 from collections import namedtuple as ntp
 
 
-def timer(fun):
-
-    def dec_fun(*args, **kwargs):
-        st = time.time()
-        print('process start: {}'.format(fun))
-        result = fun(*args, **kwargs)
-        print('process[{}] elapsed time: {:.3f}'.format(fun, time.time() - st))
-        return result
-
-    return dec_fun
+# 有关stm测试的问题：
+#
+#  一. 空值策略问题：
+# （1）空值点策略：如果不考虑中间的空值点，则产生的原始分数划分区间不连续，转换公式就会不同。
+#               如果不考虑两端的空值点，则高分不会映射满分，0分一般不会缺失，估计不会受到影响。
+#
+#  二. 海南模型问题:
+#     建议使用分段映射方法，增加分数连续性。在高分区和低分区较为显著。
+#     建议使用升序搜索方式，可保证高分点映射到900（300）分值。
+#   (1) individual ratio mapping method
+#     max score = 900(300) at reatio==1.0 for ascending score order
+#     but, min score may at 180-200(for 100-900) or 90-100(for 60-300)
+#     with descending order, problem occur at max score.
+#
+#   (2) weight may decrease to 1/3 if common subject score is 900,
+#     it is reasonable if common subjects use raw score 150.
+#
 
 
 def data_lv():
@@ -84,7 +91,7 @@ def data_lv():
     return data_cumu
 
 
-@timer
+@wrapper.time_disper
 def test_lv(data):
     r_dict = dict()
     for num in range(9):
@@ -109,15 +116,6 @@ def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name='')
     return result, mr
 
 
-# hainan model problems:
-# (1) if use old ratio assigning method
-#     max score = 900(300) at reatio==1.0 for ascending score order
-#     but, min score may at 180-200(for 100-900) or 90-100(for 60-300)
-#     with descending order, problem occur at max score.
-#
-# (2) weight may decrease to 1/3 if common subject score is 900,
-#     it is reasonable if common subjects use raw score 150.
-#
 def test_hainan(num=1):
     if num == 1:
         # data1
