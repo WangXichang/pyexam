@@ -1,5 +1,6 @@
 # -*- utf-8 -*-
 
+
 # from numpy import std, mean, var
 import pandas as pd
 import os
@@ -9,6 +10,7 @@ import importlib as pb
 import scipy.stats as stt
 import matplotlib.pyplot as plt
 from pytools import pyex_seg as sg, pyex_ptt as ptt, pyex_lib as pl
+
 
 # constant data
 shandong_ratio = [0, .03, .10, .26, .50, .74, .90, .97, 1.00]
@@ -213,22 +215,22 @@ def plot_pie_subjects_centage():
     plt.title('各科目值域总分贡献率')
     plt.pie([150, 150, 150, 100, 100, 100],
             labels=['语文', '数学', '外语', '选科1', '选科2', '选科3'],
-            autopct='%1.1f%%')
+            autopct='%1.2f%%')
     plt.subplot(142)
     plt.title('各科目有效值域总分贡献率（山东方案）')
     plt.pie([150, 150, 150, 80, 80, 80, 60],
             labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
-            autopct='%1.1f%%')
+            autopct='%1.2f%%')
     plt.subplot(143)
     plt.title('各科目有效值域总分贡献率（浙江方案）')
     plt.pie([20, 20, 20, 8, 8, 8, 16],
             labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
-            autopct='%1.1f%%')
+            autopct='%1.2f%%')
     plt.subplot(144)
     plt.title('各科目有效值域总分贡献率（上海方案）')
     plt.pie([150, 150, 150, 30, 30, 30, 120],
             labels=['语文', '数学', '外语', '选科1', '选科2', '选科3', '基础分'],
-            autopct='%1.1f%%')
+            autopct='%1.2f%%')
 
 
 def plot_pie_xk():
