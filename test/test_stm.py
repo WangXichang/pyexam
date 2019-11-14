@@ -5,7 +5,7 @@ import numpy as np
 from pyex import stm as stm
 import importlib as pb
 import os
-from pytools import wrapper
+from pytools import wrap
 from collections import namedtuple as ntp
 
 
@@ -91,7 +91,7 @@ def data_lv():
     return data_cumu
 
 
-@wrapper.time_disper
+@wrap.time_disper
 def test_lv(data):
     r_dict = dict()
     for num in range(9):

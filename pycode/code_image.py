@@ -5,7 +5,7 @@ from PIL import Image
 import os
 
 
-def compress_image(infile, outfile='', mb=150, step=10, quality=80):
+def compress_image_file(infile, outfile='', mb=150, step=10, quality=80):
     """不改变图片尺寸压缩到指定大小
     :param infile: 压缩源文件
     :param outfile: 压缩文件保存地址
@@ -43,17 +43,20 @@ def resize_image_file(infile, outfile='', x_wid=1376):
     out.save(outfile)
 
 
-def resize_image(im, x_wid=640):
+def resize_image(im, wid=640, high=768):
     """修改图片尺寸
-    :param infile: 图片源文件
-    :param outfile: 重设尺寸文件保存地址
-    :param x_wid: 设置的宽度
-    :return:
+    :param im: 源图片
+    :param wid: 设置的宽度
+    :param high: 设置的高度
+    :return: 重设尺寸后图片
     """
     # im = Image.open(infile)
     x, y = im.size
-    y_s = int(y * x_wid / x)
-    out = im.resize((x_wid, y_s), Image.ANTIALIAS)
+    if high is None:
+        y_s = int(y * wid / x)
+    else:
+        y_s = high
+    out = im.resize((wid, y_s), Image.ANTIALIAS)
     print('new iamge size={}'.format(out.size))
     return out
 

@@ -1,6 +1,6 @@
 import pandas as pd
 import os
-from pytools import pyex_seg as pg
+from pytools import seg as pg
 
 
 class ChangeScore(object):

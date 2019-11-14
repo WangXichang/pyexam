@@ -137,7 +137,7 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import seaborn as sbn
-from pytools import pyex_ptt as ptt
+from pytools import ptt as ptt
 
 
 warnings.filterwarnings('ignore')
