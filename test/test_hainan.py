@@ -1,8 +1,7 @@
 # coding: utf8
 
 
-from pyex import stm
-from test import test_stm
+from stm import stm, test_stm
 
 
 # hainan model problems:

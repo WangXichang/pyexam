@@ -2,7 +2,7 @@
 
 import pandas as pd
 import numpy as np
-from pyex import stm as stm
+from stm import stm as stm
 import importlib as pb
 import os
 from pytools import wrap
@@ -175,7 +175,7 @@ class TestStmWithSdData():
                 name='shandong',
                 year='16',
                 kl='wenke',
-                mode_ratio_seek='upper_min',
+                mode_ratio_pick='upper_min',
                 mode_ratio_cumu='no',
                 mode_score_order='d',
                 all='no'
@@ -197,12 +197,12 @@ class TestStmWithSdData():
                 name=name,
                 data=dfs[_run[0]+_run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
-                mode_ratio_seek=mode_ratio_seek,
+                mode_ratio_pick=mode_ratio_pick,
                 mode_ratio_cumu=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
             self.models_list.append(
-                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_seek + '_' + mode_ratio_cumu, m))
+                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_pick + '_' + mode_ratio_cumu, m))
 
     def save_report(self):
         for m in self.models_list:
@@ -213,7 +213,7 @@ class TestStmWithSdData():
 def test_stm_with_stat_data(
         name='shandong',
         mode_ratio_cumu='no',
-        mode_ratio_seek='upper_min',
+        mode_ratio_pick='upper_min',
         score_max=100,
         score_min=0,
         data_size=1000,
@@ -264,7 +264,7 @@ def test_stm_with_stat_data(
               format(data_size, score_min, score_max))
         m = stm.run(name=name,
                     data=dfscore, cols=['kmx'],
-                    mode_ratio_seek=mode_ratio_seek,
+                    mode_ratio_pick=mode_ratio_pick,
                     mode_ratio_cumu=mode_ratio_cumu
                     )
         return m
