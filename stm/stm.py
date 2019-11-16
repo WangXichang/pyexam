@@ -539,27 +539,29 @@ class ScoreTransformModel(object):
             self.__plot_out_score()
         elif mode.lower() == 'raw':
             self.__plot_raw_score()
+        # return False so that implementing other plotting in subclass
         else:
-            # print('error mode={}, valid mode: out or raw'.format(mode))
             return False
+        # do not need to implement in subclass
         return True
 
     def __plot_out_score(self):
         if not self.cols:
-            print('no field:{0} assign in {1}!'.format(self.cols, self.raw_data))
+            print('no field assigned in {}!'.format(self.raw_data))
             return
         # plot.figure(self.model_name + ' out score figure')
-        labelstr = 'Output Score '
+        fig_title = 'Out Score '
         for fs in self.cols:
             plot.figure(fs)
             if fs + '_plt' in self.out_data.columns:  # find sf_out_score field
                 sbn.distplot(self.out_data[fs + '_plt'])
-                plot.title(labelstr + fs)
+                plot.title(fig_title + fs)
             elif fs + '_grade' in self.out_data.columns:  # find sf_out_score field
                 sbn.distplot(self.out_data[fs + '_grade'])
-                plot.title(labelstr + fs)
+                plot.title(fig_title + fs)
             else:
-                print('mode=out only for plt and grade model!')
+                print('no out score fields found in out_data columns:{}!'.
+                      format(list(self.out_data.columns)))
         return
 
     def __plot_raw_score(self):
