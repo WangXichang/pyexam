@@ -116,38 +116,23 @@ def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name='')
     return result, mr
 
 
-def test_hainan(num=1):
-    if num == 1:
-        # data1
-        #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
-        test_data1 = TestData(mean=60, std=14, size=60000)
-        # use model100-900
-        # score_order=='ascending', out_score_min==277, max==900, second_max=784
-        #              'descending', out_score_max==784, second_min==101, 110, 123
-        ht1a = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht1d = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
-        # use model60-300
-        # score_order=='ascending', out_score_min==
-        ht2a = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht2d = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
-
-    if num == 2:
-        # data2
-        test_data1 = TestData(mean=50, std=14, size=60000)
-        # use model100-900
-        # score_order=='ascending', out_score_min==150(raw==0, count==12), max==900(count==11), second_max=856(count==6)
-        #              'descending', out_score_max==861(count==9), min=100(raw=0, count==7), second_min==132,143 ,158
-        ht1a = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht1d = stm.run(name='hainan', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
-        # use model60-300
-        # score_order=='ascending', out_score_min==69,73    max==300(100, 9), second_max==288(99, 5)
-        #              'descending', out_score_max==288, second_min==60, 69, 73
-        ht2a = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht2d = stm.run(name='hainan2', data=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
-        return ht1a, ht1d, ht2a, ht2d
+@wrap.time_disper
+def test_hainan():
+    result = dict()
+    ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
+    # data1
+    #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
+    test_data1 = TestData(mean=60, std=14, size=60000)
+    for j in range(5):
+        model_name = 'hainan'+ (str(j+1) if j>0 else '')
+        result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
+        ra = stm.run(name=model_name, data=test_data1.df, cols=['km1'], mode_score_order='ascending')
+        rd = stm.run(name=model_name, data=test_data1.df, cols=['km1'], mode_score_order='descending')
+        result[j] = ResultTuple(result_name, ra, rd)
+    return result
 
 
-class TestStmWithSdData():
+class TestShandongData():
 
     def __init__(self):
         self.df16like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
@@ -258,7 +243,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in stm.MODELS_RATIO_SEG_DICT.keys():
+    if name in stm.MODELS_RATIO_SEGMENT_DICT.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))

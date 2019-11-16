@@ -200,21 +200,31 @@ def get_seg_ratio_from_norm_cdf(start, end):
 CONST_HAINAN_RATIO = get_seg_ratio_from_norm_cdf(100, 900)
 CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
 
-# Hainan2 standard score for new Gaokao 60-300 (mean=180, std=30)
+# Hainan2 out_scope: 60-300 (mean=180, std=30)
+#         ordinary method: transform each score individually
+#         use norm cdf for each point, first set in 60-300, then pick ratio-score in raw segtable
 CONST_HAINAN2_RATIO = get_seg_ratio_from_norm_cdf(60, 300)
 CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
 
-# Hainan3 using plt for 60-300, use plt method to transform
+# Hainan3 out_scope 60-300,
+#         use plt method to transform
+#         set top fine proximate ratio to norm distribution
 CONST_HAINAN3_RATIO = (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14)
 CONST_HAINAN3_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 # Hainan4 using plt for 60-300, use plt method to transform
-CONST_HAINAN4_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
+#         set secondary proximate ratio
+CONST_HAINAN4_RATIO = (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2)
 CONST_HAINAN4_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
+
+# Hainan5 using plt for 60-300, use plt method to transform
+#         set suitable ratio
+CONST_HAINAN5_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
+CONST_HAINAN5_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 
 RatioSeg = namedtuple('ModelRatioSeg', ['ratio', 'seg'])
-MODELS_RATIO_SEG_DICT = {
+MODELS_RATIO_SEGMENT_DICT = {
     'zhejiang': RatioSeg(tuple(CONST_ZHEJIANG_RATIO), tuple(CONST_ZHEJIANG_SEGMENT)),
     'shanghai': RatioSeg(tuple(CONST_SHANGHAI_RATIO), tuple(CONST_SHANGHAI_SEGMENT)),
     'beijing': RatioSeg(tuple(CONST_BEIJING_RATIO), tuple(CONST_BEIJING_SEGMENT)),
@@ -225,8 +235,10 @@ MODELS_RATIO_SEG_DICT = {
     'hainan': RatioSeg(tuple(CONST_HAINAN_RATIO), tuple(CONST_HAINAN_SEGMENT)),
     'hainan2': RatioSeg(tuple(CONST_HAINAN2_RATIO), tuple(CONST_HAINAN2_SEGMENT)),
     'hainan3': RatioSeg(tuple(CONST_HAINAN3_RATIO), tuple(CONST_HAINAN3_SEGMENT)),
-    'hainan4': RatioSeg(tuple(CONST_HAINAN4_RATIO), tuple(CONST_HAINAN4_SEGMENT))
+    'hainan4': RatioSeg(tuple(CONST_HAINAN4_RATIO), tuple(CONST_HAINAN4_SEGMENT)),
+    'hainan5': RatioSeg(tuple(CONST_HAINAN5_RATIO), tuple(CONST_HAINAN5_SEGMENT))
     }
+
 MODEL_STRATEGIES_DICT = {
     'mode_score_order': ('ascending', 'descending'),
     'mode_ratio_pick': ('upper_min', 'lower_max', 'near_max', 'near_min'),
@@ -238,7 +250,7 @@ MODEL_STRATEGIES_DICT = {
     'mode_score_empty': ('map_to_min', 'map_to_max', 'map_to_mean', 'ignore'),
     'mode_endpoint_share': ('yes', 'no')
     }
-MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEG_DICT.keys()) + ['zscore', 'tscore', 'tai', 'tlinear'])
+MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEGMENT_DICT.keys()) + ['zscore', 'tscore', 'tai', 'tlinear'])
 
 
 def about():
@@ -309,15 +321,15 @@ def run(
         return
 
     # plt score models
-    if name in MODELS_RATIO_SEG_DICT.keys():
-        ratio_tuple = tuple(x * 0.01 for x in MODELS_RATIO_SEG_DICT[name].ratio)
+    if name in MODELS_RATIO_SEGMENT_DICT.keys():
+        ratio_tuple = tuple(x * 0.01 for x in MODELS_RATIO_SEGMENT_DICT[name].ratio)
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
         plt_model.set_data(raw_data=raw_data, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=MODELS_RATIO_SEG_DICT[name].seg,
+            out_score_seg_tuple=MODELS_RATIO_SEGMENT_DICT[name].seg,
             raw_score_range=raw_score_range,
             mode_ratio_pick=mode_ratio_pick,
             mode_ratio_cumu=mode_ratio_cumu,
@@ -371,6 +383,8 @@ def plot_stm(font_size=12, hainan='900'):
     if hainan == '300':
         _names.remove('hainan')
         _names.append('hainan2')
+    elif hainan is None:
+        _names.remove('hainan')
     ms_dict = dict()
     for _name in _names:
         ms_dict.update({_name: get_stm_model_describe(name=_name)})
@@ -388,10 +402,10 @@ def plot_stm(font_size=12, hainan='900'):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in MODELS_RATIO_SEG_DICT[k].seg][::-1]
+            x_data = [np.mean(x) for x in MODELS_RATIO_SEGMENT_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['ss7']:
-            x_data = [int(np.mean(x)) for x in MODELS_RATIO_SEG_DICT[k].seg][::-1]
+            x_data = [int(np.mean(x)) for x in MODELS_RATIO_SEGMENT_DICT[k].seg][::-1]
             _wid = 10
         elif k in ['hainan']:
             x_data = [x for x in range(100, 901)]
@@ -401,13 +415,13 @@ def plot_stm(font_size=12, hainan='900'):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, MODELS_RATIO_SEG_DICT[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, MODELS_RATIO_SEGMENT_DICT[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
 def get_stm_model_describe(name='shandong'):
-    __ratio = MODELS_RATIO_SEG_DICT[name].ratio
-    __seg = MODELS_RATIO_SEG_DICT[name].seg
+    __ratio = MODELS_RATIO_SEGMENT_DICT[name].ratio
+    __seg = MODELS_RATIO_SEGMENT_DICT[name].seg
     if name == 'hainan':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'hainan2':
@@ -461,24 +475,26 @@ class ScoreTransformModel(object):
     def set_para(self, *args, **kwargs):
         """
         设置转换分数的参数
+        set parameters used to transform score
         """
 
     @abc.abstractmethod
     def report(self):
         """
         返回系统生成的分数转换报告
+        return score transforming report created by model running
         """
 
     def check_data(self):
         if not isinstance(self.raw_data, pd.DataFrame):
-            print('rawdf is not dataframe!')
+            print('raw data type={} is not dataframe!'.format(type(self.raw_data)))
             return False
-        if (type(self.cols) != list) | (len(self.cols) == 0):
-            print('no score fields assigned!')
+        if (type(self.cols) is not list) | (len(self.cols) == 0):
+            print('score fields not assigned in cols: {}!'.format(self.cols))
             return False
         for sf in self.cols:
             if sf not in self.raw_data.columns:
-                print('score field {} not in raw dataframe columns:{}!'.format(sf, self.raw_data.columns))
+                print('score field {} not in raw data columns {}!'.format(sf, list(self.raw_data.columns)))
                 return False
         return True
 
@@ -490,13 +506,13 @@ class ScoreTransformModel(object):
             print('check data find error!')
             return False
         if not self.check_parameter():
-            print('check parameter find error!')
+            print('parameter checking find errors!')
             return False
         return True
 
     def read_raw_data_from_csv(self, filename=''):
         if not os.path.isfile(filename):
-            print('{} not valid file name'.format(filename))
+            print('filename:{} is not a valid file name or the file not exists!'.format(filename))
             return
         self.raw_data = pd.read_csv(filename)
 
@@ -510,6 +526,8 @@ class ScoreTransformModel(object):
     def save_map_table_doc(self, filename, col_width=20):
         """
         保存分数转换映射表为文档文件
+        save map talbe to text doc file
+        # deprecated: use module ptt to create griding and  paging text doc
         # with open(filename, mode='w', encoding='utf-8') as f:
         #     f.write(ptt.make_mpage(self.map_table, page_line_num=50))
         """
