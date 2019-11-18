@@ -12,26 +12,24 @@
 
     [functions] 模块中的函数
        run(name, df, col, ratio_list, grade_max, grade_diff, raw_score_max, raw_score_min,
-           out_score_decimal=0, mode_ratio_pick='near', mode_ratio_cumu='yes')
+           out_score_decimal=0, mode_ratio_seek='near', mode_ratio_cumu='yes')
           运行各个模型的调用函数 calling model function
           ---
           参数描述
-          name:= 'shandong'/'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tai'
+          name:str := 'shandong', 'shanghai', 'zhejiang', 'beijing', 'tianjin', 'tai', 'hainan2', 'hainan3', 'hainan4'
           调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
-          caculate shandong... model by name = 'shandong' / 'shanghai'/'zhejiang'/'beijing'/'tianjin'/'tai'
-          -
-          name:= 'zscore'/'t_score'/'tlinear'
-          计算Z分数、T分数、线性转换T分数
-          caculate Z,T,liear T score by name = 'zscore'/ 't_score' / 'tlinear'
           --
-          df: input raw score data, type DataFrame of pandas
+          name:= 'zscore', 't_score', 'tlinear'
+          计算Z分数、T分数、线性转换T分数
+          --
+          data: input raw score data, type DataFrame of pandas
           输入原始分数数据，类型为DataFrame
           --
-          col: score field to calculate in df
-          计算转换分数的字段表
+          cols:list := raw score fields
+          计算转换分数的字段表，列表或元组，元素为字符串
           --
           ratio_list: ratio list including percent value for each interval of grade score
-          划分等级的比例表
+          对原始分数进行等级区间划分的比例表
           --
           grade_max: max value of grade score
           最大等级分数
@@ -45,28 +43,17 @@
           raw_score_min: raw score min value
           最小原始分数
           --
-          out_score_decimal: grade score precision, decimal digit number
-          输出分数精度，小数位数
+          out_score_decimal: decimal digit number
+          输出分数小数位数
           --
-          mode_ratio_pick: how to approxmate score points of raw score for each ratio vlaue
-          计算等级时的逼近方式（目前设计的比例值逼近策略)：
+          mode_ratio_seek: the method to approxmate score points of raw score for each ratio vlaue
+                           通过搜索对应比例的确定等级区间分值点的方式
               'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
               'lower_max': get score with max value in less 大于该比例值的分值中最小的值
-              'near':   get score with nearest ratio 最接近该比例值的分值（分值）
               'near_min': get score with min value in near 最接近该比例值的分值中最小的值
               'near_max': get score with max value in near 最接近该比例值的分值中最大的值
-              注1：针对等级划分区间，也可以考虑使用ROUND_HALF_UP，即靠近最近，等距时向上靠近
-              注2：搜索顺序分为Big2Small和Small2Big两类，区间位精确的定点小数，只有重合点需要策略（UP或DOWN）
 
-              拟改进为（2019.09.09） mode_ratio_pick：
-              'near':    look up the nearest in all ratios to given-ratio 最接近的比例
-              'upper_min':  look up the maximun in ratios which is less than given-ratio 小于给定比例的最大值
-              'lower_max':  look up the minimun in ratios which is more than given-ratio 大于给定比例的最小值
-
-              仍然使用四种模式(2019.09.25)： upper_min, lower_max, near_min, near_max
-
-          拟增加比例累加控制(2019.09.09)：
-          mode_ratio_cumu:
+          mode_ratio_cumu: 比例累加控制(2019.09.09)
               'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
               'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
 
@@ -78,23 +65,20 @@
           [4] m.output.head()
           [5] m.save_out_data_to_csv
 
-       plot()
+       plot_models_outscore_hist_graph()
           山东、浙江、上海、北京、天津、广东、湖南方案等级转换分数分布直方图
           plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
 
-       round45i(v: float, dec=0)
-          四舍五入函数
+       round45r(v: float, dec=0)
+          四舍五入函数, 用于改进round产生的偶数逼近和二进制表示方式产生的四舍五入误差
           function for rounding strictly at some decimal position
-          v 输入浮点数， dec：保留小数位数，缺省为0
+          v： 输入浮点数，
+          dec：保留小数位数
 
        get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
           生成具有指定记录数（size=400）、标准差(std=1)、均值(mean=0)、截止标准差数（最小最大）(stdnum=4)的正态分布表
           create norm data dataframe with assigned scale, mean, standard deviation, std range
 
-       get_norm_dist_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6)
-          生成具有指定均值(mean=70)、标准差(std=10)、最大值(maxvalue=100)、最小值(minvalue=0)、
-          样本数(size=1000)、保留小数位（decimal=6）的数据样本集(pandas.DataFrame)
-          create sample data set according to assigned mean, std, maxvalue, minvalue, size, decimal
 
     [classes] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
@@ -177,21 +161,20 @@ CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 # make norm table for standard score start-end(100-900, 60-300,...)
-def get_seg_ratio_from_norm_cdf(start, end):
+def get_seg_ratio_from_norm_cdf(start, end, std_num=4, step=1):
     """
     set endpoint ratio from morm.cdf:
         start_point: seg[0] = (1 - cdf(-4))*100
-        next_point:  seg_ratio = cdf[i+1] - cdf[i],
-        end_point:   seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
+         next_point: seg_ratio = cdf[i+1] - cdf[i],
+          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
     """
 
-    _start_point, end_point = start, end
-    _mean = (_start_point + end_point) / 2
-    _std = (_mean - _start_point) / 4
-    norm_cdf = tuple(sts.norm.cdf((v-_mean)/_std) for v in range(_start_point, end_point + 1))
+    start_point, end_point, _mean = start, end, (start+end)/2
+    _std = (_mean - start_point) / std_num
+    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
     norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
                   else norm_cdf[i]*100
-                  for i in range(end_point - _start_point + 1)]
+                  for i in range(len(norm_cdf))]
     norm_table[-1] = 100 - sum(norm_table[:-1])
     return tuple(norm_table)
 
@@ -241,7 +224,7 @@ MODELS_RATIO_SEGMENT_DICT = {
 
 MODEL_STRATEGIES_DICT = {
     'mode_score_order': ('ascending', 'descending'),
-    'mode_ratio_pick': ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_ratio_seek': ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu': ('yes', 'no'),
     'mode_seg_degraded': ('max', 'min', 'mean'),
     'mode_score_max': ('map_to_max', 'map_by_ratio'),
@@ -262,7 +245,7 @@ def run(
         name='shandong',
         data=None,
         cols=(),
-        mode_ratio_pick='upper_min',
+        mode_ratio_seek='upper_min',
         mode_ratio_cumu='no',
         mode_score_order='descending',
         raw_score_range=(0, 100),
@@ -280,7 +263,7 @@ def run(
                             default = (0, 100)
     :param out_score_decimal: int, decimal digits of output score
                               default = 0, thar means out score type is int
-    :param mode_ratio_pick: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
+    :param mode_ratio_seek: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
                            default='upper_min'
     :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
                            default='no'
@@ -311,9 +294,9 @@ def run(
         print('invalid cols type:{}!'.format(type(cols)))
         return
 
-    # check mode_ratio_pick
-    if mode_ratio_pick not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
-        print('invalid approx mode: {}'.format(mode_ratio_pick))
+    # check mode_ratio_seek
+    if mode_ratio_seek not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
+        print('invalid approx mode: {}'.format(mode_ratio_seek))
         print('  valid approx mode: lower_max, upper_min, near_min, near_max')
         return
     if mode_ratio_cumu not in ['yes', 'no']:
@@ -331,7 +314,7 @@ def run(
             raw_score_ratio_tuple=ratio_tuple,
             out_score_seg_tuple=MODELS_RATIO_SEGMENT_DICT[name].seg,
             raw_score_range=raw_score_range,
-            mode_ratio_pick=mode_ratio_pick,
+            mode_ratio_seek=mode_ratio_seek,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_order=mode_score_order,
             out_decimal_digits=out_score_decimal
@@ -680,7 +663,7 @@ class PltScore(ScoreTransformModel):
 
         # para
         self.strategy_dict = {
-            'mode_ratio_pick': 'upper_min',
+            'mode_ratio_seek': 'upper_min',
             'mode_ratio_cumu': 'yes',
             'mode_score_order': 'descending',
             'mode_seg_degraded': 'max',
@@ -727,7 +710,7 @@ class PltScore(ScoreTransformModel):
                  raw_score_ratio_tuple=None,
                  out_score_seg_tuple=None,
                  raw_score_range=(0, 100),
-                 mode_ratio_pick='upper_min',
+                 mode_ratio_seek='upper_min',
                  mode_ratio_cumu='no',
                  mode_score_order='descending',
                  mode_endpoint_share='no',
@@ -754,7 +737,7 @@ class PltScore(ScoreTransformModel):
             self.out_score_points = tuple(x[::-1] for x in out_pt)
         self.raw_score_ratio_cum = tuple(sum(raw_p[0:x + 1]) for x in range(len(raw_p)))
 
-        self.strategy_dict['mode_ratio_pick'] = mode_ratio_pick
+        self.strategy_dict['mode_ratio_seek'] = mode_ratio_seek
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_score_order'] = mode_score_order
         self.strategy_dict['mode_endpoint_share'] = mode_endpoint_share
@@ -961,7 +944,7 @@ class PltScore(ScoreTransformModel):
                 # _p <= some_ratio in raw_score_ratio of cumu list
                 if (abs(_p - sr) < _tiny) or (_p < sr):
                     # strategies to seek matching percent for definded ratio
-                    _mode_zero = self.strategy_dict['mode_ratio_pick']
+                    _mode_zero = self.strategy_dict['mode_ratio_seek']
                     y = -1
                     if (abs(_p - sr) < _tiny) or (si == 0):
                         y = _max + si*_step
@@ -1127,7 +1110,7 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):
 
-        _mode = self.strategy_dict['mode_ratio_pick']
+        _mode = self.strategy_dict['mode_ratio_seek']
         map_table = self.map_table
         _tiny = 10**-8
         _seg = -1
@@ -1622,7 +1605,7 @@ class Zscore(ScoreTransformModel):
         self.raw_score_min = 0
         self.out_data_decimal = 0
         self.out_score_number = 100
-        self.mode_ratio_pick = 'near'
+        self.mode_ratio_seek = 'near'
         self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
                                             for x in range(self.norm_table_len)]
                                       )
@@ -1637,13 +1620,13 @@ class Zscore(ScoreTransformModel):
     def set_para(self,
                  std_num=4,
                  raw_score_range=(0, 100),
-                 mode_ratio_pick='near',
+                 mode_ratio_seek='near',
                  out_decimal=8
                  ):
         self.std_num = std_num
         self.raw_score_max = raw_score_range[1]
         self.raw_score_min = raw_score_range[0]
-        self.mode_ratio_pick = mode_ratio_pick
+        self.mode_ratio_seek = mode_ratio_seek
         self.out_data_decimal = out_decimal
 
     def check_parameter(self):
@@ -1944,7 +1927,7 @@ class GradeScoreTai(ScoreTransformModel):
         self.run_create_out_data()
 
     def run_create_grade_dist_list(self):
-        # mode_ratio_pick = 'near'
+        # mode_ratio_seek = 'near'
         seg = SegTable()
         seg.set_para(segmax=self.raw_score_max,
                      segmin=self.raw_score_min,
@@ -2507,12 +2490,6 @@ class SegTable(object):
 # SegTable class end
 
 
-def round45i(v: float, dec=0):
-    u = int(v * 10 ** dec * 10)
-    r = (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
-    return int(r) if dec <= 0 else r
-
-
 def round45r(number, digits=0):
     int_len = len(str(int(abs(number))))
     if int_len + abs(digits) <= 16:
@@ -2523,95 +2500,6 @@ def round45r(number, digits=0):
             return int(round(number + err_, digits))
     else:
         raise NotImplemented
-
-
-def round45r_old2(number, digits=0):
-    """
-    float is not precise at digit 16 from decimal point.
-    if hope that round(1.265, 3): 1.264999... to 1.265000...
-    need to add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
-    note that: 
-        10**-16     => 0.0...00(53)1110011010...
-        2*10**-16   => 0.0...0(52)1110011010...
-        1.2*10**-16 => 0.0...0(52)100010100...
-    so 10**-16 can not definitely represented in float 1+52bit
-
-    (16 - int_len) is ok, 17 is unstable
-    test result:
-    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(16)4671'      ## digit-16 is reliable
-    format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
-    format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
-    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(16)4671'
-    """
-
-    int_len = str(abs(number)).find('.')
-    if int_len + digits > 16:
-        print('float cannot support {} digits precision'.format(digits))
-        raise ValueError
-    add_err = 10**-12       # valid for 0-16000
-    # add_err = 3.55275*10**-15
-    # add_err = 2*10**-14
-    # add_err = 2 * 10 ** -(16 - int_len + 1) * (1 if number > 0 else -1)
-    # if format(number, '.' + str(16 - digits - int_len) + 'f').rstrip('0') <= str(number):
-    #     return round(number + add_err, digits) + add_err
-    return round(number+add_err, digits)
-
-
-def round45r_old(number, digits=0):
-    __doc__ = '''
-    use multiple 10 power and int method
-    precision is not normal at decimal >16 because of binary representation
-    :param number: input float value
-    :param digits: places after decimal point
-    :return: rounded number with assigned precision
-    '''
-    if format(number, '.'+str(digits+2)+'f').rstrip('0') <= str(number):
-        return round(number+10**-(digits+2), digits)
-    return round(number, digits)
-
-
-def get_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
-    """
-    生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
-    create a score dataframe with fields 'score', used to test some application
-    :parameter
-        mean: 均值， std:标准差， maxvalue:最大值， minvalue:最小值， size:样本数
-    :return
-        DataFrame, columns = {'sv'}
-    """
-    # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
-    #                           for _ in range(size)]})
-    df = pd.DataFrame({'sv': [max(minvalue,
-                                  min(round45i(x, decimal) if decimal > 0 else int(round45i(x, decimal)),
-                                      maxvalue))
-                              for x in np.random.normal(mean, std, size)]})
-    return df
-
-
-# create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
-def get_norm_table2(size=400, std=1, mean=0, stdnum=4):
-    """
-    function
-        生成正态分布量表
-        create normal distributed data(pdf,cdf) with preset std,mean,samples size
-        变量区间： [-stdNum * std, std * stdNum]
-        interval: [-stdNum * std, std * stdNum]
-    parameter
-        变量取值数 size: variable value number for create normal distributed PDF and CDF
-        分布标准差  std:  standard difference
-        分布均值   mean: mean value
-        标准差数 stdnum: used to define data range [-std*stdNum, std*stdNum]
-    return
-        DataFrame: 'sv':stochastic variable value,
-                  'pdf': pdf value, 'cdf': cdf value
-    """
-    interval = [mean - std * stdnum, mean + std * stdnum]
-    step = (2 * std * stdnum) / size
-    varset = [mean + interval[0] + v*step for v in range(size+1)]
-    cdflist = [sts.norm.cdf(v) for v in varset]
-    pdflist = [sts.norm.pdf(v) for v in varset]
-    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf': pdflist})
-    return ndf
 
 
 def use_ellipsis(digit_seq):
@@ -2649,3 +2537,27 @@ def use_ellipsis(digit_seq):
             elif p == end_p + 1:
                 end_p, count_p = p, count_p + 1
     return str(ellipsis_list).replace('Ellipsis', '...')
+
+
+# get ratio form seg points list,
+# set first and end seg to tail ratio from norm table
+# can be used to test std from seg ratio table
+# for example,
+#   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
+#   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
+#   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+def get_seg_ratio(start, end, step, std_num=4):
+    _std, _mean = (end-start)/(std_num*2), (start+end)/2
+    table = []
+    _seg_endpoints = [(x-_mean)/_std for x in range(start, end+1, step)]
+    for i, x in enumerate(_seg_endpoints):
+        if i == 0:
+            continue
+        elif i == 1:
+            table.append(sts.norm.cdf(x))
+        elif 0 < i < len(_seg_endpoints)-1:
+            table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
+        elif i == len(_seg_endpoints)-1:
+            table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
+    return table
+
