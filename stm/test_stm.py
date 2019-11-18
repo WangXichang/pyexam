@@ -117,22 +117,22 @@ def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name='')
 
 
 @wrap.time_disper
-def test_hainan():
+def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
     # data1
     #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
-    test_data1 = TestData(mean=60, std=14, size=60000)
+    test_data = TestData(mean=mean, std=std, size=size)
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = stm.run(name=model_name, data=test_data1.df, cols=['km1'], mode_score_order='ascending')
-        rd = stm.run(name=model_name, data=test_data1.df, cols=['km1'], mode_score_order='descending')
+        ra = stm.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='ascending')
+        rd = stm.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
 
-class TestShandongData():
+class TestStmWithShandongData():
 
     def __init__(self):
         self.df16like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',

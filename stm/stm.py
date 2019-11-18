@@ -1227,9 +1227,9 @@ class PltScore(ScoreTransformModel):
                     break
             if _break:
                 continue
-            if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
-                self.result_formula_text_list += ['(seg-{:3d}) ******'.format(_fi)]
-                continue
+            # if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
+            #     self.result_formula_text_list += ['(seg-{:3d}) ******'.format(_fi)]
+            #     continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
                     ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
@@ -1382,8 +1382,9 @@ class PltScore(ScoreTransformModel):
         print(self.out_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'bar', 'diff', 'normtest']:
-            print('valid mode is: raw, out, model,shift, dist, bar, diff, normtest')
+        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'bar', 'rawbar', 'outbar']:
+            print('mode:[{}] is no in [raw, out, model, shift, dist, diff, bar, ourbar, rawbar]'.
+                  format(mode))
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
@@ -1392,6 +1393,10 @@ class PltScore(ScoreTransformModel):
             self.__plot_dist_seaborn()
         elif mode in 'bar':
             self.__plot_bar()
+        elif mode == 'rawbar':
+            self.__plot_rawbar()
+        elif mode == 'outbar':
+            self.__plot_outbar()
         elif mode in 'diff':
             self.__plot_diff()
         elif mode in 'normtest':
@@ -1451,6 +1456,37 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
+    def __plot_rawbar(self):
+        raw_label = [str(x) for x in range(self.raw_score_max+1)]
+        x_data = list(range(self.raw_score_max+1))
+        seg_list = list(self.map_table.seg)
+        for f in self.cols:
+            raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+                        if xv in seg_list else 0
+                        for xv in x_data]
+            fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: bar graph')
+            ax.set_xticks(x_data)
+            ax.set_xticklabels(raw_label)
+            width = 0.8
+            bar_wid = [p - width/2 for p in x_data]
+            ax.bar(bar_wid, raw_data, width, label=f)
+
+    def __plot_outbar(self):
+        x_label = [str(x) for x in range(self.out_score_max+1)]
+        x_data = list(range(self.out_score_max+1))
+        for f in self.cols:
+            out_ = self.out_data.groupby(f+'_plt').count()[f]
+            out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in x_label]
+            fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+'_out_score]: bar graph')
+            ax.set_xticks(x_data)
+            ax.set_xticklabels(x_label)
+            width = 0.8
+            bar_wid = [p - width/2 for p in x_data]
+            ax.bar(bar_wid, out_data, width, label=f)
+
+
     def __plot_bar(self):
         raw_label = [str(x) for x in range(self.out_score_max+1)]
         x_data = list(range(self.out_score_max+1))
@@ -1459,7 +1495,7 @@ class PltScore(ScoreTransformModel):
             raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
                         if xv in seg_list else 0
                         for xv in x_data]
-            out_ = self.out_data.groupby(f+'_plt').count()[f]    # .sort_index(ascending=False)
+            out_ = self.out_data.groupby(f+'_plt').count()[f]
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: bar graph')
@@ -1483,14 +1519,14 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
     def __plot_dist(self):
-        def plot_hist_fit(field, _label):
+        def plot_dist_fit(field, _label):
             x_data = self.out_data[field]
             # local var _mu, __std
             _mu = np.mean(x_data)
             __std = np.std(x_data)
             count, bins, patches = ax.hist(x_data, 35)
             x_fit = ((1 / (np.sqrt(2 * np.pi) * __std)) * np.exp(-0.5 * (1 / __std * (bins - _mu))**2))
-            x_fit = x_fit * max(count)/max(x_fit)
+            # x_fit = x_fit * max(count)/max(x_fit)
             _color = 'y--' if '_plt' in field else 'g--'
             ax.plot(bins, x_fit, _color, label=_label)
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
@@ -1499,9 +1535,9 @@ class PltScore(ScoreTransformModel):
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: distribution garph')
             # fit raw score distribution
-            plot_hist_fit(f, 'raw score')
+            plot_dist_fit(f, 'raw score')
             # fit out score distribution
-            plot_hist_fit(f+'_plt', 'out score')
+            plot_dist_fit(f+'_plt', 'out score')
         plot.show()
 
     def __plot_dist_seaborn(self):
