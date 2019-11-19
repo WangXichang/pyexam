@@ -159,26 +159,6 @@ CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 CONST_SS7_RATIO = (15, 35, 35, 13, 2)
 CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
-
-# make norm table for standard score start-end(100-900, 60-300,...)
-def get_seg_ratio_from_norm_cdf(start, end, std_num=4, step=1):
-    """
-    set endpoint ratio from morm.cdf:
-        start_point: seg[0] = (1 - cdf(-4))*100
-         next_point: seg_ratio = cdf[i+1] - cdf[i],
-          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
-    """
-
-    start_point, end_point, _mean = start, end, (start+end)/2
-    _std = (_mean - start_point) / std_num
-    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
-    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
-                  else norm_cdf[i]*100
-                  for i in range(len(norm_cdf))]
-    norm_table[-1] = 100 - sum(norm_table[:-1])
-    return tuple(norm_table)
-
-
 # Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
 CONST_HAINAN_RATIO = get_seg_ratio_from_norm_cdf(100, 900)
 CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
@@ -2539,14 +2519,21 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-# get ratio form seg points list,
-# set first and end seg to tail ratio from norm table
-# can be used to test std from seg ratio table
-# for example,
-#   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
-#   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
-#   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
 def get_seg_ratio(start, end, step, std_num=4):
+    """
+    # get ratio form seg points list,
+    # set first and end seg to tail ratio from norm table
+    # can be used to test std from seg ratio table
+    # for example,
+    #   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
+    #   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
+    #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+    :param start:  start value for segments
+    :param end: end value for segments
+    :param step: length for each segment
+    :param std_num: the number is
+    :return:
+    """
     _std, _mean = (end-start)/(std_num*2), (start+end)/2
     table = []
     _seg_endpoints = [(x-_mean)/_std for x in range(start, end+1, step)]
@@ -2561,3 +2548,20 @@ def get_seg_ratio(start, end, step, std_num=4):
             table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
     return table
 
+
+# make norm table for standard score start-end(100-900, 60-300,...)
+def get_point_ratio_from_norm_cdf(start, end, std_num=4, step=1):
+    """
+    set endpoint ratio from morm.cdf:
+        start_point: seg[0] = (1 - cdf(-4))*100
+         next_point: seg_ratio = cdf[i+1] - cdf[i],
+          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
+    """
+    start_point, end_point, _mean = start, end, (start+end)/2
+    _std = (_mean - start_point) / std_num
+    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
+    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
+                  else norm_cdf[i]*100
+                  for i in range(len(norm_cdf))]
+    norm_table[-1] = 100 - sum(norm_table[:-1])
+    return tuple(norm_table)
