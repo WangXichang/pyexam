@@ -2518,7 +2518,7 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-def get_seg_ratio(start, end, step, std_num=4):
+def get_seg_ratio(start, end, step, std=16):
     """
     # get ratio form seg points list,
     # set first and end seg to tail ratio from norm table
@@ -2530,16 +2530,14 @@ def get_seg_ratio(start, end, step, std_num=4):
     :param start:  start value for segments
     :param end: end value for segments
     :param step: length for each segment
-    :param std_num: the number is
+    :param std: preset standard error
     :return:
     """
-    _std, _mean = (end-start)/(std_num*2), (start+end)/2
+    _mean = (end+start)/2
     table = []
-    _seg_endpoints = [(x-_mean)/_std for x in range(start, end+1, step)]
+    _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step) if x > start]    # ignore first point
     for i, x in enumerate(_seg_endpoints):
         if i == 0:
-            continue
-        elif i == 1:
             table.append(sts.norm.cdf(x))
         elif 0 < i < len(_seg_endpoints)-1:
             table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
