@@ -158,14 +158,34 @@ CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 CONST_SS7_RATIO = (15, 35, 35, 13, 2)
 CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
+
+
+# make norm table for standard score start-end(100-900, 60-300,...)
+def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
+    """
+    set endpoint ratio from morm.cdf:
+        start_point: seg[0] = (1 - cdf(-4))*100
+         next_point: seg_ratio = cdf[i+1] - cdf[i],
+          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
+    """
+    start_point, end_point, _mean = start, end, (start+end)/2
+    _std = (_mean - start_point) / std_num
+    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
+    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
+                  else norm_cdf[i]*100
+                  for i in range(len(norm_cdf))]
+    norm_table[-1] = 100 - sum(norm_table[:-1])
+    return tuple(norm_table)
+
+
 # Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
-CONST_HAINAN_RATIO = get_seg_ratio_from_norm_cdf(100, 900)
+CONST_HAINAN_RATIO = get_ratio_from_norm_cdf(100, 900)
 CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
 
 # Hainan2 out_scope: 60-300 (mean=180, std=30)
 #         ordinary method: transform each score individually
 #         use norm cdf for each point, first set in 60-300, then pick ratio-score in raw segtable
-CONST_HAINAN2_RATIO = get_seg_ratio_from_norm_cdf(60, 300)
+CONST_HAINAN2_RATIO = get_ratio_from_norm_cdf(60, 300)
 CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
 
 # Hainan3 out_scope 60-300,
@@ -2535,30 +2555,13 @@ def get_seg_ratio(start, end, step, std=16):
     """
     _mean = (end+start)/2
     table = []
-    _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step) if x > start]    # ignore first point
+    _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step)]
+    # print(_seg_endpoints)
     for i, x in enumerate(_seg_endpoints):
-        if i == 0:
+        if i == 1:    # ignore first point
             table.append(sts.norm.cdf(x))
-        elif 0 < i < len(_seg_endpoints)-1:
+        elif 1 < i < len(_seg_endpoints)-1:
             table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
         elif i == len(_seg_endpoints)-1:
             table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
     return table
-
-
-# make norm table for standard score start-end(100-900, 60-300,...)
-def get_point_ratio_from_norm_cdf(start, end, std_num=4, step=1):
-    """
-    set endpoint ratio from morm.cdf:
-        start_point: seg[0] = (1 - cdf(-4))*100
-         next_point: seg_ratio = cdf[i+1] - cdf[i],
-          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
-    """
-    start_point, end_point, _mean = start, end, (start+end)/2
-    _std = (_mean - start_point) / std_num
-    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
-    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
-                  else norm_cdf[i]*100
-                  for i in range(len(norm_cdf))]
-    norm_table[-1] = 100 - sum(norm_table[:-1])
-    return tuple(norm_table)
