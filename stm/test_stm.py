@@ -7,6 +7,7 @@ import importlib as pb
 import os
 from pytools import wrap
 from collections import namedtuple as ntp
+import scipy.stats as sts
 
 
 # 有关stm测试的问题：
@@ -135,23 +136,23 @@ def test_hainan(mean=60, size=60000, std=16):
 class TestStmWithShandongData():
 
     def __init__(self):
-        self.df16like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
+        self.df16like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df16like.wl = self.df16like.wl.apply(lambda x: int(x*10/11))
         self.df16like.sw = self.df16like.sw.apply(lambda x: int(x*10/9))
-        self.df16wen = pd.read_csv('d:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
+        self.df16wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
                                   usecols=('zz', 'ls', 'dl'))
-        self.df17like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
+        self.df17like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df17like.wl = self.df17like.wl.apply(lambda x: int(x*10/11))
         self.df17like.sw = self.df17like.sw.apply(lambda x: int(x*10/9))
-        self.df17wen = pd.read_csv('d:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
+        self.df17wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
                                   usecols=('zz', 'ls', 'dl'))
-        self.df18like = pd.read_csv('d:/mywrite/newgk/gkdata/18/like.csv', sep=',',
+        self.df18like = pd.read_csv('e:/mywrite/newgk/gkdata/18/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df18like.wl = self.df18like.wl.apply(lambda x: int(x*10/11))
         self.df18like.sw = self.df18like.sw.apply(lambda x: int(x*10/9))
-        self.df18wen = pd.read_csv('d:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
+        self.df18wen = pd.read_csv('e:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
                                    usecols=('zz', 'ls', 'dl'))
         self.models_list = []
         self.model = ntp('model', ['name', 'model'])
@@ -160,7 +161,7 @@ class TestStmWithShandongData():
                 name='shandong',
                 year='16',
                 kl='wenke',
-                mode_ratio_pick='upper_min',
+                mode_ratio_seek='upper_min',
                 mode_ratio_cumu='no',
                 mode_score_order='d',
                 all='no'
@@ -182,23 +183,23 @@ class TestStmWithShandongData():
                 name=name,
                 data=dfs[_run[0]+_run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
-                mode_ratio_pick=mode_ratio_pick,
+                mode_ratio_seek=mode_ratio_seek,
                 mode_ratio_cumu=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
             self.models_list.append(
-                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_pick + '_' + mode_ratio_cumu, m))
+                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_seek + '_' + mode_ratio_cumu, m))
 
     def save_report(self):
         for m in self.models_list:
-            _root = 'd:/mywrite/newgk/gkdata/report/report_'
+            _root = 'e:/mywrite/newgk/gkdata/report/report_'
             m[1].save_report_to_file(_root + m[0] + '.txt')
 
 
 def test_stm_with_stat_data(
         name='shandong',
         mode_ratio_cumu='no',
-        mode_ratio_pick='upper_min',
+        mode_ratio_seek='upper_min',
         score_max=100,
         score_min=0,
         data_size=1000,
@@ -249,7 +250,7 @@ def test_stm_with_stat_data(
               format(data_size, score_min, score_max))
         m = stm.run(name=name,
                     data=dfscore, cols=['kmx'],
-                    mode_ratio_pick=mode_ratio_pick,
+                    mode_ratio_seek=mode_ratio_seek,
                     mode_ratio_cumu=mode_ratio_cumu
                     )
         return m
