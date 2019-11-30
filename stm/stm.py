@@ -222,15 +222,15 @@ MODELS_RATIO_SEGMENT_DICT = {
     }
 
 MODEL_STRATEGIES_DICT = {
-    'mode_search_order': ('ascending', 'descending'),
+    'mode_ratio_order': ('ascending', 'descending'),
     'mode_ratio_prox': ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu': ('yes', 'no'),
     'mode_seg_one_point': ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
     'mode_seg_non_point': ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_seg_share_endpoint': ('no', 'yes'),
     'mode_score_top_empty': ('ignore', 'map_to_max'),
     'mode_score_mid_empty': ('ignore', 'map_to_min', 'map_to_max'),
     'mode_score_zero_empty': ('ignore', 'map_to_min'),
-    'mode_endpoint_share': ('no', 'yes')
     }
 MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEGMENT_DICT.keys()) +
                          ['zscore', 'tscore', 'tai', 'tlinear'])
@@ -247,7 +247,8 @@ def run(
         cols=(),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_search_order='descending',
+        mode_ratio_order='descending',
+        mode_seg_one_point='map_to_max',
         raw_score_range=(0, 100),
         out_score_decimal=0
         ):
@@ -267,7 +268,7 @@ def run(
                            default='upper_min'
     :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
                            default='no'
-    :param mode_search_order: string, strategy to sort score, values: 'descending', 'ascending'
+    :param mode_ratio_order: string, strategy to sort score, values: 'descending', 'ascending'
                              default='descending'
     :return: model
     """
@@ -316,7 +317,7 @@ def run(
             raw_score_range=raw_score_range,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
-            mode_search_order=mode_search_order,
+            mode_ratio_order=mode_ratio_order,
             out_decimal_digits=out_score_decimal
             )
         plt_model.run()
@@ -361,7 +362,7 @@ def run(
         return tm
 
 
-def plot_stm(font_size=12, hainan='900'):
+def plot_models(font_size=12, hainan='900'):
     _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hainan']
     if hainan == '300':
         _names.remove('hainan')
@@ -425,8 +426,7 @@ class ScoreTransformModel(object):
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
         T分数线性模型（TscoreLinear),
-        等级分数模型(GradeScore)
-        山东省新高考转换分数模型（PltScore）（分段线性转换分数）
+        新高考等级分数转换分数模型（PltScore）（分段线性转换分数）
         param model_name, type==str
         param raw_data: raw score data, type==datafrmae
         param col: fields in raw_data, assign somr subjects score to transform
@@ -665,13 +665,13 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict = {
             'mode_ratio_prox': 'upper_min',
             'mode_ratio_cumu': 'yes',
-            'mode_search_order': 'descending',
+            'mode_ratio_order': 'descending',
             'mode_seg_one_point': 'max',
             'mode_seg_non_point': 'ignore',
             'mode_score_top_empty': 'map_to_max',
             'mode_score_zero_empty': 'map_by_ratio',
             'mode_score_mid_empty': 'ignore',
-            'mode_endpoint_share': 'no'
+            'mode_seg_share_endpoint': 'no'
         }
 
         # result
@@ -712,8 +712,8 @@ class PltScore(ScoreTransformModel):
                  raw_score_range=(0, 100),
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
-                 mode_search_order='descending',
-                 mode_endpoint_share='no',
+                 mode_ratio_order='descending',
+                 mode_seg_share_endpoint='no',
                  out_decimal_digits=None):
         # if (type(raw_score_ratio_tuple) != tuple) | (type(out_score_seg_tuple) != tuple):
         #     print('the type of input score points or output score points is not tuple!')
@@ -727,7 +727,7 @@ class PltScore(ScoreTransformModel):
         if isinstance(out_decimal_digits, int):
             self.out_decimal_digits = out_decimal_digits
 
-        if mode_search_order in ['descending', 'd']:
+        if mode_ratio_order in ['descending', 'd']:
             raw_p = raw_score_ratio_tuple
             out_pt = out_score_seg_tuple
             self.out_score_points = out_pt
@@ -739,8 +739,8 @@ class PltScore(ScoreTransformModel):
 
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
-        self.strategy_dict['mode_search_order'] = mode_search_order
-        self.strategy_dict['mode_endpoint_share'] = mode_endpoint_share
+        self.strategy_dict['mode_ratio_order'] = mode_ratio_order
+        self.strategy_dict['mode_seg_share_endpoint'] = mode_seg_share_endpoint
 
     def check_parameter(self):
         if not self.cols:
@@ -778,7 +778,7 @@ class PltScore(ScoreTransformModel):
 
         # calculate seg table
         print('--- calculating map_table ...')
-        _segsort = self.strategy_dict['mode_search_order']
+        _segsort = self.strategy_dict['mode_ratio_order']
         self.seg_model = run_seg(
                   raw_data=self.raw_data,
                   cols=self.cols,
@@ -914,7 +914,7 @@ class PltScore(ScoreTransformModel):
         coeff_dict = dict()
         result_ratio = []
         _tiny = 10**-8     # used to judge zero score(s==0) or equal to(s1==s2)
-        _mode_order = self.strategy_dict['mode_search_order']
+        _mode_order = self.strategy_dict['mode_ratio_order']
         _max = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
         for ri, row in self.map_table.iterrows():
@@ -1004,7 +1004,7 @@ class PltScore(ScoreTransformModel):
 
         # create raw score segments list
         x_points = self.result_raw_endpoints
-        step = 1 if self.strategy_dict['mode_search_order'] in ['ascending', 'a'] else -1
+        step = 1 if self.strategy_dict['mode_ratio_order'] in ['ascending', 'a'] else -1
         x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
                   for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         # 3-problems: minus score,
@@ -1045,7 +1045,7 @@ class PltScore(ScoreTransformModel):
             _score_min = self.raw_score_min
             _score_max = self.raw_score_max
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
-        _mode_order = self.strategy_dict['mode_search_order']
+        _mode_order = self.strategy_dict['mode_ratio_order']
         _ratio_cum_list = self.raw_score_ratio_cum
 
         # start points for raw score segments
@@ -1197,7 +1197,7 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
-        p = 0 if self.strategy_dict['mode_search_order'] in ['ascending', 'a'] else 1
+        p = 0 if self.strategy_dict['mode_ratio_order'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
         _fi = 1
         for k in self.result_dict[field]['coeff']:
@@ -1553,7 +1553,7 @@ class PltScore(ScoreTransformModel):
 
             formula = self.result_dict[col]['coeff']
             for cfi, cf in enumerate(formula.values()):
-                _score_order = self.strategy_dict['mode_search_order']
+                _score_order = self.strategy_dict['mode_ratio_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
                 plot.plot(x, y, linewidth=2)
