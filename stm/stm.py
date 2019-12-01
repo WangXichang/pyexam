@@ -221,17 +221,18 @@ MODELS_RATIO_SEGMENT_DICT = {
     'hainan5': RatioSeg(tuple(CONST_HAINAN5_RATIO), tuple(CONST_HAINAN5_SEGMENT))
     }
 
-# choice_count = 2 * 4 * 2 * 4 * 4 * 2 * 2 * 3
+# choice_count = 2 * 4 * 2 * 4 * 4 * 2 * 2 * 2 * 2 * 3, 12288
 MODEL_STRATEGIES_DICT = {
-    'mode_score_order': ('ascending', 'descending'),
-    'mode_ratio_prox': ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_ratio_cumu': ('yes', 'no'),
-    'mode_seg_one_point': ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
-    'mode_seg_non_point': ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_seg_end_share': ('no', 'yes'),
-    'mode_score_top_empty': ('ignore', 'map_to_max'),
-    'mode_score_mid_empty': ('ignore', 'map_to_min', 'map_to_max'),
-    'mode_score_zero': ('ignore', 'map_to_min'),
+    'mode_score_order':       ('ascending', 'descending'),
+    'mode_ratio_prox':        ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_ratio_cumu':        ('yes', 'no'),
+    'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
+    'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_seg_end_share':     ('no', 'yes'),
+    'mode_score_full_to_max': ('no', 'yes'),    # not for empty, but for ratio
+    'mode_score_zero_to_min': ('no', 'yes'),    # ...
+    'mode_score_max_to_max':  ('no', 'yes'),    # max raw score to max out score
+    'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
     }
 MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEGMENT_DICT.keys()) +
                          ['zscore', 'tscore', 'tai', 'tlinear'])
@@ -670,9 +671,10 @@ class PltScore(ScoreTransformModel):
             'mode_seg_one_point': 'max',
             'mode_seg_non_point': 'ignore',
             'mode_seg_end_share': 'no',
-            'mode_score_top_empty': 'ignore',
-            'mode_score_mid_empty': 'ignore',
-            'mode_score_zero': 'ignore'
+            'mode_score_full_to_max': 'no',
+            'mode_score_zero_to_min': 'no',
+            'mode_score_max_to_max': 'no',
+            'mode_score_empty': 'ignore',
         }
 
         # result
@@ -985,7 +987,7 @@ class PltScore(ScoreTransformModel):
         # --step 1
         # claculate raw_score_endpoints
         print('   get input score endpoints ...')
-        points_list = self.__get_formula_raw_seg_list(field=field)
+        points_list = self.get_seg_points_list(field=field)
         self.result_raw_endpoints = points_list
         if len(points_list) == 0:
             return False
@@ -1039,17 +1041,20 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    def __get_formula_raw_seg_list(self, field):
+    def get_seg_points_list(self, field):
         result_ratio = []
-        if self.strategy_dict['mode_score_zero'] == 'ignore':
+        _ratio_cum_list = self.raw_score_ratio_cum
+
+        if self.strategy_dict['mode_score_zero_to_min'] == 'no':
             _score_min = self.raw_data[field].min()
-            _score_max = self.raw_data[field].max()
         else:
             _score_min = self.raw_score_min
+        if self.strategy_dict['mode_score_full_to_max'] == 'no':
+            _score_max = self.raw_data[field].max()
+        else:
             _score_max = self.raw_score_max
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
         _mode_order = self.strategy_dict['mode_score_order']
-        _ratio_cum_list = self.raw_score_ratio_cum
 
         # start points for raw score segments
         _start_endpoint = _score_min if _mode_order in ['a', 'ascending'] else _score_max
@@ -1061,11 +1066,7 @@ class PltScore(ScoreTransformModel):
         _step = 1 if _mode_order in ['a', 'ascending'] else -1
         for i, cumu_ratio in enumerate(_ratio_cum_list):
             this_seg_ratio = cumu_ratio-last_ratio
-            dest_percent = cumu_ratio if _mode_cumu == 'no' else \
-                this_seg_ratio + last_percent
-
-            # defined in model: cumu_ratio[-1]==1
-            # dest_percent == 1.0 at i == len(cumu_ratio)
+            dest_percent = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_percent
 
             # seek endpoint and real cumulative percent of each segment from map_table
             this_seg_endpoint, real_percent = self.get_seg_from_map_table(field, dest_percent)
@@ -1112,43 +1113,44 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):
 
-        _mode = self.strategy_dict['mode_ratio_prox']
-        map_table = self.map_table
+        _mode_prox = self.strategy_dict['mode_ratio_prox']
+        _top_index = self.map_table.index.max()
         _tiny = 10**-8
+
         _seg = -1
         _percent = -1
         last_percent = -1
         last_seg = None
         last_diff = 1000
         _use_last = False
-        for index, row in map_table.iterrows():
+        for index, row in self.map_table.iterrows():
             _percent = row[field+'_percent']
             _seg = row['seg']
             _diff = abs(_percent - dest_ratio)
 
             # at table bottom or lowest score, use_current
             # may process strategy later in seg_list for score_min = 'real/zero'
-            if (index == map_table.index.max()) or (_percent >= 1):
+            if (index == _top_index) or (_percent >= 1):
                 break
 
             # reach bigger than or equal to ratio
-            # no effect on stratedy: mode_score_mid_empty
             if _percent >= dest_ratio:
                 # at top row
                 if last_seg is None:
                     break
                 # dealing with strategies
-                if 'near' in _mode:
+                if 'near' in _mode_prox:
                     # (distances are same, and _mode is near_min) or (last is near)
-                    if ((abs(_diff-last_diff) < _tiny) and ('near_min' in _mode)) or \
+                    if ((abs(_diff-last_diff) < _tiny) and ('near_min' in _mode_prox)) or \
                        (_diff > last_diff):
                         _use_last = True
-                elif _mode == 'lower_max':
+                elif _mode_prox == 'lower_max':
                     if abs(_percent-dest_ratio) > _tiny:
                         _use_last = True
-                elif _mode == 'upper_min':
+                elif _mode_prox == 'upper_min':
                     pass
                 else:
+                    print('Error ratio prox mode: {}'.format(_mode_prox))
                     raise ValueError
                 break
             last_seg = _seg
@@ -1158,6 +1160,7 @@ class PltScore(ScoreTransformModel):
             return last_seg, last_percent
         return _seg, _percent
 
+    # design for future
     @classmethod
     def get_seg_from_fr(cls, 
                         mapdf: pd.DataFrame,
