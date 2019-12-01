@@ -2,10 +2,8 @@
 
 import pandas as pd
 import numpy as np
-# from stm import stm as stm
 import importlib as pb
 import os
-# from pytools import wrap
 from collections import namedtuple as ntp
 import scipy.stats as sts
 import time

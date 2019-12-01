@@ -1569,6 +1569,8 @@ class PltScore(ScoreTransformModel):
                     plot.text(xx-2 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
                 for j, yy in enumerate(y):
                     plot.text(4, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
+                    if y[0] == y[1]:
+                        break
 
             # darw y = x for showing score shift
             plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
