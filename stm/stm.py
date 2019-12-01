@@ -221,8 +221,9 @@ MODELS_RATIO_SEGMENT_DICT = {
     'hainan5': RatioSeg(tuple(CONST_HAINAN5_RATIO), tuple(CONST_HAINAN5_SEGMENT))
     }
 
+# choice_count = 2 * 4 * 2 * 4 * 4 * 2 * 2 * 3
 MODEL_STRATEGIES_DICT = {
-    'mode_ratio_order': ('ascending', 'descending'),
+    'mode_score_order': ('ascending', 'descending'),
     'mode_ratio_prox': ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu': ('yes', 'no'),
     'mode_seg_one_point': ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
@@ -230,7 +231,7 @@ MODEL_STRATEGIES_DICT = {
     'mode_seg_end_share': ('no', 'yes'),
     'mode_score_top_empty': ('ignore', 'map_to_max'),
     'mode_score_mid_empty': ('ignore', 'map_to_min', 'map_to_max'),
-    'mode_score_zero_empty': ('ignore', 'map_to_min'),
+    'mode_score_zero': ('ignore', 'map_to_min'),
     }
 MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEGMENT_DICT.keys()) +
                          ['zscore', 'tscore', 'tai', 'tlinear'])
@@ -247,7 +248,7 @@ def run(
         cols=(),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_ratio_order='descending',
+        mode_score_order='descending',
         mode_seg_one_point='map_to_max',
         raw_score_range=(0, 100),
         out_score_decimal=0
@@ -268,7 +269,7 @@ def run(
                            default='upper_min'
     :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
                            default='no'
-    :param mode_ratio_order: string, strategy to sort score, values: 'descending', 'ascending'
+    :param mode_score_order: string, strategy to sort score, values: 'descending', 'ascending'
                              default='descending'
     :return: model
     """
@@ -317,7 +318,7 @@ def run(
             raw_score_range=raw_score_range,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
-            mode_ratio_order=mode_ratio_order,
+            mode_score_order=mode_score_order,
             out_decimal_digits=out_score_decimal
             )
         plt_model.run()
@@ -665,13 +666,13 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict = {
             'mode_ratio_prox': 'upper_min',
             'mode_ratio_cumu': 'yes',
-            'mode_ratio_order': 'descending',
+            'mode_score_order': 'descending',
             'mode_seg_one_point': 'max',
             'mode_seg_non_point': 'ignore',
             'mode_seg_end_share': 'no',
-            'mode_score_top_empty': 'map_to_max',
-            'mode_score_zero_empty': 'map_by_ratio',
+            'mode_score_top_empty': 'ignore',
             'mode_score_mid_empty': 'ignore',
+            'mode_score_zero': 'ignore'
         }
 
         # result
@@ -712,7 +713,7 @@ class PltScore(ScoreTransformModel):
                  raw_score_range=(0, 100),
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
-                 mode_ratio_order='descending',
+                 mode_score_order='descending',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
         # if (type(raw_score_ratio_tuple) != tuple) | (type(out_score_seg_tuple) != tuple):
@@ -727,7 +728,7 @@ class PltScore(ScoreTransformModel):
         if isinstance(out_decimal_digits, int):
             self.out_decimal_digits = out_decimal_digits
 
-        if mode_ratio_order in ['descending', 'd']:
+        if mode_score_order in ['descending', 'd']:
             raw_p = raw_score_ratio_tuple
             out_pt = out_score_seg_tuple
             self.out_score_points = out_pt
@@ -739,7 +740,7 @@ class PltScore(ScoreTransformModel):
 
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
-        self.strategy_dict['mode_ratio_order'] = mode_ratio_order
+        self.strategy_dict['mode_score_order'] = mode_score_order
         self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
     def check_parameter(self):
@@ -778,7 +779,7 @@ class PltScore(ScoreTransformModel):
 
         # calculate seg table
         print('--- calculating map_table ...')
-        _segsort = self.strategy_dict['mode_ratio_order']
+        _segsort = self.strategy_dict['mode_score_order']
         self.seg_model = run_seg(
                   raw_data=self.raw_data,
                   cols=self.cols,
@@ -913,63 +914,65 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
         result_ratio = []
-        _tiny = 10**-8     # used to judge zero score(s==0) or equal to(s1==s2)
-        _mode_order = self.strategy_dict['mode_ratio_order']
-        _max = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
+        _tiny = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
+
+        _mode_order = self.strategy_dict['mode_score_order']
+        _mode_zero = self.strategy_dict['mode_score_zero']
+        _mode_prox = self.strategy_dict['mode_ratio_prox']
+
+        _start_score = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
+
         for ri, row in self.map_table.iterrows():
             _seg = row['seg']
             _p = row[col + '_percent']
+            y = -1  # init out_score y = a * x + b
 
             # raw score == 0
             if abs(_seg) < _tiny:
-                _mode_zero = self.strategy_dict['mode_score_zero_empty']
                 if _mode_zero == 'ignore':
-                    continue
+                    pass
                 elif _mode_zero == 'map_to_min':
                     if _mode_order in ['ascending', 'a']:
                         y = self.out_score_min
-                        row[col+'_plt'] = y
-                        coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
-                        result_ratio.append(format(_p, '.6f'))
-                    continue
-                elif _mode_zero == 'map_by_ratio':
-                    pass
+                        continue
                 else:
-                    raise ValueError    # error mode_score_zero_empty value
+                    print('Error Zero Score Mode: {}'.format(_mode_zero))
+                    raise ValueError
 
-            # raw score > 0
-            # seek ratio for percent intead of seeking percent for ratio
+            # seeking ratio by percent to set out score
             for si, sr in enumerate(self.raw_score_ratio_cum):
-                # _p <= some_ratio in raw_score_ratio of cumu list
-                if (abs(_p - sr) < _tiny) or (_p < sr):
-                    # strategies to seek matching percent for definded ratio
-                    _mode_zero = self.strategy_dict['mode_ratio_prox']
+                # sr == _p or sr > _p
+                if (abs(sr - _p) < _tiny) or (sr > _p):
                     y = -1
                     if (abs(_p - sr) < _tiny) or (si == 0):
-                        y = _max + si*_step
-                    elif _mode_zero == 'upper_min':
-                        y = _max + si*_step
-                    elif _mode_zero == 'lower_max':
+                        y = _start_score + si*_step
+                    elif _mode_prox == 'upper_min':
+                        y = _start_score + si*_step
+                    elif _mode_prox == 'lower_max':
                         if si > 0:
-                            y = _max + (si - 1)*_step
+                            y = _start_score + (si - 1)*_step
                         else:
-                            y = _max + si*_step
-                    elif 'near' in _mode_zero:
+                            y = _start_score + si*_step
+                    elif 'near' in _mode_prox:
                         if abs(_p-sr) < abs(_p-self.raw_score_ratio_cum[si-1]):
-                            y = _max - si
+                            y = _start_score - si
                         elif abs(_p-sr) > abs(_p-self.raw_score_ratio_cum[si-1]):
-                            y = _max + (si - 1)*_step
+                            y = _start_score + (si - 1)*_step
                         else:
-                            if 'near_max' in _mode_zero:
-                                y = _max + si*_step
+                            if 'near_max' in _mode_prox:
+                                y = _start_score + si*_step
                             else:
-                                y = _max + (si - 1)*_step
-                    row[col+'_plt'] = y
-                    coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
-                    result_ratio.append(format(_p, '.6f'))
+                                y = _start_score + (si - 1)*_step
+                    else:
+                        print('Error Ratio Prox Mode: {}'.format(_mode_prox))
+                        raise ValueError
                     break
-                # end scanning raw_score_ratio_list
+            if y > 0:
+                row[col+'_plt'] = y
+                coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
+                result_ratio.append(format(_p, '.6f'))
+            # end scanning raw_score_ratio_list
         # end scanning map_table
 
         self.result_formula_coeff = coeff_dict
@@ -1004,7 +1007,7 @@ class PltScore(ScoreTransformModel):
 
         # create raw score segments list
         x_points = self.result_raw_endpoints
-        step = 1 if self.strategy_dict['mode_ratio_order'] in ['ascending', 'a'] else -1
+        step = 1 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else -1
         x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
                   for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
         # 3-problems: minus score,
@@ -1038,42 +1041,41 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def __get_formula_raw_seg_list(self, field):
         result_ratio = []
-        if self.strategy_dict['mode_score_zero_empty'] == 'ignore':
+        if self.strategy_dict['mode_score_zero'] == 'ignore':
             _score_min = self.raw_data[field].min()
             _score_max = self.raw_data[field].max()
         else:
             _score_min = self.raw_score_min
             _score_max = self.raw_score_max
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
-        _mode_order = self.strategy_dict['mode_ratio_order']
+        _mode_order = self.strategy_dict['mode_score_order']
         _ratio_cum_list = self.raw_score_ratio_cum
 
         # start points for raw score segments
-        raw_score_start = _score_min if _mode_order in ['a', 'ascending'] else _score_max
-        result_raw_seg_list = [raw_score_start]
-        _step = 1 if _mode_order in ['a', 'ascending'] else -1
+        _start_endpoint = _score_min if _mode_order in ['a', 'ascending'] else _score_max
+        result_seg_list = [_start_endpoint]
 
         # ratio: predefined,  percent: computed from data
         last_ratio = 0
         last_percent = 0
+        _step = 1 if _mode_order in ['a', 'ascending'] else -1
         for i, cumu_ratio in enumerate(_ratio_cum_list):
             this_seg_ratio = cumu_ratio-last_ratio
             dest_percent = cumu_ratio if _mode_cumu == 'no' else \
                 this_seg_ratio + last_percent
 
-            # It is defined in model: cumu_ratio[-1]==1
-            # if i == len(_ratio_cum_list)-1:
-            #     dest_percent = 1.0
+            # defined in model: cumu_ratio[-1]==1
+            # dest_percent == 1.0 at i == len(cumu_ratio)
 
-            # seek first endpoint and real cumulative percent of each segment from map_table
+            # seek endpoint and real cumulative percent of each segment from map_table
             this_seg_endpoint, real_percent = self.get_seg_from_map_table(field, dest_percent)
 
             # print(this_seg_endpoint)
             if i == 0:
-                this_seg_startpoint = result_raw_seg_list[0]
+                this_seg_startpoint = result_seg_list[0]
             elif last_percent < 1:
-                if result_raw_seg_list[i] != this_seg_endpoint:
-                    this_seg_startpoint = result_raw_seg_list[i] + _step
+                if result_seg_list[i] != this_seg_endpoint:
+                    this_seg_startpoint = result_seg_list[i] + _step
                 else:
                     this_seg_startpoint = -1
             else:
@@ -1085,7 +1087,7 @@ class PltScore(ScoreTransformModel):
             # save to result ratio
             result_ratio.append('{:.6f}'.format(real_percent))
             # save result endpoints (noshare, share)
-            result_raw_seg_list.append(this_seg_endpoint)
+            result_seg_list.append(this_seg_endpoint)
 
             print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                   'map_interval: raw:[{4:3.0f}, {5:3.0f}]  out:[{6:3.0f}, {7:3.0f}]'.
@@ -1105,7 +1107,7 @@ class PltScore(ScoreTransformModel):
             last_percent = real_percent
 
         self.result_ratio_dict[field] = result_ratio
-        return result_raw_seg_list
+        return result_seg_list
 
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):
@@ -1187,7 +1189,7 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += format('strategies: ', '>23') + '\n'
 
         for k in MODEL_STRATEGIES_DICT:
-            self.out_report_doc += ' ' * 23 + '{:<32s} {}'. \
+            self.out_report_doc += ' ' * 22 + '{0:<40s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
                        MODEL_STRATEGIES_DICT[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
@@ -1197,7 +1199,7 @@ class PltScore(ScoreTransformModel):
 
     def __get_report_doc(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
-        p = 0 if self.strategy_dict['mode_ratio_order'] in ['ascending', 'a'] else 1
+        p = 0 if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
         _fi = 1
         for k in self.result_dict[field]['coeff']:
@@ -1553,7 +1555,7 @@ class PltScore(ScoreTransformModel):
 
             formula = self.result_dict[col]['coeff']
             for cfi, cf in enumerate(formula.values()):
-                _score_order = self.strategy_dict['mode_ratio_order']
+                _score_order = self.strategy_dict['mode_score_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
                 plot.plot(x, y, linewidth=2)
