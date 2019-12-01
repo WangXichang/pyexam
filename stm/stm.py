@@ -919,7 +919,7 @@ class PltScore(ScoreTransformModel):
         _tiny = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
 
         _mode_order = self.strategy_dict['mode_score_order']
-        _mode_zero = self.strategy_dict['mode_score_zero']
+        _mode_zero = self.strategy_dict['mode_score_zero_to_min']
         _mode_prox = self.strategy_dict['mode_ratio_prox']
 
         _start_score = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
@@ -932,7 +932,7 @@ class PltScore(ScoreTransformModel):
 
             # raw score == 0
             if abs(_seg) < _tiny:
-                if _mode_zero == 'ignore':
+                if _mode_zero == 'no':
                     pass
                 elif _mode_zero == 'map_to_min':
                     if _mode_order in ['ascending', 'a']:
