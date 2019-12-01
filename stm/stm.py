@@ -227,7 +227,7 @@ MODEL_STRATEGIES_DICT = {
     'mode_ratio_cumu': ('yes', 'no'),
     'mode_seg_one_point': ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
     'mode_seg_non_point': ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_seg_share_endpoint': ('no', 'yes'),
+    'mode_seg_end_share': ('no', 'yes'),
     'mode_score_top_empty': ('ignore', 'map_to_max'),
     'mode_score_mid_empty': ('ignore', 'map_to_min', 'map_to_max'),
     'mode_score_zero_empty': ('ignore', 'map_to_min'),
@@ -537,16 +537,16 @@ class ScoreTransformModel(object):
     def plot(self, mode='raw'):
         # implemented plot_out, plot_raw score figure
         if mode.lower() == 'out':
-            self.__plot_out_score()
+            self.plot_out_score()
         elif mode.lower() == 'raw':
-            self.__plot_raw_score()
+            self.plot_raw_score()
         # return False so that implementing other plotting in subclass
         else:
             return False
         # do not need to implement in subclass
         return True
 
-    def __plot_out_score(self):
+    def plot_out_score(self):
         if not self.cols:
             print('no field assigned in {}!'.format(self.raw_data))
             return
@@ -565,7 +565,7 @@ class ScoreTransformModel(object):
                       format(list(self.out_data.columns)))
         return
 
-    def __plot_raw_score(self):
+    def plot_raw_score(self):
         if not self.cols:
             print('no field assign in rawdf!')
             return
@@ -668,10 +668,10 @@ class PltScore(ScoreTransformModel):
             'mode_ratio_order': 'descending',
             'mode_seg_one_point': 'max',
             'mode_seg_non_point': 'ignore',
+            'mode_seg_end_share': 'no',
             'mode_score_top_empty': 'map_to_max',
             'mode_score_zero_empty': 'map_by_ratio',
             'mode_score_mid_empty': 'ignore',
-            'mode_seg_share_endpoint': 'no'
         }
 
         # result
@@ -713,7 +713,7 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_ratio_order='descending',
-                 mode_seg_share_endpoint='no',
+                 mode_seg_end_share='no',
                  out_decimal_digits=None):
         # if (type(raw_score_ratio_tuple) != tuple) | (type(out_score_seg_tuple) != tuple):
         #     print('the type of input score points or output score points is not tuple!')
@@ -740,7 +740,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_ratio_order'] = mode_ratio_order
-        self.strategy_dict['mode_seg_share_endpoint'] = mode_seg_share_endpoint
+        self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
     def check_parameter(self):
         if not self.cols:
@@ -1084,7 +1084,7 @@ class PltScore(ScoreTransformModel):
 
             # save to result ratio
             result_ratio.append('{:.6f}'.format(real_percent))
-            # save result endpoints (linked, share)
+            # save result endpoints (noshare, share)
             result_raw_seg_list.append(this_seg_endpoint)
 
             print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
