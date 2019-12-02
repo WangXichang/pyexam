@@ -427,7 +427,7 @@ def add_model(name: str, ratio_list: tuple, segment_list: tuple):
     MODELS_NAME_LIST.append(name)
 
 
-def show_models_ratio_seg():
+def show_models():
     for k in MODELS_RATIO_SEGMENT_DICT:
         v = MODELS_RATIO_SEGMENT_DICT[k]
         print('{:<20s} {}'.format(k, v.ratio))
