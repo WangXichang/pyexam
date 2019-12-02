@@ -1577,7 +1577,6 @@ class PltScore(ScoreTransformModel):
                     plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
                 for j, xx in enumerate(x):
                     plot.text(xx-2 if j == 1 else xx, out_min-2, '{}'.format(int(xx)))
-                    plot.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
 
                 # out_score scale value beside y-axis
                 for j, yy in enumerate(y):
