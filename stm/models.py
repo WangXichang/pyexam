@@ -235,8 +235,8 @@ MODEL_STRATEGIES_DICT = {
     'mode_score_max_to_max':  ('no', 'yes'),    # max raw score to max out score
     'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
     }
-MODELS_NAME_LIST = tuple(list(MODELS_RATIO_SEGMENT_DICT.keys()) +
-                         ['zscore', 'tscore', 'tai', 'tlinear'])
+MODELS_NAME_LIST = list(MODELS_RATIO_SEGMENT_DICT.keys()) + \
+                   ['zscore', 'tscore', 'tai', 'tlinear']
 
 
 def about():
@@ -374,7 +374,7 @@ def plot_models(font_size=12, hainan='900'):
         _names.remove('hainan')
     ms_dict = dict()
     for _name in _names:
-        ms_dict.update({_name: get_stm_model_describe(name=_name)})
+        ms_dict.update({_name: get_model_describe(name=_name)})
 
     plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
     plot.rcParams.update({'font.size': font_size})
@@ -406,7 +406,35 @@ def plot_models(font_size=12, hainan='900'):
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
-def get_stm_model_describe(name='shandong'):
+def add_model(name: str, ratio_list: tuple, segment_list: tuple):
+    if name in MODELS_RATIO_SEGMENT_DICT:
+        print('name existed in current models_dict!')
+        return
+    if len(ratio_list) != len(segment_list):
+        print('ratio is not same as segment !')
+        return
+    for s in segment_list:
+        if len(s) > 2:
+            print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
+            return
+        if s[0] < s[1]:
+            print('the order is from large to small: {}-{}'.format(s[0], s[1]))
+            return
+    if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
+        print('segment order is not from large to small!')
+        return
+    MODELS_RATIO_SEGMENT_DICT.update({name: RatioSeg(ratio_list, segment_list)})
+    MODELS_NAME_LIST.append(name)
+
+
+def show_models_ratio_seg():
+    for k in MODELS_RATIO_SEGMENT_DICT:
+        v = MODELS_RATIO_SEGMENT_DICT[k]
+        print('{:<20s} {}'.format(k, v.ratio))
+        print('{:<20s} {}'.format('', v.seg))
+
+
+def get_model_describe(name='shandong'):
     __ratio = MODELS_RATIO_SEGMENT_DICT[name].ratio
     __seg = MODELS_RATIO_SEGMENT_DICT[name].seg
     if name == 'hainan':
