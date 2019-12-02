@@ -765,7 +765,7 @@ class PltScore(ScoreTransformModel):
     # plt score run
     def run(self):
 
-        print('stmold-run begin...\n'+'='*100)
+        print('stm-run begin...\n'+'='*100)
         stime = time.time()
 
         # check valid
@@ -2559,7 +2559,7 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-def get_seg_ratio(start, end, step, std=16):
+def get_seg_ratio_from_norm_table(start, end, step, std=16):
     """
     # get ratio form seg points list,
     # set first and end seg to tail ratio from norm table
