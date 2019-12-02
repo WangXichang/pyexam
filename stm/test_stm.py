@@ -2,12 +2,12 @@
 
 import pandas as pd
 import numpy as np
-from stm import stm as stm
 import importlib as pb
 import os
-from pytools import wrap
 from collections import namedtuple as ntp
 import scipy.stats as sts
+import time
+from stm import models
 
 
 # 有关stm测试的问题：
@@ -27,6 +27,18 @@ import scipy.stats as sts
 #   (2) weight may decrease to 1/3 if common subject score is 900,
 #     it is reasonable if common subjects use raw score 150.
 #
+
+
+def time_disper(fun):
+
+    def dec_fun(*args, **kwargs):
+        st = time.time()
+        print('process start: {}'.format(fun))
+        result = fun(*args, **kwargs)
+        print('process[{}] elapsed time: {:.3f}'.format(fun, time.time() - st))
+        return result
+
+    return dec_fun
 
 
 def data_lv():
@@ -92,7 +104,7 @@ def data_lv():
     return data_cumu
 
 
-@wrap.time_disper
+@time_disper
 def test_lv(data):
     r_dict = dict()
     for num in range(9):
@@ -109,7 +121,7 @@ def test_lv(data):
 
 def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name=''):
     cols_real = [f for f in cols if f in data.columns]
-    mr = stm.run(data=data, cols=cols_real, mode_ratio_cumu=cumu)
+    mr = models.run(data=data, cols=cols_real, mode_ratio_cumu=cumu)
     mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'.txt')
     result = []
     for col in cols_real:
@@ -117,7 +129,7 @@ def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name='')
     return result, mr
 
 
-@wrap.time_disper
+@time_disper
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
@@ -127,8 +139,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = stm.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='ascending')
-        rd = stm.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='descending')
+        ra = models.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='ascending')
+        rd = models.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -136,23 +148,23 @@ def test_hainan(mean=60, size=60000, std=16):
 class TestStmWithShandongData():
 
     def __init__(self):
-        self.df16like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
+        self.df16like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df16like.wl = self.df16like.wl.apply(lambda x: int(x*10/11))
         self.df16like.sw = self.df16like.sw.apply(lambda x: int(x*10/9))
-        self.df16wen = pd.read_csv('d:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
+        self.df16wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
                                   usecols=('zz', 'ls', 'dl'))
-        self.df17like = pd.read_csv('d:/mywrite/newgk/gkdata/17/like.csv', sep=',',
+        self.df17like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df17like.wl = self.df17like.wl.apply(lambda x: int(x*10/11))
         self.df17like.sw = self.df17like.sw.apply(lambda x: int(x*10/9))
-        self.df17wen = pd.read_csv('d:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
+        self.df17wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
                                   usecols=('zz', 'ls', 'dl'))
-        self.df18like = pd.read_csv('d:/mywrite/newgk/gkdata/18/like.csv', sep=',',
+        self.df18like = pd.read_csv('e:/mywrite/newgk/gkdata/18/like.csv', sep=',',
                                   usecols=('wl', 'hx', 'sw'))
         self.df18like.wl = self.df18like.wl.apply(lambda x: int(x*10/11))
         self.df18like.sw = self.df18like.sw.apply(lambda x: int(x*10/9))
-        self.df18wen = pd.read_csv('d:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
+        self.df18wen = pd.read_csv('e:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',
                                    usecols=('zz', 'ls', 'dl'))
         self.models_list = []
         self.model = ntp('model', ['name', 'model'])
@@ -166,7 +178,7 @@ class TestStmWithShandongData():
                 mode_score_order='d',
                 all='no'
                 ):
-        pb.reload(stm)
+        pb.reload(models)
         dfs = {
             '16like': self.df16like,
             '16wenke': self.df16wen,
@@ -179,7 +191,7 @@ class TestStmWithShandongData():
         else:
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
-            m = stm.run(
+            m = models.run(
                 name=name,
                 data=dfs[_run[0]+_run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
@@ -192,7 +204,7 @@ class TestStmWithShandongData():
 
     def save_report(self):
         for m in self.models_list:
-            _root = 'd:/mywrite/newgk/gkdata/report/report_'
+            _root = 'e:/mywrite/newgk/gkdata/report/report_'
             m[1].save_report_to_file(_root + m[0] + '.txt')
 
 
@@ -206,16 +218,16 @@ def test_stm_with_stat_data(
         data_no=1
         ):
 
-    if name.lower() not in stm.MODELS_NAME_LIST:
+    if name.lower() not in models.MODELS_NAME_LIST:
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(stm.MODELS_NAME_LIST)))
+              format(name, ','.join(models.MODELS_NAME_LIST)))
         return None
 
     # create data set
     print('create test dataset...')
 
     # --- normal data set
-    norm_data1 = [stm.sts.norm.rvs() for _ in range(data_size)]
+    norm_data1 = [models.sts.norm.rvs() for _ in range(data_size)]
     norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
     norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
 
@@ -244,15 +256,15 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in stm.MODELS_RATIO_SEGMENT_DICT.keys():
+    if name in models.MODELS_RATIO_SEGMENT_DICT.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = stm.run(name=name,
-                    data=dfscore, cols=['kmx'],
-                    mode_ratio_find=mode_ratio_find,
-                    mode_ratio_cumu=mode_ratio_cumu
-                    )
+        m = models.run(name=name,
+                       data=dfscore, cols=['kmx'],
+                       mode_ratio_find=mode_ratio_find,
+                       mode_ratio_cumu=mode_ratio_cumu
+                       )
         return m
 
 
@@ -279,7 +291,7 @@ class TestData:
         print('create score...')
         norm_list = None
         if self.dist == 'norm':
-            norm_list = stm.sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
+            norm_list = models.sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
             norm_list[np.where(norm_list>self.df_max)] = self.df_max
             norm_list[np.where(norm_list<self.df_min)] = self.df_min
             norm_list = norm_list.astype(np.int)
