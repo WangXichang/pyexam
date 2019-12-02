@@ -1242,23 +1242,27 @@ class PltScore(ScoreTransformModel):
 
         # calculating for ratio and segment
         plist = self.raw_score_ratio_cum
-        _out_report_doc += '  raw score seg ratio: {}\n'.\
-            format([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
-                    for j in range(len(plist))])
-        _out_report_doc += '            cum ratio: {}\n'.\
-            format([format(x, '0.6f') for x in self.raw_score_ratio_cum])
-        _out_report_doc += '            get ratio: {}\n'.\
-            format(self.result_ratio_dict[field])
-        _raw_seg_list = [x[1] for x in self.result_dict[field]['coeff'].values()]
-        if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
-            _raw_seg_list = [x[0] if x[0] == x[1] else x for x in _raw_seg_list]
-        _out_report_doc += '            endpoints: {}\n'.\
-            format(_raw_seg_list)
+        _out_report_doc += '  raw score seg ratio: [{}]\n'.\
+            format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
+                    for j in range(len(plist))]))
+        _out_report_doc += '            cum ratio: [{}]\n'.\
+            format(', '.join([format(x, '0.6f') for x in self.raw_score_ratio_cum]))
+        _out_report_doc += '            get ratio: [{}]\n'.\
+            format(', '.join(self.result_ratio_dict[field]))
+
+        # get raw segment from result_dict
+        _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
+        # if len(_raw_seg_list) > 30:     # for hainan too many segs(801) and single point seg
+        #     _raw_seg_list = [x[0] if x[0] == x[1] else x for x in _raw_seg_list]
+        _out_report_doc += '            endpoints: [{}]\n'.\
+            format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _raw_seg_list]))
+
+        # get out segment from result_dict
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
-        if len(_raw_seg_list) > 20:     # for hainan too many segs(801) and single point seg
-            _out_seg_list = [x[0] if x[0] == x[1] else x for x in _out_seg_list]
-        _out_report_doc += '  out score endpoints: {}\n'.\
-            format(_out_seg_list)
+        # if len(_raw_seg_list) > 30:     # for hainan too many segs(801) and single point seg
+        #     _out_seg_list = [x[0] if x[0] == x[1] else x for x in _out_seg_list]
+        _out_report_doc += '  out score endpoints: [{}]\n'.\
+            format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _out_seg_list]))
 
         # transforming formulas
         _out_report_doc += '- -'*40 + '\n'
@@ -1370,7 +1374,7 @@ class PltScore(ScoreTransformModel):
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
-            self.__plot_model()
+            self.plot_model()
         elif mode in 'dist':
             self.__plot_dist_seaborn()
         elif mode in 'bar':
@@ -1529,7 +1533,7 @@ class PltScore(ScoreTransformModel):
             sbn.kdeplot(self.out_data[f], shade=True)
             sbn.kdeplot(self.out_data[f+'_plt'], shade=True)
 
-    def __plot_model(self):
+    def plot_model(self, down_line=True):
         # 分段线性转换模型
         plot.rcParams['font.sans-serif'] = ['SimHei']
         plot.rcParams.update({'font.size': 8})
@@ -1537,6 +1541,7 @@ class PltScore(ScoreTransformModel):
             result = self.result_dict[col]
             raw_points = result['raw_score_points']
             in_max = max(raw_points)
+            in_min = min(raw_points)
             ou_min = min([min(p) for p in self.out_score_points])
             ou_max = max([max(p) for p in self.out_score_points])
 
@@ -1552,20 +1557,28 @@ class PltScore(ScoreTransformModel):
 
             formula = self.result_dict[col]['coeff']
             for cfi, cf in enumerate(formula.values()):
+                # segment map function graph
                 _score_order = self.strategy_dict['mode_score_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
                 plot.plot(x, y, linewidth=2)
+
+                # line from endpoint to axis
                 for j in [0, 1]:
                     plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=2)
                     plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=2)
+
+                # raw_score scale value below x-axis
                 for j, xx in enumerate(x):
                     plot.text(xx-1 if j == 1 else xx, ou_min-2, '{}'.format(int(xx)))
-                for j, yy in enumerate(y):
-                    plot.text(1, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
 
-            # darw y = x for showing score shift
-            plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
+                # out_score scale value beside y-axis
+                for j, yy in enumerate(y):
+                    plot.text(in_min, yy-2 if j == 1 else yy+1, '{}'.format(int(yy)))
+
+            if down_line:
+                # darw y = x for showing score shift
+                plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
 
         plot.show()
         return
