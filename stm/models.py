@@ -208,31 +208,31 @@ CONST_HAINAN5_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(30
 
 RatioSeg = namedtuple('ModelRatioSeg', ['ratio', 'seg'])
 MODELS_RATIO_SEGMENT_DICT = {
-    'zhejiang': RatioSeg(tuple(CONST_ZHEJIANG_RATIO), tuple(CONST_ZHEJIANG_SEGMENT)),
-    'shanghai': RatioSeg(tuple(CONST_SHANGHAI_RATIO), tuple(CONST_SHANGHAI_SEGMENT)),
-    'beijing': RatioSeg(tuple(CONST_BEIJING_RATIO), tuple(CONST_BEIJING_SEGMENT)),
-    'tianjin': RatioSeg(tuple(CONST_TIANJIN_RATIO), tuple(CONST_TIANJIN_SEGMENT)),
-    'shandong': RatioSeg(tuple(CONST_SHANDONG_RATIO), tuple(CONST_SHANDONG_SEGMENT)),
-    'guangdong': RatioSeg(tuple(CONST_GUANGDONG_RATIO), tuple(CONST_GUANGDONG_SEGMENT)),
-    'ss7': RatioSeg(tuple(CONST_SS7_RATIO), tuple(CONST_SS7_SEGMENT)),
-    'hainan': RatioSeg(tuple(CONST_HAINAN_RATIO), tuple(CONST_HAINAN_SEGMENT)),
-    'hainan2': RatioSeg(tuple(CONST_HAINAN2_RATIO), tuple(CONST_HAINAN2_SEGMENT)),
-    'hainan3': RatioSeg(tuple(CONST_HAINAN3_RATIO), tuple(CONST_HAINAN3_SEGMENT)),
-    'hainan4': RatioSeg(tuple(CONST_HAINAN4_RATIO), tuple(CONST_HAINAN4_SEGMENT)),
-    'hainan5': RatioSeg(tuple(CONST_HAINAN5_RATIO), tuple(CONST_HAINAN5_SEGMENT))
+    'zhejiang':     RatioSeg(tuple(CONST_ZHEJIANG_RATIO),   tuple(CONST_ZHEJIANG_SEGMENT)),
+    'shanghai':     RatioSeg(tuple(CONST_SHANGHAI_RATIO),   tuple(CONST_SHANGHAI_SEGMENT)),
+    'beijing':      RatioSeg(tuple(CONST_BEIJING_RATIO),    tuple(CONST_BEIJING_SEGMENT)),
+    'tianjin':      RatioSeg(tuple(CONST_TIANJIN_RATIO),    tuple(CONST_TIANJIN_SEGMENT)),
+    'shandong':     RatioSeg(tuple(CONST_SHANDONG_RATIO),   tuple(CONST_SHANDONG_SEGMENT)),
+    'guangdong':    RatioSeg(tuple(CONST_GUANGDONG_RATIO),  tuple(CONST_GUANGDONG_SEGMENT)),
+    'ss7':          RatioSeg(tuple(CONST_SS7_RATIO),        tuple(CONST_SS7_SEGMENT)),
+    'hainan':       RatioSeg(tuple(CONST_HAINAN_RATIO),     tuple(CONST_HAINAN_SEGMENT)),
+    'hainan2':      RatioSeg(tuple(CONST_HAINAN2_RATIO),    tuple(CONST_HAINAN2_SEGMENT)),
+    'hainan3':      RatioSeg(tuple(CONST_HAINAN3_RATIO),    tuple(CONST_HAINAN3_SEGMENT)),
+    'hainan4':      RatioSeg(tuple(CONST_HAINAN4_RATIO),    tuple(CONST_HAINAN4_SEGMENT)),
+    'hainan5':      RatioSeg(tuple(CONST_HAINAN5_RATIO),    tuple(CONST_HAINAN5_SEGMENT))
     }
 
-# choice_count = 2 * 4 * 2 * 4 * 4 * 2 * 2 * 2 * 2 * 3, 12288
+# choice_count = 4 * 2 * 4 * 4 * 2 * 2 * 2 * 2 * 2 * 3, 12288
 MODEL_STRATEGIES_DICT = {
-    'mode_score_order':       ('ascending', 'descending'),
     'mode_ratio_prox':        ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':        ('yes', 'no'),
     'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
     'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
     'mode_seg_end_share':     ('no', 'yes'),
-    'mode_score_full_to_max': ('no', 'yes'),    # not for empty, but for ratio
-    'mode_score_zero_to_min': ('no', 'yes'),    # ...
-    'mode_score_max_to_max':  ('no', 'yes'),    # max raw score to max out score
+    'mode_score_order':       ('ascending', 'descending'),
+    'mode_score_full_to_max': ('ignore', 'yes'),    # not for empty, but for ratio
+    'mode_score_zero_to_min': ('no', 'yes'),        # ...
+    'mode_score_max_to_max':  ('no', 'yes'),        # max raw score to max out score
     'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
     }
 MODELS_NAME_LIST = list(MODELS_RATIO_SEGMENT_DICT.keys()) + \
@@ -321,6 +321,7 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_order=mode_score_order,
+            mode_seg_one_point=mode_seg_one_point,
             out_decimal_digits=out_score_decimal
             )
         plt_model.run()
@@ -746,6 +747,7 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_score_order='descending',
+                 mode_seg_one_point='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
         # if (type(raw_score_ratio_tuple) != tuple) | (type(out_score_seg_tuple) != tuple):
@@ -773,6 +775,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_score_order'] = mode_score_order
+        self.strategy_dict['mode_seg_one_point'] = mode_seg_one_point
         self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
     def check_parameter(self):
