@@ -735,16 +735,21 @@ class PltScore(ScoreTransformModel):
         else:
             print('rawdf set fail!\n not correct data set(DataFrame or Series)!')
         # check and set out_data
-        if not cols:
-            self.cols = [s for s in raw_data]
-        elif type(cols) != list:
-            print('col set fail!\n not a list!')
-            return
+        if type(cols) is str:
+            if cols in self.raw_data.columns:
+                self.cols = [cols]
+                return True
+            else:
+                print('invalid field name in cols: {}'.format(cols))
+        elif type(cols) not in [list, tuple]:
+            print('col set fail!\n not a list or tuple!')
+            return False
         elif sum([1 if sf in raw_data else 0 for sf in cols]) != len(cols):
-            print('col set fail!\n field must in rawdf.columns!')
-            return
+            print('field of cols not in rawdf.columns!')
+            return False
         else:
             self.cols = cols
+            return True
 
     # plt
     def set_para(self,
@@ -810,24 +815,19 @@ class PltScore(ScoreTransformModel):
         if not super(PltScore, self).run():
             return
 
-        # if self.raw_score_max is None:
-        #     self.raw_score_max = max(self.raw_data[self.cols].max())
-        # if self.raw_score_min is None:
-        #     self.raw_score_min = min(self.raw_data[self.cols].min())
-
         if self.out_score_points is not None:
             self.out_score_max = max([max(x) for x in self.out_score_points])
             self.out_score_min = min([min(x) for x in self.out_score_points])
 
         # calculate seg table
         print('--- calculating map_table ...')
-        _segsort = self.strategy_dict['mode_score_order']
+        _segsort = 'a' if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 'd'
         self.seg_model = run_seg(
                   raw_data=self.raw_data,
                   cols=self.cols,
                   segmax=self.raw_score_range[1],
                   segmin=self.raw_score_range[0],
-                  segsort='a' if _segsort in ['ascending', 'a'] else 'd',
+                  segsort=_segsort,
                   segstep=1,
                   display=False,
                   usealldata=False
@@ -872,6 +872,7 @@ class PltScore(ScoreTransformModel):
                 self.out_data[col+'_plt'] = self.out_data[col+'_plt'].astype('int')
 
         # create col_plt in map_table
+        print(self.map_table)
         df_map = self.map_table
         for col in self.cols:
             print('   calculate: map_table[{0}] => [{0}_plt]'.format(col))
@@ -965,28 +966,34 @@ class PltScore(ScoreTransformModel):
         _start_score = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
 
-        for ri, row in self.map_table.iterrows():
+        _plt_list = []
+        map_table = self.map_table
+        for ri, row in map_table.iterrows():
             _seg = row['seg']
             _p = row[col + '_percent']
             y = -1  # init out_score y = a * x + b
 
-            # raw score == 0
+            # case: raw score == 0
+            # mode_zero: map_to_min, ignore
             if abs(_seg) < _tiny:
                 if _mode_zero == 'no':
                     pass
                 elif _mode_zero == 'map_to_min':
                     if _mode_order in ['ascending', 'a']:
                         y = self.out_score_min
+                        row[col + '_plt'] = y
+                        coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
+                        result_ratio.append(format(_p, '.6f'))
+                        _plt_list.append(y)
                         continue
                 else:
                     print('Error Zero Score Mode: {}'.format(_mode_zero))
                     raise ValueError
 
-            # seeking ratio by percent to set out score
+            # loop: seeking ratio by percent to set out score
             for si, sr in enumerate(self.raw_score_ratio_cum):
                 # sr == _p or sr > _p
                 if (abs(sr - _p) < _tiny) or (sr > _p):
-                    y = -1
                     if (abs(_p - sr) < _tiny) or (si == 0):
                         y = _start_score + si*_step
                     elif _mode_prox == 'upper_min':
@@ -1011,11 +1018,20 @@ class PltScore(ScoreTransformModel):
                         raise ValueError
                     break
             if y > 0:
+                # print('-1', row[col+'_plt'])
                 row[col+'_plt'] = y
+                # print('plt', row[col+'_plt'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
+                _plt_list.append(y)
             # end scanning raw_score_ratio_list
         # end scanning map_table
+
+        if len(self.map_table[col+'_plt']) == len(_plt_list):
+            # print(_plt_list)
+            map_table.loc[:, col+'_plt'] = _plt_list
+        self.map_table = map_table
+        print(self.map_table)
 
         self.result_formula_coeff = coeff_dict
         self.result_dict[col] = {'raw_score_points': self.result_raw_endpoints,
@@ -2388,9 +2404,8 @@ class SegTable(object):
 
             # count seg_count in [segmin, segmax]
             r = tempdf.groupby(f)[f].count()
-            fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
-
-            outdf.loc[:, f+'_count'] = fcount_list
+            # fcount_list = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
+            outdf.loc[:, f+'_count'] = [np.int64(r[x]) if x in r.index else 0 for x in seglist]
             if self.__display:
                 print('finished count(' + f, ') use time:{}'.format(time.clock() - sttime))
 
