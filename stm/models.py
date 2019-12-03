@@ -256,25 +256,32 @@ def run(
         out_score_decimal=0
         ):
     """
-    :param name: str, model name, values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
-                                          'guangdong', 'SS7', 'hainan', 'hainan2', 'zscore', 'tscore', 'tlinear'
+    :param name: str, model name,
+                 values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
+                         'guangdong', 'SS7', 'hainan', 'hainan2',
+                         'zscore', 'tscore', 'tlinear'
                  default = 'shandong'
-    :param data: dataframe, raw score data, score field type must be int or float
+    :param data: dataframe,
+                 raw score data, score field type must be int or float
                  default = None
-    :param cols: list, which elements are score fields in data,
+    :param cols: list, score fields in data,
                  default = None
     :param raw_score_range: tuple, raw score value range,
                             default = (0, 100)
+    :param mode_ratio_prox: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
+                            default='upper_min'
+    :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
+                            default='no'
+    :param mode_score_order: string, strategy to sort score,
+                             values: 'descending', 'ascending'
+                             default='descending'
+    :param mode_seg_one_point: str, strategy to raw score segment made of one point, [a, a],
+                               values: 'map_to_max, map_to_min, map_to_mean'
     :param out_score_decimal: int, decimal digits of output score
                               default = 0, thar means out score type is int
-    :param mode_ratio_prox: string, strategy to locate ratio, values: 'lower_max', 'upper_min', 'near_max', 'near_min'
-                           default='upper_min'
-    :param mode_ratio_cumu: string, strategy to cumulate ratio, values:'yes', 'no'
-                           default='no'
-    :param mode_score_order: string, strategy to sort score, values: 'descending', 'ascending'
-                             default='descending'
     :return: model
     """
+
     # check name
     name = name.lower()
     if name.lower() not in MODELS_NAME_LIST:
@@ -293,7 +300,7 @@ def run(
 
     # check col
     if isinstance(cols, str):
-        cols = cols,
+        cols = (cols)
     elif type(cols) not in (list, tuple):
         print('invalid cols type:{}!'.format(type(cols)))
         return
