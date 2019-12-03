@@ -705,7 +705,7 @@ class PltScore(ScoreTransformModel):
             'mode_ratio_prox': 'upper_min',
             'mode_ratio_cumu': 'yes',
             'mode_score_order': 'descending',
-            'mode_seg_one_point': 'max',
+            'mode_seg_one_point': 'map_to_max',
             'mode_seg_non_point': 'ignore',
             'mode_seg_end_share': 'no',
             'mode_score_full_to_max': 'no',
@@ -872,7 +872,6 @@ class PltScore(ScoreTransformModel):
                 self.out_data[col+'_plt'] = self.out_data[col+'_plt'].astype('int')
 
         # create col_plt in map_table
-        print(self.map_table)
         df_map = self.map_table
         for col in self.cols:
             print('   calculate: map_table[{0}] => [{0}_plt]'.format(col))
@@ -937,11 +936,11 @@ class PltScore(ScoreTransformModel):
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
                 if c == 0:  # x1 == x2: use mode_seg_one_point: max, min, mean(y1, y2)
-                    if self.strategy_dict['mode_seg_one_point'] == 'max':
+                    if self.strategy_dict['mode_seg_one_point'] == 'map_to_max':
                         return max(cf[2])
-                    elif self.strategy_dict['mode_seg_one_point'] == 'min':
+                    elif self.strategy_dict['mode_seg_one_point'] == 'map_to_min':
                         return min(cf[2])
-                    elif self.strategy_dict['mode_seg_one_point'] == 'mean':
+                    elif self.strategy_dict['mode_seg_one_point'] == 'map_to_mean':
                         return round45r(np.mean(cf[2]))
                     else:
                         return -1
@@ -1028,10 +1027,8 @@ class PltScore(ScoreTransformModel):
         # end scanning map_table
 
         if len(self.map_table[col+'_plt']) == len(_plt_list):
-            # print(_plt_list)
             map_table.loc[:, col+'_plt'] = _plt_list
-        self.map_table = map_table
-        print(self.map_table)
+        # self.map_table = map_table
 
         self.result_formula_coeff = coeff_dict
         self.result_dict[col] = {'raw_score_points': self.result_raw_endpoints,
@@ -1084,12 +1081,17 @@ class PltScore(ScoreTransformModel):
                 a = 0
                 # mode_seg_one_point
                 _mode_seg_one_point = self.strategy_dict['mode_seg_one_point']
-                if _mode_seg_one_point == 'max':     # x1 == x2 : y = max(y1, y2)
+                if _mode_seg_one_point == 'map_to_max':         # x1 == x2 : y = max(y1, y2)
                     b = max(y)
-                elif _mode_seg_one_point == 'min':   # x1 == x2 : y = min(y1, y2)
+                elif _mode_seg_one_point == 'map_to_min':       # x1 == x2 : y = min(y1, y2)
                     b = min(y)
-                else:                                   # x1 == x2 : y = mean(y1, y2)
+                elif _mode_seg_one_point == 'map_to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
+                elif _mode_seg_one_point == 'map_to_extend':    # x1 == x2 : no possiple
+                    b = np.mean(y)                               # if exist, use mean
+                else:
+                    print('error mode_seg_one_point value: {}'.format(_mode_seg_one_point))
+                    raise ValueError
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
                 b = (y[0]*x[1]-y[1]*x[0])/v         # (y1x2 - y2x1) / (x2 - x1)
