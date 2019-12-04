@@ -160,7 +160,6 @@ CONST_SS7_RATIO = (15, 35, 35, 13, 2)
 CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
-
 # get ratio from norm table for standard score start-end(100-900, 60-300,...)
 def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
     """
@@ -2634,9 +2633,9 @@ def get_seg_ratio_from_norm_table(start, end, step, std=16):
     _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step)]
     # print(_seg_endpoints)
     for i, x in enumerate(_seg_endpoints):
-        if i == 1:    # ignore first point
+        if i == 0:    # ignore first point
             table.append(sts.norm.cdf(x))
-        elif 1 < i < len(_seg_endpoints)-1:
+        elif 0 < i < len(_seg_endpoints)-1:
             table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
         elif i == len(_seg_endpoints)-1:
             table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
