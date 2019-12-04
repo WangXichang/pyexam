@@ -101,7 +101,7 @@ CONST_HAINAN5_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(30
 
 
 RatioSeg = namedtuple('ModelRatioSeg', ['type', 'ratio', 'seg', 'desc'])
-MODELS_RATIO_SEGMENT_DICT = {
+MODELS_SETTING_DICT = {
     'zhejiang':     RatioSeg('plt',
                              tuple(CONST_ZHEJIANG_RATIO),
                              tuple(CONST_ZHEJIANG_SEGMENT),
@@ -165,5 +165,3 @@ MODEL_STRATEGIES_DICT = {
     'mode_score_max_to_max':  ('no', 'yes'),        # max raw score to max out score
     'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
     }
-MODELS_NAME_LIST = list(MODELS_RATIO_SEGMENT_DICT.keys()) + \
-                   ['zscore', 'tscore', 'tai', 'tlinear']
