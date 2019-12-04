@@ -1,7 +1,7 @@
 # -*- utf-8 -*-
 
 
-# comments to stm
+# comments to module
 """
     2018.09.24 -- 2018.11
     2019.09.03 --
@@ -82,23 +82,11 @@
 
     [classes] 模块中的类
        PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
-       GradeScore: 等级分数转换模型, 浙江、上海、天津、北京使用 zhejiang shanghai tianjin beijing model
        TaiScore: 台湾等级分数模型 Taiwan college entrance test and middle school achievement test model
        Zscore: Z分数转换模型 zscore model
        Tscore: T分数转换模型 t_score model
        Tlinear: T分数线性转换模型 t_score model by linear transform mode
        SegTable: 计算分段表模型 segment table model
-
-    [CONSTANTS] 模块中的常量
-        各省市等级分数转换比例设置，山东省区间划分设置
-        CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-        CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-        CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-        CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-        CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-        CONST_SS7_RATIO = [2, 13, 35, 35, 15]
-        CONST_SS7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 """
 
 
@@ -120,121 +108,11 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import seaborn as sbn
-
-
+from stm import modelconfig as mcf
 warnings.filterwarnings('ignore')
 
 
-# models parameters: grade score ratios, segments
-CONST_ZHEJIANG_RATIO = (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1)
-CONST_ZHEJIANG_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
-CONST_SHANGHAI_RATIO = (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5)
-CONST_SHANGHAI_SEGMENT = ((70-i*3, 70-i*3) for i in range(11))
-CONST_BEIJING_RATIO = (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1)
-CONST_BEIJING_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
-CONST_TIANJIN_RATIO = (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1)
-CONST_TIANJIN_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
-
-
-# ShanDong
-# 8 levels, (3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%)
-# 8 segments: (100, 91), ..., (30, 21)
-CONST_SHANDONG_RATIO = (3, 7, 16, 24, 24, 16, 7, 3)
-CONST_SHANDONG_SEGMENT = ((100-i*10, 100-i*10-9) for i in range(8))
-
-
-# GuangDong
-#   predict: mean = 70.21, std = 20.95
-CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
-CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
-
-
-# 7-ShengShi: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
-#   5 levels
-#   ration=(15%、35%、35%、13%, 2%),
-#   segment=(30～40、41～55、56～70、71～85、86～100)
-#   predict: mean = 70.24, std = 21.76
-#            mean = sum((x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)))
-#            std = math.sqrt(sum(((sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)))/5)
-CONST_SS7_RATIO = (15, 35, 35, 13, 2)
-CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
-
-
-# get ratio from norm table for standard score start-end(100-900, 60-300,...)
-def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
-    """
-    set endpoint ratio from morm.cdf:
-        start_point: seg[0] = (1 - cdf(-4))*100
-         next_point: seg_ratio = cdf[i+1] - cdf[i],
-          end_point: seg[-1] = 100 - sum(seg[:-1])      # ensure to sum==100
-    """
-    start_point, end_point, _mean = start, end, (start+end)/2
-    _std = (_mean - start_point) / std_num
-    norm_cdf = [sts.norm.cdf((v-_mean)/_std) for v in range(start_point, end_point + 1, step)]
-    norm_table = [(norm_cdf[i] - norm_cdf[i-1])*100 if i > 0
-                  else norm_cdf[i]*100
-                  for i in range(len(norm_cdf))]
-    norm_table[-1] = 100 - sum(norm_table[:-1])
-    return tuple(norm_table)
-
-
-# Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
-CONST_HAINAN_RATIO = get_ratio_from_norm_cdf(100, 900)
-CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
-
-# Hainan2 out_scope: 60-300 (mean=180, std=30)
-#         ordinary method: transform each score individually
-#         use norm cdf for each point, first set in 60-300, then pick ratio-score in raw segtable
-CONST_HAINAN2_RATIO = get_ratio_from_norm_cdf(60, 300)
-CONST_HAINAN2_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
-
-# Hainan3 out_scope 60-300,
-#         use plt method to transform
-#         set top fine proximate ratio to norm distribution
-CONST_HAINAN3_RATIO = (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14)
-CONST_HAINAN3_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
-
-# Hainan4 using plt for 60-300, use plt method to transform
-#         set secondary proximate ratio
-CONST_HAINAN4_RATIO = (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2)
-CONST_HAINAN4_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
-
-# Hainan5 using plt for 60-300, use plt method to transform
-#         set suitable ratio
-CONST_HAINAN5_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
-CONST_HAINAN5_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
-
-
-RatioSeg = namedtuple('ModelRatioSeg', ['ratio', 'seg'])
-MODELS_RATIO_SEGMENT_DICT = {
-    'zhejiang':     RatioSeg(tuple(CONST_ZHEJIANG_RATIO),   tuple(CONST_ZHEJIANG_SEGMENT)),
-    'shanghai':     RatioSeg(tuple(CONST_SHANGHAI_RATIO),   tuple(CONST_SHANGHAI_SEGMENT)),
-    'beijing':      RatioSeg(tuple(CONST_BEIJING_RATIO),    tuple(CONST_BEIJING_SEGMENT)),
-    'tianjin':      RatioSeg(tuple(CONST_TIANJIN_RATIO),    tuple(CONST_TIANJIN_SEGMENT)),
-    'shandong':     RatioSeg(tuple(CONST_SHANDONG_RATIO),   tuple(CONST_SHANDONG_SEGMENT)),
-    'guangdong':    RatioSeg(tuple(CONST_GUANGDONG_RATIO),  tuple(CONST_GUANGDONG_SEGMENT)),
-    'ss7':          RatioSeg(tuple(CONST_SS7_RATIO),        tuple(CONST_SS7_SEGMENT)),
-    'hainan':       RatioSeg(tuple(CONST_HAINAN_RATIO),     tuple(CONST_HAINAN_SEGMENT)),
-    'hainan2':      RatioSeg(tuple(CONST_HAINAN2_RATIO),    tuple(CONST_HAINAN2_SEGMENT)),
-    'hainan3':      RatioSeg(tuple(CONST_HAINAN3_RATIO),    tuple(CONST_HAINAN3_SEGMENT)),
-    'hainan4':      RatioSeg(tuple(CONST_HAINAN4_RATIO),    tuple(CONST_HAINAN4_SEGMENT)),
-    'hainan5':      RatioSeg(tuple(CONST_HAINAN5_RATIO),    tuple(CONST_HAINAN5_SEGMENT))
-    }
-
-# choice_count = 4 * 2 * 4 * 4 * 2 * 2 * 2 * 2 * 2 * 3, 12288
-MODEL_STRATEGIES_DICT = {
-    'mode_ratio_prox':        ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_ratio_cumu':        ('yes', 'no'),
-    'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean', 'extend'),
-    'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_seg_end_share':     ('no', 'yes'),
-    'mode_score_order':       ('ascending', 'descending'),
-    'mode_score_full_to_max': ('ignore', 'yes'),    # not for empty, but for ratio
-    'mode_score_zero_to_min': ('no', 'yes'),        # ...
-    'mode_score_max_to_max':  ('no', 'yes'),        # max raw score to max out score
-    'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
-    }
-MODELS_NAME_LIST = list(MODELS_RATIO_SEGMENT_DICT.keys()) + \
+MODELS_NAME_LIST = list(mcf.MODELS_SETTING_DICT.keys()) + \
                    ['zscore', 'tscore', 'tai', 'tlinear']
 
 
@@ -299,7 +177,7 @@ def run(
 
     # check col
     if isinstance(cols, str):
-        cols = (cols)
+        cols = [cols]
     elif type(cols) not in (list, tuple):
         print('invalid cols type:{}!'.format(type(cols)))
         return
@@ -314,15 +192,15 @@ def run(
         return
 
     # plt score models
-    if name in MODELS_RATIO_SEGMENT_DICT.keys():
-        ratio_tuple = tuple(x * 0.01 for x in MODELS_RATIO_SEGMENT_DICT[name].ratio)
+    if name in mcf.MODELS_SETTING_DICT.keys():
+        ratio_tuple = tuple(x * 0.01 for x in mcf.MODELS_SETTING_DICT[name].ratio)
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
         plt_model.set_data(raw_data=raw_data, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=MODELS_RATIO_SEGMENT_DICT[name].seg,
+            out_score_seg_tuple=mcf.MODELS_SETTING_DICT[name].seg,
             raw_score_range=raw_score_range,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
@@ -372,87 +250,89 @@ def run(
         return tm
 
 
-def plot_models(font_size=12, hainan='900'):
-    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hainan']
-    if hainan == '300':
-        _names.remove('hainan')
-        _names.append('hainan2')
-    elif hainan is None:
-        _names.remove('hainan')
-    ms_dict = dict()
-    for _name in _names:
-        ms_dict.update({_name: get_model_describe(name=_name)})
+class ModelManager:
+    @staticmethod
+    def plot_models(font_size=12, hainan='900'):
+        _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
+        if hainan == '300':
+            _names.remove('hn900')
+            _names.append('hn300')
+        elif hainan is None:
+            _names.remove('hn900')
+        ms_dict = dict()
+        for _name in _names:
+            ms_dict.update({_name: ModelManager.get_model_describe(name=_name)})
 
-    plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
-    plot.rcParams.update({'font.size': font_size})
-    for i, k in enumerate(_names):
-        plot.subplot(240+i+1)
-        _wid = 2
-        if k in ['shanghai']:
-            x_data = range(40, 71, 3)
-        elif k in ['zhejiang', 'beijing', 'tianjin']:
-            x_data = range(40, 101, 3)
-        elif k in ['shandong']:
-            x_data = [x for x in range(26, 100, 10)]
-            _wid = 8
-        elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in MODELS_RATIO_SEGMENT_DICT[k].seg][::-1]
-            _wid = 10
-        elif k in ['ss7']:
-            x_data = [int(np.mean(x)) for x in MODELS_RATIO_SEGMENT_DICT[k].seg][::-1]
-            _wid = 10
-        elif k in ['hainan']:
-            x_data = [x for x in range(100, 901)]
-            _wid = 1
-        elif k in ['hainan2']:
-            x_data = [x for x in range(60, 301)]
-            _wid = 1
+        plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
+        plot.rcParams.update({'font.size': font_size})
+        for i, k in enumerate(_names):
+            plot.subplot(240+i+1)
+            _wid = 2
+            if k in ['shanghai']:
+                x_data = range(40, 71, 3)
+            elif k in ['zhejiang', 'beijing', 'tianjin']:
+                x_data = range(40, 101, 3)
+            elif k in ['shandong']:
+                x_data = [x for x in range(26, 100, 10)]
+                _wid = 8
+            elif k in ['guangdong']:
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                _wid = 10
+            elif k in ['ss7']:
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                _wid = 10
+            elif k in ['hn900']:
+                x_data = [x for x in range(100, 901)]
+                _wid = 1
+            elif k in ['hn300']:
+                x_data = [x for x in range(60, 301)]
+                _wid = 1
+            else:
+                raise ValueError(k)
+            plot.bar(x_data, mcf.MODELS_SETTING_DICT[k].ratio[::-1], width=_wid)
+            plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
+
+    @staticmethod
+    def add_model(model_type='plt', name=None, ratio_list=None, segment_list=None, desc=''):
+        if name in mcf.MODELS_SETTING_DICT:
+            print('name existed in current models_dict!')
+            return
+        if len(ratio_list) != len(segment_list):
+            print('ratio is not same as segment !')
+            return
+        for s in segment_list:
+            if len(s) > 2:
+                print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
+                return
+            if s[0] < s[1]:
+                print('the order is from large to small: {}-{}'.format(s[0], s[1]))
+                return
+        if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
+            print('segment order is not from large to small!')
+            return
+        mcf.MODELS_SETTING_DICT.update({name: mcf.RatioSeg(model_type, ratio_list, segment_list, desc)})
+        MODELS_NAME_LIST.append(name)
+
+    @staticmethod
+    def show_models():
+        for k in mcf.MODELS_SETTING_DICT:
+            v = mcf.MODELS_SETTING_DICT[k]
+            print('{:<20s} {}'.format(k, v.ratio))
+            print('{:<20s} {}'.format('', v.seg))
+
+    @staticmethod
+    def get_model_describe(name='shandong'):
+        __ratio = mcf.MODELS_SETTING_DICT[name].ratio
+        __seg = mcf.MODELS_SETTING_DICT[name].seg
+        if name == 'hn900':
+            __mean, __std, __skewness = 500, 100, 0
+        elif name == 'hn300':
+            __mean, __std, __skewness = 180, 30, 0
         else:
-            raise ValueError(k)
-        plot.bar(x_data, MODELS_RATIO_SEGMENT_DICT[k].ratio[::-1], width=_wid)
-        plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
-
-
-def add_model(name: str, ratio_list: tuple, segment_list: tuple):
-    if name in MODELS_RATIO_SEGMENT_DICT:
-        print('name existed in current models_dict!')
-        return
-    if len(ratio_list) != len(segment_list):
-        print('ratio is not same as segment !')
-        return
-    for s in segment_list:
-        if len(s) > 2:
-            print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
-            return
-        if s[0] < s[1]:
-            print('the order is from large to small: {}-{}'.format(s[0], s[1]))
-            return
-    if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
-        print('segment order is not from large to small!')
-        return
-    MODELS_RATIO_SEGMENT_DICT.update({name: RatioSeg(ratio_list, segment_list)})
-    MODELS_NAME_LIST.append(name)
-
-
-def show_models():
-    for k in MODELS_RATIO_SEGMENT_DICT:
-        v = MODELS_RATIO_SEGMENT_DICT[k]
-        print('{:<20s} {}'.format(k, v.ratio))
-        print('{:<20s} {}'.format('', v.seg))
-
-
-def get_model_describe(name='shandong'):
-    __ratio = MODELS_RATIO_SEGMENT_DICT[name].ratio
-    __seg = MODELS_RATIO_SEGMENT_DICT[name].seg
-    if name == 'hainan':
-        __mean, __std, __skewness = 500, 100, 0
-    elif name == 'hainan2':
-        __mean, __std, __skewness = 180, 30, 0
-    else:
-        samples = []
-        [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
-        __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
-    return __mean, __std, __skewness
+            samples = []
+            [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
+            __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
+        return __mean, __std, __skewness
 
 
 # Score Transform Model Interface
@@ -853,12 +733,14 @@ class PltScore(ScoreTransformModel):
             self.raw_score_min = self.raw_data[col].min()
 
             # get formula and save
-            if self.model_name in ['hainan', 'hainan2']:
-                self.__get_formula_hainan(col)
+            _get_formula = False
+            if mcf.MODELS_SETTING_DICT[self.model_name].type == 'ssm':
+                _get_formula = self.__get_formula_ssm(col)
             else:
-                if not self.__get_formula(col):
-                    print('getting formula fail !')
-                    return
+                _get_formula = self.__get_formula_plt(col)
+            if not _get_formula:
+                print('getting plt formula fail !')
+                return
 
             # get field_plt in out_data
             print('   calculate: data[{0}] => {0}_plt'.format(col))
@@ -950,7 +832,7 @@ class PltScore(ScoreTransformModel):
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
     # len(ratio_list) = len(map_table['seg'])
-    def __get_formula_hainan(self, col):
+    def __get_formula_ssm(self, col):
         self.result_raw_endpoints = [x for x in self.map_table['seg']]
         self.map_table.loc[:, col+'_plt'] = -1
         coeff_dict = dict()
@@ -986,7 +868,8 @@ class PltScore(ScoreTransformModel):
                         continue
                 else:
                     print('Error Zero Score Mode: {}'.format(_mode_zero))
-                    raise ValueError
+                    # raise ValueError
+                    return False
 
             # loop: seeking ratio by percent to set out score
             for si, sr in enumerate(self.raw_score_ratio_cum):
@@ -1034,8 +917,9 @@ class PltScore(ScoreTransformModel):
                                  'coeff': coeff_dict,
                                  'formula': ''}
         self.result_ratio_dict[col] = result_ratio
+        return True
 
-    def __get_formula(self, field):
+    def __get_formula_plt(self, field):
         # --step 1
         # claculate raw_score_endpoints
         print('   get input score endpoints ...')
@@ -1086,8 +970,6 @@ class PltScore(ScoreTransformModel):
                     b = min(y)
                 elif _mode_seg_one_point == 'map_to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
-                elif _mode_seg_one_point == 'map_to_extend':    # x1 == x2 : no possiple
-                    b = np.mean(y)                               # if exist, use mean
                 else:
                     print('error mode_seg_one_point value: {}'.format(_mode_seg_one_point))
                     raise ValueError
@@ -1186,7 +1068,6 @@ class PltScore(ScoreTransformModel):
             _diff = abs(_percent - dest_ratio)
 
             # at table bottom or lowest score, use_current
-            # may process strategy later in seg_list for score_min = 'real/zero'
             if (index == _top_index) or (_percent >= 1):
                 break
 
@@ -1210,8 +1091,8 @@ class PltScore(ScoreTransformModel):
                     print('Error ratio prox mode: {}'.format(_mode_prox))
                     raise ValueError
                 break
-            last_seg = _seg
             last_diff = _diff
+            last_seg = _seg
             last_percent = _percent
         if _use_last:
             return last_seg, last_percent
@@ -1248,10 +1129,10 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>23') + '\n'
 
-        for k in MODEL_STRATEGIES_DICT:
+        for k in mcf.MODEL_STRATEGIES_DICT:
             self.out_report_doc += ' ' * 22 + '{0:<40s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
-                       MODEL_STRATEGIES_DICT[k]) + '\n'
+                       mcf.MODEL_STRATEGIES_DICT[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
