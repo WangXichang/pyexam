@@ -125,7 +125,7 @@ import seaborn as sbn
 warnings.filterwarnings('ignore')
 
 
-# some constants for models: score grade ratio, shandong grade score interval
+# models parameters: grade score ratios, segments
 CONST_ZHEJIANG_RATIO = (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1)
 CONST_ZHEJIANG_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
 CONST_SHANGHAI_RATIO = (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5)
@@ -149,7 +149,7 @@ CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
 CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 
 
-# ShengShi-7: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
+# 7-ShengShi: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
 #   5 levels
 #   ration=(15%、35%、35%、13%, 2%),
 #   segment=(30～40、41～55、56～70、71～85、86～100)
@@ -161,7 +161,7 @@ CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 
-# make norm table for standard score start-end(100-900, 60-300,...)
+# get ratio from norm table for standard score start-end(100-900, 60-300,...)
 def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
     """
     set endpoint ratio from morm.cdf:
