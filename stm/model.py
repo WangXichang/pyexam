@@ -108,7 +108,10 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import seaborn as sbn
+
+# stm import
 from stm import modelconfig as mcf
+
 warnings.filterwarnings('ignore')
 
 
@@ -294,6 +297,9 @@ class ModelManager:
 
     @staticmethod
     def add_model(model_type='plt', name=None, ratio_list=None, segment_list=None, desc=''):
+        if model_type not in mcf.MODEL_TYPE:
+            print('error model type={}, valid type:{}'.format(model_type, mcf.MODEL_TYPE))
+            return
         if name in mcf.MODELS_SETTING_DICT:
             print('name existed in current models_dict!')
             return
@@ -310,7 +316,10 @@ class ModelManager:
         if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
             print('segment order is not from large to small!')
             return
-        mcf.MODELS_SETTING_DICT.update({name: mcf.RatioSeg(model_type, ratio_list, segment_list, desc)})
+        mcf.MODELS_SETTING_DICT.update({name: mcf.ModelFields(model_type,
+                                                              ratio_list,
+                                                              segment_list,
+                                                              desc)})
         MODELS_NAME_LIST.append(name)
 
     @staticmethod
@@ -472,8 +481,8 @@ class ScoreTransformModel(object):
         fig_title = 'Out Score '
         for fs in self.cols:
             plot.figure(fs)
-            if fs + '_plt' in self.out_data.columns:  # find sf_out_score field
-                sbn.distplot(self.out_data[fs + '_plt'])
+            if fs + '_ts' in self.out_data.columns:  # find sf_out_score field
+                sbn.distplot(self.out_data[fs + '_ts'])
                 plot.title(fig_title + fs)
             elif fs + '_grade' in self.out_data.columns:  # find sf_out_score field
                 sbn.distplot(self.out_data[fs + '_grade'])
@@ -734,31 +743,31 @@ class PltScore(ScoreTransformModel):
 
             # get formula and save
             _get_formula = False
-            if mcf.MODELS_SETTING_DICT[self.model_name].type == 'ssm':
-                _get_formula = self.__get_formula_ssm(col)
+            if mcf.MODELS_SETTING_DICT[self.model_name].type == 'ppt':
+                _get_formula = self.__get_formula_ppt(col)
             else:
-                _get_formula = self.__get_formula_plt(col)
+                _get_formula = self.__get_formula_ts(col)
             if not _get_formula:
                 print('getting plt formula fail !')
                 return
 
-            # get field_plt in out_data
-            print('   calculate: data[{0}] => {0}_plt'.format(col))
-            self.out_data.loc[:, (col + '_plt')] = \
+            # get field_ts in out_data
+            print('   calculate: data[{0}] => {0}_ts'.format(col))
+            self.out_data.loc[:, (col + '_ts')] = \
                 self.out_data[col].apply(
-                    lambda x: self.get_plt_score_from_formula_fraction(col, x))
+                    lambda x: self.get_ts_score_from_formula_fraction(col, x))
 
             if self.out_decimal_digits == 0:
                 self.out_data[col] = self.out_data[col].astype('int')
-                self.out_data[col+'_plt'] = self.out_data[col+'_plt'].astype('int')
+                self.out_data[col+'_ts'] = self.out_data[col+'_ts'].astype('int')
 
-        # create col_plt in map_table
+        # create col_ts in map_table
         df_map = self.map_table
         for col in self.cols:
-            print('   calculate: map_table[{0}] => [{0}_plt]'.format(col))
-            col_name = col + '_plt'
+            print('   calculate: map_table[{0}] => [{0}_ts]'.format(col))
+            col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.get_plt_score_from_formula_fraction(col, x))
+                lambda x: self.get_ts_score_from_formula_fraction(col, x))
             if self.out_decimal_digits == 0:
                 df_map[col_name] = df_map[col_name].astype('int')
 
@@ -775,7 +784,7 @@ class PltScore(ScoreTransformModel):
     # y = a*x + b
     # a = (y2-y1)/(x2-x1)
     # b = -x1/(x2-x1) + y1
-    def get_plt_score_from_formula_ax_b(self, field, x):
+    def get_ts_score_from_formula_ax_b(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 return round45r(cf[0][0] * x + cf[0][1])
@@ -787,7 +796,7 @@ class PltScore(ScoreTransformModel):
     # a = (y2-y1)/(x2-x1)
     # b = x1
     # c = y1
-    def get_plt_score_from_formula_ax_b_c(self, field, x):
+    def get_ts_score_from_formula_ax_b_c(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 v = (cf[1][1]-cf[1][0])
@@ -806,7 +815,7 @@ class PltScore(ScoreTransformModel):
     #           a=(y2-y1)
     #           b=y1x2-y2x1
     #           c=(x2-x1)
-    def get_plt_score_from_formula_fraction(self, field, x):
+    def get_ts_score_from_formula_fraction(self, field, x):
         if x > self.raw_score_max:
             return self.out_score_max
         if x < self.raw_score_min:
@@ -832,9 +841,9 @@ class PltScore(ScoreTransformModel):
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
     # len(ratio_list) = len(map_table['seg'])
-    def __get_formula_ssm(self, col):
+    def __get_formula_ppt(self, col):
         self.result_raw_endpoints = [x for x in self.map_table['seg']]
-        self.map_table.loc[:, col+'_plt'] = -1
+        self.map_table.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
         _tiny = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
@@ -846,7 +855,7 @@ class PltScore(ScoreTransformModel):
         _start_score = self.out_score_max if _mode_order in ['descending', 'd'] else self.out_score_min
         _step = -1 if _mode_order in ['descending', 'd'] else 1
 
-        _plt_list = []
+        _ts_list = []
         map_table = self.map_table
         for ri, row in map_table.iterrows():
             _seg = row['seg']
@@ -861,10 +870,10 @@ class PltScore(ScoreTransformModel):
                 elif _mode_zero == 'map_to_min':
                     if _mode_order in ['ascending', 'a']:
                         y = self.out_score_min
-                        row[col + '_plt'] = y
+                        row[col + '_ts'] = y
                         coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                         result_ratio.append(format(_p, '.6f'))
-                        _plt_list.append(y)
+                        _ts_list.append(y)
                         continue
                 else:
                     print('Error Zero Score Mode: {}'.format(_mode_zero))
@@ -899,17 +908,17 @@ class PltScore(ScoreTransformModel):
                         raise ValueError
                     break
             if y > 0:
-                # print('-1', row[col+'_plt'])
-                row[col+'_plt'] = y
-                # print('plt', row[col+'_plt'])
+                # print('-1', row[col+'_ts'])
+                row[col+'_ts'] = y
+                # print('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
-                _plt_list.append(y)
+                _ts_list.append(y)
             # end scanning raw_score_ratio_list
         # end scanning map_table
 
-        if len(self.map_table[col+'_plt']) == len(_plt_list):
-            map_table.loc[:, col+'_plt'] = _plt_list
+        if len(self.map_table[col+'_ts']) == len(_ts_list):
+            map_table.loc[:, col+'_ts'] = _ts_list
         # self.map_table = map_table
 
         self.result_formula_coeff = coeff_dict
@@ -919,7 +928,7 @@ class PltScore(ScoreTransformModel):
         self.result_ratio_dict[col] = result_ratio
         return True
 
-    def __get_formula_plt(self, field):
+    def __get_formula_ts(self, field):
         # --step 1
         # claculate raw_score_endpoints
         print('   get input score endpoints ...')
@@ -1122,7 +1131,7 @@ class PltScore(ScoreTransformModel):
             last_seg = this_seg
             start += 1
 
-    # create report and col_plt in map_table
+    # create report and col_ts in map_table
     def make_report_doc(self):
         self.out_report_doc = 'Transform Model: [{}]   {}\n'.\
             format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
@@ -1243,20 +1252,20 @@ class PltScore(ScoreTransformModel):
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
-            self.out_data[field+'_plt'].max(),\
-            self.out_data[field+'_plt'].min(),\
-            self.out_data[field+'_plt'].mean(),\
-            self.out_data[field+'_plt'].median(), \
-            self.out_data[field+'_plt'].mode()[0],\
-            self.out_data[field+'_plt'].std(),\
-            self.out_data[field+'_plt'].skew(), \
-            sts.kurtosis(self.out_data[field+'_plt'], fisher=False)
+            self.out_data[field+'_ts'].max(),\
+            self.out_data[field+'_ts'].min(),\
+            self.out_data[field+'_ts'].mean(),\
+            self.out_data[field+'_ts'].median(), \
+            self.out_data[field+'_ts'].mode()[0],\
+            self.out_data[field+'_ts'].std(),\
+            self.out_data[field+'_ts'].skew(), \
+            sts.kurtosis(self.out_data[field+'_ts'], fisher=False)
         _out_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                            format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
-        # _count_zero = self.map_table.query(field+'_count==0')[field+'_plt'].values
-        _count_non_zero = self.map_table.groupby(field+'_plt')[[field+'_count']].sum().query(field+'_count>0').index
+        # _count_zero = self.map_table.query(field+'_count==0')[field+'_ts'].values
+        _count_non_zero = self.map_table.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.out_score_min, self.out_score_max+1) 
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
@@ -1264,7 +1273,7 @@ class PltScore(ScoreTransformModel):
 
         # differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
-        _diff_raw_out = self.out_data[field+'_plt']-self.out_data[field]
+        _diff_raw_out = self.out_data[field+'_ts']-self.out_data[field]
         _out_report_doc += ' score shift(out-raw):' \
                            ' shift_max={:3.1f}' \
                            '  shift_min={:3.1f}' \
@@ -1339,7 +1348,7 @@ class PltScore(ScoreTransformModel):
         for col in self.cols:
             _len = self.map_table[col+'_count'].sum()
             x1 = sorted(self.out_data[col])
-            x2 = sorted(self.out_data[col+'_plt'])
+            x2 = sorted(self.out_data[col+'_ts'])
             y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
             fig, ax = plot.subplots()
             # fig.suptitle('norm test for stm models')
@@ -1352,7 +1361,7 @@ class PltScore(ScoreTransformModel):
         raw_label = [str(x) for x in self.map_table['seg']][::-1]
         for f in self.cols:
             raw_data = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
-            out_data = list(self.map_table[f + '_plt'])[::-1]
+            out_data = list(self.map_table[f + '_ts'])[::-1]
             out_data = [out if raw > 0 else 0 for raw, out in zip(raw_data, out_data)]
             # fig1 = plot.figure('subject: '+f)
             fig, ax = plot.subplots()
@@ -1364,7 +1373,7 @@ class PltScore(ScoreTransformModel):
             bar_wid = [p - width/2 for p in x]
             rects1 = ax.bar(bar_wid, raw_data, width, label=f)
             bar_wid = [p + width/2 for p in x]
-            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_plt')
+            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_ts')
 
             """Attach a text label above each bar in *rects*, displaying its height."""
             for i, rects in enumerate([rects1, rects2]):
@@ -1406,7 +1415,7 @@ class PltScore(ScoreTransformModel):
         x_label = [str(x) for x in range(self.out_score_max+1)]
         x_data = list(range(self.out_score_max+1))
         for f in self.cols:
-            out_ = self.out_data.groupby(f+'_plt').count()[f]
+            out_ = self.out_data.groupby(f+'_ts').count()[f]
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in x_label]
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+'_out_score]: bar graph')
@@ -1425,7 +1434,7 @@ class PltScore(ScoreTransformModel):
             raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
                         if xv in seg_list else 0
                         for xv in x_data]
-            out_ = self.out_data.groupby(f+'_plt').count()[f]
+            out_ = self.out_data.groupby(f+'_ts').count()[f]
             out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: bar graph')
@@ -1435,7 +1444,7 @@ class PltScore(ScoreTransformModel):
             bar_wid = [p - width/2 for p in x_data]
             raw_bar = ax.bar(bar_wid, raw_data, width, label=f)
             bar_wid = [p + width/2 for p in x_data]
-            out_bar = ax.bar(bar_wid, out_data, width, label=f+'_plt')
+            out_bar = ax.bar(bar_wid, out_data, width, label=f+'_ts')
             for bars in [raw_bar, out_bar]:
                 for _bar in bars:
                     height = _bar.get_height()
@@ -1457,7 +1466,7 @@ class PltScore(ScoreTransformModel):
             count, bins, patches = ax.hist(x_data, 35)
             x_fit = ((1 / (np.sqrt(2 * np.pi) * __std)) * np.exp(-0.5 * (1 / __std * (bins - _mu))**2))
             # x_fit = x_fit * max(count)/max(x_fit)
-            _color = 'y--' if '_plt' in field else 'g--'
+            _color = 'y--' if '_ts' in field else 'g--'
             ax.plot(bins, x_fit, _color, label=_label)
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             # print(field, len(count), sum(count), count)
@@ -1467,7 +1476,7 @@ class PltScore(ScoreTransformModel):
             # fit raw score distribution
             plot_dist_fit(f, 'raw score')
             # fit out score distribution
-            plot_dist_fit(f+'_plt', 'out score')
+            plot_dist_fit(f+'_ts', 'out score')
         plot.show()
 
     def __plot_dist_seaborn(self):
@@ -1475,7 +1484,7 @@ class PltScore(ScoreTransformModel):
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: distribution garph')
             sbn.kdeplot(self.out_data[f], shade=True)
-            sbn.kdeplot(self.out_data[f+'_plt'], shade=True)
+            sbn.kdeplot(self.out_data[f+'_ts'], shade=True)
 
     def plot_model(self, down_line=True):
         # 分段线性转换模型
@@ -1489,7 +1498,7 @@ class PltScore(ScoreTransformModel):
             out_min = min([min(p) for p in self.out_score_points])
             out_max = max([max(p) for p in self.out_score_points])
 
-            plot.figure(col+'_plt')
+            plot.figure(col+'_ts')
             plot.rcParams.update({'font.size': 10})
             plot.title(u'转换模型({})'.format(col))
             plot.xlim(min(raw_points), max(raw_points))
@@ -1532,7 +1541,7 @@ class PltScore(ScoreTransformModel):
         for ffs in self.cols:
             fs_list += [ffs+'_count']
             fs_list += [ffs+'_percent']
-            fs_list += [ffs+'_plt']
+            fs_list += [ffs+'_ts']
         print(self.map_table[fs_list])
 
 
