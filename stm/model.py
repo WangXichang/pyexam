@@ -133,7 +133,7 @@ def run(
         mode_score_order='descending',
         mode_seg_one_point='map_to_max',
         raw_score_range=(0, 100),
-        out_score_decimal=0
+        out_decimal_digits=0
         ):
     """
     :param name: str, model name,
@@ -157,7 +157,7 @@ def run(
                              default='descending'
     :param mode_seg_one_point: str, strategy to raw score segment made of one point, [a, a],
                                values: 'map_to_max, map_to_min, map_to_mean'
-    :param out_score_decimal: int, decimal digits of output score
+    :param out_decimal_digits: int, decimal digits of output score
                               default = 0, thar means out score type is int
     :return: model
     """
@@ -209,7 +209,7 @@ def run(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_order=mode_score_order,
             mode_seg_one_point=mode_seg_one_point,
-            out_decimal_digits=out_score_decimal
+            out_decimal_digits=out_decimal_digits
             )
         plt_model.run()
         return plt_model
