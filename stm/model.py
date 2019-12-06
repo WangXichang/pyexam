@@ -757,9 +757,9 @@ class PltScore(ScoreTransformModel):
                 self.outdf[col].apply(
                     lambda x: self.get_ts_score_from_formula_fraction(col, x))
 
-            if self.out_decimal_digits == 0:
-                self.outdf[col] = self.outdf[col].astype('int')
-                self.outdf[col+'_ts'] = self.outdf[col+'_ts'].astype('int')
+            # if self.out_decimal_digits == 0:
+            #     # self.outdf[col] = self.outdf[col].astype('int')
+            #     self.outdf[col+'_ts'] = self.outdf[col+'_ts'].astype('int')
 
         # create col_ts in map_table
         df_map = self.map_table
@@ -768,8 +768,8 @@ class PltScore(ScoreTransformModel):
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
                 lambda x: self.get_ts_score_from_formula_fraction(col, x))
-            if self.out_decimal_digits == 0:
-                df_map[col_name] = df_map[col_name].astype('int')
+            # if self.out_decimal_digits == 0:
+            #     df_map[col_name] = df_map[col_name].astype('int')
 
         # make report doc
         self.make_report_doc()
@@ -834,7 +834,7 @@ class PltScore(ScoreTransformModel):
                         return round45r(np.mean(cf[2]))
                     else:
                         return -1
-                return round45r((a*x + b)/c)
+                return round45r((a*x + b)/c, self.out_decimal_digits)
         return -1
 
     # formula hainan, each segment is a single point
