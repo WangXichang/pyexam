@@ -121,7 +121,7 @@ def test_lv(data):
 
 def test_stm_with_lvdata(data=None, cols=('wl', 'hx', 'sw'), cumu='no', name=''):
     cols_real = [f for f in cols if f in data.columns]
-    mr = model.run(data=data, cols=cols_real, mode_ratio_cumu=cumu)
+    mr = model.run(df=data, cols=cols_real, mode_ratio_cumu=cumu)
     mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'.txt')
     result = []
     for col in cols_real:
@@ -139,8 +139,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = model.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='ascending')
-        rd = model.run(name=model_name, data=test_data.df, cols=['km1'], mode_score_order='descending')
+        ra = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_score_order='ascending')
+        rd = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_score_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -193,7 +193,7 @@ class TestStmWithShandongData():
         for _run in _all:
             m = model.run(
                 name=name,
-                data=dfs[_run[0]+_run[1]],
+                df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_find=mode_ratio_find,
                 mode_ratio_cumu=mode_ratio_cumu,
@@ -261,7 +261,7 @@ def test_stm_with_stat_data(
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
         m = model.run(name=name,
-                      data=dfscore, cols=['kmx'],
+                      df=dfscore, cols=['kmx'],
                       mode_ratio_find=mode_ratio_find,
                       mode_ratio_cumu=mode_ratio_cumu
                       )

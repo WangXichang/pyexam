@@ -63,7 +63,7 @@
           [2] m = stm.run(name='shandong', df=data, col=['ls'])
           [3] m.report()
           [4] m.output.head()
-          [5] m.save_out_data_to_csv
+          [5] m.save_outdf_to_csv
 
        plot_models_outscore_hist_graph()
           山东、浙江、上海、北京、天津、广东、湖南方案等级转换分数分布直方图
@@ -126,7 +126,7 @@ def about():
 # interface to use model for some typical application
 def run(
         name='shandong',
-        data=None,
+        df=None,
         cols=(),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
@@ -141,9 +141,9 @@ def run(
                          'guangdong', 'SS7', 'hainan', 'hainan2',
                          'zscore', 'tscore', 'tlinear'
                  default = 'shandong'
-    :param data: dataframe,
-                 raw score data, score field type must be int or float
-                 default = None
+    :param df: dataframe,
+               raw score data, score field type must be int or float
+               default = None
     :param cols: list, score fields in data,
                  default = None
     :param raw_score_range: tuple, raw score value range,
@@ -169,14 +169,14 @@ def run(
         return
 
     # check input data
-    if type(data) != pd.DataFrame:
-        if type(data) == pd.Series:
-            raw_data = pd.DataFrame(data)
+    if type(df) != pd.DataFrame:
+        if type(df) == pd.Series:
+            indf = pd.DataFrame(df)
         else:
             print('no score dataframe!')
             return
     else:
-        raw_data = data
+        indf = df
 
     # check col
     if isinstance(cols, str):
@@ -200,7 +200,7 @@ def run(
         plt_model = PltScore()
         plt_model.model_name = name
         plt_model.out_decimal_digits = 0
-        plt_model.set_data(raw_data=raw_data, cols=cols)
+        plt_model.set_data(indf=indf, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
             out_score_seg_tuple=mcf.MODELS_SETTING_DICT[name].seg,
@@ -217,7 +217,7 @@ def run(
     if name in ('tai', 'taiwan'):
         m = GradeScoreTai()
         m.grade_num = 15    # TaiWan use 15 levels grade score system
-        m.set_data(raw_data=raw_data,
+        m.set_data(indf=indf,
                    cols=cols)
         m.set_para(raw_score_max=raw_score_range[1],
                    raw_score_min=raw_score_range[0])
@@ -227,7 +227,7 @@ def run(
     if name in ('zscore', 'Z', 'z'):
         zm = Zscore()
         zm.model_name = name
-        zm.set_data(raw_data=raw_data, cols=cols)
+        zm.set_data(indf=indf, cols=cols)
         zm.set_para(std_num=4, raw_score_range=raw_score_range)
         zm.run()
         zm.report()
@@ -236,7 +236,7 @@ def run(
     if name in ('tscore', 'T', 't'):
         tm = Tscore()
         tm.model_name = name
-        tm.set_data(raw_data=raw_data, cols=cols)
+        tm.set_data(indf=indf, cols=cols)
         tm.set_para(raw_score_range=raw_score_range)
         tm.run()
         tm.report()
@@ -245,7 +245,7 @@ def run(
     if name == 'tlinear':
         tm = TscoreLinear()
         tm.model_name = name
-        tm.set_data(raw_data=raw_data, cols=cols)
+        tm.set_data(indf=indf, cols=cols)
         tm.set_para(raw_score_max=raw_score_range[1],
                     raw_score_min=raw_score_range[0])
         tm.run()
@@ -355,20 +355,20 @@ class ScoreTransformModel(object):
         T分数线性模型（TscoreLinear),
         新高考等级分数转换分数模型（PltScore）（分段线性转换分数）
         param model_name, type==str
-        param raw_data: raw score data, type==datafrmae
-        param col: fields in raw_data, assign somr subjects score to transform
-        param out_data: transform score data, type==dataframe
+        param indf: raw score data, type==datafrmae
+        param col: fields in indf, assign somr subjects score to transform
+        param outdf: transform score data, type==dataframe
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
 
-        self.raw_data = pd.DataFrame()
+        self.indf = pd.DataFrame()
         self.cols = []
         self.raw_score_range = (0, 100)
         self.raw_score_min = None
         self.raw_score_max = None
 
-        self.out_data = pd.DataFrame()
+        self.outdf = pd.DataFrame()
         self.out_decimal_digits = 0
         self.out_report_doc = ''
         self.map_table = pd.DataFrame()
@@ -376,9 +376,9 @@ class ScoreTransformModel(object):
         self.sys_pricision_decimals = 8
 
     @abc.abstractmethod
-    def set_data(self, raw_data=None, cols=None):
+    def set_data(self, indf=None, cols=None):
         """
-        设置输入数据框架(raw_data: dataframe)和进行转换的数据列（cols: list）
+        设置输入数据框架(indf: dataframe)和进行转换的数据列（cols: list）
         """
 
     @abc.abstractmethod
@@ -396,15 +396,15 @@ class ScoreTransformModel(object):
         """
 
     def check_data(self):
-        if not isinstance(self.raw_data, pd.DataFrame):
-            print('raw data type={} is not dataframe!'.format(type(self.raw_data)))
+        if not isinstance(self.indf, pd.DataFrame):
+            print('raw data type={} is not dataframe!'.format(type(self.indf)))
             return False
         if (type(self.cols) is not list) | (len(self.cols) == 0):
             print('score fields not assigned in cols: {}!'.format(self.cols))
             return False
         for sf in self.cols:
-            if sf not in self.raw_data.columns:
-                print('score field {} not in raw data columns {}!'.format(sf, list(self.raw_data.columns)))
+            if sf not in self.indf.columns:
+                print('score field {} not in raw data columns {}!'.format(sf, list(self.indf.columns)))
                 return False
         return True
 
@@ -420,14 +420,14 @@ class ScoreTransformModel(object):
             return False
         return True
 
-    def read_raw_data_from_csv(self, filename=''):
+    def read_indf_from_csv(self, filename=''):
         if not os.path.isfile(filename):
             print('filename:{} is not a valid file name or the file not exists!'.format(filename))
             return
-        self.raw_data = pd.read_csv(filename)
+        self.indf = pd.read_csv(filename)
 
-    def save_out_data_to_csv(self, filename):
-        self.out_data.to_csv(filename, index=False)
+    def save_outdf_to_csv(self, filename):
+        self.outdf.to_csv(filename, index=False)
 
     def save_report_doc(self, filename):
         with open(filename, mode='w', encoding='utf-8') as f:
@@ -475,21 +475,21 @@ class ScoreTransformModel(object):
 
     def plot_out_score(self):
         if not self.cols:
-            print('no field assigned in {}!'.format(self.raw_data))
+            print('no field assigned in {}!'.format(self.indf))
             return
         # plot.figure(self.model_name + ' out score figure')
         fig_title = 'Out Score '
         for fs in self.cols:
             plot.figure(fs)
-            if fs + '_ts' in self.out_data.columns:  # find sf_out_score field
-                sbn.distplot(self.out_data[fs + '_ts'])
+            if fs + '_ts' in self.outdf.columns:  # find sf_out_score field
+                sbn.distplot(self.outdf[fs + '_ts'])
                 plot.title(fig_title + fs)
-            elif fs + '_grade' in self.out_data.columns:  # find sf_out_score field
-                sbn.distplot(self.out_data[fs + '_grade'])
+            elif fs + '_grade' in self.outdf.columns:  # find sf_out_score field
+                sbn.distplot(self.outdf[fs + '_grade'])
                 plot.title(fig_title + fs)
             else:
-                print('no out score fields found in out_data columns:{}!'.
-                      format(list(self.out_data.columns)))
+                print('no out score fields found in outdf columns:{}!'.
+                      format(list(self.outdf.columns)))
         return
 
     def plot_raw_score(self):
@@ -499,7 +499,7 @@ class ScoreTransformModel(object):
         labelstr = 'Raw Score '
         for sf in self.cols:
             plot.figure(sf)
-            sbn.distplot(self.raw_data[sf])
+            sbn.distplot(self.indf[sf])
             plot.title(labelstr + sf)
         return
 
@@ -578,7 +578,7 @@ class PltScore(ScoreTransformModel):
     """
 
     def __init__(self):
-        # intit raw_data, out_data, model_name
+        # intit indf, outdf, model_name
         super(PltScore, self).__init__('plt')
 
         # new properties for shandong model
@@ -613,18 +613,18 @@ class PltScore(ScoreTransformModel):
         self.result_dict = {}
 
     # plt
-    def set_data(self, raw_data=None, cols=None):
+    def set_data(self, indf=None, cols=None):
 
         # check and set rawdf
-        if type(raw_data) == pd.Series:
-            self.raw_data = pd.DataFrame(raw_data)
-        elif type(raw_data) == pd.DataFrame:
-            self.raw_data = raw_data
+        if type(indf) == pd.Series:
+            self.indf = pd.DataFrame(indf)
+        elif type(indf) == pd.DataFrame:
+            self.indf = indf
         else:
             print('rawdf set fail!\n not correct data set(DataFrame or Series)!')
-        # check and set out_data
+        # check and set outdf
         if type(cols) is str:
-            if cols in self.raw_data.columns:
+            if cols in self.indf.columns:
                 self.cols = [cols]
                 return True
             else:
@@ -632,7 +632,7 @@ class PltScore(ScoreTransformModel):
         elif type(cols) not in [list, tuple]:
             print('col set fail!\n not a list or tuple!')
             return False
-        elif sum([1 if sf in raw_data else 0 for sf in cols]) != len(cols):
+        elif sum([1 if sf in indf else 0 for sf in cols]) != len(cols):
             print('field of cols not in rawdf.columns!')
             return False
         else:
@@ -711,7 +711,7 @@ class PltScore(ScoreTransformModel):
         print('--- calculating map_table ...')
         _segsort = 'a' if self.strategy_dict['mode_score_order'] in ['ascending', 'a'] else 'd'
         self.seg_model = run_seg(
-                  raw_data=self.raw_data,
+                  indf=self.indf,
                   cols=self.cols,
                   segmax=self.raw_score_range[1],
                   segmin=self.raw_score_range[0],
@@ -720,7 +720,7 @@ class PltScore(ScoreTransformModel):
                   display=False,
                   usealldata=False
                   )
-        self.map_table = self.seg_model.out_data   # .copy(deep=True)
+        self.map_table = self.seg_model.outdf   # .copy(deep=True)
 
         # create field_fr in map_table
         #   strange error!!: some seg percent to zero
@@ -734,12 +734,12 @@ class PltScore(ScoreTransformModel):
 
         # transform score on each field
         self.result_dict = dict()
-        self.out_data = self.raw_data.copy(deep=True)
+        self.outdf = self.indf.copy(deep=True)
         for i, col in enumerate(self.cols):
             print('--- transform score field:[{}]'.format(col))
 
-            self.raw_score_max = self.raw_data[col].max()
-            self.raw_score_min = self.raw_data[col].min()
+            self.raw_score_max = self.indf[col].max()
+            self.raw_score_min = self.indf[col].min()
 
             # get formula and save
             _get_formula = False
@@ -751,15 +751,15 @@ class PltScore(ScoreTransformModel):
                 print('getting plt formula fail !')
                 return
 
-            # get field_ts in out_data
+            # get field_ts in outdf
             print('   calculate: data[{0}] => {0}_ts'.format(col))
-            self.out_data.loc[:, (col + '_ts')] = \
-                self.out_data[col].apply(
+            self.outdf.loc[:, (col + '_ts')] = \
+                self.outdf[col].apply(
                     lambda x: self.get_ts_score_from_formula_fraction(col, x))
 
             if self.out_decimal_digits == 0:
-                self.out_data[col] = self.out_data[col].astype('int')
-                self.out_data[col+'_ts'] = self.out_data[col+'_ts'].astype('int')
+                self.outdf[col] = self.outdf[col].astype('int')
+                self.outdf[col+'_ts'] = self.outdf[col+'_ts'].astype('int')
 
         # create col_ts in map_table
         df_map = self.map_table
@@ -994,11 +994,11 @@ class PltScore(ScoreTransformModel):
         _ratio_cum_list = self.raw_score_ratio_cum
 
         if self.strategy_dict['mode_score_zero_to_min'] == 'no':
-            _score_min = self.raw_data[field].min()
+            _score_min = self.indf[field].min()
         else:
             _score_min = self.raw_score_min
         if self.strategy_dict['mode_score_full_to_max'] == 'no':
-            _score_max = self.raw_data[field].max()
+            _score_max = self.indf[field].max()
         else:
             _score_max = self.raw_score_max
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
@@ -1230,14 +1230,14 @@ class PltScore(ScoreTransformModel):
 
         # raw score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
-            self.raw_data[field].max(),\
-            self.raw_data[field].min(),\
-            self.raw_data[field].mean(),\
-            self.raw_data[field].median(), \
-            self.raw_data[field].mode()[0], \
-            self.raw_data[field].std(),\
-            self.raw_data[field].skew(),\
-            sts.kurtosis(self.raw_data[field], fisher=False)
+            self.indf[field].max(),\
+            self.indf[field].min(),\
+            self.indf[field].mean(),\
+            self.indf[field].median(), \
+            self.indf[field].mode()[0], \
+            self.indf[field].std(),\
+            self.indf[field].skew(),\
+            sts.kurtosis(self.indf[field], fisher=False)
         _out_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                            format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
@@ -1252,14 +1252,14 @@ class PltScore(ScoreTransformModel):
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
-            self.out_data[field+'_ts'].max(),\
-            self.out_data[field+'_ts'].min(),\
-            self.out_data[field+'_ts'].mean(),\
-            self.out_data[field+'_ts'].median(), \
-            self.out_data[field+'_ts'].mode()[0],\
-            self.out_data[field+'_ts'].std(),\
-            self.out_data[field+'_ts'].skew(), \
-            sts.kurtosis(self.out_data[field+'_ts'], fisher=False)
+            self.outdf[field+'_ts'].max(),\
+            self.outdf[field+'_ts'].min(),\
+            self.outdf[field+'_ts'].mean(),\
+            self.outdf[field+'_ts'].median(), \
+            self.outdf[field+'_ts'].mode()[0],\
+            self.outdf[field+'_ts'].std(),\
+            self.outdf[field+'_ts'].skew(), \
+            sts.kurtosis(self.outdf[field+'_ts'], fisher=False)
         _out_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                            format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
@@ -1273,7 +1273,7 @@ class PltScore(ScoreTransformModel):
 
         # differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
-        _diff_raw_out = self.out_data[field+'_ts']-self.out_data[field]
+        _diff_raw_out = self.outdf[field+'_ts']-self.outdf[field]
         _out_report_doc += ' score shift(out-raw):' \
                            ' shift_max={:3.1f}' \
                            '  shift_min={:3.1f}' \
@@ -1347,8 +1347,8 @@ class PltScore(ScoreTransformModel):
         self.norm_test = dict()
         for col in self.cols:
             _len = self.map_table[col+'_count'].sum()
-            x1 = sorted(self.out_data[col])
-            x2 = sorted(self.out_data[col+'_ts'])
+            x1 = sorted(self.outdf[col])
+            x2 = sorted(self.outdf[col+'_ts'])
             y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
             fig, ax = plot.subplots()
             # fig.suptitle('norm test for stm models')
@@ -1360,9 +1360,9 @@ class PltScore(ScoreTransformModel):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.raw_score_max+1)
         raw_label = [str(x) for x in self.map_table['seg']][::-1]
         for f in self.cols:
-            raw_data = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
-            out_data = list(self.map_table[f + '_ts'])[::-1]
-            out_data = [out if raw > 0 else 0 for raw, out in zip(raw_data, out_data)]
+            indf = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
+            outdf = list(self.map_table[f + '_ts'])[::-1]
+            outdf = [out if raw > 0 else 0 for raw, out in zip(indf, outdf)]
             # fig1 = plot.figure('subject: '+f)
             fig, ax = plot.subplots()
             # ax.set_figure(fig1)
@@ -1371,9 +1371,9 @@ class PltScore(ScoreTransformModel):
             ax.set_xticklabels(raw_label)
             width = 0.4
             bar_wid = [p - width/2 for p in x]
-            rects1 = ax.bar(bar_wid, raw_data, width, label=f)
+            rects1 = ax.bar(bar_wid, indf, width, label=f)
             bar_wid = [p + width/2 for p in x]
-            rects2 = ax.bar(bar_wid, out_data, width, label=f+'_ts')
+            rects2 = ax.bar(bar_wid, outdf, width, label=f+'_ts')
 
             """Attach a text label above each bar in *rects*, displaying its height."""
             for i, rects in enumerate([rects1, rects2]):
@@ -1400,7 +1400,7 @@ class PltScore(ScoreTransformModel):
         x_data = list(range(self.raw_score_max+1))
         seg_list = list(self.map_table.seg)
         for f in self.cols:
-            raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+            indf = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
                         if xv in seg_list else 0
                         for xv in x_data]
             fig, ax = plot.subplots()
@@ -1409,21 +1409,21 @@ class PltScore(ScoreTransformModel):
             ax.set_xticklabels(raw_label)
             width = 0.8
             bar_wid = [p - width/2 for p in x_data]
-            ax.bar(bar_wid, raw_data, width, label=f)
+            ax.bar(bar_wid, indf, width, label=f)
 
     def __plot_outbar(self):
         x_label = [str(x) for x in range(self.out_score_max+1)]
         x_data = list(range(self.out_score_max+1))
         for f in self.cols:
-            out_ = self.out_data.groupby(f+'_ts').count()[f]
-            out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in x_label]
+            out_ = self.outdf.groupby(f+'_ts').count()[f]
+            outdf = [out_[int(v)] if int(v) in out_.index else 0 for v in x_label]
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+'_out_score]: bar graph')
             ax.set_xticks(x_data)
             ax.set_xticklabels(x_label)
             width = 0.8
             bar_wid = [p - width/2 for p in x_data]
-            ax.bar(bar_wid, out_data, width, label=f)
+            ax.bar(bar_wid, outdf, width, label=f)
 
 
     def __plot_bar(self):
@@ -1431,20 +1431,20 @@ class PltScore(ScoreTransformModel):
         x_data = list(range(self.out_score_max+1))
         seg_list = list(self.map_table.seg)
         for f in self.cols:
-            raw_data = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+            indf = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
                         if xv in seg_list else 0
                         for xv in x_data]
-            out_ = self.out_data.groupby(f+'_ts').count()[f]
-            out_data = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
+            out_ = self.outdf.groupby(f+'_ts').count()[f]
+            outdf = [out_[int(v)] if int(v) in out_.index else 0 for v in raw_label]
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: bar graph')
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
             bar_wid = [p - width/2 for p in x_data]
-            raw_bar = ax.bar(bar_wid, raw_data, width, label=f)
+            raw_bar = ax.bar(bar_wid, indf, width, label=f)
             bar_wid = [p + width/2 for p in x_data]
-            out_bar = ax.bar(bar_wid, out_data, width, label=f+'_ts')
+            out_bar = ax.bar(bar_wid, outdf, width, label=f+'_ts')
             for bars in [raw_bar, out_bar]:
                 for _bar in bars:
                     height = _bar.get_height()
@@ -1459,7 +1459,7 @@ class PltScore(ScoreTransformModel):
 
     def __plot_dist(self):
         def plot_dist_fit(field, _label):
-            x_data = self.out_data[field]
+            x_data = self.outdf[field]
             # local var _mu, __std
             _mu = np.mean(x_data)
             __std = np.std(x_data)
@@ -1483,8 +1483,8 @@ class PltScore(ScoreTransformModel):
         for f in self.cols:
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: distribution garph')
-            sbn.kdeplot(self.out_data[f], shade=True)
-            sbn.kdeplot(self.out_data[f+'_ts'], shade=True)
+            sbn.kdeplot(self.outdf[f], shade=True)
+            sbn.kdeplot(self.outdf[f+'_ts'], shade=True)
 
     def plot_model(self, down_line=True):
         # 分段线性转换模型
@@ -1548,9 +1548,9 @@ class PltScore(ScoreTransformModel):
 class Zscore(ScoreTransformModel):
     """
     transform raw score to Z-score according to percent position on normal cdf
-    input data: raw_data = raw score dataframe
+    input data: indf = raw score dataframe
     set parameters: stdNum = standard error numbers
-    output data: out_data = result score with raw score field name + '_z'
+    output data: outdf = result score with raw score field name + '_z'
     """
     # HighPrecise = 0.9999999
     MinError = 0.1 ** 9
@@ -1560,7 +1560,7 @@ class Zscore(ScoreTransformModel):
         self.model_name = 'zscore'
 
         # input data
-        self.raw_data = None
+        self.indf = None
         self.cols = None
 
         # model parameters
@@ -1568,7 +1568,7 @@ class Zscore(ScoreTransformModel):
         self.norm_table_len = 10000
         self.raw_score_max = 150
         self.raw_score_min = 0
-        self.out_data_decimal = 0
+        self.outdf_decimal = 0
         self.out_score_number = 100
         self.mode_ratio_prox = 'near'
         self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
@@ -1576,10 +1576,10 @@ class Zscore(ScoreTransformModel):
                                       )
         # result data
         self.map_table = None
-        self.out_data = None
+        self.outdf = None
 
-    def set_data(self, raw_data=None, cols=None):
-        self.raw_data = raw_data
+    def set_data(self, indf=None, cols=None):
+        self.indf = indf
         self.cols = cols
 
     def set_para(self,
@@ -1592,7 +1592,7 @@ class Zscore(ScoreTransformModel):
         self.raw_score_max = raw_score_range[1]
         self.raw_score_min = raw_score_range[0]
         self.mode_ratio_prox = mode_ratio_prox
-        self.out_data_decimal = out_decimal
+        self.outdf_decimal = out_decimal
 
     def check_parameter(self):
         if self.raw_score_max <= self.raw_score_min:
@@ -1610,9 +1610,9 @@ class Zscore(ScoreTransformModel):
             return
         print('start run...')
         st = time.clock()
-        self.out_data = self.raw_data.copy()
+        self.outdf = self.indf.copy()
         self.map_table = self.get_map_table(
-            self.out_data,
+            self.outdf,
             self.raw_score_max,
             self.raw_score_min,
             self.cols,
@@ -1622,8 +1622,8 @@ class Zscore(ScoreTransformModel):
             self.map_table[col+'_zscore'] = self.get_zscore(self.map_table[col+'_percent'])
             map_dict = {rscore: zscore for rscore, zscore in
                         zip(self.map_table['seg'], self.map_table[col + '_zscore'])}
-            self.out_data.loc[:, col + '_zscore'] = \
-                self.out_data[col].apply(lambda x: map_dict.get(x, -999))
+            self.outdf.loc[:, col + '_zscore'] = \
+                self.outdf[col].apply(lambda x: map_dict.get(x, -999))
         print('zscore finished with {} consumed'.format(round(time.clock()-st, 2)))
 
     # new method for uniform algorithm with strategies
@@ -1642,11 +1642,11 @@ class Zscore(ScoreTransformModel):
         seg.set_data(df, cols)
         seg.set_para(segmax=maxscore, segmin=minscore, segsort=seg_order)
         seg.run()
-        return seg.out_data
+        return seg.outdf
 
     def report(self):
-        if type(self.out_data) == pd.DataFrame:
-            print('output score desc:\n', self.out_data.describe())
+        if type(self.outdf) == pd.DataFrame:
+            print('output score desc:\n', self.outdf.describe())
         else:
             print('output score data is not ready!')
         print('data fields in raw_score:{}'.format(self.cols))
@@ -1684,13 +1684,13 @@ class Tscore(ScoreTransformModel):
         self.t_score_mean = 50
         self.t_score_stdnum = 4
 
-        self.out_data_decimal = 0
+        self.outdf_decimal = 0
         self.zscore_decimal = 8
 
         self.map_table = None
 
-    def set_data(self, raw_data=None, cols=None):
-        self.raw_data = raw_data
+    def set_data(self, indf=None, cols=None):
+        self.indf = indf
         self.cols = cols
 
     def set_para(self, 
@@ -1704,43 +1704,43 @@ class Tscore(ScoreTransformModel):
         self.t_score_mean = t_score_mean
         self.t_score_std = t_score_std
         self.t_score_stdnum = t_score_stdnum
-        self.out_data_decimal = out_decimal
+        self.outdf_decimal = out_decimal
 
     def run(self):
         zm = Zscore()
-        zm.set_data(self.raw_data, self.cols)
+        zm.set_data(self.indf, self.cols)
         zm.set_para(std_num=self.t_score_stdnum,
                     raw_score_range=(self.raw_score_min, self.raw_score_max),
                     out_decimal=self.zscore_decimal
                     )
         zm.run()
-        self.out_data = zm.out_data
-        namelist = self.out_data.columns
+        self.outdf = zm.outdf
+        namelist = self.outdf.columns
 
         def formula(x):
-            return round45r(x * self.t_score_std + self.t_score_mean, self.out_data_decimal)
+            return round45r(x * self.t_score_std + self.t_score_mean, self.outdf_decimal)
 
         for sf in namelist:
             if '_zscore' in sf:
                 new_sf = sf.replace('_zscore', '_tscore')
-                self.out_data.loc[:, new_sf] = self.out_data[sf].apply(formula)
+                self.outdf.loc[:, new_sf] = self.outdf[sf].apply(formula)
         self.map_table = zm.map_table
 
     def report(self):
         print('T-score by normal table transform report')
         print('-' * 50)
-        if type(self.raw_data) == pd.DataFrame:
+        if type(self.indf) == pd.DataFrame:
             print('raw score desc:')
             print('    fields:', self.cols)
-            print(self.raw_data[self.cols].describe())
+            print(self.indf[self.cols].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.out_data) == pd.DataFrame:
+        if type(self.outdf) == pd.DataFrame:
             out_fields = [f+'_tscore' for f in self.cols]
             print('T-score desc:')
             print('    fields:', out_fields)
-            print(self.out_data[out_fields].describe())
+            print(self.outdf[out_fields].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1768,8 +1768,8 @@ class TscoreLinear(ScoreTransformModel):
         self.t_score_std = 10
         self.t_score_stdnum = 4
 
-    def set_data(self, raw_data=None, cols=None):
-        self.raw_data = raw_data
+    def set_data(self, indf=None, cols=None):
+        self.indf = indf
         self.cols = cols
 
     def set_para(self,
@@ -1799,28 +1799,28 @@ class TscoreLinear(ScoreTransformModel):
 
     def run(self):
         super(TscoreLinear, self).run()
-        self.out_data = self.raw_data
+        self.outdf = self.indf
         for sf in self.cols:
-            rmean, rstd = self.out_data[[sf]].describe().loc[['mean', 'std']].values[:, 0]
-            self.out_data[sf + '_zscore'] = \
-                self.out_data[sf].apply(
+            rmean, rstd = self.outdf[[sf]].describe().loc[['mean', 'std']].values[:, 0]
+            self.outdf[sf + '_zscore'] = \
+                self.outdf[sf].apply(
                     lambda x: min(max((x - rmean) / rstd, -self.t_score_stdnum), self.t_score_stdnum))
-            self.out_data.loc[:, sf + '_tscore'] = \
-                self.out_data[sf + '_zscore'].\
+            self.outdf.loc[:, sf + '_tscore'] = \
+                self.outdf[sf + '_zscore'].\
                 apply(lambda x: x * self.t_score_std + self.t_score_mean)
 
     def report(self):
         print('TZ-score by linear transform report')
         print('-' * 50)
-        if type(self.raw_data) == pd.DataFrame:
+        if type(self.indf) == pd.DataFrame:
             print('raw score description:')
-            print(self.raw_data[[f for f in self.cols]].describe())
+            print(self.indf[[f for f in self.cols]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
-        if type(self.out_data) == pd.DataFrame:
+        if type(self.outdf) == pd.DataFrame:
             print('raw,T,Z score description:')
-            print(self.out_data[[f+'_tscore' for f in self.cols]].describe())
+            print(self.outdf[[f+'_tscore' for f in self.cols]].describe())
             print('-'*50)
         else:
             print('output score data is not ready!')
@@ -1855,16 +1855,16 @@ class GradeScoreTai(ScoreTransformModel):
         self.raw_score_max = 100
         self.raw_score_min = 0
         self.max_ratio = 0.01   # 1%
-        self.raw_data = pd.DataFrame()
+        self.indf = pd.DataFrame()
 
         self.grade_no = [x for x in range(self.grade_num+1)]
         self.map_table = None
         self.grade_dist_dict = {}  # col: grade_list, from max to min
-        self.out_data = pd.DataFrame()
+        self.outdf = pd.DataFrame()
 
-    def set_data(self, raw_data=pd.DataFrame(), cols=None):
-        if len(raw_data) > 0:
-            self.raw_data = raw_data
+    def set_data(self, indf=pd.DataFrame(), cols=None):
+        if len(indf) > 0:
+            self.indf = indf
         if isinstance(cols, list) or isinstance(cols, tuple):
             self.cols = cols
 
@@ -1875,7 +1875,7 @@ class GradeScoreTai(ScoreTransformModel):
                  ):
         if isinstance(raw_score_max, int):
             if len(self.cols) > 0:
-                if raw_score_max >= max([max(self.raw_data[f]) for f in self.cols]):
+                if raw_score_max >= max([max(self.indf[f]) for f in self.cols]):
                     self.raw_score_max = raw_score_max
                 else:
                     print('error: maxscore is too little to transform score!')
@@ -1889,7 +1889,7 @@ class GradeScoreTai(ScoreTransformModel):
 
     def run(self):
         self.run_create_grade_dist_list()
-        self.run_create_out_data()
+        self.run_create_outdf()
 
     def run_create_grade_dist_list(self):
         # mode_ratio_prox = 'near'
@@ -1897,10 +1897,10 @@ class GradeScoreTai(ScoreTransformModel):
         seg.set_para(segmax=self.raw_score_max,
                      segmin=self.raw_score_min,
                      segsort='d')
-        seg.set_data(self.raw_data,
+        seg.set_data(self.indf,
                      self.cols)
         seg.run()
-        self.map_table = seg.out_data
+        self.map_table = seg.outdf
         for fs in self.cols:
             lastpercent = 0
             lastseg = self.raw_score_max
@@ -1912,20 +1912,20 @@ class GradeScoreTai(ScoreTransformModel):
                         max_score = lastseg
                     else:
                         max_score = curseg
-                    max_point = self.raw_data[self.raw_data[fs] >= max_score][fs].mean()
+                    max_point = self.indf[self.indf[fs] >= max_score][fs].mean()
                     # print(fs, max_score, curseg, lastseg)
                     self.grade_dist_dict.update({fs: round45r(max_point/self.grade_num, 8)})
                     break
                 lastpercent = curpercent
                 lastseg = curseg
 
-    def run_create_out_data(self):
-        dt = copy.deepcopy(self.raw_data[self.cols])
+    def run_create_outdf(self):
+        dt = copy.deepcopy(self.indf[self.cols])
         for fs in self.cols:
             dt.loc[:, fs+'_grade'] = dt[fs].apply(lambda x: self.run__get_grade_score(fs, x))
             dt2 = self.map_table
             dt2.loc[:, fs+'_grade'] = dt2['seg'].apply(lambda x: self.run__get_grade_score(fs, x))
-            self.out_data = dt
+            self.outdf = dt
 
     def run__get_grade_score(self, fs, x):
         if x == 0:
@@ -1942,7 +1942,7 @@ class GradeScoreTai(ScoreTransformModel):
         pass
 
     def report(self):
-        print(self.out_data[[f+'_grade' for f in self.cols]].describe())
+        print(self.outdf[[f+'_grade' for f in self.cols]].describe())
 
     def print_map_table(self):
         print(self.map_table)
@@ -1950,7 +1950,7 @@ class GradeScoreTai(ScoreTransformModel):
 
 # call SegTable.run() return instance of SegTable
 def run_seg(
-            raw_data: pd.DataFrame,
+            indf: pd.DataFrame,
             cols: list,
             segmax=100,
             segmin=0,
@@ -1961,7 +1961,7 @@ def run_seg(
             ):
     seg = SegTable()
     seg.set_data(
-        raw_data=raw_data,
+        indf=indf,
         cols=cols
     )
     seg.set_para(
@@ -1986,8 +1986,8 @@ class SegTable(object):
     * from 09-17-2017
 
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
-    set_data(raw_data:DataFrame, fs:list)
-        raw_data: input dataframe, with a value fields(int,float) to calculate segment table
+    set_data(indf:DataFrame, fs:list)
+        indf: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
         fs: list, field names used to calculate seg table, empty for calculate all fields
                    用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
@@ -2017,7 +2017,7 @@ class SegTable(object):
                  低于segmin分数值的计数加入segmin分数段
         display: bool, True: display run() message include time consume, False: close display message in run()
                   打开（True）或关闭（False）在运行分段统计过程中的显示信息
-    out_data: 输出分段数据
+    outdf: 输出分段数据
             seg: seg value
         [field]: field name in fs
         [field]_count: number at the seg
@@ -2037,7 +2037,7 @@ class SegTable(object):
         seg.set_para(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
         seg.run()
         seg.plot()
-        print(seg.out_data.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+        print(seg.outdf.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
         1)根据usealldata确定是否在设定的区间范围内计算分数值
@@ -2049,7 +2049,7 @@ class SegTable(object):
         2)分段字段的类型为整数或浮点数（实数）
           fs type is digit, for example: int or float
 
-        3)可以单独设置数据(raw_data),字段列表（fs),各项参数（segmax, segmin, segsort,segalldata, segmode)
+        3)可以单独设置数据(indf),字段列表（fs),各项参数（segmax, segmin, segsort,segalldata, segmode)
           如，seg.col = ['score_1', 'score_2'];
               seg.segmax = 120
           重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
@@ -2062,7 +2062,7 @@ class SegTable(object):
 
     def __init__(self):
         # raw data
-        self.__raw_dataframe = None
+        self.__indfframe = None
         self.__cols = []
 
         # parameter for model
@@ -2078,22 +2078,22 @@ class SegTable(object):
         self.__percent_decimal = 10
 
         # result data
-        self.__out_dataframe = None
+        self.__outdfframe = None
 
         # run status
         self.__run_completed = False
 
     @property
-    def out_data(self):
-        return self.__out_dataframe
+    def outdf(self):
+        return self.__outdfframe
 
     @property
-    def raw_data(self):
-        return self.__raw_dataframe
+    def indf(self):
+        return self.__indfframe
 
-    @raw_data.setter
-    def raw_data(self, df):
-        self.__raw_dataframe = df
+    @indf.setter
+    def indf(self, df):
+        self.__indfframe = df
 
     @property
     def cols(self):
@@ -2175,12 +2175,12 @@ class SegTable(object):
     def display(self, display):
         self.__display = display
 
-    def set_data(self, raw_data, cols=None):
-        self.__raw_dataframe = raw_data
+    def set_data(self, indf, cols=None):
+        self.__indfframe = indf
         if type(cols) == str:
             cols = [cols]
-        if (not isinstance(cols, list)) & isinstance(raw_data, pd.DataFrame):
-            self.__cols = raw_data.columns.values
+        if (not isinstance(cols, list)) & isinstance(indf, pd.DataFrame):
+            self.__cols = indf.columns.values
         else:
             self.__cols = cols
         self.__check()
@@ -2248,9 +2248,9 @@ class SegTable(object):
         print(self.__doc__)
 
     def __check(self):
-        if isinstance(self.__raw_dataframe, pd.Series):
-            self.__raw_dataframe = pd.DataFrame(self.__raw_dataframe)
-        if not isinstance(self.__raw_dataframe, pd.DataFrame):
+        if isinstance(self.__indfframe, pd.Series):
+            self.__indfframe = pd.DataFrame(self.__indfframe)
+        if not isinstance(self.__indfframe, pd.DataFrame):
             print('error: raw score data is not ready!')
             return False
         if self.__segMax <= self.__segMin:
@@ -2267,9 +2267,9 @@ class SegTable(object):
                 return False
 
         for f in self.__cols:
-            if f not in self.raw_data.columns:
-                print("error: field('{}') is not in raw_data fields({})".
-                      format(f, self.raw_data.columns.values))
+            if f not in self.indf.columns:
+                print("error: field('{}') is not in indf fields({})".
+                      format(f, self.indf.columns.values))
                 return False
         if not isinstance(self.__usealldata, bool):
             print('error: segalldata({}) is not bool type!'.format(self.__usealldata))
@@ -2286,11 +2286,11 @@ class SegTable(object):
         seglist = [x for x in range(int(self.__segMin), int(self.__segMax + 1))]
         if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
-        self.__out_dataframe = pd.DataFrame({'seg': seglist})
-        outdf = self.__out_dataframe
+        self.__outdfframe = pd.DataFrame({'seg': seglist})
+        outdf = self.__outdfframe
         for f in self.__cols:
             # calculate preliminary group count
-            tempdf = self.raw_data
+            tempdf = self.indf
             tempdf.loc[:, f] = tempdf[f].apply(round45r)
 
             # count seg_count in [segmin, segmax]
@@ -2319,7 +2319,7 @@ class SegTable(object):
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
-            # self.__out_dataframe = outdf.copy()
+            # self.__outdfframe = outdf.copy()
             # special seg step
             if self.__segStep > 1:
                 self.__run_special_step(f)
@@ -2333,18 +2333,18 @@ class SegTable(object):
             print('segments count total consumed time:{}'.format(time.clock()-sttime))
             print('---seg calculation end---')
         self.__run_completed = True
-        self.__out_dataframe = outdf
+        self.__outdfframe = outdf
         return
 
     def __run_special_step(self, field: str):
         """
         processing count for step > 1
         :param field: for seg stepx
-        :return: field_countx in out_data
+        :return: field_countx in outdf
         """
         f = field
         segcountname = f + '_count{0}'.format(self.__segStep)
-        self.__out_dataframe[segcountname] = np.int64(-1)
+        self.__outdfframe[segcountname] = np.int64(-1)
         curstep = self.__segStep if self.__segSort.lower() == 'a' else -self.__segStep
         curpoint = self.__segStart
         if self.__segSort.lower() == 'd':
@@ -2355,17 +2355,17 @@ class SegTable(object):
                 curpoint += curstep
         # curpoint = self.__segStart
         cum = 0
-        for index, row in self.__out_dataframe.iterrows():
+        for index, row in self.__outdfframe.iterrows():
             cum += row[f + '_count']
             curseg = np.int64(row['seg'])
             if curseg in [self.__segMax, self.__segMin]:
-                self.__out_dataframe.loc[index, segcountname] = np.int64(cum)
+                self.__outdfframe.loc[index, segcountname] = np.int64(cum)
                 cum = 0
                 if (self.__segStart <= self.__segMin) | (self.__segStart >= self.__segMax):
                     curpoint += curstep
                 continue
             if curseg in [self.__segStart, curpoint]:
-                self.__out_dataframe.loc[index, segcountname] = np.int64(cum)
+                self.__outdfframe.loc[index, segcountname] = np.int64(cum)
                 cum = 0
                 curpoint += curstep
 
@@ -2378,7 +2378,7 @@ class SegTable(object):
         """
         f = field
         segcountname = f + '_list'
-        self.__out_dataframe[segcountname] = np.int64(-1)
+        self.__outdfframe[segcountname] = np.int64(-1)
         segpoint = sorted(self.__segList) \
             if self.__segSort.lower() == 'a' \
             else sorted(self.__segList)[::-1]
@@ -2387,23 +2387,23 @@ class SegTable(object):
         cum = 0
         pos = 0
         curpoint = segpoint[pos]
-        rownum = len(self.__out_dataframe)
+        rownum = len(self.__outdfframe)
         cur_row = 0
         lastindex = 0
         maxpoint = max(self.__segList)
         minpoint = min(self.__segList)
         list_sum = 0
-        self.__out_dataframe.loc[:, f+'_list_sum'] = 0
-        for index, row in self.__out_dataframe.iterrows():
+        self.__outdfframe.loc[:, f+'_list_sum'] = 0
+        for index, row in self.__outdfframe.iterrows():
             curseg = np.int64(row['seg'])
             # cumsum
             if self.__usealldata | (minpoint <= curseg <= maxpoint):
                 cum += row[f + '_count']
                 list_sum += row[f+'_count']
-                self.__out_dataframe.loc[index, f+'_list_sum'] = np.int64(list_sum)
+                self.__outdfframe.loc[index, f+'_list_sum'] = np.int64(list_sum)
             # set to seg count, only set seg in seglist
             if curseg == curpoint:
-                self.__out_dataframe.loc[index, segcountname] = np.int64(cum)
+                self.__outdfframe.loc[index, segcountname] = np.int64(cum)
                 cum = 0
                 if pos < len(segpoint)-1:
                     pos += 1
@@ -2412,7 +2412,7 @@ class SegTable(object):
                     lastindex = index
             elif cur_row == rownum:
                 if self.__usealldata:
-                    self.__out_dataframe.loc[lastindex, segcountname] += np.int64(cum)
+                    self.__outdfframe.loc[lastindex, segcountname] += np.int64(cum)
             cur_row += 1
 
     def plot(self):
@@ -2428,24 +2428,24 @@ class SegTable(object):
             plot.figure('map_table figure({})'.
                         format('Descending' if self.__segSort in 'aA' else 'Ascending'))
             plot.subplot(221)
-            plot.hist(self.raw_data[sf], 20)
+            plot.hist(self.indf[sf], 20)
             plot.title('histogram')
             if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.subplot(222)
-            plot.plot(self.out_data.seg, self.out_data[sf+'_count'])
+            plot.plot(self.outdf.seg, self.outdf[sf+'_count'])
             if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.title('distribution')
             plot.xlim([self.__segMin, self.__segMax])
             plot.subplot(223)
-            plot.plot(self.out_data.seg, self.out_data[sf + '_sum'])
+            plot.plot(self.outdf.seg, self.outdf[sf + '_sum'])
             plot.title('cumsum')
             plot.xlim([self.__segMin, self.__segMax])
             if step == len(self.__cols):
                 plot.legend(legendlist)
             plot.subplot(224)
-            plot.plot(self.out_data.seg, self.out_data[sf + '_percent'])
+            plot.plot(self.outdf.seg, self.outdf[sf + '_percent'])
             plot.title('percentage')
             plot.xlim([self.__segMin, self.__segMax])
             if step == len(self.__cols):
