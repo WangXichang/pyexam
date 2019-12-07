@@ -163,12 +163,12 @@ MODELS_SETTING_DICT = {
 MODEL_STRATEGIES_DICT = {
     'mode_ratio_prox':        ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':        ('yes', 'no'),
-    'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_seg_end_share':     ('no', 'yes'),
     'mode_score_order':       ('ascending', 'descending'),
     'mode_score_full_to_max': ('ignore', 'yes'),    # not for empty, but for ratio
     'mode_score_zero_to_min': ('no', 'yes'),        # ...
-    'mode_score_max_to_max':  ('no', 'yes'),        # max raw score to max out score
+    'mode_score_max_to_max':  ('ignore', 'yes'),    # max raw score to max out score
     'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
+    'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean'),
+    'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_seg_end_share':     ('no', 'yes'),
     }
