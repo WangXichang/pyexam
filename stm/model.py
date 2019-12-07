@@ -600,20 +600,8 @@ class PltScore(ScoreTransformModel):
         self.out_score_min = None
 
         # strategy
-        self.strategy_dict = {k: mcf.MODEL_STRATEGIES_DICT[k][0] for k in mcf.MODEL_STRATEGIES_DICT}
-        # self.strategy_dict = {
-        #     'mode_ratio_prox': 'upper_min',
-        #     'mode_ratio_cumu': 'yes',
-        #     'mode_score_order': 'descending',
-        #     'mode_seg_one_point': 'map_to_max',
-        #     'mode_seg_non_point': 'ignore',
-        #     'mode_seg_end_share': 'no',
-        #     'mode_score_full_to_max': 'no',
-        #     'mode_score_zero_to_min': 'no',
-        #     'mode_score_max_to_max': 'no',
-        #     'mode_score_empty': 'ignore',
-        #     'mode_endpoint_share': 'no'
-        # }
+        self.strategy_dict = {k: mcf.MODEL_STRATEGIES_DICT[k][0]
+                              for k in mcf.MODEL_STRATEGIES_DICT}
 
         # result
         self.seg_model = None

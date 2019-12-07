@@ -3,15 +3,54 @@
 
 """
     [CONSTANTS] 模块中的常量
-    各省市等级分数转换比例设置，山东省区间划分设置
-    CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-    CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-    CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-    CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-    CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-    CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-    CONST_SS7_RATIO = [2, 13, 35, 35, 15]
-    CONST_SS7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+
+    分数转换方式：
+    MODEL_TYPE = {'plt',    # 分段线性转换 piecewise linear transform
+                  'ppt'     # 逐点转换 piecewise point transform
+                  }
+
+    模型参数
+    MODEL_SETTING_DICT = {'type': str := 'plt' or 'ppt',
+                          'name': str := 'shandong', 'shanghai', ...
+                          'ratio': list := percent value for segments
+                          'seg': list := output score segments or points
+                          'desc': str := test to describe model
+                          }
+        各省市等级分数转换比例设置，用于定义模型
+        CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+        CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
+        CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
+        CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
+        CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
+        CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+        CONST_SS7_RATIO = [2, 13, 35, 35, 15]
+        CONST_SS7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+
+    转换算法策略
+    MODEL_STRATEGY_DICT = {key_name_str: value_str}   # some choice assigned in value_str, seprated by comma
+
+        目前分析实现的算法策略名称及选择值：
+
+        比例逼近策略
+        * 'mode_ratio_prox':        ('upper_min', 'lower_max', 'near_max', 'near_min'),
+        比例累计策略
+        * 'mode_ratio_cumu':        ('yes', 'no'),
+        搜索比例值的分数顺序
+        * 'mode_score_order':       ('ascending', 'descending'),
+        分数满分值是否映射到转换分数最大值，零分是否映射到最小值，实际最高分是否映射到最大值
+          'mode_score_full_to_max': ('ignore', 'yes'),    # not for empty, but for ratio
+          'mode_score_zero_to_min': ('no', 'yes'),        # ...
+          'mode_score_max_to_max':  ('ignore', 'yes'),    # max raw score to max out score
+          'mode_score_empty':       ('ignore', 'map_to_up', 'map_to_low'),
+        区间单点情况，映射到最大、最小、平均值
+        * 'mode_seg_one_point':     ('map_to_max', 'map_to_min', 'map_to_mean'),
+        区间丢失情况，忽略，向下增加一个点，向上增加一个点，同时向下和向上增加点
+          'mode_seg_non_point':     ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+        区间端点是否共享
+          'mode_seg_end_share':     ('no', 'yes'),
+
+        标识星号（*）者是目前已经实现的，被认为是最重要的
+        其余是默认第一选择值的，可以进一步研究的
 """
 
 
