@@ -173,7 +173,7 @@ class TestStmWithShandongData():
                 name='shandong',
                 year='16',
                 kl='wenke',
-                mode_ratio_find='upper_min',
+                mode_ratio_prox='upper_min',
                 mode_ratio_cumu='no',
                 mode_score_order='d',
                 all='no'
@@ -195,12 +195,12 @@ class TestStmWithShandongData():
                 name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
-                mode_ratio_find=mode_ratio_find,
+                mode_ratio_prox=mode_ratio_prox,
                 mode_ratio_cumu=mode_ratio_cumu,
                 mode_score_order=mode_score_order
                 )
             self.models_list.append(
-                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_find + '_' + mode_ratio_cumu, m))
+                self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_prox + '_' + mode_ratio_cumu, m))
 
     def save_report(self):
         for m in self.models_list:
@@ -211,7 +211,7 @@ class TestStmWithShandongData():
 def test_stm_with_stat_data(
         name='shandong',
         mode_ratio_cumu='no',
-        mode_ratio_find='upper_min',
+        mode_ratio_prox='upper_min',
         score_max=100,
         score_min=0,
         data_size=1000,
@@ -262,7 +262,7 @@ def test_stm_with_stat_data(
               format(data_size, score_min, score_max))
         m = model.run(name=name,
                       df=dfscore, cols=['kmx'],
-                      mode_ratio_find=mode_ratio_find,
+                      mode_ratio_prox=mode_ratio_prox,
                       mode_ratio_cumu=mode_ratio_cumu
                       )
         return m

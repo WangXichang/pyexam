@@ -746,9 +746,9 @@ class PltScore(ScoreTransformModel):
             # get formula and save
             _get_formula = False
             if mcf.MODELS_SETTING_DICT[self.model_name].type == 'ppt':
-                _get_formula = self.__get_formula_ppt(col)
+                _get_formula = self.get_formula_ppt(col)
             else:
-                _get_formula = self.__get_formula_ts(col)
+                _get_formula = self.get_formula_ts(col)
             if not _get_formula:
                 print('getting plt formula fail !')
                 return
@@ -837,7 +837,7 @@ class PltScore(ScoreTransformModel):
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
     # len(ratio_list) = len(map_table['seg'])
-    def __get_formula_ppt(self, col):
+    def get_formula_ppt(self, col):
         self.result_raw_endpoints = [x for x in self.map_table['seg']]
         self.map_table.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
@@ -926,7 +926,7 @@ class PltScore(ScoreTransformModel):
         self.result_ratio_dict[col] = result_ratio
         return True
 
-    def __get_formula_ts(self, field):
+    def get_formula_ts(self, field):
         # --step 1
         # claculate raw_score_endpoints
         print('   get input score endpoints ...')
@@ -936,7 +936,7 @@ class PltScore(ScoreTransformModel):
             return False
         # --step 2
         # calculate Coefficients
-        self.__get_formula_coeff()
+        self.get_formula_coeff()
         self.result_dict[field] = {'coeff': copy.deepcopy(self.result_formula_coeff)}
         return True
 
@@ -944,7 +944,7 @@ class PltScore(ScoreTransformModel):
     # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
     #        -2:   = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
     #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
-    def __get_formula_coeff(self):
+    def get_formula_coeff(self):
 
         # create raw score segments list
         x_points = self.result_raw_endpoints
@@ -1139,9 +1139,9 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
-            self.out_report_doc += self.__get_report_doc(col)
+            self.out_report_doc += self.get_report_doc(col)
 
-    def __get_report_doc(self, field=''):
+    def get_report_doc(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
         p = 0 if self.strategy_dict['mode_ratio_sort'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
