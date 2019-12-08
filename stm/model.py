@@ -768,7 +768,7 @@ class PltScore(ScoreTransformModel):
                 lambda x: self.get_ts_score_from_formula_fraction(col, x))
 
         # make report doc
-        self.make_report_doc()
+        self.make_report()
 
         print('='*100)
         print('stm-run end, elapsed-time:', time.time() - stime)
@@ -1109,24 +1109,35 @@ class PltScore(ScoreTransformModel):
                         ratio):
         # comments:
         #   use limit_denominator in Fraction
-        #   because of the error in pandas.field(Fraction) is not valid
-        _r = fr.Fraction(ratio).limit_denominator(1000000)
+        #   because of the Fraction number error in pandas.field(Fraction)
+        #   can't compare ratio with Fraction number in pd.DataFrame directly
+        dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
+        Result = namedtuple('Result',
+                            ['this_seg', 'last_seg',
+                             'upper_percent', 'lower_percent',
+                             'dist_to_upper', 'dist_to_lower'])
         last_fr = -1
         last_seg = -1
         start = 0
+        table_len = len(mapdf)
         for row_id, row in mapdf.iterrows():
             this_fr = row[field+'_fr']
             this_seg = row['seg']
-            if (_r <= this_fr) or (start == len(mapdf)):
-                if (start == 0) or (_r == this_fr):
-                    return (this_seg, this_fr, _r-last_fr), (this_seg, this_fr, this_fr-_r)
-                return (last_seg, last_fr, _r-last_fr), (this_seg, this_fr, this_fr-_r)
+            # meet a percent that bigger or at table bottom
+            if (this_fr >= dest_ratio) or (start == table_len):
+                dist_to_upper = float(this_fr - dest_ratio)
+                dist_to_lower = float(dest_ratio - last_fr)
+                if start == 0:    # at top and percent >= ratio
+                    dist_to_lower = 901
+                if this_fr == dest_ratio:  # equal to ratio
+                    dist_to_lower = 900
+                return Result(this_seg, last_seg, float(this_fr), float(last_fr), dist_to_upper, dist_to_lower)
             last_fr = this_fr
             last_seg = this_seg
             start += 1
 
     # create report and col_ts in map_table
-    def make_report_doc(self):
+    def make_report(self):
         self.out_report_doc = 'Transform Model: [{}]   {}\n'.\
             format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
@@ -1139,9 +1150,9 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
-            self.out_report_doc += self.get_report_doc(col)
+            self.out_report_doc += self.make_field_report(col)
 
-    def get_report_doc(self, field=''):
+    def make_field_report(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
         p = 0 if self.strategy_dict['mode_ratio_sort'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
