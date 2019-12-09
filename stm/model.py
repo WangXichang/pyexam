@@ -2397,7 +2397,7 @@ def use_ellipsis(digit_seq):
                     ellipsis_list += [start_p, p]
                 elif count_p == 2:
                     ellipsis_list += [start_p, end_p, p]
-                elif count_p == 3:
+                elif count_p == 2:
                     ellipsis_list += [start_p, end_p, p]
                 elif p == end_p + 1:
                     ellipsis_list += [start_p, Ellipsis, p]
