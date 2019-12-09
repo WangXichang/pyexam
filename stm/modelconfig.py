@@ -91,7 +91,7 @@ CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 # 7-ShengShi: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
 #   5 levels
 #   ration=(15%、35%、35%、13%, 2%),
-#   segment=(30～40、41～55、56～70、71～85、86～100)
+#   segment=(86～100、71～85、56～70、41～55、30～40)
 #   predict: mean = 70.24, std = 21.76
 #            mean = sum((x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)))
 #            std = math.sqrt(sum(((sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)))/5)
@@ -100,7 +100,8 @@ CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 
-# get ratio from norm table for standard score start-end(100-900, 60-300,...)
+# get ratio from norm distribution table, scipy.stats.norm.cdf
+# for standard score start-end range(100-900, 60-300,...)
 def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
     """
     set endpoint ratio from morm.cdf:

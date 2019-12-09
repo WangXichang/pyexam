@@ -259,97 +259,6 @@ def run(
         return tm
 
 
-class ModelManager:
-    @staticmethod
-    def plot_models(font_size=12, hainan='900'):
-        _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
-        if hainan == '300':
-            _names.remove('hn900')
-            _names.append('hn300')
-        elif hainan is None:
-            _names.remove('hn900')
-        ms_dict = dict()
-        for _name in _names:
-            ms_dict.update({_name: ModelManager.get_model_describe(name=_name)})
-
-        plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
-        plot.rcParams.update({'font.size': font_size})
-        for i, k in enumerate(_names):
-            plot.subplot(240+i+1)
-            _wid = 2
-            if k in ['shanghai']:
-                x_data = range(40, 71, 3)
-            elif k in ['zhejiang', 'beijing', 'tianjin']:
-                x_data = range(40, 101, 3)
-            elif k in ['shandong']:
-                x_data = [x for x in range(26, 100, 10)]
-                _wid = 8
-            elif k in ['guangdong']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
-                _wid = 10
-            elif k in ['ss7']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
-                _wid = 10
-            elif k in ['hn900']:
-                x_data = [x for x in range(100, 901)]
-                _wid = 1
-            elif k in ['hn300']:
-                x_data = [x for x in range(60, 301)]
-                _wid = 1
-            else:
-                raise ValueError(k)
-            plot.bar(x_data, mcf.MODELS_SETTING_DICT[k].ratio[::-1], width=_wid)
-            plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
-
-    @staticmethod
-    def add_model(model_type='plt', name=None, ratio_list=None, segment_list=None, desc=''):
-        if model_type not in mcf.MODEL_TYPE:
-            print('error model type={}, valid type:{}'.format(model_type, mcf.MODEL_TYPE))
-            return
-        if name in mcf.MODELS_SETTING_DICT:
-            print('name existed in current models_dict!')
-            return
-        if len(ratio_list) != len(segment_list):
-            print('ratio is not same as segment !')
-            return
-        for s in segment_list:
-            if len(s) > 2:
-                print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
-                return
-            if s[0] < s[1]:
-                print('the order is from large to small: {}-{}'.format(s[0], s[1]))
-                return
-        if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
-            print('segment order is not from large to small!')
-            return
-        mcf.MODELS_SETTING_DICT.update({name: mcf.ModelFields(model_type,
-                                                              ratio_list,
-                                                              segment_list,
-                                                              desc)})
-        MODELS_NAME_LIST.append(name)
-
-    @staticmethod
-    def show_models():
-        for k in mcf.MODELS_SETTING_DICT:
-            v = mcf.MODELS_SETTING_DICT[k]
-            print('{:<20s} {}'.format(k, v.ratio))
-            print('{:<20s} {}'.format('', v.seg))
-
-    @staticmethod
-    def get_model_describe(name='shandong'):
-        __ratio = mcf.MODELS_SETTING_DICT[name].ratio
-        __seg = mcf.MODELS_SETTING_DICT[name].seg
-        if name == 'hn900':
-            __mean, __std, __skewness = 500, 100, 0
-        elif name == 'hn300':
-            __mean, __std, __skewness = 180, 30, 0
-        else:
-            samples = []
-            [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
-            __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
-        return __mean, __std, __skewness
-
-
 # Score Transform Model Interface
 # Abstract class
 class ScoreTransformModel(abc.ABC):
@@ -2482,15 +2391,16 @@ def use_ellipsis(digit_seq):
         start_p, end_p, count_p = -1, -1, -1
         for p in _digit_seq:
             if p == _digit_seq[0]:
-                start_p, end_p = p, p
-                count_p = 1
+                start_p, end_p, count_p = p, p, 1
             if p == _digit_seq[-1]:
                 if count_p == 1:
                     ellipsis_list += [start_p, p]
-                elif p == end_p + 1:
-                    ellipsis_list += [start_p, Ellipsis, p]
                 elif count_p == 2:
                     ellipsis_list += [start_p, end_p, p]
+                elif count_p == 3:
+                    ellipsis_list += [start_p, end_p, p]
+                elif p == end_p + 1:
+                    ellipsis_list += [start_p, Ellipsis, p]
                 else:
                     ellipsis_list += [start_p, Ellipsis, end_p, p]
                 break
@@ -2499,6 +2409,8 @@ def use_ellipsis(digit_seq):
                     ellipsis_list += [start_p]
                 elif count_p == 2:
                     ellipsis_list += [start_p, end_p]
+                elif count_p == 3:
+                    ellipsis_list += [start_p, end_p-1, end_p]
                 else:
                     ellipsis_list += [start_p, Ellipsis, end_p]
                 count_p = 1
@@ -2508,30 +2420,121 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-def get_seg_ratio_from_norm_table(start, end, step, std=16):
-    """
-    # get ratio form seg points list,
-    # set first and end seg to tail ratio from norm table
-    # can be used to test std from seg ratio table
-    # for example,
-    #   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
-    #   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
-    #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
-    :param start:  start value for segments
-    :param end: end value for segments
-    :param step: length for each segment
-    :param std: preset standard error
-    :return:
-    """
-    _mean = (end+start)/2
-    table = []
-    _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step)]
-    # print(_seg_endpoints)
-    for i, x in enumerate(_seg_endpoints):
-        if i == 0:    # ignore first point
-            table.append(sts.norm.cdf(x))
-        elif 0 < i < len(_seg_endpoints)-1:
-            table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
-        elif i == len(_seg_endpoints)-1:
-            table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
-    return table
+class ModelFun:
+    @staticmethod
+    def plot_models(font_size=12, hainan='900'):
+        _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
+        if hainan == '300':
+            _names.remove('hn900')
+            _names.append('hn300')
+        elif hainan is None:
+            _names.remove('hn900')
+        ms_dict = dict()
+        for _name in _names:
+            ms_dict.update({_name: ModelFun.get_model_describe(name=_name)})
+
+        plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
+        plot.rcParams.update({'font.size': font_size})
+        for i, k in enumerate(_names):
+            plot.subplot(240+i+1)
+            _wid = 2
+            if k in ['shanghai']:
+                x_data = range(40, 71, 3)
+            elif k in ['zhejiang', 'beijing', 'tianjin']:
+                x_data = range(40, 101, 3)
+            elif k in ['shandong']:
+                x_data = [x for x in range(26, 100, 10)]
+                _wid = 8
+            elif k in ['guangdong']:
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                _wid = 10
+            elif k in ['ss7']:
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                _wid = 10
+            elif k in ['hn900']:
+                x_data = [x for x in range(100, 901)]
+                _wid = 1
+            elif k in ['hn300']:
+                x_data = [x for x in range(60, 301)]
+                _wid = 1
+            else:
+                raise ValueError(k)
+            plot.bar(x_data, mcf.MODELS_SETTING_DICT[k].ratio[::-1], width=_wid)
+            plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
+
+    @staticmethod
+    def add_model(model_type='plt', name=None, ratio_list=None, segment_list=None, desc=''):
+        if model_type not in mcf.MODEL_TYPE:
+            print('error model type={}, valid type:{}'.format(model_type, mcf.MODEL_TYPE))
+            return
+        if name in mcf.MODELS_SETTING_DICT:
+            print('name existed in current models_dict!')
+            return
+        if len(ratio_list) != len(segment_list):
+            print('ratio is not same as segment !')
+            return
+        for s in segment_list:
+            if len(s) > 2:
+                print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
+                return
+            if s[0] < s[1]:
+                print('the order is from large to small: {}-{}'.format(s[0], s[1]))
+                return
+        if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
+            print('segment order is not from large to small!')
+            return
+        mcf.MODELS_SETTING_DICT.update({name: mcf.ModelFields(model_type,
+                                                              ratio_list,
+                                                              segment_list,
+                                                              desc)})
+        MODELS_NAME_LIST.append(name)
+
+    @staticmethod
+    def show_models():
+        for k in mcf.MODELS_SETTING_DICT:
+            v = mcf.MODELS_SETTING_DICT[k]
+            print('{:<20s} {}'.format(k, v.ratio))
+            print('{:<20s} {}'.format('', v.seg))
+
+    @staticmethod
+    def get_model_describe(name='shandong'):
+        __ratio = mcf.MODELS_SETTING_DICT[name].ratio
+        __seg = mcf.MODELS_SETTING_DICT[name].seg
+        if name == 'hn900':
+            __mean, __std, __skewness = 500, 100, 0
+        elif name == 'hn300':
+            __mean, __std, __skewness = 180, 30, 0
+        else:
+            samples = []
+            [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
+            __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
+        return __mean, __std, __skewness
+
+    @staticmethod
+    def get_seg_ratio_from_norm_table(start, end, step, std=16):
+        """
+        # get ratio form seg points list,
+        # set first and end seg to tail ratio from norm table
+        # can be used to test std from seg ratio table
+        # for example,
+        #   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
+        #   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
+        #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+        :param start:  start value for segments
+        :param end: end value for segments
+        :param step: length for each segment
+        :param std: preset standard error
+        :return:
+        """
+        _mean = (end+start)/2
+        table = []
+        _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step)]
+        # print(_seg_endpoints)
+        for i, x in enumerate(_seg_endpoints):
+            if i == 0:    # ignore first point
+                table.append(sts.norm.cdf(x))
+            elif 0 < i < len(_seg_endpoints)-1:
+                table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
+            elif i == len(_seg_endpoints)-1:
+                table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
+        return table
