@@ -641,7 +641,7 @@ class PltScore(ScoreTransformModel):
             max_sum = 1 if max_sum == 0 else max_sum
             self.map_table[f+'_fr'] = \
                 self.map_table[f+'_sum'].apply(lambda x: fr.Fraction(x, max_sum))
-            self.map_table.astype({f+'_fr': fr.Fraction})
+            # self.map_table.astype({f+'_fr': fr.Fraction})     # encounter error in python 3.7.4
 
         # transform score on each field
         self.result_dict = dict()
