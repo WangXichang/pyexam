@@ -139,8 +139,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_score_order='ascending')
-        rd = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_score_order='descending')
+        ra = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_ratio_sort='ascending')
+        rd = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_ratio_sort='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -175,7 +175,7 @@ class TestStmWithShandongData():
                 kl='wenke',
                 mode_ratio_prox='upper_min',
                 mode_ratio_cumu='no',
-                mode_score_order='d',
+                mode_ratio_sort='d',
                 all='no'
                 ):
         pb.reload(model)
@@ -197,7 +197,7 @@ class TestStmWithShandongData():
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_prox=mode_ratio_prox,
                 mode_ratio_cumu=mode_ratio_cumu,
-                mode_score_order=mode_score_order
+                mode_ratio_sort=mode_ratio_sort
                 )
             self.models_list.append(
                 self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_prox + '_' + mode_ratio_cumu, m))
@@ -256,7 +256,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in model.MODELS_RATIO_SEGMENT_DICT.keys():
+    if name in model.mcf.MODELS_SETTING_DICT.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))

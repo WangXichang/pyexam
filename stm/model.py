@@ -1023,8 +1023,8 @@ class PltScore(ScoreTransformModel):
         dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
         Result = namedtuple('Result',
                             ['this_seg', 'last_seg',
-                             'upper_percent', 'lower_percent',
-                             'dist_to_upper', 'dist_to_lower'])
+                             'this_percent', 'last_percent',
+                             'dist_to_this', 'dist_to_last'])
         last_fr = -1
         last_seg = -1
         start = 0
