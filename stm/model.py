@@ -1010,41 +1010,6 @@ class PltScore(ScoreTransformModel):
             return last_seg, last_percent
         return _seg, _percent
 
-    # design for future
-    @classmethod
-    def get_seg_from_fr(cls, 
-                        mapdf: pd.DataFrame,
-                        field,
-                        ratio):
-        # comments:
-        #   use limit_denominator in Fraction
-        #   because of the Fraction number error in pandas.field(Fraction)
-        #   can't compare ratio with Fraction number in pd.DataFrame directly
-        dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
-        Result = namedtuple('Result',
-                            ['this_seg', 'last_seg',
-                             'this_percent', 'last_percent',
-                             'dist_to_this', 'dist_to_last'])
-        last_fr = -1
-        last_seg = -1
-        start = 0
-        table_len = len(mapdf)
-        for row_id, row in mapdf.iterrows():
-            this_fr = row[field+'_fr']
-            this_seg = row['seg']
-            # meet a percent that bigger or at table bottom
-            if (this_fr >= dest_ratio) or (start == table_len):
-                dist_to_upper = float(this_fr - dest_ratio)
-                dist_to_lower = float(dest_ratio - last_fr)
-                if start == 0:    # at top and percent >= ratio
-                    dist_to_lower = 901
-                if this_fr == dest_ratio:  # equal to ratio
-                    dist_to_lower = 900
-                return Result(this_seg, last_seg, float(this_fr), float(last_fr), dist_to_upper, dist_to_lower)
-            last_fr = this_fr
-            last_seg = this_seg
-            start += 1
-
     # create report and col_ts in map_table
     def make_report(self):
         self.out_report_doc = 'Transform Model: [{}]   {}\n'.\
@@ -2538,3 +2503,38 @@ class ModelFun:
             elif i == len(_seg_endpoints)-1:
                 table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
         return table
+
+    # design for future
+    @classmethod
+    def get_seg_from_fr(cls,
+                        map_table: pd.DataFrame,
+                        field,
+                        ratio):
+        # comments:
+        #   use limit_denominator in Fraction
+        #   because of the Fraction number error in pandas.field(Fraction)
+        #   can't compare ratio with Fraction number in pd.DataFrame directly
+        dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
+        Result = namedtuple('Result',
+                            ['this_seg', 'last_seg',
+                             'this_percent', 'last_percent',
+                             'dist_to_this', 'dist_to_last'])
+        last_fr = -1
+        last_seg = -1
+        start = 0
+        table_len = len(map_table)
+        for row_id, row in map_table.iterrows():
+            this_fr = row[field+'_fr']
+            this_seg = row['seg']
+            # meet a percent that bigger or at table bottom
+            if (this_fr >= dest_ratio) or (start == table_len):
+                dist_to_upper = float(this_fr - dest_ratio)
+                dist_to_lower = float(dest_ratio - last_fr)
+                if start == 0:    # at top and percent >= ratio
+                    dist_to_lower = 901
+                if this_fr == dest_ratio:  # equal to ratio
+                    dist_to_lower = 900
+                return Result(this_seg, last_seg, float(this_fr), float(last_fr), dist_to_upper, dist_to_lower)
+            last_fr = this_fr
+            last_seg = this_seg
+            start += 1
