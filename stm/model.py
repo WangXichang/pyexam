@@ -208,7 +208,7 @@ def run(
         plt_model.set_data(indf=indf, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=mcf.MODELS_SETTING_DICT[name].seg,
+            out_score_seg_tuple=mcf.MODELS_SETTING_DICT[name].section,
             raw_score_max=max(raw_score_range),
             raw_score_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -1050,16 +1050,16 @@ class PltScore(ScoreTransformModel):
             if _break:
                 continue
             # if formula[1][0] < 0 or formula[1][0] < formula[1][1]:
-            #     self.result_formula_text_list += ['(seg-{:3d}) ******'.format(_fi)]
+            #     self.result_formula_text_list += ['(section -{:3d}) ******'.format(_fi)]
             #     continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
-                    ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
+                    ['(section -{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
                      format(_fi, formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 if formula[2][0] != formula[2][1]:
                     self.result_formula_text_list += \
-                        ['(seg-{0:3d}) y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
+                        ['(section -{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
                          format(_fi,
                                 formula[0][0], formula[1][p],
                                 self.strategy_dict['mode_seg_one_point'],
@@ -1067,7 +1067,7 @@ class PltScore(ScoreTransformModel):
                          ]
                 else:
                     self.result_formula_text_list += \
-                        ['(seg-{0:3d}) y = 1.0*(x-{2:3d}) + {3:3d}'.
+                        ['(section -{0:3d}):  y = 1.0*(x-{2:3d}) + {3:3d}'.
                          format(_fi,
                                 formula[0][0],
                                 formula[1][p],
@@ -2427,10 +2427,10 @@ class ModelFun:
                 x_data = [x for x in range(26, 100, 10)]
                 _wid = 8
             elif k in ['guangdong']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].section][::-1]
                 _wid = 10
             elif k in ['ss7']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].seg][::-1]
+                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].section][::-1]
                 _wid = 10
             elif k in ['hn900']:
                 x_data = [x for x in range(100, 901)]
@@ -2444,29 +2444,29 @@ class ModelFun:
             plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
     @staticmethod
-    def add_model(model_type='plt', name=None, ratio_list=None, segment_list=None, desc=''):
+    def add_model(model_type='plt', name=None, ratio_list=None, section_list=None, desc=''):
         if model_type not in mcf.MODEL_TYPE:
             print('error model type={}, valid type:{}'.format(model_type, mcf.MODEL_TYPE))
             return
         if name in mcf.MODELS_SETTING_DICT:
             print('name existed in current models_dict!')
             return
-        if len(ratio_list) != len(segment_list):
+        if len(ratio_list) != len(section_list):
             print('ratio is not same as segment !')
             return
-        for s in segment_list:
+        for s in section_list:
             if len(s) > 2:
                 print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
                 return
             if s[0] < s[1]:
                 print('the order is from large to small: {}-{}'.format(s[0], s[1]))
                 return
-        if not all([s1 >= s2 for s1, s2 in zip(segment_list[:-1], segment_list[1:])]):
-            print('segment order is not from large to small!')
+        if not all([s1 >= s2 for s1, s2 in zip(section_list[:-1], section_list[1:])]):
+            print('section endpoints order is not from large to small!')
             return
         mcf.MODELS_SETTING_DICT.update({name: mcf.ModelFields(model_type,
                                                               ratio_list,
-                                                              segment_list,
+                                                              section_list,
                                                               desc)})
         MODELS_NAME_LIST.append(name)
 
@@ -2475,19 +2475,19 @@ class ModelFun:
         for k in mcf.MODELS_SETTING_DICT:
             v = mcf.MODELS_SETTING_DICT[k]
             print('{:<20s} {}'.format(k, v.ratio))
-            print('{:<20s} {}'.format('', v.seg))
+            print('{:<20s} {}'.format('', v.section))
 
     @staticmethod
     def get_model_describe(name='shandong'):
         __ratio = mcf.MODELS_SETTING_DICT[name].ratio
-        __seg = mcf.MODELS_SETTING_DICT[name].seg
+        __section = mcf.MODELS_SETTING_DICT[name].section
         if name == 'hn900':
             __mean, __std, __skewness = 500, 100, 0
         elif name == 'hn300':
             __mean, __std, __skewness = 180, 30, 0
         else:
             samples = []
-            [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__seg)]
+            [samples.extend([np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__section)]
             __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
         return __mean, __std, __skewness
 

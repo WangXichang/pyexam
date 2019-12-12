@@ -22,9 +22,9 @@
         CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
         CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
         CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-        CONST_SHANDONG_SEGMENT = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+        CONST_SHANDONG_SECTION = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
         CONST_SS7_RATIO = [2, 13, 35, 35, 15]
-        CONST_SS7_SEGMENT = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+        CONST_SS7_SECTION = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
     转换算法策略
     MODEL_STRATEGY_DICT = {key_name_str: value_str}   # some choice assigned in value_str, seprated by comma
@@ -66,26 +66,26 @@ MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_SST}
 
 # models parameters: grade score ratios, segments
 CONST_ZHEJIANG_RATIO = (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1)
-CONST_ZHEJIANG_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
+CONST_ZHEJIANG_SECTION = ((100-i*3, 100-i*3) for i in range(21))
 CONST_SHANGHAI_RATIO = (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5)
-CONST_SHANGHAI_SEGMENT = ((70-i*3, 70-i*3) for i in range(11))
+CONST_SHANGHAI_SECTION = ((70-i*3, 70-i*3) for i in range(11))
 CONST_BEIJING_RATIO = (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1)
-CONST_BEIJING_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
+CONST_BEIJING_SECTION = ((100-i*3, 100-i*3) for i in range(21))
 CONST_TIANJIN_RATIO = (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1)
-CONST_TIANJIN_SEGMENT = ((100-i*3, 100-i*3) for i in range(21))
+CONST_TIANJIN_SECTION = ((100-i*3, 100-i*3) for i in range(21))
 
 
 # ShanDong
 # 8 levels, (3%, 7%, 16%, 24%, 24%, 16%, 7%, 3%)
 # 8 segments: (100, 91), ..., (30, 21)
 CONST_SHANDONG_RATIO = (3, 7, 16, 24, 24, 16, 7, 3)
-CONST_SHANDONG_SEGMENT = ((100-i*10, 100-i*10-9) for i in range(8))
+CONST_SHANDONG_SECTION = ((100-i*10, 100-i*10-9) for i in range(8))
 
 
 # GuangDong
 #   predict: mean = 70.21, std = 20.95
 CONST_GUANGDONG_RATIO = (17, 33, 33, 15, 2)
-CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
+CONST_GUANGDONG_SECTION = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 
 
 # 7-ShengShi: JIANGSU, FUJIAN, HUNAN, HUBEI, CHONGQING, HEBEI, LIAONING
@@ -96,7 +96,7 @@ CONST_GUANGDONG_SEGMENT = ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30))
 #            mean = sum((x/100*sum(y)/2 for x,y in zip(SS7ratio,SS7segment)))
 #            std = math.sqrt(sum(((sum(y)/2-mean)**2 for x,y in zip(SS7ratio,SS7segment)))/5)
 CONST_SS7_RATIO = (15, 35, 35, 13, 2)
-CONST_SS7_SEGMENT = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
+CONST_SS7_SECTION = ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30))
 
 
 
@@ -121,80 +121,80 @@ def get_ratio_from_norm_cdf(start, end, std_num=4, step=1):
 
 # Hainan standard score(old national) parameters(range:100-900, ratio: norm:(std=100, mean=500))
 CONST_HAINAN_RATIO = get_ratio_from_norm_cdf(100, 900)
-CONST_HAINAN_SEGMENT = ((s, s) for s in range(900, 100-1, -1))
+CONST_HAINAN_SECTION = ((s, s) for s in range(900, 100-1, -1))
 
 # Hainan2 out_scope: 60-300 (mean=180, std=30)
 #         ordinary method: transform each score individually
 #         use norm cdf for each point, first set in 60-300, then pick ratio-score in raw segtable
 CONST_HAINAN300_RATIO = get_ratio_from_norm_cdf(60, 300)
-CONST_HAINAN300_SEGMENT = ((s, s) for s in range(300, 60 - 1, -1))
+CONST_HAINAN300_SECTION = ((s, s) for s in range(300, 60 - 1, -1))
 
 # Hainan3 out_scope 60-300,
 #         use plt method to transform
 #         set top fine proximate ratio to norm distribution
 CONST_HAINAN3_RATIO = (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14)
-CONST_HAINAN3_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
+CONST_HAINAN3_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 # Hainan4 using plt for 60-300, use plt method to transform
 #         set secondary proximate ratio
 CONST_HAINAN4_RATIO = (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2)
-CONST_HAINAN4_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
+CONST_HAINAN4_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 # Hainan5 using plt for 60-300, use plt method to transform
 #         set suitable ratio
 CONST_HAINAN5_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
-CONST_HAINAN5_SEGMENT = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
+CONST_HAINAN5_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
 
-ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'seg', 'desc'])
+ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 MODELS_SETTING_DICT = {
     'zhejiang':     ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_ZHEJIANG_RATIO),
-                                tuple(CONST_ZHEJIANG_SEGMENT),
+                                tuple(CONST_ZHEJIANG_SECTION),
                                 'piecewise linear transform model'),
     'shanghai':     ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_SHANGHAI_RATIO),
-                                tuple(CONST_SHANGHAI_SEGMENT),
+                                tuple(CONST_SHANGHAI_SECTION),
                                 'piecewise linear transform model'),
     'beijing':      ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_BEIJING_RATIO),
-                                tuple(CONST_BEIJING_SEGMENT),
+                                tuple(CONST_BEIJING_SECTION),
                                 'piecewise linear transform model'),
     'tianjin':      ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_TIANJIN_RATIO),
-                                tuple(CONST_TIANJIN_SEGMENT),
+                                tuple(CONST_TIANJIN_SECTION),
                                 'piecewise linear transform model'),
     'shandong':     ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_SHANDONG_RATIO),
-                                tuple(CONST_SHANDONG_SEGMENT),
+                                tuple(CONST_SHANDONG_SECTION),
                                 'piecewise linear transform model'),
     'guangdong':    ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_GUANGDONG_RATIO),
-                                tuple(CONST_GUANGDONG_SEGMENT),
+                                tuple(CONST_GUANGDONG_SECTION),
                                 'piecewise linear transform model'),
     'ss7':          ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_SS7_RATIO),
-                                tuple(CONST_SS7_SEGMENT),
+                                tuple(CONST_SS7_SECTION),
                                 'piecewise linear transform model'),
     'hn900':        ModelFields(MODEL_TYPE_SST,
                                 tuple(CONST_HAINAN_RATIO),
-                                tuple(CONST_HAINAN_SEGMENT),
+                                tuple(CONST_HAINAN_SECTION),
                                 'standard score model'),
     'hn300':        ModelFields(MODEL_TYPE_SST,
                                 tuple(CONST_HAINAN300_RATIO),
-                                tuple(CONST_HAINAN300_SEGMENT),
+                                tuple(CONST_HAINAN300_SECTION),
                                 'standard score model'),
     'hn300plt1':    ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_HAINAN3_RATIO),
-                                tuple(CONST_HAINAN3_SEGMENT),
+                                tuple(CONST_HAINAN3_SECTION),
                                 'piecewise linear transform model'),
     'hn300plt2':    ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_HAINAN4_RATIO),
-                                tuple(CONST_HAINAN4_SEGMENT),
+                                tuple(CONST_HAINAN4_SECTION),
                                 'piecewise linear transform model'),
     'hn300plt3':    ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_HAINAN5_RATIO),
-                                tuple(CONST_HAINAN5_SEGMENT),
+                                tuple(CONST_HAINAN5_SECTION),
                                 'piecewise linear transform model with ratio-segment')
     }
 
