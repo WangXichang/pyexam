@@ -900,63 +900,71 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
+    # extract section points(first end point of first section and second point of all section) from map_table
+    #   according ratios in preset ratio_list: raw_score_ratio_cum (cumulative ratio list)
     def get_seg_points_list(self, field):
         result_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
         if self.strategy_dict['mode_score_zero_to_min'] != 'yes':
-            _score_min = self.indf[field].min()
+            section_min = self.indf[field].min()
         else:
-            _score_min = self.raw_score_min
+            section_min = self.raw_score_min
+
         if self.strategy_dict['mode_score_full_to_max'] != 'yes':
-            _score_max = self.indf[field].max()
+            section_max = self.indf[field].max()
         else:
-            _score_max = self.raw_score_max
+            section_max = self.raw_score_max
+
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
         _mode_order = self.strategy_dict['mode_score_sort']
 
-        # start points for raw score segments
-        _start_endpoint = _score_min if _mode_order in ['a', 'ascending'] else _score_max
-        result_seg_list = [_start_endpoint]
+        # first points of first section in raw score
+        section_start_point = section_min if _mode_order in ['a', 'ascending'] else section_max
+        result_section_list = [section_start_point]
 
-        # ratio: predefined,  percent: computed from data
+        # ratio: preset,  percent: computed from data in map_table
         last_ratio = 0
         last_percent = 0
         _step = 1 if _mode_order in ['a', 'ascending'] else -1
         for i, cumu_ratio in enumerate(_ratio_cum_list):
             this_seg_ratio = cumu_ratio-last_ratio
-            dest_percent = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_percent
+            dest_ratio = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_percent
 
-            # seek endpoint and real cumulative percent of each segment from map_table
-            this_seg_endpoint, real_percent = self.get_seg_from_map_table(field, dest_percent)
+            # seek endpoint and real cumulative percent of this section from map_table
+            this_section_end_point, real_percent = self.get_seg_from_map_table(field, dest_ratio)
 
-            # print(this_seg_endpoint)
+            # first point at first section
             if i == 0:
-                this_seg_startpoint = result_seg_list[0]
+                this_section_start_point = result_section_list[0]
+            # not reached bottom
             elif last_percent < 1:
-                if result_seg_list[i] != this_seg_endpoint:
-                    this_seg_startpoint = result_seg_list[i] + _step
+                # end_point already in result_seg_list
+                if result_section_list[i] != this_section_end_point:
+                    # auto get start point by step (1 or -1)
+                    this_section_start_point = result_section_list[i] + _step
                 else:
-                    this_seg_startpoint = -1
+                    this_section_start_point = -1
             else:
                 # if last endpoint is at bottom, this is set to -1,
-                # because of no raw score in this segment
-                this_seg_startpoint = -1
-                this_seg_endpoint = -1
+                # because of no raw score seg point in this section
+                this_section_start_point = -1
+                this_section_end_point = -1
 
             # save to result ratio
             result_ratio.append('{:.6f}'.format(real_percent))
             # save result endpoints (noshare, share)
-            result_seg_list.append(this_seg_endpoint)
+            result_section_list.append(this_section_end_point)
 
+            # display ratio searching result at section i
             print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                   'map_interval: raw:[{4:3.0f}, {5:3.0f}]  out:[{6:3.0f}, {7:3.0f}]'.
                   format(i+1,
                          cumu_ratio,
-                         dest_percent,
+                         dest_ratio,
                          real_percent,
-                         this_seg_startpoint,
-                         this_seg_endpoint if this_seg_startpoint >= 0 else -1,
+                         this_section_start_point,
+                         this_section_end_point if this_section_start_point >= 0 else -1,
                          self.out_score_points[i][0],
                          self.out_score_points[i][1]
                          )
@@ -967,7 +975,7 @@ class PltScore(ScoreTransformModel):
             last_percent = real_percent
 
         self.result_ratio_dict[field] = result_ratio
-        return result_seg_list
+        return result_section_list
 
     # new at 2019-09-09
     def get_seg_from_map_table(self, field, dest_ratio):

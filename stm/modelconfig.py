@@ -199,17 +199,20 @@ MODELS_SETTING_DICT = {
     }
 
 # choice_count = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
-# key choice = 4 * 2 * 2 * 3 * 4    ## prox, cumu, sort, one_point, non_point
+# real used choice = 4 * 2 * 2 * 2 * 3 = 96    ## prox, cumu, sort, zero_min, one_point, non_point
 MODEL_STRATEGIES_DICT = {
     'mode_ratio_prox':          ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':          ('yes', 'no'),
     'mode_score_sort':          ('ascending', 'descending'),
-    'mode_score_high_to_max':   ('ignore', 'yes'),    # max raw score to max out score
     'mode_score_zero_to_min':   ('ignore', 'yes'),    # min raw score to min out score, to this result if sort is 'a'
     'mode_score_full_to_max':   ('ignore', 'yes'),    # full raw score to max out score, not only empty, also for ratio
     'mode_seg_one_point':       ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_seg_non_point':       ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_seg_2nd_point':       ('minus_one', 'jump_empty_point'),     # how to get second endpoint for each segment
+    }
+
+MODEL_STRATEGIES_RESERVE_DICT ={
+    'mode_score_high_to_max':   ('ignore', 'yes'),    # max raw score to max out score
     'mode_score_empty':         ('ignore', 'map_to_up', 'map_to_low'),    # ** consider to deprecated
-    'mode_seg_end_share':       ('no', 'yes'),
+    'mode_seg_end_share': ('no', 'yes'),
+    'mode_seg_non_point': ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_seg_2nd_point':       ('minus_one', 'jump_empty_point'),     # how to get second endpoint for each segment
     }
