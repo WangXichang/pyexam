@@ -205,12 +205,12 @@ MODEL_STRATEGIES_DICT = {
     'mode_ratio_cumu':          ('yes', 'no'),
     'mode_score_sort':          ('ascending', 'descending'),
     'mode_score_zero_to_min':   ('ignore', 'yes'),    # min raw score to min out score, to this result if sort is 'a'
-    'mode_score_full_to_max':   ('ignore', 'yes'),    # full raw score to max out score, not only empty, also for ratio
+    'mode_score_peak_to_max':   ('ignore', 'yes'),    # full raw score to max out score, not only empty, also for ratio
     'mode_seg_one_point':       ('map_to_max', 'map_to_min', 'map_to_mean'),
     }
 
 MODEL_STRATEGIES_RESERVE_DICT ={
-    'mode_score_high_to_max':   ('ignore', 'yes'),    # max raw score to max out score
+    'mode_score_full_to_max':   ('ignore', 'yes'),    # max raw score to max out score
     'mode_score_empty':         ('ignore', 'map_to_up', 'map_to_low'),    # ** consider to deprecated
     'mode_seg_end_share': ('no', 'yes'),
     'mode_seg_non_point': ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),

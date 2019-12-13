@@ -131,6 +131,8 @@ def run(
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_score_sort='descending',
+        mode_score_zero_to_min='ignore',
+        mode_score_peak_to_max='ignore',
         mode_seg_one_point='map_to_max',
         raw_score_range=(0, 100),
         out_decimal_digits=0
@@ -214,6 +216,8 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_sort=mode_score_sort,
+            mode_score_peak_to_max=mode_score_peak_to_max,
+            mode_score_zero_to_min=mode_score_zero_to_min,
             mode_seg_one_point=mode_seg_one_point,
             out_decimal_digits=out_decimal_digits
             )
@@ -517,6 +521,8 @@ class PltScore(ScoreTransformModel):
         self.out_decimal_digits = 0
         self.out_score_max = None
         self.out_score_min = None
+        self.raw_score_full = None
+        self.raw_score_bott = None
 
         # strategy
         self.strategy_dict = {k: mcf.MODEL_STRATEGIES_DICT[k][0]
@@ -567,6 +573,8 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_score_sort='descending',
+                 mode_score_peak_to_max='ignore',
+                 mode_score_zero_to_min='ignore',
                  mode_seg_one_point='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
@@ -594,8 +602,9 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_score_sort'] = mode_score_sort
+        self.strategy_dict['mode_score_peak_to_max'] = mode_score_peak_to_max
         self.strategy_dict['mode_seg_one_point'] = mode_seg_one_point
-        self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
+        # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
     def check_parameter(self):
         if not self.cols:
@@ -657,6 +666,7 @@ class PltScore(ScoreTransformModel):
         for i, col in enumerate(self.cols):
             print('--- transform score field:[{}]'.format(col))
 
+            # there is a problem: max set to locale value to each col
             self.raw_score_max = self.indf[col].max()
             self.raw_score_min = self.indf[col].min()
 
@@ -730,8 +740,10 @@ class PltScore(ScoreTransformModel):
     #           c=(x2-x1)
     def get_ts_score_from_formula_fraction(self, field, x):
         if x > self.raw_score_max:
+            # raise ValueError
             return self.out_score_max
         if x < self.raw_score_min:
+            # raise ValueError
             return self.out_score_min
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
@@ -911,7 +923,7 @@ class PltScore(ScoreTransformModel):
         else:
             section_min = self.raw_score_min
 
-        if self.strategy_dict['mode_score_full_to_max'] != 'yes':
+        if self.strategy_dict['mode_score_peak_to_max'] != 'yes':
             section_max = self.indf[field].max()
         else:
             section_max = self.raw_score_max
