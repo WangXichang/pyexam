@@ -199,7 +199,7 @@ MODELS_SETTING_DICT = {
     }
 
 # choice_space = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
-# real used choice = 4 * 2 * 2 * 2 * 3 = 96    ## prox, cumu, sort, zero_min, one_point, non_point
+# real used choice = 4 * 2 * 2 * 3 * 2 = 96    ## prox, cumu, sort, one_point, non_point
 MODEL_STRATEGIES_DICT = {
     'mode_ratio_prox':          ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':          ('yes', 'no'),
@@ -213,7 +213,7 @@ MODEL_STRATEGIES_DICT = {
 # choice_space: 2 * 2 * 4 * 3 = 48
 MODEL_STRATEGIES_RESERVE_DICT = {
     'mode_section_lost':              ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_section_1st_startpoint':   ('real_maxmin', 'paper_maxmin'),     # get first point for first section
+    'mode_section_1st_startpoint':   ('real_max_min', 'paper_max_min'),   # get first point for first section
     'mode_section_2nd_startpoint':   ('step', 'jump_empty', 'share'),     # get first point except first section
                                                                              # first point by mode_section_min/max
     }
