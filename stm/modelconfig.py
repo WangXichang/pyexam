@@ -199,23 +199,23 @@ MODELS_SETTING_DICT = {
     }
 
 # choice_space = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
-# real used choice = 4 * 2 * 2 * 3 * 2 = 96    ## prox, cumu, sort, one_point, non_point
+# real used choice = 4 * 2 * 2 * 3 * 2 * 3 = 96    ## prox, cumu, sort, one_point, non_point
 MODEL_STRATEGIES_DICT = {
-    'mode_ratio_prox':          ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_ratio_cumu':          ('yes', 'no'),
-    'mode_sort_order':          ('ascending', 'descending'),
-    'mode_section_one_point':   ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_min':         ('real_min', 'paper_min'),
-    'mode_section_max':         ('real_max', 'paper_max'),
-    'mode_ppt_score_max':       ('real_ratio', 'map_to_max'),    # for standard score transform: type=='ppt'
-    'mode_ppt_score_min':       ('real_ratio', 'map_to_min'),    # for standard score transform: type=='ppt'
+    'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_ratio_cumu':              ('yes', 'no'),
+    'mode_sort_order':              ('ascending', 'descending'),
+    'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
+    'mode_section_startpoint_1':    ('real_max_min', 'paper_max_min'),   # get first point for first section
+    'mode_ppt_score_max':           ('real_ratio', 'map_to_max'),    # for standard score transform: type=='ppt'
+    'mode_ppt_score_min':           ('real_ratio', 'map_to_min'),    # for standard score transform: type=='ppt'
     }
 # choice_space: 2 * 2 * 4 * 3 = 48
 MODEL_STRATEGIES_RESERVE_DICT = {
-    'mode_section_lost':              ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_section_1st_startpoint':   ('real_max_min', 'paper_max_min'),   # get first point for first section
-    'mode_section_2nd_startpoint':   ('step', 'jump_empty', 'share'),     # get first point except first section
+    'mode_section_startpoint_else':     ('step', 'jump_empty', 'share'),   # get first point except first section
                                                                              # first point by mode_section_min/max
+    'mode_section_lost':              ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_section_min':         ('real_min', 'paper_min'),
+    'mode_section_max':         ('real_max', 'paper_max'),
     }
 #   'mode_score_empty': ('use', 'jump'),  # ** consider to deprecated, processed in other strategies
 #   'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,

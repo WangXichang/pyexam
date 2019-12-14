@@ -131,9 +131,8 @@ def run(
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='descending',
-        mode_section_one_point='map_to_max',
-        mode_section_min='real_min',
-        mode_section_max='real_max',
+        mode_section_degraded='map_to_max',
+        mode_section_startpoint_1='real_max_min',
         raw_score_range=(0, 100),
         out_decimal_digits=0
         ):
@@ -158,7 +157,7 @@ def run(
     :param mode_sort_order: string, strategy: which score order to search ratio
                              values: 'descending', 'ascending'
                              default='descending'
-    :param mode_section_one_point: str, strategy: how to map raw score when segment is one-point, [a, a]
+    :param mode_section_degraded: str, strategy: how to map raw score when segment is one-point, [a, a]
                                values: 'map_to_max, map_to_min, map_to_mean'
                                default='map_to_max'
     :param out_decimal_digits: int, decimal digits of output score (_ts)
@@ -216,9 +215,8 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
-            mode_section_max=mode_section_max,
-            mode_section_min=mode_section_min,
-            mode_section_one_point=mode_section_one_point,
+            mode_section_startpoint_1=mode_section_startpoint_1,
+            mode_section_degraded=mode_section_degraded,
             out_decimal_digits=out_decimal_digits
             )
         plt_model.run()
@@ -575,9 +573,8 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
-                 mode_section_max='real_max',
-                 mode_section_min='real_min',
-                 mode_section_one_point='map_to_max',
+                 mode_section_startpoint_1='real_min',
+                 mode_section_degraded='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
         if len(raw_score_ratio_tuple) != len(out_score_seg_tuple):
@@ -604,9 +601,8 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_sort_order'] = mode_sort_order
-        self.strategy_dict['mode_section_max'] = mode_section_max
-        self.strategy_dict['mode_section_min'] = mode_section_min
-        self.strategy_dict['mode_section_one_point'] = mode_section_one_point
+        self.strategy_dict['mode_section_startpoint_1'] = mode_section_startpoint_1
+        self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
     def check_parameter(self):
@@ -753,12 +749,12 @@ class PltScore(ScoreTransformModel):
                 a = (cf[2][1]-cf[2][0])
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
-                if c == 0:  # x1 == x2: use mode_section_one_point: max, min, mean(y1, y2)
-                    if self.strategy_dict['mode_section_one_point'] == 'map_to_max':
+                if c == 0:  # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
+                    if self.strategy_dict['mode_section_degraded'] == 'map_to_max':
                         return max(cf[2])
-                    elif self.strategy_dict['mode_section_one_point'] == 'map_to_min':
+                    elif self.strategy_dict['mode_section_degraded'] == 'map_to_min':
                         return min(cf[2])
-                    elif self.strategy_dict['mode_section_one_point'] == 'map_to_mean':
+                    elif self.strategy_dict['mode_section_degraded'] == 'map_to_mean':
                         return round45r(np.mean(cf[2]))
                     else:
                         return -1
@@ -867,7 +863,7 @@ class PltScore(ScoreTransformModel):
         # --step 1
         # claculate raw_score_endpoints
         print('   get input score endpoints ...')
-        points_list = self.get_seg_points_list(field=field)
+        points_list = self.get_section_first_points_list(field=field)
         self.result_raw_endpoints = points_list
         if len(points_list) == 0:
             return False
@@ -902,16 +898,16 @@ class PltScore(ScoreTransformModel):
             v = x[1] - x[0]
             if v == 0:
                 a = 0
-                # mode_section_one_point
-                _mode_section_one_point = self.strategy_dict['mode_section_one_point']
-                if _mode_section_one_point == 'map_to_max':         # x1 == x2 : y = max(y1, y2)
+                # mode_section_degraded
+                _mode_section_degraded = self.strategy_dict['mode_section_degraded']
+                if _mode_section_degraded == 'map_to_max':         # x1 == x2 : y = max(y1, y2)
                     b = max(y)
-                elif _mode_section_one_point == 'map_to_min':       # x1 == x2 : y = min(y1, y2)
+                elif _mode_section_degraded == 'map_to_min':       # x1 == x2 : y = min(y1, y2)
                     b = min(y)
-                elif _mode_section_one_point == 'map_to_mean':      # x1 == x2 : y = mean(y1, y2)
+                elif _mode_section_degraded == 'map_to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
                 else:
-                    print('error mode_section_one_point value: {}'.format(_mode_section_one_point))
+                    print('error mode_section_degraded value: {}'.format(_mode_section_degraded))
                     raise ValueError
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
@@ -922,18 +918,15 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     # extract section points(first end point of first section and second point of all section) from map_table
     #   according ratios in preset ratio_list: raw_score_ratio_cum (cumulative ratio list)
-    def get_seg_points_list(self, field):
+    def get_section_first_points_list(self, field):
         result_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
-        if self.strategy_dict['mode_section_min'] == 'real_min':
+        if self.strategy_dict['mode_section_startpoint_1'] == 'real_max_min':
             section_min = self.indf[field].min()
-        else:
-            section_min = self.raw_score_paper_min
-
-        if self.strategy_dict['mode_section_max'] == 'real_max':
             section_max = self.indf[field].max()
         else:
+            section_min = self.raw_score_paper_min
             section_max = self.raw_score_paper_max
 
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
@@ -952,7 +945,7 @@ class PltScore(ScoreTransformModel):
             dest_ratio = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_percent
 
             # seek endpoint and real cumulative percent of this section from map_table
-            this_section_end_point, real_percent = self.get_seg_from_map_table(field, dest_ratio)
+            this_section_end_point, real_percent = self.get_score_point_from_map_table(field, dest_ratio)
 
             # first point at first section
             if i == 0:
@@ -998,7 +991,7 @@ class PltScore(ScoreTransformModel):
         return result_section_list
 
     # new at 2019-09-09
-    def get_seg_from_map_table(self, field, dest_ratio):
+    def get_score_point_from_map_table(self, field, dest_ratio):
 
         _mode_prox = self.strategy_dict['mode_ratio_prox']
         _top_index = self.map_table.index.max()
@@ -1090,7 +1083,7 @@ class PltScore(ScoreTransformModel):
                         ['(section -{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
                          format(_fi,
                                 formula[0][0], formula[1][p],
-                                self.strategy_dict['mode_section_one_point'],
+                                self.strategy_dict['mode_section_degraded'],
                                 formula[2][0], formula[2][1])
                          ]
                 else:
@@ -1427,7 +1420,7 @@ class PltScore(ScoreTransformModel):
             plot.title(u'转换模型({})'.format(col))
             plot.xlim(in_min, in_max)
             plot.ylim(out_min, out_max)
-            plot.xlabel(u'\n原始分数')
+            plot.xlabel(u'\n\n原始分数')
             plot.ylabel(u'转换分数')
             plot.xticks([])
             plot.yticks([])
