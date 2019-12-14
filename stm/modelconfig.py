@@ -212,10 +212,9 @@ MODEL_STRATEGIES_DICT = {
     }
 # choice_space: 2 * 2 * 4 * 3 = 48
 MODEL_STRATEGIES_RESERVE_DICT = {
-    'mode_score_pmax_to_max':   ('ignore', 'yes'),      # full paper raw score to max out score
-    'mode_score_pmin_to_min':   ('ignore', 'yes'),      # least paper raw score to min out score, pmin is 0 commonly
-    'mode_section_non_point':   ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_section_new_start':   ('step', 'jump_empty', 'share'),     # get first point except first section
+    'mode_section_lost':   ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_section_1st_startpoint':   ('real_max', 'paper_max'),     # get first point except first section
+    'mode_section_2nd_startpoint':   ('step', 'jump_empty', 'share'),     # get first point except first section
     }
 #   'mode_score_empty': ('use', 'jump'),  # ** consider to deprecated, processed in other strategies
 #   'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,
