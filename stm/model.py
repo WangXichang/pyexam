@@ -1350,7 +1350,7 @@ class PltScore(ScoreTransformModel):
             bar_wid = [p - width/2 for p in x_data]
             ax.bar(bar_wid, outdf, width, label=f)
 
-    def plot_bar(self, display='all'):
+    def plot_bar(self, display='all', hcolor='r', hwidth=6):
         raw_label = [str(x) for x in range(self.out_score_real_max + 1)]
         x_data = list(range(self.out_score_real_max + 1))
         seg_list = list(self.map_table.seg)
@@ -1383,13 +1383,27 @@ class PltScore(ScoreTransformModel):
                              format(f, self.outdf[f].mean(),
                                     self.outdf[f+'_ts'].std(), self.outdf[f+'_ts'].max()))
             for bars in disp_bar:
+                make_color = 0
                 for _bar in bars:
                     height = _bar.get_height()
-                    ax.annotate('{}'.format(int(height)),
-                                xy=(_bar.get_x() + _bar.get_width() / 2, height),
-                                xytext=(0, 3),  # 3 points vertical offset
+                    height = height - 2 if height > 3 else height
+                    xpos = _bar.get_x() + _bar.get_width() / 2
+                    # xwid = _bar.get_width()
+                    # print(xpos, xwid, height)
+                    note_str= '{}'.format(int(height))
+                    ax.annotate(note_str,
+                                xy=(xpos, height),
+                                xytext=(0, 3),              # vertical offset
                                 textcoords="offset points",
-                                ha='center', va='bottom')
+                                ha='center',
+                                va='bottom')
+                    if display == 'all':
+                        continue
+                    if make_color == 2:
+                        plot.plot([xpos, xpos], [0, height], hcolor, linewidth=hwidth)
+                        make_color = 0
+                    else:
+                        make_color += 1
             ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()
             plot.show()
