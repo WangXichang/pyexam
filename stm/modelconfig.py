@@ -60,8 +60,8 @@ import scipy.stats as sts
 
 # model type
 MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
-MODEL_TYPE_SST = 'ppt'      # standard score transform
-MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_SST}
+MODEL_TYPE_PPT = 'ppt'      # standard score transform
+MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PPT}
 
 
 # models parameters: grade score ratios, segments
@@ -176,11 +176,11 @@ MODELS_SETTING_DICT = {
                                 tuple(CONST_SS7_RATIO),
                                 tuple(CONST_SS7_SECTION),
                                 'piecewise linear transform model'),
-    'hn900':        ModelFields(MODEL_TYPE_SST,
+    'hn900':        ModelFields(MODEL_TYPE_PPT,
                                 tuple(CONST_HAINAN_RATIO),
                                 tuple(CONST_HAINAN_SECTION),
                                 'standard score model: piecewise point transform'),
-    'hn300':        ModelFields(MODEL_TYPE_SST,
+    'hn300':        ModelFields(MODEL_TYPE_PPT,
                                 tuple(CONST_HAINAN300_RATIO),
                                 tuple(CONST_HAINAN300_SECTION),
                                 'standard score model: piecewise point transform'),

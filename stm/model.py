@@ -1058,13 +1058,13 @@ class PltScore(ScoreTransformModel):
             format('Transform Model: '.rjust(20),
                    self.model_name,
                    mcf.MODELS_SETTING_DICT[self.model_name].desc)
-        self.out_report_doc += '{} {}\n'.\
-            format('start-time'.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
+        self.out_report_doc += '{}{}\n'.\
+            format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
-        self.out_report_doc += format('strategies: ', '>23') + '\n'
+        self.out_report_doc += format('strategies: ', '>20') + '\n'
 
         for k in mcf.MODEL_STRATEGIES_DICT:
-            self.out_report_doc += ' ' * 22 + '{0:<40s} {1}'. \
+            self.out_report_doc += ' ' * 20 + '{0:<40s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
                        mcf.MODEL_STRATEGIES_DICT[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
