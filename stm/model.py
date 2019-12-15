@@ -1374,11 +1374,14 @@ class PltScore(ScoreTransformModel):
             elif 'raw' in display:
                 raw_bar = ax.bar(bar_wid, indf, width, label=f)
                 disp_bar = [raw_bar]
-                ax.set_xticklabels('mean={:.2f}, std={:.2f}, max={:3d}'.
-                                   format(self.outdf[f].mean(), self.outdf[f].std(), self.outdf[f].max()))
+                ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
+                             format(f, self.outdf[f].mean(), self.outdf[f].std(), self.outdf[f].max()))
             else:
                 out_bar = ax.bar(bar_wid, outdf, width, label=f + '_ts')
                 disp_bar = [out_bar]
+                ax.set_title(self.model_name + '[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
+                             format(f, self.outdf[f].mean(),
+                                    self.outdf[f+'_ts'].std(), self.outdf[f+'_ts'].max()))
             for bars in disp_bar:
                 for _bar in bars:
                     height = _bar.get_height()
