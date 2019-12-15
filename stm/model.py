@@ -132,50 +132,63 @@ def run(
         mode_ratio_cumu='no',
         mode_sort_order='descending',
         mode_section_degraded='map_to_max',
-        mode_section_startpoint_1='real_max_min',
+        mode_section_first_point='real_max_min',
         raw_score_range=(0, 100),
         out_decimal_digits=0
         ):
     """
     :param name: str, model name,
-                 values: 'shandong', 'shanghai', 'shandong', 'beijing', 'tianjin',
-                         'guangdong', 'SS7', 'hn900', 'hn300', 'hn300p1', 'hn300p2', 'hn300p3'
-                         'zscore', 'tscore', 'tlinear'
+                 values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
+                         'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
+                         'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
+                         'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
+                         'zscore', 'tscore', 'tlinear'                  # pvt model for z, t, t-linear transform score
                  default = 'shandong'
-    :param df: dataframe,
-               raw score data, score field type must be int or float
-               default = None
+    :param df: DataFrame,
+       values: raw score data, instance of pandas.DataFrame, including score field, which type must be int or float
+      default= None
     :param cols: list,
-                 each element of cols is score field names
+         values: [column name, that is score field name of df]
                  default = None
-    :param mode_ratio_prox: str, strategy: how to locate ratio
-                            values set: 'lower_max', 'upper_min', 'near_max', 'near_min'
-                            default='upper_min'
-    :param mode_ratio_cumu: str, strategy: how to cumulate ratio
-                            values set:'yes', 'no'
-                            default='no'
-    :param mode_sort_order: string, strategy: which score order to search ratio
-                             values: 'descending', 'ascending'
-                             default='descending'
-    :param mode_section_degraded: str, strategy: how to map raw score when segment is one-point, [a, a]
-                               values: 'map_to_max, map_to_min, map_to_mean'
-                               default='map_to_max'
-    :param out_decimal_digits: int, decimal digits of output score (_ts)
-                               default = 0, that means out score type is int
-    :param raw_score_range: tuple, raw score value range,
-                            used to set max and min raw score value in calculating
-                            default = (0, 100)
+    :param mode_ratio_prox: str,
+                  strategy: how to find endpoint by ratio
+                values set: 'lower_max', 'upper_min', 'near_max', 'near_min'
+                   default= 'upper_min'
+    :param mode_ratio_cumu: str,
+                  strategy: cumulate ratio or not
+                values set: 'yes', 'no'
+                   default= 'no'
+    :param mode_sort_order: string,
+                  strategy: which score order to search ratio
+                    values: 'descending', 'ascending'
+                   default= 'descending'
+    :param mode_section_degraded: str,
+                        strategy: how to map raw score when segment is one-point, [a, a]
+                      values set: 'map_to_max, map_to_min, map_to_mean'
+                         default= 'map_to_max'
+    :param mode_section_first_point: str,
+                           strategy: how to set first point of first section
+                             values: 'real_max_min', use real raw score max or min value
+                                     'paper_max_min', use test paper full score or least score
+                            default= 'real_max_min'
+    :param raw_score_range: tuple,
+                     usage: raw score value range (min, max)
+                    values: max and min raw score full and least value in paper
+                   default= (0, 100)
+    :param out_decimal_digits: int,
+                        usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
+                      default= 0, that means out score type is int
 
-    :return: model: instance of PltScore
+    :return: model: instance of model class, subclass of ScoreTransformModel
     """
 
-    # check name
+    # check model name
     name = name.lower()
     if name.lower() not in MODELS_NAME_LIST:
         print('invalid name, not in {}'.format(MODELS_NAME_LIST))
         return
 
-    # check input data
+    # check input data: DataFrame
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
             indf = pd.DataFrame(df)
@@ -215,7 +228,7 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
-            mode_section_startpoint_1=mode_section_startpoint_1,
+            mode_section_first_point=mode_section_first_point,
             mode_section_degraded=mode_section_degraded,
             out_decimal_digits=out_decimal_digits
             )
@@ -573,7 +586,7 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
-                 mode_section_startpoint_1='real_min',
+                 mode_section_first_point='real_min',
                  mode_section_degraded='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
@@ -601,7 +614,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_sort_order'] = mode_sort_order
-        self.strategy_dict['mode_section_startpoint_1'] = mode_section_startpoint_1
+        self.strategy_dict['mode_section_first_point'] = mode_section_first_point
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
@@ -922,7 +935,7 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
-        if self.strategy_dict['mode_section_startpoint_1'] == 'real_max_min':
+        if self.strategy_dict['mode_section_first_point'] == 'real_max_min':
             section_min = self.indf[field].min()
             section_max = self.indf[field].max()
         else:

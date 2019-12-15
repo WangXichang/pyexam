@@ -205,7 +205,7 @@ MODEL_STRATEGIES_DICT = {
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('ascending', 'descending'),
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_startpoint_1':    ('real_max_min', 'paper_max_min'),   # get first point for first section
+    'mode_section_first_point':     ('real_max_min', 'paper_max_min'),   # get first point for first section
     'mode_ppt_score_max':           ('real_ratio', 'map_to_max'),    # for standard score transform: type=='ppt'
     'mode_ppt_score_min':           ('real_ratio', 'map_to_min'),    # for standard score transform: type=='ppt'
     }
