@@ -1054,8 +1054,12 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in map_table
     def make_report(self):
-        self.out_report_doc = 'Transform Model: [{}]   {}\n'.\
-            format(self.model_name, time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
+        self.out_report_doc = '{}[{}]  {}\n'.\
+            format('Transform Model: '.rjust(20),
+                   self.model_name,
+                   mcf.MODELS_SETTING_DICT[self.model_name].desc)
+        self.out_report_doc += '{} {}\n'.\
+            format('start-time'.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>23') + '\n'
 
