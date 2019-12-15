@@ -132,7 +132,7 @@ def run(
         mode_ratio_cumu='no',
         mode_sort_order='descending',
         mode_section_degraded='map_to_max',
-        mode_section_first_point='real_max_min',
+        mode_section_startpoint_first='real_max_min',
         raw_score_range=(0, 100),
         out_decimal_digits=0
         ):
@@ -166,7 +166,7 @@ def run(
                         strategy: how to map raw score when segment is one-point, [a, a]
                       values set: 'map_to_max, map_to_min, map_to_mean'
                          default= 'map_to_max'
-    :param mode_section_first_point: str,
+    :param mode_section_startpoint_first: str,
                            strategy: how to set first point of first section
                              values: 'real_max_min', use real raw score max or min value
                                      'paper_max_min', use test paper full score or least score
@@ -228,7 +228,7 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
-            mode_section_first_point=mode_section_first_point,
+            mode_section_startpoint_first=mode_section_startpoint_first,
             mode_section_degraded=mode_section_degraded,
             out_decimal_digits=out_decimal_digits
             )
@@ -586,7 +586,7 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
-                 mode_section_first_point='real_min',
+                 mode_section_startpoint_first='real_max_min',
                  mode_section_degraded='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
@@ -614,7 +614,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_sort_order'] = mode_sort_order
-        self.strategy_dict['mode_section_first_point'] = mode_section_first_point
+        self.strategy_dict['mode_section_startpoint_first'] = mode_section_startpoint_first
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
@@ -935,7 +935,7 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
-        if self.strategy_dict['mode_section_first_point'] == 'real_max_min':
+        if self.strategy_dict['mode_section_startpoint_first'] == 'real_max_min':
             section_min = self.indf[field].min()
             section_max = self.indf[field].max()
         else:
