@@ -211,11 +211,11 @@ MODEL_STRATEGIES_DICT = {
     }
 # choice_space: 2 * 2 * 4 * 3 = 48
 MODEL_STRATEGIES_RESERVE_DICT = {
-    'mode_section_startpoint_else':     ('step', 'jump_empty', 'share'),   # get first point except first section
+    'mode_section_startpoint_else':     ('step_1', 'jump_empty', 'share'),   # get first point except first section
                                                                              # first point by mode_section_min/max
-    'mode_section_lost':              ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_section_min':         ('real_min', 'paper_min'),
-    'mode_section_max':         ('real_max', 'paper_max'),
+    'mode_section_lost':                ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+    'mode_section_min':                 ('real_min', 'paper_min'),
+    'mode_section_max':                 ('real_max', 'paper_max'),
     }
 #   'mode_score_empty': ('use', 'jump'),  # ** consider to deprecated, processed in other strategies
 #   'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,
