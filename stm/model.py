@@ -2592,14 +2592,16 @@ class ModelTools:
         # dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
 
         Result = namedtuple('Result',
-                            ['this_seg', 'last_seg',
+                            ['this_is_near',
+                             'this_seg', 'last_seg',
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
         last_percent = -1
         last_seg = -1
         start = 0
         dist_to_this = 999
-        dist_tp_last = 999
+        dist_to_last = 9999
+        this_is_near = True
         table_len = len(ratio_sequece)
         for row_id, (seg, percent) in enumerate(zip(seg_sequece, ratio_sequece)):
             this_percent = percent
@@ -2612,7 +2614,9 @@ class ModelTools:
                     dist_to_this = float(this_percent - dest_ratio)
                 if this_percent == dest_ratio:  # equal to ratio
                     dist_to_this = 0
-                return Result(this_seg, last_seg,
+                this_is_near = False if dist_to_last < dist_to_this else True
+                return Result(this_is_near,
+                              this_seg, last_seg,
                               float(this_percent), float(last_percent),
                               dist_to_this, dist_to_last
                               )
