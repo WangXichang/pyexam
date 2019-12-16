@@ -37,11 +37,8 @@
           grade_diff: differentiao value of grade score
           等级分差值
           --
-          mode_score_paper_max: raw score max value
-          最大原始分数
-          --
-          mode_score_paper_min: raw score min value
-          最小原始分数
+          raw_score_range: tuple,
+          最大原始分数,最小原始分数
           --
           out_score_decimal: decimal digit number
           输出分数小数位数
@@ -164,7 +161,9 @@ def run(
                    default= 'descending'
     :param mode_section_degraded: str,
                         strategy: how to map raw score when segment is one-point, [a, a]
-                      values set: 'map_to_max, map_to_min, map_to_mean'
+                          values: 'map_to_max', map to max value of out score section
+                                  'map_to_min', map to min value of out score section
+                                  'map_to_mean', map to mean value of out score section
                          default= 'map_to_max'
     :param mode_section_startpoint_first: str,
                            strategy: how to set first point of first section
@@ -247,12 +246,14 @@ def run(
         m.run()
         return m
 
-    if name in ('zscore', 'Z', 'z'):
+    if name in ('zscore', 'z'):
         zm = Zscore(name)
         zm.set_data(indf=indf, cols=cols)
         zm.set_para(std_num=4,
-                    mode_score_paper_max=max(raw_score_range),
-                    mode_score_paper_min=min(raw_score_range)
+                    mode_ratio_prox=mode_ratio_prox,
+                    mode_sort_order=mode_sort_order,
+                    raw_score_defined_max=max(raw_score_range),
+                    raw_score_defined_min=min(raw_score_range)
                     )
         zm.run()
         zm.report()
@@ -1515,15 +1516,17 @@ class Zscore(ScoreTransformModel):
 
         # model parameters
         self.std_num = 4
-        self.norm_table_len = 10000
-        self.mode_score_paper_max = 150
-        self.mode_score_paper_min = 0
+        self.raw_score_max = 150
+        self.raw_score_min = 0
         self.outdf_decimal = 0
-        self.out_score_number = 100
-        self.mode_ratio_prox = 'near'
-        self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.norm_table_len - 1)))
-                                            for x in range(self.norm_table_len)]
+        self.out_score_number = 1000
+        self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.out_score_number - 1)))
+                                            for x in range(self.out_score_number)]
                                       )
+        # strategies
+        self.mode_ratio_prox = 'near'
+        self.mode_sort_order = 'd'
+
         # result data
         self.map_table = None
         self.outdf = None
@@ -1534,19 +1537,21 @@ class Zscore(ScoreTransformModel):
 
     def set_para(self,
                  std_num=4,
-                 mode_score_paper_min=0,
-                 mode_score_paper_max=100,
-                 mode_ratio_prox='near',
-                 out_decimal=8
+                 raw_score_defined_min=0,
+                 raw_score_defined_max=100,
+                 mode_ratio_prox='near_max',
+                 mode_sort_order='d',
+                 out_decimal=8,
                  ):
         self.std_num = std_num
-        self.mode_score_paper_max = mode_score_paper_max
-        self.mode_score_paper_min = mode_score_paper_min
+        self.raw_score_max = raw_score_defined_max
+        self.raw_score_min = raw_score_defined_min
         self.mode_ratio_prox = mode_ratio_prox
+        self.mode_sort_order = mode_sort_order
         self.outdf_decimal = out_decimal
 
     def check_parameter(self):
-        if self.mode_score_paper_max <= self.mode_score_paper_min:
+        if self.raw_score_max <= self.raw_score_min:
             print('error: max raw score is less than min raw score!')
             return False
         if self.std_num <= 0:
@@ -1561,13 +1566,13 @@ class Zscore(ScoreTransformModel):
             return
         print('start run...')
         st = time.clock()
-        self.outdf = self.indf.copy()
+        self.outdf = self.indf
         self.map_table = self.get_map_table(
             self.outdf,
-            self.mode_score_paper_max,
-            self.mode_score_paper_min,
+            self.raw_score_max,
+            self.raw_score_min,
             self.cols,
-            seg_order='a')
+            seg_order=self.mode_sort_order)
         for col in self.cols:
             print('calc zscore on field: {}...'.format(col))
             self.map_table[col+'_zscore'] = self.get_zscore(self.map_table[col+'_percent'])
@@ -1581,8 +1586,9 @@ class Zscore(ScoreTransformModel):
     def get_zscore(self, percent_list):
         # z_list = [None for _ in percent_list]
         z_array = array.array('d', range(len(percent_list)))
-        _len = self.norm_table_len
+        _len = self.out_score_number
         for i, _p in enumerate(percent_list):
+            # do not use mode_ratio_prox
             pos = bst.bisect(self.norm_table, _p)
             z_array[i] = 2*(pos - _len/2) / _len * self.std_num
         return z_array
@@ -1603,8 +1609,8 @@ class Zscore(ScoreTransformModel):
         print('data fields in raw_score:{}'.format(self.cols))
         print('para:')
         print('\tzscore stadard diff numbers:{}'.format(self.std_num))
-        print('\tmax score in raw score:{}'.format(self.mode_score_paper_max))
-        print('\tmin score in raw score:{}'.format(self.mode_score_paper_min))
+        print('\tmax score in raw score:{}'.format(self.raw_score_max))
+        print('\tmin score in raw score:{}'.format(self.raw_score_min))
 
     def plot(self, mode='out'):
         if mode in 'raw,out':
@@ -2456,7 +2462,7 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-class ModelFun:
+class ModelTools:
     @staticmethod
     def plot_models(font_size=12, hainan='900'):
         _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
@@ -2467,7 +2473,7 @@ class ModelFun:
             _names.remove('hn900')
         ms_dict = dict()
         for _name in _names:
-            ms_dict.update({_name: ModelFun.get_model_describe(name=_name)})
+            ms_dict.update({_name: ModelTools.get_model_describe(name=_name)})
 
         plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
         plot.rcParams.update({'font.size': font_size})
@@ -2547,7 +2553,12 @@ class ModelFun:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_seg_ratio_from_norm_table(start, end, step, std=16):
+    def get_section_cdf_ratio_from_norm_table(start,
+                                              end,
+                                              section_num=8,
+                                              std_num=4,
+                                              mode_edge_cumu='yes',
+                                              mode_cdf_point='left'):
         """
         # get ratio form seg points list,
         # set first and end seg to tail ratio from norm table
@@ -2559,20 +2570,32 @@ class ModelFun:
         :param start:  start value for segments
         :param end: end value for segments
         :param step: length for each segment
-        :param std: preset standard error
-        :return:
+        :param std_num: std number, range for score: [-std_num, std_num] at standard norm distribution
+        :param mode_edge_cumu: 'yes' or 'not', if or not use cumulative value beyond min and max point
+        :param mode_cdf_point: 'middle', use cdf(point)
+                               'left',   use cdf(point-step/2)
+                               'right',  use cdf(point+step/2)
+        :return: list, ratio_table
         """
         _mean = (end+start)/2
+        _std = (end - _mean)/std_num
         table = []
-        _seg_endpoints = [(x-_mean)/std for x in range(start, end+1, step)]
+        # out_point_table = [(x-_mean)/_std for x in range(start, end+1, step)]
+        section_point_list = np.linspace(start, end, section_num+1)
         # print(_seg_endpoints)
-        for i, x in enumerate(_seg_endpoints):
-            if i == 0:    # ignore first point
-                table.append(sts.norm.cdf(x))
-            elif 0 < i < len(_seg_endpoints)-1:
-                table.append(sts.norm.cdf(x) - sts.norm.cdf(_seg_endpoints[i-1]))
-            elif i == len(_seg_endpoints)-1:
-                table.append(1 - sts.norm.cdf(_seg_endpoints[i-1]))
+        for i, x in enumerate(section_point_list):
+            if i == 0:
+                if mode_edge_cumu:
+                    table.append(sts.norm.cdf(x))
+                else:
+                    table.append(0)
+            elif 0 < i < len(section_point_list)-1:
+                table.append(sts.norm.cdf(x) - sts.norm.cdf(section_point_list[i-1]))
+            elif i == len(section_point_list)-1:
+                if mode_edge_cumu:
+                    table.append(1 - sts.norm.cdf(section_point_list[i-1]))
+                else:
+                    table.append(sts.norm.cdf(section_point_list[i-1]))
         return table
 
     # design for future
