@@ -2554,11 +2554,7 @@ class ModelTools:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_section_cdf_ratio_from_norm_table(start,
-                                              end,
-                                              section_num=8,
-                                              mode_edge_cumu='yes',
-                                              mode_cdf_point='left'):
+    def get_section_cdf_ratio_from_norm_table(start=-4, end=4, section_num=8):
         """
         # get ratio form seg points list,
         # set first and end seg to tail ratio from norm table
@@ -2570,30 +2566,17 @@ class ModelTools:
         :param start:  start value for segments
         :param end: end value for segments
         :param step: length for each segment
-        :param std_num: std number, range for score: [-std_num, std_num] at standard norm distribution
-        :param mode_edge_cumu: 'yes' or 'not', if or not use cumulative value beyond min and max point
-        :param mode_cdf_point: 'middle', use cdf(point)
-                               'left',   use cdf(point-step/2)
-                               'right',  use cdf(point+step/2)
-        :return: list, ratio_table
+        :param section_num: section number
+        :return: ratio_table, ratio_table_cumu, edge_error,
         """
-        table = []
         section_point_list = np.linspace(start, end, section_num+1)
-        # print(_seg_endpoints)
-        for i, x in enumerate(section_point_list):
-            if i == 0:
-                if mode_edge_cumu:
-                    table.append(sts.norm.cdf(x))
-                else:
-                    table.append(0)
-            elif 0 < i < len(section_point_list)-1:
-                table.append(sts.norm.cdf(x) - sts.norm.cdf(section_point_list[i-1]))
-            elif i == len(section_point_list)-1:
-                if mode_edge_cumu:
-                    table.append(1 - sts.norm.cdf(section_point_list[i-1]))
-                else:
-                    table.append(sts.norm.cdf(section_point_list[i-1]))
-        return table, [sum(table[0:i+1]) for i in range(len(table))]
+        edge_error = sts.norm.cdf(start)
+        table = []
+        last_pos = start
+        for pos in section_point_list[1:]:
+            table.append(sts.norm.cdf(pos)-sts.norm.cdf(last_pos))
+            last_pos = pos
+        return table, [sum(table[0:i+1]) for i in range(len(table))], edge_error
 
     # design for future
     @classmethod
