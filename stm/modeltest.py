@@ -297,6 +297,9 @@ class TestData:
             norm_list = norm_list.astype(np.int)
         return norm_list
 
+    def __call__(self):
+        return self.df
+
 
 # create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
 def get_norm_table2(size=400, std=1, mean=0, stdnum=4):

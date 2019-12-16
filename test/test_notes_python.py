@@ -9,3 +9,7 @@
 # matplotlib: disply minus error in xlabel
 #   add:
 #       matplotlib.rcParams['axes.unicode_minus']=False
+
+# reduce special usage:
+#   >>> functools.reduce(lambda x, y: x*y, [[0,3],3])
+#   [0, 3, 0, 3, 0, 3]
