@@ -1064,7 +1064,7 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += format('strategies: ', '>20') + '\n'
 
         for k in mcf.MODEL_STRATEGIES_DICT:
-            self.out_report_doc += ' ' * 20 + '{0:<40s} {1}'. \
+            self.out_report_doc += ' ' * 20 + '{0:<50s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
                        mcf.MODEL_STRATEGIES_DICT[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'

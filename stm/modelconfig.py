@@ -205,13 +205,13 @@ MODEL_STRATEGIES_DICT = {
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('ascending', 'descending'),
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_startpoint_first':    ('real_max_min', 'defined_max_min'),   # get first point of first section
+    'mode_section_startpoint_first':      ('real_max_min', 'defined_max_min'),   # first point of first section
+    'mode_section_startpoint_else':       ('step_1', 'jump_empty', 'share'),     # first point except first section
     'mode_ppt_score_max':           ('real_ratio', 'map_to_max'),         # for standard score transform: type=='ppt'
     'mode_ppt_score_min':           ('real_ratio', 'map_to_min'),         # for standard score transform: type=='ppt'
     }
 # choice_space: 2 * 2 * 4 * 3 = 48
 MODEL_STRATEGIES_RESERVE_DICT = {
-    'mode_section_startpoint_else':     ('step_1', 'jump_empty', 'share'),   # get first point except first section
                                                                              # first point by mode_section_min/max
     'mode_section_lost':                ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
     'mode_section_min':                 ('real_min', 'defined_min'),
