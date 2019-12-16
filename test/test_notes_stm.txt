@@ -1,0 +1,23 @@
+# coding: utf8
+
+
+# stm--ppt algorithm
+    procedure:
+   (1) set std
+   (2) set points
+   (3) get out points ratio(cdf), using strategy
+   (4) get raw score percent and cumulative percent
+   (5) create map_table: map raw point to out point, using strategies
+   (6) transform raw score to out score for each record(person)
+
+   strategy:
+   (1) ratio-table strategy:
+        1. add trunc error at min point: yes, no
+        2. add trunc error at max point: yes, no
+        3. define section at each point: left, right, middle
+   (2) map_rawscore_to_outscore strategies:
+        1. sort_order
+        2. ratio-proximate
+        3. ratio-cumulative
+        4. score_max_to_max
+        5. score_min_to_min
