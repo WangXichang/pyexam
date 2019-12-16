@@ -2554,7 +2554,7 @@ class ModelTools:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_section_cdf_ratio_from_norm_table(start=-4, end=4, section_num=8):
+    def get_section_cdf_ratio_from_norm_table(start=-2.6, end=2.6, section_num=8):
         """
         # get ratio form seg points list,
         # set first and end seg to tail ratio from norm table
@@ -2581,34 +2581,42 @@ class ModelTools:
     # design for future
     @classmethod
     def get_seg_from_fr(cls,
-                        map_table: pd.DataFrame,
-                        field,
-                        ratio):
+                        dest_ratio,
+                        seg_sequece,
+                        ratio_sequece,
+                        ):
         # comments:
         #   use limit_denominator in Fraction
         #   because of the Fraction number error in pandas.field(Fraction)
         #   can't compare ratio with Fraction number in pd.DataFrame directly
-        dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
+        # dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
+
         Result = namedtuple('Result',
                             ['this_seg', 'last_seg',
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
-        last_fr = -1
+        last_percent = -1
         last_seg = -1
         start = 0
-        table_len = len(map_table)
-        for row_id, row in map_table.iterrows():
-            this_fr = row[field+'_fr']
-            this_seg = row['seg']
+        dist_to_this = 999
+        dist_tp_last = 999
+        table_len = len(ratio_sequece)
+        for row_id, (seg, percent) in enumerate(zip(seg_sequece, ratio_sequece)):
+            this_percent = percent
+            this_seg = seg
             # meet a percent that bigger or at table bottom
-            if (this_fr >= dest_ratio) or (start == table_len):
-                dist_to_upper = float(this_fr - dest_ratio)
-                dist_to_lower = float(dest_ratio - last_fr)
+            if (this_percent >= dest_ratio) or (start == table_len):
+                dist_to_this = float(this_percent - dest_ratio)
+                dist_to_last = float(dest_ratio - last_percent)
                 if start == 0:    # at top and percent >= ratio
-                    dist_to_lower = 901
-                if this_fr == dest_ratio:  # equal to ratio
-                    dist_to_lower = 900
-                return Result(this_seg, last_seg, float(this_fr), float(last_fr), dist_to_upper, dist_to_lower)
-            last_fr = this_fr
+                    dist_to_this = float(this_percent - dest_ratio)
+                if this_percent == dest_ratio:  # equal to ratio
+                    dist_to_this = 0
+                return Result(this_seg, last_seg,
+                              float(this_percent), float(last_percent),
+                              dist_to_this, dist_to_last
+                              )
+            last_percent = this_percent
             last_seg = this_seg
             start += 1
+        return False
