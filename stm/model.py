@@ -97,6 +97,7 @@ from collections import namedtuple
 import bisect as bst
 import array
 import abc
+import functools as ft
 
 
 # external import
@@ -2556,7 +2557,6 @@ class ModelTools:
     def get_section_cdf_ratio_from_norm_table(start,
                                               end,
                                               section_num=8,
-                                              std_num=4,
                                               mode_edge_cumu='yes',
                                               mode_cdf_point='left'):
         """
@@ -2577,10 +2577,7 @@ class ModelTools:
                                'right',  use cdf(point+step/2)
         :return: list, ratio_table
         """
-        _mean = (end+start)/2
-        _std = (end - _mean)/std_num
         table = []
-        # out_point_table = [(x-_mean)/_std for x in range(start, end+1, step)]
         section_point_list = np.linspace(start, end, section_num+1)
         # print(_seg_endpoints)
         for i, x in enumerate(section_point_list):
@@ -2596,7 +2593,7 @@ class ModelTools:
                     table.append(1 - sts.norm.cdf(section_point_list[i-1]))
                 else:
                     table.append(sts.norm.cdf(section_point_list[i-1]))
-        return table
+        return table, [sum(table[0:i+1]) for i in range(len(table))]
 
     # design for future
     @classmethod
