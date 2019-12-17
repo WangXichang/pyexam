@@ -2757,12 +2757,22 @@ class ModelTools:
         if mode_section_startpoint_else == 'share':
             section_list = [(x, y) for i, (x, y)
                             in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
-        less_len = len(section_ratio_cumu_sequence) - len(section_list)
 
         # step-4: add lost section with (-1, -1)
+        less_len = len(section_ratio_cumu_sequence) - len(section_list)
         if less_len > 0:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
         Section = namedtuple('Section', ['interval', 'end_point', 'real_percent'])
         return Section(section_list, section_point_list, section_percent_list)
+
+    @staticmethod
+    def get_formula(raw_section,
+                    out_section,
+                    model_type='plt',
+                    mode_section_degraded='map_to_max',
+                    mode_ppt_score_max='map_by_ratio',
+                    mode_ppt_score_min='map_by_ratio',
+                    ):
+        pass

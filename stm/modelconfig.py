@@ -60,6 +60,7 @@ import scipy.stats as sts
 
 # model type
 MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
+MODEL_TYPE_PDT = 'pdt'      # piecewise grade transform
 MODEL_TYPE_PPT = 'ppt'      # standard score transform
 MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PPT}
 
@@ -148,19 +149,19 @@ CONST_HAINAN5_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(30
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 MODELS_SETTING_DICT = {
-    'zhejiang':     ModelFields(MODEL_TYPE_PLT,
+    'zhejiang':     ModelFields(MODEL_TYPE_PDT,
                                 tuple(CONST_ZHEJIANG_RATIO),
                                 tuple(CONST_ZHEJIANG_SECTION),
                                 'piecewise linear transform model'),
-    'shanghai':     ModelFields(MODEL_TYPE_PLT,
+    'shanghai':     ModelFields(MODEL_TYPE_PDT,
                                 tuple(CONST_SHANGHAI_RATIO),
                                 tuple(CONST_SHANGHAI_SECTION),
                                 'piecewise linear transform model'),
-    'beijing':      ModelFields(MODEL_TYPE_PLT,
+    'beijing':      ModelFields(MODEL_TYPE_PDT,
                                 tuple(CONST_BEIJING_RATIO),
                                 tuple(CONST_BEIJING_SECTION),
                                 'piecewise linear transform model'),
-    'tianjin':      ModelFields(MODEL_TYPE_PLT,
+    'tianjin':      ModelFields(MODEL_TYPE_PDT,
                                 tuple(CONST_TIANJIN_RATIO),
                                 tuple(CONST_TIANJIN_SECTION),
                                 'piecewise linear transform model'),
