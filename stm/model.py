@@ -2635,7 +2635,7 @@ class ModelTools:
         return Result(False, -1, -1, -1, -1, -1, -1)
 
     @staticmethod
-    def get_section_point(
+    def get_section(
             section_ratio_cumu_sequence,
             seg_sequence,
             percent_sequence,
@@ -2725,6 +2725,13 @@ class ModelTools:
             section_percent_list.append(float(_percent))
             last_ratio = ratio
             real_percent = _percent
+
+        # process same endpoint in section_point_list
+        new_section = [section_point_list[0]]
+        for p, x in enumerate(section_point_list[1:]):
+            if x != section_point_list[p]:
+                new_section.append(x)
+        section_point_list = new_section
 
         # mode_section_startpoint_else
         # default: step_1
