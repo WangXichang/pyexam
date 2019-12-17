@@ -2578,7 +2578,7 @@ class ModelTools:
             last_pos = pos
         return table, [sum(table[0:i+1]) for i in range(len(table))], edge_error
 
-    # design for ratio search
+    # single ratio-seg search in seg-percent sequence
     @staticmethod
     def get_seg_from_seg_ratio_sequence(
                                         dest_ratio,
@@ -2598,6 +2598,13 @@ class ModelTools:
                              'this_seg', 'last_seg',
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
+        if dest_ratio > list(ratio_sequece)[-1]:
+            result = Result(True,
+                            list(seg_sequece)[-1], list(seg_sequece)[-1],
+                            list(ratio_sequece)[-1], list(ratio_sequece)[-1],
+                            -1, -1
+                            )
+            return result
         last_percent = -1
         last_seg = -1
         start = 0
@@ -2620,7 +2627,7 @@ class ModelTools:
                 return Result(this_seg_near,
                               this_seg, last_seg,
                               float(this_percent), float(last_percent),
-                              dist_to_this, dist_to_last
+                              float(dist_to_this), float(dist_to_last)
                               )
             last_percent = this_percent
             last_seg = this_seg
@@ -2629,38 +2636,46 @@ class ModelTools:
 
     @staticmethod
     def get_section_point(
-            section_ratio_cumu_list,
+            section_ratio_cumu_sequence,
             seg_sequence,
             percent_sequence,
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
             mode_sort_order='d',
             mode_section_startpoint_first='real_max_min',
+            mode_section_startpoint_else='step_1',
             tiny_value=10**-12,
             ):
         """
-        :param section_ratio_cumu_list: ratio for each section
+        section point searching in seg-percent sequence
+        :param section_ratio_cumu_sequence: ratio for each section
         :param seg_sequence:   score point corresponding to ratio_sequence
         :param percent_sequence: real score cumulative percent
         :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
         :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
         :param mode_section_startpoint_first: how to choose first point on section
         :param tiny_value: if difference between ratio and percent, regard as equating
-        :return:
+        :return: section_list, section_point_list, section_real_ratio_list
         """
-        _order = [(x > y) if mode_sort_order in 'd, descending' else (x < y)
+        # check seg_sequence order
+        _order = [(x > y) if mode_sort_order in ['d', 'descending'] else (x < y)
                   for x, y in zip(seg_sequence[:-1], seg_sequence[1:])]
         if not all(_order):
             print('seg sequence is not correct order:{}'.format(mode_sort_order))
             raise ValueError
+        if len(seg_sequence) != len(percent_sequence):
+            print('seg_sequence and ratio_sequence are not same length!')
+            raise ValueError
+
+        # locate first section point
         _startpoint = -1
-        for seg, r in zip(seg_sequence, percent_sequence):
+        for seg, ratio in zip(seg_sequence, percent_sequence):
             if mode_section_startpoint_first == 'real_max_min':
-                if r < tiny_value:
-                    # skip seg if no real score existed in this point
+                if ratio < tiny_value:
+                    # skip empty seg
                     continue
                 else:
-                    # choose real seg at first r > 0
+                    # first non-empty seg
                     _startpoint = seg
                     break
             else:
@@ -2668,32 +2683,67 @@ class ModelTools:
                 _startpoint = seg
                 break
         section_point_list = [_startpoint]
+
+        # lcoate other start-point of sections
         section_percent_list = []
         dest_ratio = None
-        real_ratio = None
-        last_ratio = None
-        for r in section_ratio_cumu_list:
+        last_ratio = 0
+        real_percent = 0
+        goto_bottom = False
+        for ratio in section_ratio_cumu_sequence:
             if dest_ratio is None:
-                dest_ratio = r
+                dest_ratio = ratio
             else:
                 if mode_ratio_cumu == 'yes':
-                    dest_ratio = real_ratio + r - last_ratio
+                    dest_ratio = real_percent + ratio - last_ratio
                 else:
-                    dest_ratio = r
-            result = ModelTools.get_seg_from_seg_ratio_sequence(r, seg_sequence, percent_sequence, tiny_value)
-            if (result.dist_to_this == 0) or (mode_ratio_prox == 'upper_min'):
-                section_point_list.append(result.this_seg)
-                real_ratio = result.this_percent
-            elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last == 0):
-                section_point_list.append(result.last_seg)
-                real_ratio = result.last_percent
-            elif 'near' in mode_ratio_prox:
-                if result.this_is_near:
-                    section_point_list.append(result.this_seg)
-                    real_ratio = result.this_percent
+                    dest_ratio = ratio
+            # avoid to locate invalid ratio
+            _seg, _percent = -1, -1
+            if (abs(dest_ratio-1) < tiny_value) or (not goto_bottom):
+                result = ModelTools.get_seg_from_seg_ratio_sequence(dest_ratio,
+                                                                    seg_sequence,
+                                                                    percent_sequence,
+                                                                    tiny_value)
+                # strategy: mode_ratio_prox:
+                if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
+                    _seg, _percent = result.this_seg, result.this_percent
+                elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last == 0):
+                    _seg, _percent = result.last_seg, result.last_percent
+                elif 'near' in mode_ratio_prox:
+                    if result.this_is_near:
+                        _seg, _percent = result.this_seg, result.this_percent
+                    else:
+                        _seg, _percent = result.last_seg, result.last_percent
                 else:
-                    section_point_list.append(result.last_seg)
-                    real_ratio = result.last_percent
-            section_percent_list.append(real_ratio)
-            last_ratio = r
-        return section_point_list, section_percent_list
+                    print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
+                    raise ValueError
+            # avoid to repeat search if dest_ratio > 1 last time
+            if dest_ratio > 1:
+                goto_bottom = True
+            section_point_list.append(_seg)
+            section_percent_list.append(float(_percent))
+            last_ratio = ratio
+            real_percent = _percent
+
+        # mode_section_startpoint_else
+        # default: step_1
+        section_list = [(x-1, y) if i > 0 else (x, y)
+                        for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
+        if mode_section_startpoint_else == 'jump_empty':
+            new_step = 0
+            new_section_endpoints = []
+            for x, y in section_list:
+                while (x in seg_sequence) and (x != y):
+                    pos = list(seg_sequence).index(x)
+                    if percent_sequence[pos] == percent_sequence[pos-1]:
+                        new_step += -1 if x > y else 1
+                    else:
+                        break
+                new_section_endpoints.append((x + new_step, y))
+            section_list = new_section_endpoints
+        if mode_section_startpoint_else == 'share':
+            section_list = [(x, y) for i, (x, y)
+                            in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
+        Section = namedtuple('Section', ['interval', 'end_point', 'real_percent'])
+        return Section(section_list, section_point_list, section_percent_list)
