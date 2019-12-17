@@ -2578,18 +2578,20 @@ class ModelTools:
             last_pos = pos
         return table, [sum(table[0:i+1]) for i in range(len(table))], edge_error
 
-    # design for future
-    @classmethod
-    def get_seg_from_fr(cls,
-                        dest_ratio,
-                        seg_sequece,
-                        ratio_sequece,
-                        ):
+    # design for ratio search
+    @staticmethod
+    def get_seg_from_seg_ratio_sequence(
+                                        dest_ratio,
+                                        seg_sequece,
+                                        ratio_sequece,
+                                        tiny_value=10**-8,
+                                        ):
         # comments:
-        #   use limit_denominator in Fraction
+        #   if value type is Fraction in ratio_sequence,
+        #   use limit_denominator for dest_ratio or str type, Fraction(str)
         #   because of the Fraction number error in pandas.field(Fraction)
         #   can't compare ratio with Fraction number in pd.DataFrame directly
-        # dest_ratio = fr.Fraction(ratio).limit_denominator(1000000)
+        #   for example: dest_ratio = fr.Fraction(ratio).limit_denominator(10**8)
 
         Result = namedtuple('Result',
                             ['this_is_near',
@@ -2599,9 +2601,9 @@ class ModelTools:
         last_percent = -1
         last_seg = -1
         start = 0
-        dist_to_this = 999
-        dist_to_last = 9999
-        this_is_near = True
+        dist_to_this = -1
+        dist_to_last = -1
+        this_seg_near = True
         table_len = len(ratio_sequece)
         for row_id, (seg, percent) in enumerate(zip(seg_sequece, ratio_sequece)):
             this_percent = percent
@@ -2612,10 +2614,10 @@ class ModelTools:
                 dist_to_last = float(dest_ratio - last_percent)
                 if start == 0:    # at top and percent >= ratio
                     dist_to_this = float(this_percent - dest_ratio)
-                if this_percent == dest_ratio:  # equal to ratio
+                if (this_percent - dest_ratio) < tiny_value:  # equal to ratio
                     dist_to_this = 0
-                this_is_near = False if dist_to_last < dist_to_this else True
-                return Result(this_is_near,
+                this_seg_near = False if dist_to_last < dist_to_this else True
+                return Result(this_seg_near,
                               this_seg, last_seg,
                               float(this_percent), float(last_percent),
                               dist_to_this, dist_to_last
@@ -2623,4 +2625,45 @@ class ModelTools:
             last_percent = this_percent
             last_seg = this_seg
             start += 1
-        return False
+        return Result(False, -1, -1, -1, -1, -1, -1)
+
+    @staticmethod
+    def get_section_point(
+            section_ratio_cumu_list,
+            seg_sequence,
+            ratio_sequence,
+            mode_ratio_prox='upper_min',
+            mode_ratio_cumu='no',
+            mode_sort_order='d',
+            tiny_value=10**-8,
+            ):
+        section_point_list = [max(seg_sequence) if mode_sort_order in 'a, ascending' else min(seg_sequence)]
+        section_percent_list = []
+        dest_ratio = None
+        real_ratio = None
+        last_ratio = None
+        for r in section_ratio_cumu_list:
+            if dest_ratio is None:
+                dest_ratio = r
+            else:
+                if mode_ratio_cumu == 'yes':
+                    dest_ratio = real_ratio + r - last_ratio
+                else:
+                    dest_ratio = r
+            result = ModelTools.get_seg_from_seg_ratio_sequence(r, seg_sequence, ratio_sequence,tiny_value)
+            if (result.dist_to_this == 0) or (mode_ratio_prox == 'upper_min'):
+                section_point_list.append(result.this_seg)
+                real_ratio = result.this_percent
+            elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last == 0):
+                section_point_list.append(result.last_seg)
+                real_ratio = result.last_percent
+            elif 'near' in mode_ratio_prox:
+                if result.dist_to_last < result.dist_to_this:
+                    section_point_list.append(result.last_seg)
+                    real_ratio = result.last_percent
+                else:
+                    section_point_list.append(result.this_seg)
+                    real_ratio = result.this_percent
+            section_percent_list.append(real_ratio)
+            last_ratio = r
+        return section_point_list, section_percent_list
