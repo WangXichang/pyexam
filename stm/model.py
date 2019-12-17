@@ -2631,13 +2631,43 @@ class ModelTools:
     def get_section_point(
             section_ratio_cumu_list,
             seg_sequence,
-            ratio_sequence,
+            percent_sequence,
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
             mode_sort_order='d',
-            tiny_value=10**-8,
+            mode_section_startpoint_first='real_max_min',
+            tiny_value=10**-12,
             ):
-        section_point_list = [max(seg_sequence) if mode_sort_order in 'a, ascending' else min(seg_sequence)]
+        """
+        :param section_ratio_cumu_list: ratio for each section
+        :param seg_sequence:   score point corresponding to ratio_sequence
+        :param percent_sequence: real score cumulative percent
+        :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
+        :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
+        :param mode_section_startpoint_first: how to choose first point on section
+        :param tiny_value: if difference between ratio and percent, regard as equating
+        :return:
+        """
+        _order = [(x > y) if mode_sort_order in 'd, descending' else (x < y)
+                  for x, y in zip(seg_sequence[:-1], seg_sequence[1:])]
+        if not all(_order):
+            print('seg sequence is not correct order:{}'.format(mode_sort_order))
+            raise ValueError
+        _startpoint = -1
+        for seg, r in zip(seg_sequence, percent_sequence):
+            if mode_section_startpoint_first == 'real_max_min':
+                if r < tiny_value:
+                    # skip seg if no real score existed in this point
+                    continue
+                else:
+                    # choose real seg at first r > 0
+                    _startpoint = seg
+                    break
+            else:
+                # choose first seg if 'defined_max_min'
+                _startpoint = seg
+                break
+        section_point_list = [_startpoint]
         section_percent_list = []
         dest_ratio = None
         real_ratio = None
@@ -2650,7 +2680,7 @@ class ModelTools:
                     dest_ratio = real_ratio + r - last_ratio
                 else:
                     dest_ratio = r
-            result = ModelTools.get_seg_from_seg_ratio_sequence(r, seg_sequence, ratio_sequence,tiny_value)
+            result = ModelTools.get_seg_from_seg_ratio_sequence(r, seg_sequence, percent_sequence, tiny_value)
             if (result.dist_to_this == 0) or (mode_ratio_prox == 'upper_min'):
                 section_point_list.append(result.this_seg)
                 real_ratio = result.this_percent
@@ -2658,12 +2688,12 @@ class ModelTools:
                 section_point_list.append(result.last_seg)
                 real_ratio = result.last_percent
             elif 'near' in mode_ratio_prox:
-                if result.dist_to_last < result.dist_to_this:
-                    section_point_list.append(result.last_seg)
-                    real_ratio = result.last_percent
-                else:
+                if result.this_is_near:
                     section_point_list.append(result.this_seg)
                     real_ratio = result.this_percent
+                else:
+                    section_point_list.append(result.last_seg)
+                    real_ratio = result.last_percent
             section_percent_list.append(real_ratio)
             last_ratio = r
         return section_point_list, section_percent_list
