@@ -2732,6 +2732,9 @@ class ModelTools:
             if x != section_point_list[p]:
                 new_section.append(x)
         section_point_list = new_section
+        new_percent = [section_percent_list[0]]
+        _ = [new_percent.append(x) for i, x in enumerate(section_percent_list[1:]) if x != section_percent_list[i]]
+        section_percent_list = new_percent
 
         # mode_section_startpoint_else
         # default: step_1
@@ -2752,5 +2755,10 @@ class ModelTools:
         if mode_section_startpoint_else == 'share':
             section_list = [(x, y) for i, (x, y)
                             in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
+        less_len = len(section_ratio_cumu_sequence) - len(section_list)
+        if less_len > 0:
+            section_list += [(-1, -1)] * less_len
+            section_percent_list += [-1] * less_len
+
         Section = namedtuple('Section', ['interval', 'end_point', 'real_percent'])
         return Section(section_list, section_point_list, section_percent_list)
