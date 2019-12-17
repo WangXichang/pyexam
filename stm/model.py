@@ -2667,7 +2667,8 @@ class ModelTools:
             print('seg_sequence and ratio_sequence are not same length!')
             raise ValueError
 
-        # locate first section point
+        # step-1； make section first point of first section and second point of other section
+        # step-1-1: locate first section point
         _startpoint = -1
         for seg, ratio in zip(seg_sequence, percent_sequence):
             if mode_section_startpoint_first == 'real_max_min':
@@ -2684,7 +2685,7 @@ class ModelTools:
                 break
         section_point_list = [_startpoint]
 
-        # lcoate other start-point of sections
+        # step-1-2: lcoate other start-point of sections
         section_percent_list = []
         dest_ratio = None
         last_ratio = 0
@@ -2726,7 +2727,7 @@ class ModelTools:
             last_ratio = ratio
             real_percent = _percent
 
-        # process same endpoint in section_point_list
+        # step-2: process same endpoint in section_point_list
         new_section = [section_point_list[0]]
         for p, x in enumerate(section_point_list[1:]):
             if x != section_point_list[p]:
@@ -2736,8 +2737,9 @@ class ModelTools:
         _ = [new_percent.append(x) for i, x in enumerate(section_percent_list[1:]) if x != section_percent_list[i]]
         section_percent_list = new_percent
 
-        # mode_section_startpoint_else
-        # default: step_1
+        # step-3: make section
+        #   with strategy: mode_section_startpoint_else
+        #                  default: step_1
         section_list = [(x-1, y) if i > 0 else (x, y)
                         for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
         if mode_section_startpoint_else == 'jump_empty':
@@ -2756,6 +2758,8 @@ class ModelTools:
             section_list = [(x, y) for i, (x, y)
                             in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
         less_len = len(section_ratio_cumu_sequence) - len(section_list)
+
+        # step-4: add lost section with (-1, -1)
         if less_len > 0:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
