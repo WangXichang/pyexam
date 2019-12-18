@@ -2701,21 +2701,30 @@ class ModelTools:
                     dest_ratio = ratio
             # avoid to locate invalid ratio
             _seg, _percent = -1, -1
-            if (abs(dest_ratio-1) < tiny_value) or (not goto_bottom):
-                result = ModelTools.get_seg_from_seg_ratio_sequence(dest_ratio,
-                                                                    raw_score_sequence,
-                                                                    raw_score_percent_sequence,
-                                                                    tiny_value)
+            if not goto_bottom:
+                result = ModelTools.get_seg_from_seg_ratio_sequence(
+                    dest_ratio,
+                    raw_score_sequence,
+                    raw_score_percent_sequence,
+                    tiny_value)
                 # strategy: mode_ratio_prox:
+                # equal to this or choosing upper min
                 if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
                     _seg, _percent = result.this_seg, result.this_percent
-                elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last == 0):
+                # equal to last or choosing lower max
+                elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
                     _seg, _percent = result.last_seg, result.last_percent
+                # near or 'near_max' or 'near_min'
                 elif 'near' in mode_ratio_prox:
-                    if result.this_is_near:
+                    if result.dist_to_this < result.dist_to_last:
                         _seg, _percent = result.this_seg, result.this_percent
-                    else:
+                    elif result.dist_to_this > result.dist_to_last:
                         _seg, _percent = result.last_seg, result.last_percent
+                    else: # dist is same
+                        if mode_ratio_prox == 'near_max':
+                            _seg, _percent = result.this_seg, result.this_percent
+                        else:
+                            _seg, _percent = result.last_seg, result.last_percent
                 else:
                     print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                     raise ValueError
@@ -2806,6 +2815,64 @@ class ModelTools:
                         mode_sort_order='d',
                         mode_ppt_score_max='map_by_ratio',
                         mode_ppt_score_min='map_by_ratio',
+                        tiny_value=10**-12
                         ):
         ppt_formula = dict()
+        _rmax, _rmin = max(raw_score_sequence), min(raw_score_sequence)
+        if mode_sort_order in ['d', 'descending']:
+            if any([x <= y for x,y in zip(raw_score_sequence[:-1], raw_score_sequence[1:])]):
+                print('raw score sequence is not correct order: {}'.format(mode_sort_order))
+                return
+        # lcoate out-score to raw-ratio in out-score-ratio-sequence
+        dest_ratio = None
+        last_ratio = 0
+        real_percent = 0
+        for rscore, raw_ratio in zip(raw_score_sequence, raw_score_percent_sequence):
+            if rscore == _rmax:
+                if mode_ppt_score_max == 'map_to_max':
+                    ppt_formula.update({rscore: max(out_score_sequence)})
+                    continue
+            if rscore == _rmin:
+                if mode_ppt_score_min == 'map_to_min':
+                    ppt_formula.update({rscore: min(out_score_sequence)})
+                    continue
+
+            if dest_ratio is None:
+                dest_ratio = raw_ratio
+            else:
+                if mode_ratio_cumu == 'yes':
+                    dest_ratio = real_percent + raw_ratio - last_ratio
+                else:
+                    dest_ratio = raw_ratio
+
+            # set invalid ratio if can not found ration in out_percent
+            _seg, _percent = -1, -1
+            result = ModelTools.get_seg_from_seg_ratio_sequence(
+                dest_ratio,
+                out_score_sequence,
+                out_score_percent_sequence,
+                tiny_value)
+            print(raw_ratio, result)
+            # strategy: mode_ratio_prox:
+            # choose this_seg if near equal to this or upper_min
+            if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
+                _seg, _percent = result.this_seg, result.this_percent
+            # choose last if last is near or equal
+            elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
+                _seg, _percent = result.last_seg, result.last_percent
+            elif 'near' in mode_ratio_prox:
+                if result.dist_to_this < result.dist_to_last:
+                    _seg, _percent = result.this_seg, result.this_percent
+                elif result.dist_to_this > result.dist_to_last:
+                    _seg, _percent = result.last_seg, result.last_percent
+                else:
+                    if mode_ratio_prox == 'near_max':
+                        _seg, _percent = result.this_seg, result.this_percent
+                    else:
+                        _seg, _percent = result.last_seg, result.last_percent
+            else:
+                print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
+                raise ValueError
+            ppt_formula.update({rscore: (_seg, _percent)})
+
         return ppt_formula
