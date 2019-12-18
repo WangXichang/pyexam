@@ -2635,7 +2635,7 @@ class ModelTools:
         return Result(False, -1, -1, -1, -1, -1, -1)
 
     @staticmethod
-    def get_section(
+    def get_raw_section(
             section_ratio_cumu_sequence,
             seg_sequence,
             percent_sequence,

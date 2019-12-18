@@ -62,7 +62,7 @@ import scipy.stats as sts
 MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
 MODEL_TYPE_PDT = 'pdt'      # piecewise grade transform
 MODEL_TYPE_PPT = 'ppt'      # standard score transform
-MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PPT}
+MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PDT, MODEL_TYPE_PPT}
 
 
 # models parameters: grade score ratios, segments
