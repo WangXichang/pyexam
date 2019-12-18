@@ -2637,8 +2637,8 @@ class ModelTools:
     @staticmethod
     def get_raw_section(
             section_ratio_cumu_sequence,
-            seg_sequence,
-            percent_sequence,
+            raw_score_sequence,
+            raw_score_percent_sequence,
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
             mode_sort_order='d',
@@ -2649,8 +2649,8 @@ class ModelTools:
         """
         section point searching in seg-percent sequence
         :param section_ratio_cumu_sequence: ratio for each section
-        :param seg_sequence:   score point corresponding to ratio_sequence
-        :param percent_sequence: real score cumulative percent
+        :param raw_score_sequence:   score point corresponding to ratio_sequence
+        :param raw_score_percent_sequence: real score cumulative percent
         :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
         :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
         :param mode_section_startpoint_first: how to choose first point on section
@@ -2659,18 +2659,18 @@ class ModelTools:
         """
         # check seg_sequence order
         _order = [(x > y) if mode_sort_order in ['d', 'descending'] else (x < y)
-                  for x, y in zip(seg_sequence[:-1], seg_sequence[1:])]
+                  for x, y in zip(raw_score_sequence[:-1], raw_score_sequence[1:])]
         if not all(_order):
             print('seg sequence is not correct order:{}'.format(mode_sort_order))
             raise ValueError
-        if len(seg_sequence) != len(percent_sequence):
+        if len(raw_score_sequence) != len(raw_score_percent_sequence):
             print('seg_sequence and ratio_sequence are not same length!')
             raise ValueError
 
         # step-1； make section first point of first section and second point of other section
         # step-1-1: locate first section point
         _startpoint = -1
-        for seg, ratio in zip(seg_sequence, percent_sequence):
+        for seg, ratio in zip(raw_score_sequence, raw_score_percent_sequence):
             if mode_section_startpoint_first == 'real_max_min':
                 if ratio < tiny_value:
                     # skip empty seg
@@ -2703,8 +2703,8 @@ class ModelTools:
             _seg, _percent = -1, -1
             if (abs(dest_ratio-1) < tiny_value) or (not goto_bottom):
                 result = ModelTools.get_seg_from_seg_ratio_sequence(dest_ratio,
-                                                                    seg_sequence,
-                                                                    percent_sequence,
+                                                                    raw_score_sequence,
+                                                                    raw_score_percent_sequence,
                                                                     tiny_value)
                 # strategy: mode_ratio_prox:
                 if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
@@ -2746,9 +2746,9 @@ class ModelTools:
             new_step = 0
             new_section_endpoints = []
             for x, y in section_list:
-                while (x in seg_sequence) and (x != y):
-                    pos = list(seg_sequence).index(x)
-                    if percent_sequence[pos] == percent_sequence[pos-1]:
+                while (x in raw_score_sequence) and (x != y):
+                    pos = list(raw_score_sequence).index(x)
+                    if raw_score_percent_sequence[pos] == raw_score_percent_sequence[pos - 1]:
                         new_step += -1 if x > y else 1
                     else:
                         break
@@ -2768,11 +2768,44 @@ class ModelTools:
         return Section(section_list, section_point_list, section_percent_list)
 
     @staticmethod
-    def get_formula(raw_section,
-                    out_section,
-                    model_type='plt',
-                    mode_section_degraded='map_to_max',
-                    mode_ppt_score_max='map_by_ratio',
-                    mode_ppt_score_min='map_by_ratio',
-                    ):
-        pass
+    def get_plt_formula(raw_section,
+                        out_section,
+                        mode_section_degraded='map_to_max',
+                        ):
+        plt_formula = dict()
+        i = 0
+        for rsec, osec in zip(raw_section, out_section):
+            # rsec is degraded
+            if rsec[0] == rsec[1]:
+                a = 0
+                if mode_section_degraded == 'map_to_max':
+                    b = max(osec)
+                elif mode_section_degraded == 'map_to_min':
+                    b = min(osec)
+                elif mode_section_degraded == 'map_to_mean':
+                    b = np.mean(osec)
+                else:
+                    raise ValueError
+            else:
+                y2, y1 = osec[1], osec[0]
+                x2, x1 = rsec[1], rsec[0]
+                a = (y2 - y1) / (x2 - x1)
+                b = (y1 * x2 - y2 * x1) / (x2 - x1)
+            plt_formula.update({i: ((a, b), rsec, osec)})
+            i += 1
+        return plt_formula
+
+    @staticmethod
+    def get_ppt_formula(
+                        raw_score_sequence,
+                        raw_score_percent_sequence,
+                        out_score_sequence,
+                        out_score_percent_sequence,
+                        mode_ratio_prox='upper_min',
+                        mode_ratio_cumu='no',
+                        mode_sort_order='d',
+                        mode_ppt_score_max='map_by_ratio',
+                        mode_ppt_score_min='map_by_ratio',
+                        ):
+        ppt_formula = dict()
+        return ppt_formula
