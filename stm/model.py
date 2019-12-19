@@ -2557,7 +2557,10 @@ class ModelTools:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_section_pdf_from_norm_dist(start=-2.6, end=2.6, section_num=8):
+    def get_section_pdf_from_norm_dist(start=-2.6, end=2.6,
+                                       section_num=8,
+                                       section_to_point=False
+                                       ):
         """
         # get ratio form seg points list,
         # set first and end seg to tail ratio from norm table
