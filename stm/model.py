@@ -2557,16 +2557,17 @@ class ModelTools:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_section_pdf_from_norm_dist(start=-2.6, end=2.6,
+    def get_section_pdf_from_norm_dist(start=21,
+                                       end=100,
                                        section_num=8,
-                                       section_to_point=False
+                                       std_num=2.6
                                        ):
         """
-        # get ratio form seg points list,
+        # get pdf, cdf, cutoff_err form section end points,
         # set first and end seg to tail ratio from norm table
         # can be used to test std from seg ratio table
         # for example,
-        #   get_seg_ratio(20, 100, 10, std_num = 40/15.9508)
+        #   get_section_ratio(start=21, end=100, section_num=8, std_num = 40/15.9508)
         #   [0.03000, 0.07, 0.16, 0.234646, ..., 0.03000],
         #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
         :param start:  start value for segments
@@ -2575,23 +2576,25 @@ class ModelTools:
         :param section_num: section number
         :return: ratio_table, ratio_table_cumu, edge_error,
         """
+        _mean, _std = (end+start)/2, (end-start)/2/std_num
         section_point_list = np.linspace(start, end, section_num+1)
-        edge_error = sts.norm.cdf(start)
+        edge_error = sts.norm.cdf((start-_mean)/_std)
         result = dict()
         pdf_table = []
         cdf_table = []
-        last_pos = start
+        last_pos = (start-_mean)/_std
         _cdf = 0
         for i, pos in enumerate(section_point_list[1:]):
-            this_section_pdf = sts.norm.cdf(pos)-sts.norm.cdf(last_pos)
+            _zvalue = (pos-_mean)/_std
+            this_section_pdf = sts.norm.cdf(_zvalue)-sts.norm.cdf(last_pos)
             pdf_table.append(this_section_pdf)
             cdf_table.append(this_section_pdf + _cdf)
-            last_pos = pos
+            last_pos = _zvalue
             _cdf += this_section_pdf
-        result.update({'section': section_point_list})
+        result.update({'val': section_point_list})
         result.update({'pdf': pdf_table})
         result.update({'cdf': cdf_table})
-        result.update({'cutoff_error': edge_error})
+        result.update({'cut_error': edge_error})
         return result
 
     # single ratio-seg search in seg-percent sequence
