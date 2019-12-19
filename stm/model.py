@@ -966,7 +966,7 @@ class PltScore(ScoreTransformModel):
             if i == 0:
                 this_section_start_point = result_section_list[0]
             # not reached bottom
-            elif last_percent < 1:
+            elif last_percent <= 1:
                 # end_point already in result_seg_list
                 if result_section_list[i] != this_section_end_point:
                     # auto get start point by step (1 or -1)
@@ -1516,13 +1516,14 @@ class Zscore(ScoreTransformModel):
         self.cols = None
 
         # model parameters
-        self.std_num = 4
-        self.raw_score_max = 150
+        self.out_score_std_num = 4
+        self.raw_score_max = 100
         self.raw_score_min = 0
-        self.outdf_decimal = 0
-        self.out_score_number = 1000
-        self.norm_table = array.array('d', [sts.norm.cdf(-self.std_num * (1 - 2 * x / (self.out_score_number - 1)))
-                                            for x in range(self.out_score_number)]
+        self.out_score_decimal = 8
+        self.out_score_point_number = 1000
+        self.norm_table = array.array('d',
+                                      [sts.norm.cdf(-self.out_score_std_num * (1 - 2 * x / (self.out_score_point_number - 1)))
+                                       for x in range(self.out_score_point_number)]
                                       )
         # strategies
         self.mode_ratio_prox = 'near'
@@ -1544,19 +1545,19 @@ class Zscore(ScoreTransformModel):
                  mode_sort_order='d',
                  out_decimal=8,
                  ):
-        self.std_num = std_num
+        self.out_score_std_num = std_num
         self.raw_score_max = raw_score_defined_max
         self.raw_score_min = raw_score_defined_min
         self.mode_ratio_prox = mode_ratio_prox
         self.mode_sort_order = mode_sort_order
-        self.outdf_decimal = out_decimal
+        self.out_score_decimal = out_decimal
 
     def check_parameter(self):
         if self.raw_score_max <= self.raw_score_min:
             print('error: max raw score is less than min raw score!')
             return False
-        if self.std_num <= 0:
-            print('error: std number {} is error!'.format(self.std_num))
+        if self.out_score_std_num <= 0:
+            print('error: std number {} is error!'.format(self.out_score_std_num))
             return False
         return True
 
@@ -1587,11 +1588,11 @@ class Zscore(ScoreTransformModel):
     def get_zscore(self, percent_list):
         # z_list = [None for _ in percent_list]
         z_array = array.array('d', range(len(percent_list)))
-        _len = self.out_score_number
+        _len = self.out_score_point_number
         for i, _p in enumerate(percent_list):
             # do not use mode_ratio_prox
             pos = bst.bisect(self.norm_table, _p)
-            z_array[i] = 2*(pos - _len/2) / _len * self.std_num
+            z_array[i] = 2*(pos - _len/2) / _len * self.out_score_std_num
         return z_array
 
     @staticmethod
@@ -1609,7 +1610,7 @@ class Zscore(ScoreTransformModel):
             print('output score data is not ready!')
         print('data fields in raw_score:{}'.format(self.cols))
         print('para:')
-        print('\tzscore stadard diff numbers:{}'.format(self.std_num))
+        print('\tzscore stadard diff numbers:{}'.format(self.out_score_std_num))
         print('\tmax score in raw score:{}'.format(self.raw_score_max))
         print('\tmin score in raw score:{}'.format(self.raw_score_min))
 
@@ -1664,7 +1665,9 @@ class Tscore(ScoreTransformModel):
         self.t_score_stdnum = t_score_stdnum
         self.outdf_decimal = out_decimal
 
+    # Tscore
     def run(self):
+        """get tscore from zscore"""
         zm = Zscore()
         zm.set_data(self.indf, self.cols)
         zm.set_para(std_num=self.t_score_stdnum,
@@ -2554,7 +2557,7 @@ class ModelTools:
         return __mean, __std, __skewness
 
     @staticmethod
-    def get_section_cdf_ratio_from_norm_table(start=-2.6, end=2.6, section_num=8):
+    def get_section_pdf_from_norm_dist(start=-2.6, end=2.6, section_num=8):
         """
         # get ratio form seg points list,
         # set first and end seg to tail ratio from norm table
@@ -2571,12 +2574,20 @@ class ModelTools:
         """
         section_point_list = np.linspace(start, end, section_num+1)
         edge_error = sts.norm.cdf(start)
-        table = []
+        result = dict()
+        pdf_table = []
+        cdf_table = []
         last_pos = start
-        for pos in section_point_list[1:]:
-            table.append(sts.norm.cdf(pos)-sts.norm.cdf(last_pos))
+        for i, pos in enumerate(section_point_list[1:]):
+            this_section_pdf = sts.norm.cdf(pos)-sts.norm.cdf(last_pos)
+            pdf_table.append(this_section_pdf)
+            cdf_table.append(this_section_pdf + (cdf_table[i-1] if i > 0 else 0))
             last_pos = pos
-        return table, [sum(table[0:i+1]) for i in range(len(table))], edge_error
+        result.update({'section': section_point_list})
+        result.update({'pdf': pdf_table})
+        result.update({'cdf': pdf_table})
+        result.update({'cutoff_error': edge_error})
+        return result
 
     # single ratio-seg search in seg-percent sequence
     @staticmethod
@@ -2657,7 +2668,7 @@ class ModelTools:
         :param tiny_value: if difference between ratio and percent, regard as equating
         :return: section_list, section_point_list, section_real_ratio_list
         """
-        # check seg_sequence order
+        # step-0: check seg_sequence order
         _order = [(x > y) if mode_sort_order in ['d', 'descending'] else (x < y)
                   for x, y in zip(raw_score_sequence[:-1], raw_score_sequence[1:])]
         if not all(_order):
@@ -2685,7 +2696,7 @@ class ModelTools:
                 break
         section_point_list = [_startpoint]
 
-        # step-1-2: lcoate other start-point of sections
+        # step-1-2: lcoate start-point of second and else sections
         section_percent_list = []
         dest_ratio = None
         last_ratio = 0
