@@ -2578,14 +2578,16 @@ class ModelTools:
         pdf_table = []
         cdf_table = []
         last_pos = start
+        _cdf = 0
         for i, pos in enumerate(section_point_list[1:]):
             this_section_pdf = sts.norm.cdf(pos)-sts.norm.cdf(last_pos)
             pdf_table.append(this_section_pdf)
-            cdf_table.append(this_section_pdf + (cdf_table[i-1] if i > 0 else 0))
+            cdf_table.append(this_section_pdf + _cdf)
             last_pos = pos
+            _cdf += this_section_pdf
         result.update({'section': section_point_list})
         result.update({'pdf': pdf_table})
-        result.update({'cdf': pdf_table})
+        result.update({'cdf': cdf_table})
         result.update({'cutoff_error': edge_error})
         return result
 
