@@ -2819,35 +2819,35 @@ class ModelTools:
 
     @staticmethod
     def get_ppt_formula(
-                        raw_score_sequence,
-                        raw_score_percent_sequence,
-                        out_score_sequence,
-                        out_score_percent_sequence,
+                        raw_score_points,
+                        raw_score_percent,
+                        out_score_points,
+                        out_score_percent,
                         mode_ratio_prox='upper_min',
                         mode_ratio_cumu='no',
                         mode_sort_order='d',
-                        mode_ppt_score_max='map_by_ratio',
-                        mode_ppt_score_min='map_by_ratio',
+                        mode_raw_score_max='map_by_ratio',
+                        mode_raw_score_min='map_by_ratio',
                         tiny_value=10**-12
                         ):
         ppt_formula = dict()
-        _rmax, _rmin = max(raw_score_sequence), min(raw_score_sequence)
+        _rmax, _rmin = max(raw_score_points), min(raw_score_points)
         if mode_sort_order in ['d', 'descending']:
-            if any([x <= y for x,y in zip(raw_score_sequence[:-1], raw_score_sequence[1:])]):
+            if any([x <= y for x,y in zip(raw_score_points[:-1], raw_score_points[1:])]):
                 print('raw score sequence is not correct order: {}'.format(mode_sort_order))
                 return
         # lcoate out-score to raw-ratio in out-score-ratio-sequence
         dest_ratio = None
         last_ratio = 0
         real_percent = 0
-        for rscore, raw_ratio in zip(raw_score_sequence, raw_score_percent_sequence):
+        for rscore, raw_ratio in zip(raw_score_points, raw_score_percent):
             if rscore == _rmax:
-                if mode_ppt_score_max == 'map_to_max':
-                    ppt_formula.update({rscore: max(out_score_sequence)})
+                if mode_raw_score_max == 'map_to_max':
+                    ppt_formula.update({rscore: max(out_score_points)})
                     continue
             if rscore == _rmin:
-                if mode_ppt_score_min == 'map_to_min':
-                    ppt_formula.update({rscore: min(out_score_sequence)})
+                if mode_raw_score_min == 'map_to_min':
+                    ppt_formula.update({rscore: min(out_score_points)})
                     continue
 
             if dest_ratio is None:
@@ -2862,10 +2862,11 @@ class ModelTools:
             _seg, _percent = -1, -1
             result = ModelTools.get_seg_from_seg_ratio_sequence(
                 dest_ratio,
-                out_score_sequence,
-                out_score_percent_sequence,
+                out_score_points,
+                out_score_percent,
                 tiny_value)
-            print(raw_ratio, result)
+            # print(raw_ratio, result)
+
             # strategy: mode_ratio_prox:
             # choose this_seg if near equal to this or upper_min
             if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
