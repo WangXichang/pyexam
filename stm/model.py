@@ -2580,8 +2580,8 @@ class ModelTools:
         section_point_list = np.linspace(start, end, section_num+1)
         edge_error = sts.norm.cdf((start-_mean)/_std)
         result = dict()
-        pdf_table = []
-        cdf_table = []
+        pdf_table = [0]
+        cdf_table = [0]
         last_pos = (start-_mean)/_std
         _cdf = 0
         for i, pos in enumerate(section_point_list[1:]):
