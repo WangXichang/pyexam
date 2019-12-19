@@ -2595,8 +2595,8 @@ class ModelTools:
     @staticmethod
     def get_seg_from_seg_ratio_sequence(
                                         dest_ratio,
-                                        seg_sequece,
-                                        ratio_sequece,
+                                        seg_seq,
+                                        ratio_seq,
                                         tiny_value=10**-8,
                                         ):
         # comments:
@@ -2607,45 +2607,44 @@ class ModelTools:
         #   for example: dest_ratio = fr.Fraction(ratio).limit_denominator(10**8)
 
         Result = namedtuple('Result',
-                            ['this_is_near',
+                            ['this_seg_near', 'top', 'bottom',
                              'this_seg', 'last_seg',
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
-        if dest_ratio > list(ratio_sequece)[-1]:
+        if dest_ratio > list(ratio_seq)[-1]:
             result = Result(True,
-                            list(seg_sequece)[-1], list(seg_sequece)[-1],
-                            list(ratio_sequece)[-1], list(ratio_sequece)[-1],
+                            list(seg_seq)[-1], list(seg_seq)[-1],
+                            list(ratio_seq)[-1], list(ratio_seq)[-1],
                             -1, -1
                             )
             return result
         last_percent = -1
         last_seg = -1
-        start = 0
-        dist_to_this = -1
-        dist_to_last = -1
-        this_seg_near = True
-        table_len = len(ratio_sequece)
-        for row_id, (seg, percent) in enumerate(zip(seg_sequece, ratio_sequece)):
+        _top, _bottom, _len = False, False, len(seg_seq)
+        for row_id, (seg, percent) in enumerate(zip(seg_seq, ratio_seq)):
             this_percent = percent
             this_seg = seg
+            if row_id == _len:
+                _bottom = True
             # meet a percent that bigger or at table bottom
-            if (this_percent >= dest_ratio) or (start == table_len):
+            if (this_percent >= dest_ratio) or _bottom:
+                if row_id == 0:
+                    _top = True
                 dist_to_this = float(this_percent - dest_ratio)
                 dist_to_last = float(dest_ratio - last_percent)
-                if start == 0:    # at top and percent >= ratio
+                if _top:    # at top and percent >= ratio
                     dist_to_this = float(this_percent - dest_ratio)
                 if (this_percent - dest_ratio) < tiny_value:  # equal to ratio
                     dist_to_this = 0
                 this_seg_near = False if dist_to_last < dist_to_this else True
-                return Result(this_seg_near,
+                return Result(this_seg_near, _top, _bottom,
                               this_seg, last_seg,
+                              float(dist_to_this), float(dist_to_last),
                               float(this_percent), float(last_percent),
-                              float(dist_to_this), float(dist_to_last)
                               )
             last_percent = this_percent
             last_seg = this_seg
-            start += 1
-        return Result(False, -1, -1, -1, -1, -1, -1)
+        return Result(False, False, False, -1, -1, -1, -1, -1, -1)
 
     @staticmethod
     def get_raw_section(
