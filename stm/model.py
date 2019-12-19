@@ -2611,8 +2611,9 @@ class ModelTools:
                              'this_seg', 'last_seg',
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
+        # too big dest_ratio
         if dest_ratio > list(ratio_seq)[-1]:
-            result = Result(True,
+            result = Result(True, False, True,
                             list(seg_seq)[-1], list(seg_seq)[-1],
                             list(ratio_seq)[-1], list(ratio_seq)[-1],
                             -1, -1
@@ -2864,7 +2865,7 @@ class ModelTools:
                 out_score_points,
                 out_score_percent,
                 tiny_value)
-            # print(raw_ratio, result)
+            print(raw_ratio, result)
 
             # strategy: mode_ratio_prox:
             # choose this_seg if near equal to this or upper_min
