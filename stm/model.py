@@ -2732,7 +2732,11 @@ class ModelTools:
                     dest_ratio = ratio
             # avoid to locate invalid ratio
             _seg, _percent = -1, -1
-            if not goto_bottom:
+            if real_percent > dest_ratio:
+                # this section is lost in last section
+                # set to (-1, -1)
+                pass
+            elif not goto_bottom:
                 result = ModelTools.get_seg_from_seg_ratio_sequence(
                     dest_ratio,
                     raw_score_sequence,
@@ -2765,7 +2769,8 @@ class ModelTools:
             section_point_list.append(_seg)
             section_percent_list.append(float(_percent))
             last_ratio = ratio
-            real_percent = _percent
+            if _percent > 0:    # jump over lost section
+                real_percent = _percent
 
         # step-2: process same endpoint in section_point_list
         new_section = [section_point_list[0]]
@@ -2804,7 +2809,7 @@ class ModelTools:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
-        Section = namedtuple('Section', ['interval', 'end_point', 'real_percent'])
+        Section = namedtuple('Section', ['section', 'point', 'percent'])
         return Section(section_list, section_point_list, section_percent_list)
 
     @staticmethod
