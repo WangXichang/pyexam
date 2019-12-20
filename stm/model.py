@@ -113,7 +113,7 @@ from stm import modelconfig as mcf
 warnings.filterwarnings('ignore')
 
 
-MODELS_NAME_LIST = list(mcf.MODELS_SETTING_DICT.keys()) + \
+MODELS_NAME_LIST = list(mcf.Models.keys()) + \
                    ['zscore', 'tscore', 'tai', 'tlinear']
 
 
@@ -215,14 +215,14 @@ def run(
         return
 
     # ratio-seg score model: plt, ppt
-    if name in mcf.MODELS_SETTING_DICT.keys():
-        ratio_tuple = tuple(x * 0.01 for x in mcf.MODELS_SETTING_DICT[name].ratio)
+    if name in mcf.Models.keys():
+        ratio_tuple = tuple(x * 0.01 for x in mcf.Models[name].ratio)
         plt_model = PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(indf=indf, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=mcf.MODELS_SETTING_DICT[name].section,
+            out_score_seg_tuple=mcf.Models[name].section,
             raw_score_paper_max=max(raw_score_range),
             raw_score_paper_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -300,8 +300,8 @@ class ScoreTransformModel(abc.ABC):
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
-        if model_name in mcf.MODELS_SETTING_DICT.keys():
-            self.model_type = mcf.MODELS_SETTING_DICT[model_name].type
+        if model_name in mcf.Models.keys():
+            self.model_type = mcf.Models[model_name].type
         else:
             self.model_type = 'other'
 
@@ -540,8 +540,8 @@ class PltScore(ScoreTransformModel):
         self.raw_score_paper_min = None
 
         # strategy
-        self.strategy_dict = {k: mcf.MODEL_STRATEGIES_DICT[k][0]
-                              for k in mcf.MODEL_STRATEGIES_DICT}
+        self.strategy_dict = {k: mcf.Strategies[k][0]
+                              for k in mcf.Strategies}
 
         # result
         self.seg_model = None
@@ -686,7 +686,7 @@ class PltScore(ScoreTransformModel):
 
             # get formula and save
             _get_formula = False
-            if mcf.MODELS_SETTING_DICT[self.model_name].type == 'ppt':
+            if mcf.Models[self.model_name].type == 'ppt':
                 _get_formula = self.get_formula_ppt(col)
             else:
                 _get_formula = self.get_formula_ts(col)
@@ -1059,16 +1059,16 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc = '{}[{}]  {}\n'.\
             format('Transform Model: '.rjust(20),
                    self.model_name,
-                   mcf.MODELS_SETTING_DICT[self.model_name].desc)
+                   mcf.Models[self.model_name].desc)
         self.out_report_doc += '{}{}\n'.\
             format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>20') + '\n'
 
-        for k in mcf.MODEL_STRATEGIES_DICT:
+        for k in mcf.Strategies:
             self.out_report_doc += ' ' * 20 + '{0:<50s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
-                       mcf.MODEL_STRATEGIES_DICT[k]) + '\n'
+                       mcf.Strategies[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
@@ -1367,7 +1367,7 @@ class PltScore(ScoreTransformModel):
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
-            bar_wid = [p - width/2 for p in x_data]
+            # bar_wid = [p - width/2 for p in x_data]
             bar_wid = [p + width/2 for p in x_data]
             if display in ['all']:
                 raw_bar = ax.bar(bar_wid, indf, width, label=f)
@@ -1406,7 +1406,8 @@ class PltScore(ScoreTransformModel):
                         make_color = 0
                     else:
                         make_color += 1
-            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
+            if display == 'all':
+                ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()
             plot.show()
 
@@ -2492,10 +2493,10 @@ class ModelTools:
                 x_data = [x for x in range(26, 100, 10)]
                 _wid = 8
             elif k in ['guangdong']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].section][::-1]
+                x_data = [np.mean(x) for x in mcf.Models[k].section][::-1]
                 _wid = 10
             elif k in ['ss7']:
-                x_data = [np.mean(x) for x in mcf.MODELS_SETTING_DICT[k].section][::-1]
+                x_data = [np.mean(x) for x in mcf.Models[k].section][::-1]
                 _wid = 10
             elif k in ['hn900']:
                 x_data = [x for x in range(100, 901)]
@@ -2505,7 +2506,7 @@ class ModelTools:
                 _wid = 1
             else:
                 raise ValueError(k)
-            plot.bar(x_data, mcf.MODELS_SETTING_DICT[k].ratio[::-1], width=_wid)
+            plot.bar(x_data, mcf.Models[k].ratio[::-1], width=_wid)
             plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
     @staticmethod
@@ -2513,7 +2514,7 @@ class ModelTools:
         if model_type not in mcf.MODEL_TYPE:
             print('error model type={}, valid type:{}'.format(model_type, mcf.MODEL_TYPE))
             return
-        if name in mcf.MODELS_SETTING_DICT:
+        if name in mcf.Models:
             print('name existed in current models_dict!')
             return
         if len(ratio_list) != len(section_list):
@@ -2529,23 +2530,23 @@ class ModelTools:
         if not all([s1 >= s2 for s1, s2 in zip(section_list[:-1], section_list[1:])]):
             print('section endpoints order is not from large to small!')
             return
-        mcf.MODELS_SETTING_DICT.update({name: mcf.ModelFields(model_type,
-                                                              ratio_list,
-                                                              section_list,
-                                                              desc)})
+        mcf.Models.update({name: mcf.ModelFields(model_type,
+                                                 ratio_list,
+                                                 section_list,
+                                                 desc)})
         MODELS_NAME_LIST.append(name)
 
     @staticmethod
     def show_models():
-        for k in mcf.MODELS_SETTING_DICT:
-            v = mcf.MODELS_SETTING_DICT[k]
+        for k in mcf.Models:
+            v = mcf.Models[k]
             print('{:<20s} {}'.format(k, v.ratio))
             print('{:<20s} {}'.format('', v.section))
 
     @staticmethod
     def get_model_describe(name='shandong'):
-        __ratio = mcf.MODELS_SETTING_DICT[name].ratio
-        __section = mcf.MODELS_SETTING_DICT[name].section
+        __ratio = mcf.Models[name].ratio
+        __section = mcf.Models[name].section
         if name == 'hn900':
             __mean, __std, __skewness = 500, 100, 0
         elif name == 'hn300':
@@ -2574,11 +2575,11 @@ class ModelTools:
         #   [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
         #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
 
-        :param start:  start value for segments
-        :param end: end value for segments
-        :param step: length for each segment
+        :param start:   start value
+        :param end:     end value
         :param section_num: section number
-        :return: ratio_table, ratio_table_cumu, edge_error,
+        :param std_num:     length from 0 to max equal to std_num*std, i.e. std = (end-start)/2/std_num
+        :return: dict{'val': (), 'pdf': (), 'cdf': (), 'cut_error': float, 'add_cut_error': bool}
         """
         _mean, _std = (end+start)/2, (end-start)/2/std_num
         section_point_list = np.linspace(start, end, section_num+1)
@@ -2591,18 +2592,18 @@ class ModelTools:
         for i, pos in enumerate(section_point_list[1:]):
             _zvalue = (pos-_mean)/_std
             this_section_pdf = sts.norm.cdf(_zvalue)-sts.norm.cdf(last_pos)
-            if (i == 0) and cut_error:
+            if (i == 0) and add_cut_error:
                 this_section_pdf += cut_error
             pdf_table.append(this_section_pdf)
             cdf_table.append(this_section_pdf + _cdf)
             last_pos = _zvalue
             _cdf += this_section_pdf
-        if cut_error:
+        if add_cut_error:
             pdf_table[-1] += cut_error
             cdf_table[-1] = 1
-        result.update({'val': section_point_list})
-        result.update({'pdf': pdf_table})
-        result.update({'cdf': cdf_table})
+        result.update({'val': tuple(section_point_list)})
+        result.update({'pdf': tuple(pdf_table)})
+        result.update({'cdf': tuple(cdf_table)})
         result.update({'cut_error': cut_error})
         result.update({'add_cut_error': add_cut_error})
         return result
@@ -2830,9 +2831,23 @@ class ModelTools:
                 x2, x1 = rsec[1], rsec[0]
                 a = (y2 - y1) / (x2 - x1)
                 b = (y1 * x2 - y2 * x1) / (x2 - x1)
-            plt_formula.update({i: ((a, b), rsec, osec)})
+            plt_formula.update({i: ((a, b),
+                                    rsec,
+                                    osec,
+                                    'y = {:.8f}*x + {:.8f}'.format(a, b),
+                                    )
+                                })
             i += 1
-        return plt_formula
+
+        # function of formula
+        def formula(x):
+            for k in plt_formula:
+                if plt_formula[k][1][0] <= x <= plt_formula[k][1][1]:
+                    return plt_formula[k][0][0] * x + plt_formula[k][0][1]
+            return -1
+
+        Result = namedtuple('Result', ('formula', 'coeff_raw_out_section_formula'))
+        return Result(formula, plt_formula)
 
     @staticmethod
     def get_ppt_formula(
@@ -2906,4 +2921,12 @@ class ModelTools:
                 raise ValueError
             ppt_formula.update({rscore: (_seg, _percent)})
 
-        return ppt_formula
+        # function of formula
+        def formula(x):
+            if x in ppt_formula:
+                return ppt_formula[x]
+            else:
+                return -1
+
+        Result = namedtuple('Result', ('formula', 'map_dict'))
+        return formula, ppt_formula

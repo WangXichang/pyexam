@@ -148,7 +148,7 @@ CONST_HAINAN5_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(30
 
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
-MODELS_SETTING_DICT = {
+Models = {
     'zhejiang':     ModelFields(MODEL_TYPE_PDT,
                                 tuple(CONST_ZHEJIANG_RATIO),
                                 tuple(CONST_ZHEJIANG_SECTION),
@@ -201,7 +201,7 @@ MODELS_SETTING_DICT = {
 
 # choice_space = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
 # real used choice = 4 * 2 * 2 * 3 * 2 * 3 = 96    ## prox, cumu, sort, one_point, non_point
-MODEL_STRATEGIES_DICT = {
+Strategies = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('ascending', 'descending'),
@@ -211,15 +211,17 @@ MODEL_STRATEGIES_DICT = {
     'mode_ppt_score_max':           ('map_by_real_ratio', 'map_to_max'),    # for standard score transform: type=='ppt'
     'mode_ppt_score_min':           ('map_by_real_ratio', 'map_to_min'),    # for standard score transform: type=='ppt'
     }
+
+# to add in future
 # choice_space: 2 * 2 * 4 * 3 = 48
-MODEL_STRATEGIES_RESERVE_DICT = {
-                                                                             # first point by mode_section_min/max
-    'mode_section_lost':                ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
-    'mode_section_min':                 ('real_min', 'defined_min'),
-    'mode_section_max':                 ('real_max', 'defined_max'),
-    #   'mode_score_empty': ('use', 'jump'),  # ** consider to deprecated, processed in other strategies
-    #   'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,
-    #                                                 # case: sort by 'a', standard score mode
-    #   'mode_score_rmax_to_max': ('ignore', 'yes'),  # real raw score max value to out score max value,
-    #                                                 # case: top ratio large, sort by 'a', standard score mode
-}
+# MODEL_STRATEGIES_RESERVE_DICT = {
+#                                                                              # first point by mode_section_min/max
+#     'mode_section_lost':                ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
+#     'mode_section_min':                 ('real_min', 'defined_min'),
+#     'mode_section_max':                 ('real_max', 'defined_max'),
+#       'mode_score_empty': ('use', 'jump'),  # ** consider to deprecated, processed in other strategies
+#       'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,
+#                                                     # case: sort by 'a', standard score mode
+#       'mode_score_rmax_to_max': ('ignore', 'yes'),  # real raw score max value to out score max value,
+#                                                     # case: top ratio large, sort by 'a', standard score mode
+# }
