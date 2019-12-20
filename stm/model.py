@@ -2772,7 +2772,7 @@ class ModelTools:
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
-        # step-2: process same endpoint in section_point_list
+        # step-2: process same endpoint in section_point_list, that means lost section?
         new_section = [section_point_list[0]]
         for p, x in enumerate(section_point_list[1:]):
             if x != section_point_list[p]:
@@ -2809,8 +2809,8 @@ class ModelTools:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
-        Section = namedtuple('Section', ['section', 'point', 'percent'])
-        return Section(section_list, section_point_list, section_percent_list)
+        Result = namedtuple('result', ['section', 'point', 'percent'])
+        return Result(section_list, section_point_list, section_percent_list)
 
     @staticmethod
     def get_plt_formula(raw_section,
@@ -2902,7 +2902,7 @@ class ModelTools:
                 out_score_points,
                 out_score_percent,
                 tiny_value)
-            print(raw_ratio, result)
+            # print(raw_ratio, result)
 
             # strategy: mode_ratio_prox:
             # choose this_seg if near equal to this or upper_min
