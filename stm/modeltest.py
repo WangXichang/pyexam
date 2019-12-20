@@ -256,7 +256,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in model.mcf.MODELS_SETTING_DICT.keys():
+    if name in model.mcf.Models.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
