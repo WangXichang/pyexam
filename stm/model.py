@@ -2591,13 +2591,13 @@ class ModelTools:
         for i, pos in enumerate(section_point_list[1:]):
             _zvalue = (pos-_mean)/_std
             this_section_pdf = sts.norm.cdf(_zvalue)-sts.norm.cdf(last_pos)
-            if (i == 0) and cut_error:
+            if (i == 0) and add_cut_error:
                 this_section_pdf += cut_error
             pdf_table.append(this_section_pdf)
             cdf_table.append(this_section_pdf + _cdf)
             last_pos = _zvalue
             _cdf += this_section_pdf
-        if cut_error:
+        if add_cut_error:
             pdf_table[-1] += cut_error
             cdf_table[-1] = 1
         result.update({'val': section_point_list})
@@ -2829,7 +2829,9 @@ class ModelTools:
                 x2, x1 = rsec[1], rsec[0]
                 a = (y2 - y1) / (x2 - x1)
                 b = (y1 * x2 - y2 * x1) / (x2 - x1)
-            plt_formula.update({i: ((a, b), rsec, osec)})
+            plt_formula.update({i: ((a, b), rsec, osec,
+                                    'y = {:.8f}*x + {:.8f}'.format(a, b),
+                                    (lambda x: a*x+b))})
             i += 1
         return plt_formula
 
