@@ -2831,9 +2831,15 @@ class ModelTools:
                 b = (y1 * x2 - y2 * x1) / (x2 - x1)
             plt_formula.update({i: ((a, b), rsec, osec,
                                     'y = {:.8f}*x + {:.8f}'.format(a, b),
-                                    (lambda x: a*x+b))})
+                                    )})
             i += 1
-        return plt_formula
+        def formula(x):
+            for k in plt_formula:
+                if plt_formula[k][1][0] <= x <= plt_formula[k][1][1]:
+                    return plt_formula[k][0][0] * x + plt_formula[k][0][1]
+            return -1
+        Result = namedtuple('Result', ('formula', 'coeff'))
+        return Result(formula, plt_formula)
 
     @staticmethod
     def get_ppt_formula(
