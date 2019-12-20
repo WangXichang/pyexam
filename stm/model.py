@@ -2677,6 +2677,7 @@ class ModelTools:
             ):
         """
         section point searching in seg-percent sequence
+        warning: lost section if else start percent is larger than dest_ratio to locate
         :param section_ratio_cumu_sequence: ratio for each section
         :param raw_score_sequence:   score point corresponding to ratio_sequence
         :param raw_score_percent_sequence: real score cumulative percent
