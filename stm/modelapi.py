@@ -223,7 +223,7 @@ class ModelAlgorithm:
 
     # single ratio-seg search in seg-percent sequence
     @classmethod
-    def get_seg_from_seg_ratio_sequence(
+    def get_score_from_score_ratio_sequence(
             cls,
             dest_ratio,
             seg_seq,
@@ -288,7 +288,10 @@ class ModelAlgorithm:
             mode_sort_order='d',
             mode_section_point_first='real',
             mode_section_point_start='step',
+            mode_section_point_last='real',
             mode_section_lost='ignore',
+            raw_score_max=100,
+            raw_score_min=0,
             tiny_value=10**-12,
             ):
         """
@@ -351,7 +354,7 @@ class ModelAlgorithm:
             #     # set to (-1, -1)
             #     pass
             if not goto_bottom:
-                result = ModelAlgorithm.get_seg_from_seg_ratio_sequence(
+                result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                     dest_ratio,
                     raw_score_sequence,
                     raw_score_percent_sequence,
@@ -405,6 +408,18 @@ class ModelAlgorithm:
                     new_section.append(x+2*_step)
         section_point_list = new_section
 
+        # step-3-2: process last point
+        if mode_section_point_last == 'defined':
+            _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
+                          raw_score_max
+            i = 0
+            while i < len(section_point_list)-1:
+                if section_point_list[-1-i] > 0:
+                    if section_point_list[-1-i] != _last_value:
+                        section_point_list[-1-i] = _last_value
+                        break
+                i += 1
+
         # step-4: make section
         #   with strategy: mode_section_point_start
         #                  default: step
@@ -444,6 +459,7 @@ class ModelAlgorithm:
             raw_section,
             out_section,
             mode_section_degraded='map_to_max',
+            out_score_decimal=0
             ):
         plt_formula = dict()
         i = 0
@@ -478,7 +494,8 @@ class ModelAlgorithm:
                 # print(x, plt_formula[k])
                 if (plt_formula[k][1][0] <= x <= plt_formula[k][1][1]) or \
                         (plt_formula[k][1][0] >= x >= plt_formula[k][1][1]):
-                    return plt_formula[k][0][0] * x + plt_formula[k][0][1]
+                    return round45r(plt_formula[k][0][0] * x + plt_formula[k][0][1],
+                                    out_score_decimal)
             return -1
 
         Result = namedtuple('Result', ('formula', 'coeff_raw_out_section_formula'))
@@ -527,7 +544,7 @@ class ModelAlgorithm:
 
             # set invalid ratio if can not found ration in out_percent
             _seg, _percent = -1, -1
-            result = ModelAlgorithm.get_seg_from_seg_ratio_sequence(
+            result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                 dest_ratio,
                 out_score_points,
                 out_score_percent,
@@ -568,11 +585,57 @@ class ModelAlgorithm:
 
     @classmethod
     def get_stm_score(cls,
-                      model_name,
-                      map_table,
-                      cols=(),
-                      model_type='plt'):
-        pass
+                      modelname,
+                      df,
+                      cols,
+                      raw_score_max=100,
+                      raw_score_min=0,
+                      mode_ratio_cumu='no',
+                      mode_ratio_prox='upper_min',
+                      mode_sort_order='d',
+                      mode_section_point_first='real',
+                      mode_section_point_start='step',
+                      mode_section_point_last='real',
+                      mode_section_degraded='map_to_max',
+                      mode_section_lost='ignore',
+                      out_score_decimal=0,
+                      ):
+        seg = run_seg(indf=df,
+                      cols=cols,
+                      segmax=raw_score_max,
+                      segmin=raw_score_min,
+                      segsort='d',
+                      segstep=1
+                      )
+        map_table = seg.outdf
+        raw_pdf = mcf.Models[modelname].ratio
+        raw_cumu_ratio = [sum(raw_pdf[0:i+1])/100 for i in range(len(raw_pdf))]
+        for col in cols:
+            raw_section = ModelAlgorithm.get_raw_section(
+                raw_cumu_ratio,
+                map_table.seg,
+                map_table[col+'_percent'],
+                mode_ratio_cumu=mode_ratio_cumu,
+                mode_ratio_prox=mode_ratio_prox,
+                mode_sort_order=mode_sort_order,
+                mode_section_point_first=mode_section_point_first,
+                mode_section_point_start=mode_section_point_start,
+                mode_section_point_last=mode_section_point_last,
+                mode_section_lost=mode_section_lost,
+                raw_score_max=raw_score_max,
+                raw_score_min=raw_score_min,
+                )
+            if mcf.Models[modelname].type == 'plt':
+                formula = ModelAlgorithm.get_plt_formula(
+                    raw_section=raw_section.section,
+                    out_section=mcf.Models[modelname].section,
+                    mode_section_degraded=mode_section_degraded,
+                    out_score_decimal=out_score_decimal
+                )
+                map_table.loc[:, col+'_tss'] = map_table.seg.apply(formula.formula)
+                df[col+'_ts'] = df[col].apply(formula.formula)
+                result=namedtuple('r', ['df', 'map_table'])
+                return result(df, map_table)
 
 
 # call SegTable.run() return instance of SegTable
