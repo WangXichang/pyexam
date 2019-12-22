@@ -139,8 +139,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_ratio_sort='ascending')
-        rd = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_ratio_sort='descending')
+        ra = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = model.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
