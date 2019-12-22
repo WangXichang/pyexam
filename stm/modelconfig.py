@@ -146,6 +146,15 @@ CONST_HAINAN4_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(30
 CONST_HAINAN5_RATIO = (1, 2, 14, 33, 33, 14, 2, 1)
 CONST_HAINAN5_SECTION = ((x, x - 30 + 1 if x > 90 else x - 30) for x in range(300, 90 - 1, -30))
 
+CONST_ZSCORE_RATIO = ()
+CONST_ZSCORE_SECTION = ()
+
+CONST_TSCORE_RATIO = ()
+CONST_TSCORE_SECTION = ()
+
+CONST_TAI_RATIO = ()
+CONST_TAI_SECTION = ()
+
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models = {
@@ -196,7 +205,19 @@ Models = {
     'hn300plt3':    ModelFields(MODEL_TYPE_PLT,
                                 tuple(CONST_HAINAN5_RATIO),
                                 tuple(CONST_HAINAN5_SECTION),
-                                'piecewise linear transform model with ratio-segment')
+                                'piecewise linear transform model with ratio-segment'),
+    'zscore':       ModelFields(MODEL_TYPE_PPT,
+                                tuple(CONST_ZSCORE_RATIO),
+                                tuple(CONST_ZSCORE_SECTION),
+                                'piecewise linear transform model with ratio-segment'),
+    'tscore':       ModelFields(MODEL_TYPE_PPT,
+                                tuple(CONST_TSCORE_RATIO),
+                                tuple(CONST_TSCORE_SECTION),
+                                'piecewise linear transform model with ratio-segment'),
+    'tai':          ModelFields(MODEL_TYPE_PLT,
+                                tuple(CONST_TAI_RATIO),
+                                tuple(CONST_TAI_SECTION),
+                                'piecewise linear transform model with ratio-segment'),
     }
 
 # choice_space = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
@@ -206,15 +227,17 @@ Strategies = {
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('ascending', 'descending'),
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_startpoint_first':      ('real_max_min', 'defined_max_min'),   # first point of first section
-    'mode_section_startpoint_else':       ('step_1', 'jump_empty', 'share'),     # first point except first section
-    'mode_ppt_score_max':           ('map_by_real_ratio', 'map_to_max'),    # for standard score transform: type=='ppt'
-    'mode_ppt_score_min':           ('map_by_real_ratio', 'map_to_min'),    # for standard score transform: type=='ppt'
-    }
+    'mode_section_startpoint_first':      ('real_first', 'defined_first'),      # first point of first section
+    'mode_section_startpoint_else':       ('step_1', 'share'),                   # first point except first section
+    'mode_section_stoppoint_last':        ('map_to_last', 'map_by_ratio'),      # useful to type--ppt
+    'mode_section_lost':                  ('ignore', 'next_one_point', 'next_two_point'),
+}
 
 # to add in future
 # choice_space: 2 * 2 * 4 * 3 = 48
 # MODEL_STRATEGIES_RESERVE_DICT = {
+# 'mode_ppt_score_max': ('map_by_real_ratio', 'map_to_max'),  # for standard score transform: type=='ppt'
+# 'mode_ppt_score_min': ('map_by_real_ratio', 'map_to_min'),  # for standard score transform: type=='ppt'
 #                                                                              # first point by mode_section_min/max
 #     'mode_section_lost':                ('ignore', 'add_next_point', 'add_last_point', 'add_two_side'),
 #     'mode_section_min':                 ('real_min', 'defined_min'),
