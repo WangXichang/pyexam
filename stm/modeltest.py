@@ -339,58 +339,7 @@ def get_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=
     # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
     #                           for _ in range(size)]})
     df = pd.DataFrame({'sv': [max(minvalue,
-                                  min(round45i(x, decimal) if decimal > 0 else int(round45i(x, decimal)),
+                                  min(round(x, decimal) if decimal > 0 else int(round(x, decimal)),
                                       maxvalue))
                               for x in np.random.normal(mean, std, size)]})
     return df
-
-
-def round45i(v: float, dec=0):
-    u = int(v * 10 ** dec * 10)
-    r = (int(u / 10) + (1 if v > 0 else -1)) / 10 ** dec if (abs(u) % 10 >= 5) else int(u / 10) / 10 ** dec
-    return int(r) if dec <= 0 else r
-
-
-def round45r_old2(number, digits=0):
-    """
-    float is not precise at digit 16 from decimal point.
-    if hope that round(1.265, 3): 1.264999... to 1.265000...
-    need to add a tiny error to 1.265: round(1.265 + x*10**-16, 3) => 1.265000...
-    note that:
-        10**-16     => 0.0...00(53)1110011010...
-        2*10**-16   => 0.0...0(52)1110011010...
-        1.2*10**-16 => 0.0...0(52)100010100...
-    so 10**-16 can not definitely represented in float 1+52bit
-
-    (16 - int_len) is ok, 17 is unstable
-    test result:
-    format(1.18999999999999994671+10**-16, '.20f')     => '1.1899999999999999(16)4671'      ## digit-16 is reliable
-    format(1.18999999999999994671+2*10**-16, '.20f')   => '1.1900000000000001(16)6875'
-    format(1.18999999999999994671+1.2*10**-16, '.20f') => '1.1900000000000001(16)6875'
-    format(1.18999999999999994671+1.1*10**-16, '.20f') => '1.1899999999999999(16)4671'
-    """
-
-    int_len = str(abs(number)).find('.')
-    if int_len + digits > 16:
-        print('float cannot support {} digits precision'.format(digits))
-        raise ValueError
-    add_err = 10**-12       # valid for 0-16000
-    # add_err = 3.55275*10**-15
-    # add_err = 2*10**-14
-    # add_err = 2 * 10 ** -(16 - int_len + 1) * (1 if number > 0 else -1)
-    # if format(number, '.' + str(16 - digits - int_len) + 'f').rstrip('0') <= str(number):
-    #     return round(number + add_err, digits) + add_err
-    return round(number+add_err, digits)
-
-
-def round45r_old1(number, digits=0):
-    __doc__ = '''
-    use multiple 10 power and int method
-    precision is not normal at decimal >16 because of binary representation
-    :param number: input float value
-    :param digits: places after decimal point
-    :return: rounded number with assigned precision
-    '''
-    if format(number, '.'+str(digits+2)+'f').rstrip('0') <= str(number):
-        return round(number+10**-(digits+2), digits)
-    return round(number, digits)
