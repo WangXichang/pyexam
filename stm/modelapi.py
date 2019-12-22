@@ -62,7 +62,7 @@ def use_ellipsis(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
-class ModelTools:
+class ModelAlgorithm:
     @classmethod
     def plot_models(cls, font_size=12, hainan='900'):
         _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
@@ -73,7 +73,7 @@ class ModelTools:
             _names.remove('hn900')
         ms_dict = dict()
         for _name in _names:
-            ms_dict.update({_name: ModelTools.get_model_describe(name=_name)})
+            ms_dict.update({_name: ModelAlgorithm.get_model_describe(name=_name)})
 
         plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
         plot.rcParams.update({'font.size': font_size})
@@ -135,7 +135,8 @@ class ModelTools:
     def show_models(cls):
         for k in mcf.Models:
             v = mcf.Models[k]
-            print('{:<20s} {}'.format(k, v.ratio))
+            print('{:<20s} {},  {} '.format(k, v.type, v.desc))
+            print('{:<20s} {}'.format(' ', v.ratio))
             print('{:<20s} {}'.format('', v.section))
 
     @classmethod
@@ -154,12 +155,15 @@ class ModelTools:
 
     @classmethod
     def get_section_pdf(cls,
-            start=21,
-            end=100,
-            section_num=8,
-            std_num=2.6,
-            add_cut_error=True,
-            ):
+                        start=21,
+                        end=100,
+                        section_num=8,
+                        std_num=2.6,
+                        add_cutoff=True,
+                        model_type='plt',
+                        ratio_coeff=1,      #1, or 100
+                        sort_order='d',
+                        ):
         """
         # get pdf, cdf, cutoff_err form section end points,
         # set first and end seg to tail ratio from norm table
@@ -175,12 +179,14 @@ class ModelTools:
         :param end:     end value
         :param section_num: section number
         :param std_num:     length from 0 to max equal to std_num*std, i.e. std = (end-start)/2/std_num
-        :return: dict{'val': (), 'pdf': (), 'cdf': (), 'cut_error': float, 'add_cut_error': bool}
+        :param add_cutoff: bool, if adding cutoff cdf() at edge point
+                           i.e. cdf(-std_num), cdf(-4) = 3.167124183311986e-05, cdf(-2.5098)=0.029894254950869625
+        :param model_type: str, 'plt' or 'ppt'
+        :return: namedtuple('result', ('section':((),...), 'pdf': (), 'cdf': (), 'cutoff': float, 'add_cutoff': bool))
         """
         _mean, _std = (end+start)/2, (end-start)/2/std_num
         section_point_list = np.linspace(start, end, section_num+1)
-        cut_error = sts.norm.cdf((start-_mean)/_std)
-        result = dict()
+        cutoff = sts.norm.cdf((start-_mean)/_std)
         pdf_table = [0]
         cdf_table = [0]
         last_pos = (start-_mean)/_std
@@ -188,30 +194,42 @@ class ModelTools:
         for i, pos in enumerate(section_point_list[1:]):
             _zvalue = (pos-_mean)/_std
             this_section_pdf = sts.norm.cdf(_zvalue)-sts.norm.cdf(last_pos)
-            if (i == 0) and add_cut_error:
-                this_section_pdf += cut_error
+            if (i == 0) and add_cutoff:
+                this_section_pdf += cutoff
             pdf_table.append(this_section_pdf)
             cdf_table.append(this_section_pdf + _cdf)
             last_pos = _zvalue
             _cdf += this_section_pdf
-        if add_cut_error:
-            pdf_table[-1] += cut_error
+        if add_cutoff:
+            pdf_table[-1] += cutoff
             cdf_table[-1] = 1
-        result.update({'val': tuple(section_point_list)})
-        result.update({'pdf': tuple(pdf_table)})
-        result.update({'cdf': tuple(cdf_table)})
-        result.update({'cut_error': cut_error})
-        result.update({'add_cut_error': add_cut_error})
-        return result
+        if model_type == 'plt':
+            section_list = [(x, y) if i == 0 else (x+1, y)
+                            for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
+        else:
+            section_list = [(x, x) for x in section_point_list]
+        if ratio_coeff > 1:
+            pdf_table = [x*ratio_coeff for x in pdf_table]
+        if sort_order in ['d', 'descending']:
+            section_list = sorted(section_list, key=(lambda x: -x[0]))
+        result = namedtuple('Result', ('section', 'pdf', 'cdf', 'point', 'cutoff', 'add_cutoff'))
+        r = result(tuple(section_list),
+                   tuple(pdf_table),
+                   tuple(cdf_table),
+                   section_point_list,
+                   cutoff,
+                   add_cutoff)
+        return r
 
     # single ratio-seg search in seg-percent sequence
     @classmethod
-    def get_seg_from_seg_ratio_sequence(cls,
-                                        dest_ratio,
-                                        seg_seq,
-                                        ratio_seq,
-                                        tiny_value=10**-8,
-                                        ):
+    def get_seg_from_seg_ratio_sequence(
+            cls,
+            dest_ratio,
+            seg_seq,
+            ratio_seq,
+            tiny_value=10**-12,
+            ):
         # comments:
         #   if value type is Fraction in ratio_sequence,
         #   use limit_denominator for dest_ratio or str type, Fraction(str)
@@ -268,8 +286,8 @@ class ModelTools:
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
             mode_sort_order='d',
-            mode_section_startpoint_first='real_max_min',
-            mode_section_startpoint_else='step_1',
+            mode_section_point_first='real',
+            mode_section_point_start='step',
             mode_section_lost='ignore',
             tiny_value=10**-12,
             ):
@@ -281,7 +299,7 @@ class ModelTools:
         :param raw_score_percent_sequence: real score cumulative percent
         :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
         :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
-        :param mode_section_startpoint_first: how to choose first point on section
+        :param mode_section_point_first: how to choose first point on section
         :param tiny_value: if difference between ratio and percent, regard as equating
         :return: section_list, section_point_list, section_real_ratio_list
         """
@@ -298,7 +316,7 @@ class ModelTools:
         # step-1: locate first section point
         _startpoint = -1
         for seg, ratio in zip(raw_score_sequence, raw_score_percent_sequence):
-            if mode_section_startpoint_first == 'real_max_min':
+            if mode_section_point_first == 'real':
                 if ratio < tiny_value:
                     # skip empty seg
                     continue
@@ -333,7 +351,7 @@ class ModelTools:
             #     # set to (-1, -1)
             #     pass
             if not goto_bottom:
-                result = ModelTools.get_seg_from_seg_ratio_sequence(
+                result = ModelAlgorithm.get_seg_from_seg_ratio_sequence(
                     dest_ratio,
                     raw_score_sequence,
                     raw_score_percent_sequence,
@@ -374,6 +392,7 @@ class ModelTools:
         _step = -1 if mode_sort_order in ['d', 'descending'] else 1
         for p, x in enumerate(section_point_list[1:]):
             if x != section_point_list[p]:
+                # not same as the last
                 new_section.append(x)
             else:
                 if mode_section_lost == 'ignore':
@@ -386,19 +405,19 @@ class ModelTools:
                     new_section.append(x+2*_step)
         section_point_list = new_section
 
-        # new_percent = [section_percent_list[0]]
-        # _ = [new_percent.append(x) for i, x in enumerate(section_percent_list[1:]) if x != section_percent_list[i]]
-        # section_percent_list = new_percent
-
         # step-4: make section
-        #   with strategy: mode_section_startpoint_else
-        #                  default: step_1
-        section_list = [(x-1, y) if i > 0 else (x, y)
-                        for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
+        #   with strategy: mode_section_point_start
+        #                  default: step
+        if mode_section_point_start == 'share':
+            section_list = [(x, y) for i, (x, y)
+                            in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
+        else:
+            section_list = [(x+_step, y) if i > 0 else (x, y)
+                            for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
 
         # depricated: it is unreasonable to jump empty point, 
         #   when add some real score to empty point, no value can be used
-        # if mode_section_startpoint_else == 'jump_empty':
+        # if mode_section_point_start == 'jump_empty':
         #     new_step = 0
         #     new_section_endpoints = []
         #     for x, y in section_list:
@@ -410,10 +429,6 @@ class ModelTools:
         #                 break
         #         new_section_endpoints.append((x + new_step, y))
         #     section_list = new_section_endpoints
-
-        if mode_section_startpoint_else == 'share':
-            section_list = [(x, y) for i, (x, y)
-                            in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
 
         # step-5: add lost section with (-1, -1)
         less_len = len(section_ratio_cumu_sequence) - len(section_list)
@@ -459,8 +474,10 @@ class ModelTools:
 
         # function of formula
         def formula(x):
-            for k in plt_formula:
-                if plt_formula[k][1][0] <= x <= plt_formula[k][1][1]:
+            for k in plt_formula.keys():
+                # print(x, plt_formula[k])
+                if (plt_formula[k][1][0] <= x <= plt_formula[k][1][1]) or \
+                        (plt_formula[k][1][0] >= x >= plt_formula[k][1][1]):
                     return plt_formula[k][0][0] * x + plt_formula[k][0][1]
             return -1
 
@@ -510,7 +527,7 @@ class ModelTools:
 
             # set invalid ratio if can not found ration in out_percent
             _seg, _percent = -1, -1
-            result = ModelTools.get_seg_from_seg_ratio_sequence(
+            result = ModelAlgorithm.get_seg_from_seg_ratio_sequence(
                 dest_ratio,
                 out_score_points,
                 out_score_percent,
@@ -537,7 +554,7 @@ class ModelTools:
             else:
                 print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                 raise ValueError
-            ppt_formula.update({rscore: (_seg, _percent)})
+            ppt_formula.update({rscore: (_seg[0], _percent)})
 
         # function of formula
         def formula(x):
@@ -547,7 +564,15 @@ class ModelTools:
                 return -1
 
         Result = namedtuple('Result', ('formula', 'map_dict'))
-        return formula, ppt_formula
+        return Result(formula, ppt_formula)
+
+    @classmethod
+    def get_stm_score(cls,
+                      model_name,
+                      map_table,
+                      cols=(),
+                      model_type='plt'):
+        pass
 
 
 # call SegTable.run() return instance of SegTable

@@ -128,7 +128,7 @@ def run(
         mode_ratio_cumu='no',
         mode_sort_order='descending',
         mode_section_degraded='map_to_max',
-        mode_section_startpoint_first='real_max_min',
+        mode_section_point_first='real',
         raw_score_range=(0, 100),
         out_decimal_digits=0
         ):
@@ -164,10 +164,10 @@ def run(
                                   'map_to_min', map to min value of out score section
                                   'map_to_mean', map to mean value of out score section
                          default= 'map_to_max'
-    :param mode_section_startpoint_first: str,
+    :param mode_section_point_first: str,
                            strategy: how to set first point of first section
-                             values: 'real_max_min', use real raw score max or min value
-                                     'paper_max_min', use test paper full score or least score
+                             values: 'real', use real raw score max or min value
+                                     'defined', use test paper full score or least score
                             default= 'real_max_min'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
@@ -213,7 +213,7 @@ def run(
         return
 
     # ratio-seg score model: plt, ppt
-    if name in mcf.Models.keys():
+    if (name in mcf.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
         ratio_tuple = tuple(x * 0.01 for x in mcf.Models[name].ratio)
         plt_model = PltScore(name)
         plt_model.out_decimal_digits = 0
@@ -226,7 +226,7 @@ def run(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
-            mode_section_startpoint_first=mode_section_startpoint_first,
+            mode_section_point_first=mode_section_point_first,
             mode_section_degraded=mode_section_degraded,
             out_decimal_digits=out_decimal_digits
             )
@@ -234,7 +234,7 @@ def run(
         return plt_model
 
     if name in ('tai', 'taiwan'):
-        m = GradeScoreTai(name)
+        m = TaiScore(name)
         m.grade_num = 15    # TaiWan use 15 levels grade score system
         m.set_data(indf=indf,
                    cols=cols)
@@ -575,7 +575,7 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
-                 mode_section_startpoint_first='real_max_min',
+                 mode_section_point_first='real',
                  mode_section_degraded='map_to_max',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
@@ -603,7 +603,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_sort_order'] = mode_sort_order
-        self.strategy_dict['mode_section_startpoint_first'] = mode_section_startpoint_first
+        self.strategy_dict['mode_section_point_first'] = mode_section_point_first
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
 
@@ -775,8 +775,8 @@ class PltScore(ScoreTransformModel):
         _tiny = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
 
         _mode_sort = self.strategy_dict['mode_sort_order']
-        _mode_ppt_score_min = self.strategy_dict['mode_ppt_score_min']  # real_min or paper_min
-        _mode_ppt_score_max = self.strategy_dict['mode_ppt_score_max']  # real_max or paper_max
+        _mode_ppt_score_min = self.strategy_dict['mode_section_point_last']  # real_min or paper_min
+        _mode_ppt_score_max = self.strategy_dict['mode_section_point_first']  # real_max or paper_max
         _mode_prox = self.strategy_dict['mode_ratio_prox']
 
         _start_score = self.out_score_real_max if _mode_sort in ['descending', 'd'] else self.out_score_real_min
@@ -924,7 +924,7 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
-        if self.strategy_dict['mode_section_startpoint_first'] == 'real_max_min':
+        if self.strategy_dict['mode_section_point_first'] == 'real':
             section_min = self.indf[field].min()
             section_max = self.indf[field].max()
         else:
@@ -1705,7 +1705,7 @@ class Tscore(ScoreTransformModel):
         super(Tscore, self).plot(mode)
 
 
-class GradeScoreTai(ScoreTransformModel):
+class TaiScore(ScoreTransformModel):
     """
     Grade Score Model used by Taiwan College Admission Test Center
     top_group = df.sort_values(field,ascending=False).head(int(df.count(0)[field]*0.01))[[field]]
@@ -1717,7 +1717,7 @@ class GradeScoreTai(ScoreTransformModel):
     """
 
     def __init__(self, model_name='tai'):
-        super(GradeScoreTai, self).__init__(model_name)
+        super(TaiScore, self).__init__(model_name)
         self.model_name = 'Taiwan'
 
         self.grade_num = 15
