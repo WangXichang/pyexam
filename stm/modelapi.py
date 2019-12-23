@@ -63,6 +63,74 @@ def use_ellipsis_in_digits_seq(digit_seq):
 
 class ModelAlgorithm:
 
+    @classmethod
+    def get_section_pdf(cls,
+                        start=21,
+                        end=100,
+                        section_num=8,
+                        std_num=2.6,
+                        add_cutoff=True,
+                        model_type='plt',
+                        ratio_coeff=1,      #1, or 100
+                        sort_order='d',
+                        ):
+        """
+        # get pdf, cdf, cutoff_err form section end points,
+        # set first and end seg to tail ratio from norm table
+        # can be used to test std from seg ratio table
+        # for example,
+        #   get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508)
+        #   [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
+        #   get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065)
+        #   [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
+        #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+
+        :param start:   start value
+        :param end:     end value
+        :param section_num: section number
+        :param std_num:     length from 0 to max equal to std_num*std, i.e. std = (end-start)/2/std_num
+        :param add_cutoff: bool, if adding cutoff cdf() at edge point
+                           i.e. cdf(-std_num), cdf(-4) = 3.167124183311986e-05, cdf(-2.5098)=0.029894254950869625
+        :param model_type: str, 'plt' or 'ppt'
+        :return: namedtuple('result', ('section':((),...), 'pdf': (), 'cdf': (), 'cutoff': float, 'add_cutoff': bool))
+        """
+        _mean, _std = (end+start)/2, (end-start)/2/std_num
+        section_point_list = np.linspace(start, end, section_num+1)
+        cutoff = sts.norm.cdf((start-_mean)/_std)
+        pdf_table = [0]
+        cdf_table = [0]
+        last_pos = (start-_mean)/_std
+        _cdf = 0
+        for i, pos in enumerate(section_point_list[1:]):
+            _zvalue = (pos-_mean)/_std
+            this_section_pdf = sts.norm.cdf(_zvalue)-sts.norm.cdf(last_pos)
+            if (i == 0) and add_cutoff:
+                this_section_pdf += cutoff
+            pdf_table.append(this_section_pdf)
+            cdf_table.append(this_section_pdf + _cdf)
+            last_pos = _zvalue
+            _cdf += this_section_pdf
+        if add_cutoff:
+            pdf_table[-1] += cutoff
+            cdf_table[-1] = 1
+        if model_type == 'plt':
+            section_list = [(x, y) if i == 0 else (x+1, y)
+                            for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
+        else:
+            section_list = [(x, x) for x in section_point_list]
+        if ratio_coeff != 1:
+            pdf_table = [x*ratio_coeff for x in pdf_table]
+        if sort_order in ['d', 'descending']:
+            section_list = sorted(section_list, key=(lambda x: -x[0]))
+        result = namedtuple('Result', ('section', 'pdf', 'cdf', 'point', 'cutoff', 'add_cutoff'))
+        r = result(tuple(section_list),
+                   tuple(pdf_table),
+                   tuple(cdf_table),
+                   section_point_list,
+                   cutoff,
+                   add_cutoff)
+        return r
+
     # find seg in seg-percent sequence by ratio-percent
     @classmethod
     def get_score_from_score_ratio_sequence(
@@ -417,12 +485,12 @@ class ModelAlgorithm:
             else:
                 print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                 raise ValueError
-            ppt_formula.update({rscore: (_seg, _percent)})
+            ppt_formula.update({rscore: _seg})
 
         # function of formula
         def formula(x):
             if x in ppt_formula:
-                return round45r(ppt_formula[x][0], out_score_decimal)
+                return round45r(ppt_formula[x], out_score_decimal)
             else:
                 return -1
 
@@ -456,14 +524,14 @@ class ModelAlgorithm:
                       segstep=1
                       )
         map_table = seg.outdf
-        raw_cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
+        cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
         for col in cols:
             print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
-                    raw_cumu_ratio,
-                    map_table.seg,
-                    map_table[col + '_percent'],
+                    section_ratio_cumu_sequence=cumu_ratio,
+                    raw_score_sequence=map_table.seg,
+                    raw_score_percent_sequence=map_table[col + '_percent'],
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_sort_order=mode_sort_order,
@@ -485,7 +553,7 @@ class ModelAlgorithm:
                     raw_score_points=map_table.seg,
                     raw_score_percent=map_table[col+'_percent'],
                     out_score_points=[x[0] for x in model_section],
-                    out_score_ratio_cumu=raw_cumu_ratio,
+                    out_score_ratio_cumu=cumu_ratio,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_sort_order=mode_sort_order,
@@ -589,7 +657,6 @@ class SegTable(object):
         seg.set_data(df, ['sf'])
         seg.set_para(segmax=100, segmin=1, segstep=1, segsort='d', usealldata=True, display=True)
         seg.run()
-        seg.plot()
         print(seg.outdf.head())    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
 
     Note:
@@ -906,7 +973,6 @@ class SegTable(object):
         else:
             while curpoint+curstep < self.__segMin:
                 curpoint += curstep
-        # curpoint = self.__segStart
         cum = 0
         for index, row in self.__outdfframe.iterrows():
             cum += row[f + '_count']
@@ -967,43 +1033,6 @@ class SegTable(object):
                 if self.__usealldata:
                     self.__outdfframe.loc[lastindex, segcountname] += np.int64(cum)
             cur_row += 1
-
-    def plot(self):
-        if not self.__run_completed:
-            if self.__display:
-                print('result is not created, please run!')
-            return
-        legendlist = []
-        step = 0
-        for sf in self.__cols:
-            step += 1
-            legendlist.append(sf)
-            plot.figure('map_table figure({})'.
-                        format('Descending' if self.__segSort in 'aA' else 'Ascending'))
-            plot.subplot(221)
-            plot.hist(self.indf[sf], 20)
-            plot.title('histogram')
-            if step == len(self.__cols):
-                plot.legend(legendlist)
-            plot.subplot(222)
-            plot.plot(self.outdf.seg, self.outdf[sf+'_count'])
-            if step == len(self.__cols):
-                plot.legend(legendlist)
-            plot.title('distribution')
-            plot.xlim([self.__segMin, self.__segMax])
-            plot.subplot(223)
-            plot.plot(self.outdf.seg, self.outdf[sf + '_sum'])
-            plot.title('cumsum')
-            plot.xlim([self.__segMin, self.__segMax])
-            if step == len(self.__cols):
-                plot.legend(legendlist)
-            plot.subplot(224)
-            plot.plot(self.outdf.seg, self.outdf[sf + '_percent'])
-            plot.title('percentage')
-            plot.xlim([self.__segMin, self.__segMax])
-            if step == len(self.__cols):
-                plot.legend(legendlist)
-            plot.show()
 # SegTable class end
 
 
