@@ -208,7 +208,7 @@ class ModelAlgorithm:
                             for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
         else:
             section_list = [(x, x) for x in section_point_list]
-        if ratio_coeff > 1:
+        if ratio_coeff != 1:
             pdf_table = [x*ratio_coeff for x in pdf_table]
         if sort_order in ['d', 'descending']:
             section_list = sorted(section_list, key=(lambda x: -x[0]))
@@ -508,7 +508,7 @@ class ModelAlgorithm:
                         raw_score_points,
                         raw_score_percent,
                         out_score_points,
-                        out_score_percent,
+                        out_score_ratio_cumu,
                         mode_ratio_prox='upper_min',
                         mode_ratio_cumu='no',
                         mode_sort_order='d',
@@ -523,8 +523,6 @@ class ModelAlgorithm:
             if any([x <= y for x, y in zip(raw_score_points[:-1], raw_score_points[1:])]):
                 print('raw score sequence is not correct order: {}'.format(mode_sort_order))
                 return
-
-        out_score_percent_cumu = [sum(out_score_percent[:i+1]) for i in range(len(out_score_percent))]
 
         # lcoate out-score to raw-ratio in out-score-ratio-sequence
         dest_ratio = None
@@ -553,7 +551,7 @@ class ModelAlgorithm:
             result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                 dest_ratio,
                 out_score_points,
-                out_score_percent_cumu,
+                out_score_ratio_cumu,
                 tiny_value)
             # print(raw_ratio, result)
 
@@ -617,6 +615,7 @@ class ModelAlgorithm:
         raw_pdf = mcf.Models[modelname].ratio
         raw_cumu_ratio = [sum(raw_pdf[0:i+1])/100 for i in range(len(raw_pdf))]
         for col in cols:
+            print('transform {} of {}'.format(col, cols))
             if mcf.Models[modelname].type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     raw_cumu_ratio,
@@ -643,7 +642,7 @@ class ModelAlgorithm:
                     raw_score_points=map_table.seg,
                     raw_score_percent=map_table[col+'_percent'],
                     out_score_points=[x[0] for x in mcf.Models[modelname].section],
-                    out_score_percent=mcf.Models[modelname].ratio,
+                    out_score_ratio_cumu=raw_cumu_ratio,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_sort_order=mode_sort_order,
