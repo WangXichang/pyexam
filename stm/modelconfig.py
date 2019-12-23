@@ -65,7 +65,7 @@ MODEL_TYPE_PPT = 'ppt'      # standard score transform
 
 hn900model = mapi.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
 hn300model = mapi.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
-zscoremodel = mapi.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
+zscoremodel = mapi.ModelAlgorithm.get_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
 tscoremodel = mapi.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'd')
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
