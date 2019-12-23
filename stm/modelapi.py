@@ -514,14 +514,18 @@ class ModelAlgorithm:
                         mode_sort_order='d',
                         mode_raw_score_max='map_by_ratio',
                         mode_raw_score_min='map_by_ratio',
+                        out_score_decimal=0,
                         tiny_value=10**-12
                         ):
         ppt_formula = dict()
         _rmax, _rmin = max(raw_score_points), min(raw_score_points)
         if mode_sort_order in ['d', 'descending']:
-            if any([x <= y for x,y in zip(raw_score_points[:-1], raw_score_points[1:])]):
+            if any([x <= y for x, y in zip(raw_score_points[:-1], raw_score_points[1:])]):
                 print('raw score sequence is not correct order: {}'.format(mode_sort_order))
                 return
+
+        out_score_percent_cumu = [sum(out_score_percent[:i+1]) for i in range(len(out_score_percent))]
+
         # lcoate out-score to raw-ratio in out-score-ratio-sequence
         dest_ratio = None
         last_ratio = 0
@@ -549,7 +553,7 @@ class ModelAlgorithm:
             result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                 dest_ratio,
                 out_score_points,
-                out_score_percent,
+                out_score_percent_cumu,
                 tiny_value)
             # print(raw_ratio, result)
 
@@ -573,12 +577,12 @@ class ModelAlgorithm:
             else:
                 print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                 raise ValueError
-            ppt_formula.update({rscore: (_seg[0], _percent)})
+            ppt_formula.update({rscore: (_seg, _percent)})
 
         # function of formula
         def formula(x):
             if x in ppt_formula:
-                return ppt_formula[x]
+                return round45r(ppt_formula[x][0], out_score_decimal)
             else:
                 return -1
 
@@ -613,32 +617,46 @@ class ModelAlgorithm:
         raw_pdf = mcf.Models[modelname].ratio
         raw_cumu_ratio = [sum(raw_pdf[0:i+1])/100 for i in range(len(raw_pdf))]
         for col in cols:
-            raw_section = ModelAlgorithm.get_raw_section(
-                raw_cumu_ratio,
-                map_table.seg,
-                map_table[col+'_percent'],
-                mode_ratio_cumu=mode_ratio_cumu,
-                mode_ratio_prox=mode_ratio_prox,
-                mode_sort_order=mode_sort_order,
-                mode_section_point_first=mode_section_point_first,
-                mode_section_point_start=mode_section_point_start,
-                mode_section_point_last=mode_section_point_last,
-                mode_section_lost=mode_section_lost,
-                raw_score_max=raw_score_max,
-                raw_score_min=raw_score_min,
-                )
-            # print(raw_cumu_ratio, '\n', raw_section.section, '\n', mcf.Models[modelname].section)
             if mcf.Models[modelname].type.lower() == 'plt':
+                raw_section = ModelAlgorithm.get_raw_section(
+                    raw_cumu_ratio,
+                    map_table.seg,
+                    map_table[col + '_percent'],
+                    mode_ratio_cumu=mode_ratio_cumu,
+                    mode_ratio_prox=mode_ratio_prox,
+                    mode_sort_order=mode_sort_order,
+                    mode_section_point_first=mode_section_point_first,
+                    mode_section_point_start=mode_section_point_start,
+                    mode_section_point_last=mode_section_point_last,
+                    mode_section_lost=mode_section_lost,
+                    raw_score_max=raw_score_max,
+                    raw_score_min=raw_score_min,
+                )
                 formula = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
                     out_section=mcf.Models[modelname].section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimal
                 )
-                map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula.formula)
-                df[col+'_ts'] = df[col].apply(formula.formula)
-                result=namedtuple('r', ['df', 'map_table'])
-                return result(df, map_table)
+            elif mcf.Models[modelname].type.lower() == 'ppt':
+                formula = ModelAlgorithm.get_ppt_formula(
+                    raw_score_points=map_table.seg,
+                    raw_score_percent=map_table[col+'_percent'],
+                    out_score_points=[x[0] for x in mcf.Models[modelname].section],
+                    out_score_percent=mcf.Models[modelname].ratio,
+                    mode_ratio_prox=mode_ratio_prox,
+                    mode_ratio_cumu=mode_ratio_cumu,
+                    mode_sort_order=mode_sort_order,
+                    mode_raw_score_max=mode_section_point_first,
+                    mode_raw_score_min=mode_section_point_last,
+                    out_score_decimal=out_score_decimal
+                )
+            else:
+                raise ValueError
+            map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula.formula)
+            df[col+'_ts'] = df[col].apply(formula.formula)
+        result=namedtuple('r', ['df', 'map_table'])
+        return result(df, map_table)
 
 
 # call SegTable.run() return instance of SegTable

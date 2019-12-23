@@ -1094,7 +1094,7 @@ class PltScore(ScoreTransformModel):
                 # y2 == y1
                 else:
                     self.result_formula_text_list += \
-                        ['(section -{0:3d}):  y = 0 * (x-{2:3d}) + {3:3d}'.
+                        ['(section -{0:.2f}):  y = 0 * (x-{2:.2f}) + {3:.2f}'.
                          format(_fi,
                                 formula[0][0],
                                 formula[1][p],
@@ -1128,8 +1128,12 @@ class PltScore(ScoreTransformModel):
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
         # if len(_raw_seg_list) > 30:     # for hainan too many segs(801) and single point seg
         #     _out_seg_list = [x[0] if x[0] == x[1] else x for x in _out_seg_list]
-        _out_report_doc += '  out score endpoints: [{}]\n'.\
-            format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _out_seg_list]))
+        if mcf.Models[self.model_name].type == 'plt':
+            _out_report_doc += '  out score endpoints: [{}]\n'.\
+                format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _out_seg_list]))
+        else:
+            _out_report_doc += '  out score endpoints: [{}]\n'.\
+                format(', '.join(['({:.2f}, {:.2f})'.format(x, y) for x, y in _out_seg_list]))
 
         # transforming formulas
         _out_report_doc += '- -'*40 + '\n'
@@ -1180,8 +1184,11 @@ class PltScore(ScoreTransformModel):
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')[field+'_ts'].values
         _count_non_zero = self.map_table.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
-        _count_zero = [x for x in range(self.out_score_real_min, self.out_score_real_max + 1)
-                       if x not in _count_non_zero]
+        if mcf.Models[self.model_name].type == 'plt':
+            _count_zero = [x for x in range(self.out_score_real_min, self.out_score_real_max + 1)
+                           if x not in _count_non_zero]
+        else:
+            _count_zero = None
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
                            format(mapi.use_ellipsis_in_digits_seq(_count_zero))
 
