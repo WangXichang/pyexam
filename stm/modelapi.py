@@ -602,7 +602,7 @@ class ModelAlgorithm:
                       mode_section_point_last='real',
                       mode_section_degraded='map_to_max',
                       mode_section_lost='ignore',
-                      out_score_decimal=0,
+                      out_score_decimal=2,
                       ):
         seg = run_seg(indf=df,
                       cols=cols,
