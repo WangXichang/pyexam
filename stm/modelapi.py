@@ -22,7 +22,7 @@ def round45r(number, digits=0):
         raise NotImplemented
 
 
-def use_ellipsis(digit_seq):
+def use_ellipsis_in_digits_seq(digit_seq):
     _digit_seq = None
     if type(digit_seq) == str:
         _digit_seq = tuple(int(x) for x in digit_seq)
@@ -349,10 +349,6 @@ class ModelAlgorithm:
                     dest_ratio = ratio
             # avoid to locate invalid ratio
             _seg, _percent = -1, -1
-            # if real_percent > dest_ratio:
-            #     # this section is lost in last section
-            #     # set to (-1, -1)
-            #     pass
             if not goto_bottom:
                 result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                     dest_ratio,
@@ -360,8 +356,11 @@ class ModelAlgorithm:
                     raw_score_percent_sequence,
                     tiny_value)
                 # strategy: mode_ratio_prox:
+                # at top and single point
+                if result.last_seg < 0:
+                    _seg, _percent = result.this_seg, result.this_percent
                 # equal to this or choosing upper min
-                if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
+                elif (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
                     _seg, _percent = result.this_seg, result.this_percent
                 # equal to last or choosing lower max
                 elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
@@ -390,11 +389,12 @@ class ModelAlgorithm:
                 real_percent = _percent
 
         # step-3: process same point
-        #         that means a lost section
-        new_section = [section_point_list[0]]
+        #         that means a lost section ???!
         _step = -1 if mode_sort_order in ['d', 'descending'] else 1
+        new_section = [section_point_list[0]]
         for p, x in enumerate(section_point_list[1:]):
-            if x != section_point_list[p]:
+            # if p == 0, the first section is degraded, not lost, because of no section to be lost in
+            if (p == 0) or (x != section_point_list[p]):
                 # not same as the last
                 new_section.append(x)
             else:
@@ -475,11 +475,13 @@ class ModelAlgorithm:
                     b = np.mean(osec)
                 else:
                     raise ValueError
-            else:
+            elif rsec[0] > 0:
                 y2, y1 = osec[1], osec[0]
                 x2, x1 = rsec[1], rsec[0]
                 a = (y2 - y1) / (x2 - x1)
                 b = (y1 * x2 - y2 * x1) / (x2 - x1)
+            else:
+                a, b = 0, 0
             plt_formula.update({i: ((a, b),
                                     rsec,
                                     osec,
@@ -625,14 +627,15 @@ class ModelAlgorithm:
                 raw_score_max=raw_score_max,
                 raw_score_min=raw_score_min,
                 )
-            if mcf.Models[modelname].type == 'plt':
+            # print(raw_cumu_ratio, '\n', raw_section.section, '\n', mcf.Models[modelname].section)
+            if mcf.Models[modelname].type.lower() == 'plt':
                 formula = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
                     out_section=mcf.Models[modelname].section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimal
                 )
-                map_table.loc[:, col+'_tss'] = map_table.seg.apply(formula.formula)
+                map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula.formula)
                 df[col+'_ts'] = df[col].apply(formula.formula)
                 result=namedtuple('r', ['df', 'map_table'])
                 return result(df, map_table)

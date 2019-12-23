@@ -60,9 +60,8 @@ from stm import modelapi as mapi
 
 # model type
 MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
-MODEL_TYPE_PDT = 'pdt'      # piecewise grade transform
 MODEL_TYPE_PPT = 'ppt'      # standard score transform
-# MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PDT, MODEL_TYPE_PPT}
+# MODEL_TYPE = {MODEL_TYPE_PLT, MODEL_TYPE_PPT}
 
 hn900model = mapi.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
 hn300model = mapi.ModelAlgorithm.get_section_pdf(60, 300, 800, 4, True, 'ppt', 100, 'descending')
@@ -71,19 +70,19 @@ tscoremodel = mapi.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt',
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models = {
-    'zhejiang':     ModelFields(MODEL_TYPE_PDT,
+    'zhejiang':     ModelFields(MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1),
                                 tuple((x, x) for x in range(100, 39, -3)),
                                 'piecewise linear transform model'),
-    'shanghai':     ModelFields(MODEL_TYPE_PDT,
+    'shanghai':     ModelFields(MODEL_TYPE_PLT,
                                 (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5),
                                 tuple((x, x) for x in range(70, 39, -3)),
                                 'piecewise linear transform model'),
-    'beijing':      ModelFields(MODEL_TYPE_PDT,
+    'beijing':      ModelFields(MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
                                 'piecewise linear transform model'),
-    'tianjin':      ModelFields(MODEL_TYPE_PDT,
+    'tianjin':      ModelFields(MODEL_TYPE_PLT,
                                 (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
                                 'piecewise linear transform model'),
@@ -107,15 +106,18 @@ Models = {
                                 hn300model.pdf,
                                 hn300model.section,
                                 'standard score model: piecewise point transform'),
-    'hn300plt1':    ModelFields(MODEL_TYPE_PLT,
+    'hn300plt1':    ModelFields(
+                        MODEL_TYPE_PLT,
                         (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
                         ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
                         'piecewise linear transform model'),
-    'hn300plt2':    ModelFields(MODEL_TYPE_PLT,
+    'hn300plt2':    ModelFields(
+                        MODEL_TYPE_PLT,
                         (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
                         ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
                         'piecewise linear transform model'),
-    'hn300plt3':    ModelFields(MODEL_TYPE_PLT,
+    'hn300plt3':    ModelFields(
+                        MODEL_TYPE_PLT,
                         (1, 2, 14, 33, 33, 14, 2, 1),
                         ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
                         'piecewise linear transform model with ratio-segment'),
@@ -127,7 +129,7 @@ Models = {
                                 tscoremodel.pdf,
                                 tscoremodel.section,
                                 'piecewise linear transform model with ratio-segment'),
-    'tai':          ModelFields(MODEL_TYPE_PDT,
+    'tai':          ModelFields(MODEL_TYPE_PLT,
                                 (),
                                 (),
                                 'piecewise linear transform model with ratio-segment'),
@@ -144,7 +146,7 @@ Strategies = {
     'mode_section_point_last':      ('real', 'defined'),      # useful to type--ppt
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
     'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
-}
+    }
 
 # to add in future
 # choice_space: 2 * 2 * 4 * 3 = 48

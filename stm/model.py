@@ -221,8 +221,8 @@ def run(
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
             out_score_seg_tuple=mcf.Models[name].section,
-            raw_score_paper_max=max(raw_score_range),
-            raw_score_paper_min=min(raw_score_range),
+            raw_score_defined_max=max(raw_score_range),
+            raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -294,8 +294,8 @@ class ScoreTransformModel(abc.ABC):
 
         self.indf = pd.DataFrame()
         self.cols = []
-        self.raw_score_paper_min = None
-        self.raw_score_paper_max = None
+        self.raw_score_defined_min = None
+        self.raw_score_defined_max = None
 
         self.out_decimal_digits = 0
         self.out_report_doc = ''
@@ -523,15 +523,14 @@ class PltScore(ScoreTransformModel):
         self.out_score_min = None
         self.raw_score_real_max = None
         self.raw_score_real_min = None
-        self.raw_score_paper_max = None
-        self.raw_score_paper_min = None
+        self.raw_score_defined_max = None
+        self.raw_score_defined_min = None
 
         # strategy
         self.strategy_dict = {k: mcf.Strategies[k][0]
                               for k in mcf.Strategies}
 
         # result
-        self.seg_model = None
         self.map_table = pd.DataFrame()
         self.result_raw_endpoints = []
         self.result_ratio_dict = dict()
@@ -570,8 +569,8 @@ class PltScore(ScoreTransformModel):
     def set_para(self,
                  raw_score_ratio_tuple=None,
                  out_score_seg_tuple=None,
-                 raw_score_paper_min=0,
-                 raw_score_paper_max=100,
+                 raw_score_defined_min=0,
+                 raw_score_defined_max=100,
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
@@ -598,7 +597,7 @@ class PltScore(ScoreTransformModel):
             self.out_score_points = tuple(x[::-1] for x in out_pt)
         self.raw_score_ratio_cum = tuple(sum(raw_p[0:x + 1]) for x in range(len(raw_p)))
 
-        self.raw_score_paper_min, self.raw_score_paper_max = raw_score_paper_min, raw_score_paper_max
+        self.raw_score_defined_min, self.raw_score_defined_max = raw_score_defined_min, raw_score_defined_max
 
         self.strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
@@ -639,17 +638,17 @@ class PltScore(ScoreTransformModel):
         # calculate seg table
         print('--- calculating map_table ...')
         _segsort = 'a' if self.strategy_dict['mode_sort_order'] in ['ascending', 'a'] else 'd'
-        self.seg_model = mapi.run_seg(
+        seg_model = mapi.run_seg(
                   indf=self.indf,
                   cols=self.cols,
-                  segmax=self.raw_score_paper_max,
-                  segmin=self.raw_score_paper_min,
+                  segmax=self.raw_score_defined_max,
+                  segmin=self.raw_score_defined_min,
                   segsort=_segsort,
                   segstep=1,
                   display=False,
                   usealldata=False
                   )
-        self.map_table = self.seg_model.outdf   # .copy(deep=True)
+        self.map_table = seg_model.outdf   # .copy(deep=True)
 
         # create field_fr in map_table
         #   strange error!!: some seg percent to zero
@@ -740,10 +739,10 @@ class PltScore(ScoreTransformModel):
     #           b=y1x2-y2x1
     #           c=(x2-x1)
     def get_ts_score_from_formula_fraction(self, field, x):
-        if x > self.raw_score_paper_max:
+        if x > self.raw_score_defined_max:
             # raise ValueError
             return self.out_score_real_max
-        if x < self.raw_score_paper_min:
+        if x < self.raw_score_defined_min:
             # raise ValueError
             return self.out_score_real_min
         for cf in self.result_dict[field]['coeff'].values():
@@ -890,7 +889,7 @@ class PltScore(ScoreTransformModel):
         #             less than min,
         #             no ratio interval(not found because of last too large ratio!)
         x_list = [(-1, -1)
-                  if p[0] < 0 or min(p) < self.raw_score_paper_min or (p[0]-p[1])*step > 0
+                  if p[0] < 0 or min(p) < self.raw_score_defined_min or (p[0]-p[1])*step > 0
                   else p
                   for p in x_list]
 
@@ -928,8 +927,8 @@ class PltScore(ScoreTransformModel):
             section_min = self.indf[field].min()
             section_max = self.indf[field].max()
         else:
-            section_min = self.raw_score_paper_min
-            section_max = self.raw_score_paper_max
+            section_min = self.raw_score_defined_min
+            section_max = self.raw_score_defined_max
 
         _mode_cumu = self.strategy_dict['mode_ratio_cumu']
         _mode_order = self.strategy_dict['mode_sort_order']
@@ -1092,9 +1091,10 @@ class PltScore(ScoreTransformModel):
                                 self.strategy_dict['mode_section_degraded'],
                                 formula[2][0], formula[2][1])
                          ]
+                # y2 == y1
                 else:
                     self.result_formula_text_list += \
-                        ['(section -{0:3d}):  y = 1.0*(x-{2:3d}) + {3:3d}'.
+                        ['(section -{0:3d}):  y = 0 * (x-{2:3d}) + {3:3d}'.
                          format(_fi,
                                 formula[0][0],
                                 formula[1][p],
@@ -1159,10 +1159,10 @@ class PltScore(ScoreTransformModel):
 
         # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
-        _count_zero = [x for x in range(self.raw_score_paper_min, self.raw_score_paper_max+1)
+        _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(mapi.use_ellipsis(_count_zero))
+                           format(mapi.use_ellipsis_in_digits_seq(_count_zero))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1183,7 +1183,7 @@ class PltScore(ScoreTransformModel):
         _count_zero = [x for x in range(self.out_score_real_min, self.out_score_real_max + 1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(mapi.use_ellipsis(_count_zero))
+                           format(mapi.use_ellipsis_in_digits_seq(_count_zero))
 
         # differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
