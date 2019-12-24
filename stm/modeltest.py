@@ -7,8 +7,8 @@ import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
 import time
-from stm import modelobj
-from stm import modelfun as mapi
+from stm import modelapp
+from stm import modellib as mapi
 
 
 # 有关stm测试的问题：
@@ -114,7 +114,7 @@ class TestLvData():
 
     def test_stm_with_lvdata(self, data=None, cols=('wl', 'hx', 'sw'), cumu='no', name=''):
         cols_real = [f for f in cols if f in data.columns]
-        mr = modelobj.run(df=data, cols=cols_real, mode_ratio_cumu=cumu)
+        mr = modelapp.run(df=data, cols=cols_real, mode_ratio_cumu=cumu)
         mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'.txt')
         result = []
         for col in cols_real:
@@ -133,8 +133,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = modelobj.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = modelobj.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
+        ra = modelapp.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = modelapp.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -172,7 +172,7 @@ class TestShandongData():
                 mode_sort_order='d',
                 all='no'
                 ):
-        pb.reload(modelobj)
+        pb.reload(modelapp)
         dfs = {
             '16like': self.df16like,
             '16wenke': self.df16wen,
@@ -185,7 +185,7 @@ class TestShandongData():
         else:
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
-            m = modelobj.run(
+            m = modelapp.run(
                 name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
@@ -212,16 +212,16 @@ def test_stm_with_stat_data(
         data_no=1
         ):
 
-    if name.lower() not in modelobj.MODELS_NAME_LIST:
+    if name.lower() not in modelapp.MODELS_NAME_LIST:
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(modelobj.MODELS_NAME_LIST)))
+              format(name, ','.join(modelapp.MODELS_NAME_LIST)))
         return None
 
     # create data set
     print('create test dataset...')
 
     # --- normal data set
-    norm_data1 = [modelobj.sts.norm.rvs() for _ in range(data_size)]
+    norm_data1 = [modelapp.sts.norm.rvs() for _ in range(data_size)]
     norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
     norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
 
@@ -250,11 +250,11 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in modelobj.mcf.Models.keys():
+    if name in modelapp.mcf.Models.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = modelobj.run(name=name,
+        m = modelapp.run(name=name,
                          df=dfscore, cols=['kmx'],
                          mode_ratio_prox=mode_ratio_prox,
                          mode_ratio_cumu=mode_ratio_cumu
@@ -285,7 +285,7 @@ class TestData:
         print('create score...')
         norm_list = None
         if self.dist == 'norm':
-            norm_list = modelobj.sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
+            norm_list = modelapp.sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
             norm_list[np.where(norm_list>self.df_max)] = self.df_max
             norm_list[np.where(norm_list<self.df_min)] = self.df_min
             norm_list = norm_list.astype(np.int)

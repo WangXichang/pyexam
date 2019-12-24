@@ -1,7 +1,7 @@
 # coding: utf8
 
 
-from stm import modelobj, modeltest
+from stm import modelapp, modeltest
 
 
 # hainan model problems:
@@ -20,12 +20,12 @@ def test_hainan(num=1):
         # use model100-900
         # score_order=='ascending', out_score_min==277, max==900, second_max=784
         #              'descending', out_score_max==784, second_min==101, 110, 123
-        ht1a = modelobj.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht1d = modelobj.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        ht1a = modelapp.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht1d = modelapp.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
         # use model60-300
         # score_order=='ascending', out_score_min==
-        ht2a = modelobj.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht2d = modelobj.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        ht2a = modelapp.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht2d = modelapp.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
 
     if num == 2:
         # data2
@@ -33,11 +33,11 @@ def test_hainan(num=1):
         # use model100-900
         # score_order=='ascending', out_score_min==150(raw==0, count==12), max==900(count==11), second_max=856(count==6)
         #              'descending', out_score_max==861(count==9), min=100(raw=0, count==7), second_min==132,143 ,158
-        ht1a = modelobj.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht1d = modelobj.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        ht1a = modelapp.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht1d = modelapp.run(name='hainan', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
         # use model60-300
         # score_order=='ascending', out_score_min==69,73    max==300(100, 9), second_max==288(99, 5)
         #              'descending', out_score_max==288, second_min==60, 69, 73
-        ht2a = modelobj.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
-        ht2d = modelobj.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
+        ht2a = modelapp.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='ascending')
+        ht2d = modelapp.run(name='hainan2', df=test_data1.df, cols=['km1', 'km2'], mode_score_order='descending')
         return ht1a, ht1d, ht2a, ht2d

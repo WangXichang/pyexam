@@ -2,9 +2,9 @@
 
 import pandas as pd
 
-from stm import modelconfig as mdcf
-from stm import modelobj as mdo
-from stm import modelfun as mdf
+from stm import modelconfig as mcfg
+from stm import modelapp as mapp
+from stm import modellib as mlib
 
 
 # interface to use model for some typical application
@@ -70,8 +70,8 @@ def run(
 
     # check model name
     name = name.lower()
-    if name.lower() not in mdo.MODELS_NAME_LIST:
-        print('invalid name, not in {}'.format(list(mdo.MODELS_NAME_LIST)))
+    if name.lower() not in mapp.MODELS_NAME_LIST:
+        print('invalid name, not in {}'.format(list(mapp.MODELS_NAME_LIST)))
         return
 
     # check input data: DataFrame
@@ -101,14 +101,14 @@ def run(
         return
 
     # ratio-seg score model: plt, ppt
-    if (name in mdcf.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in mdcf.Models[name].ratio)
-        plt_model = mdo.PltScore(name)
+    if (name in mcfg.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
+        ratio_tuple = tuple(x * 0.01 for x in mcfg.Models[name].ratio)
+        plt_model = mapp.PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=mdcf.Models[name].section,
+            out_score_seg_tuple=mcfg.Models[name].section,
             raw_score_defined_max=max(raw_score_range),
             raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -143,12 +143,12 @@ def run_model(
         mode_section_lost='ignore',
         out_score_decimal=0,
         ):
-    return mdf.ModelAlgorithm.get_stm_score(
+    return mlib.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
-        model_ratio_pdf=mdcf.Models[model_name].ratio,
-        model_section=mdcf.Models[model_name].section,
-        model_type=mdcf.Models[model_name].type.lower(),
+        model_ratio_pdf=mcfg.Models[model_name].ratio,
+        model_section=mcfg.Models[model_name].section,
+        model_type=mcfg.Models[model_name].type.lower(),
         raw_score_max=raw_score_max,
         raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,
@@ -184,7 +184,7 @@ def run_fun(
         mode_section_lost='ignore',
         out_score_decimal=0,
         ):
-    return mdf.ModelAlgorithm.get_stm_score(
+    return mlib.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,

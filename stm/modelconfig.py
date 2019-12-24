@@ -55,7 +55,7 @@
 
 
 from collections import namedtuple
-from stm import modelfun as mp
+from stm import modellib as mp
 
 
 # model type

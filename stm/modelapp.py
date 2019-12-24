@@ -94,8 +94,6 @@ import fractions as fr
 import bisect as bst
 import array
 import abc
-# from collections import namedtuple
-# import functools as ft
 
 
 # external import
@@ -107,7 +105,7 @@ import seaborn as sbn
 
 # stm import
 from stm import modelconfig as mcf
-from stm import modelfun as mapi
+from stm import modellib as mapi
 
 warnings.filterwarnings('ignore')
 
