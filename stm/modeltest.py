@@ -7,7 +7,7 @@ import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
 import time
-from stm import modelapp
+from stm import modelconfig as mcfg
 from stm import modellib as mlib
 from stm import main
 
@@ -213,16 +213,16 @@ def test_stm_with_stat_data(
         data_no=1
         ):
 
-    if name.lower() not in modelapp.MODELS_NAME_LIST:
+    if name.lower() not in mcfg.Models.key():
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(modelapp.MODELS_NAME_LIST)))
+              format(name, ','.join(mcfg.Models.key())))
         return None
 
     # create data set
     print('create test dataset...')
 
     # --- normal data set
-    norm_data1 = [modelapp.sts.norm.rvs() for _ in range(data_size)]
+    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
     norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
     norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
 
@@ -255,11 +255,11 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = modelapp.run(name=name,
-                         df=dfscore, cols=['kmx'],
-                         mode_ratio_prox=mode_ratio_prox,
-                         mode_ratio_cumu=mode_ratio_cumu
-                         )
+        m = main.run(name=name,
+                     df=dfscore, cols=['kmx'],
+                     mode_ratio_prox=mode_ratio_prox,
+                     mode_ratio_cumu=mode_ratio_cumu
+                     )
         return m
 
 

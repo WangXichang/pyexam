@@ -110,9 +110,6 @@ from stm import modellib as mapi
 warnings.filterwarnings('ignore')
 
 
-MODELS_NAME_LIST = mcf.Models.keys()
-
-
 def about():
     print(__doc__)
 
