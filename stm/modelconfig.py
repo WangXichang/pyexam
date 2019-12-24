@@ -108,20 +108,21 @@ Models = {
                                 hn300model.section,
                                 'standard score model: piecewise point transform'),
     'hn300plt1':    ModelFields(
-                        MODEL_TYPE_PLT,
-                        (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
-                        ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
-                        'piecewise linear transform model'),
+                                MODEL_TYPE_PLT,
+                                (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
+                                tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
+                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
+                                'piecewise linear transform model'),
     'hn300plt2':    ModelFields(
-                        MODEL_TYPE_PLT,
-                        (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
-                        ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
-                        'piecewise linear transform model'),
+                                MODEL_TYPE_PLT,
+                                (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
+                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+                                'piecewise linear transform model'),
     'hn300plt3':    ModelFields(
-                        MODEL_TYPE_PLT,
-                        (1, 2, 14, 33, 33, 14, 2, 1),
-                        ((300, 271), (270, 241), (240, 211), (210, 181), (180, 151), (150, 121), (120, 91), (90, 60)),
-                        'piecewise linear transform model with ratio-segment'),
+                                MODEL_TYPE_PLT,
+                                (1, 2, 14, 33, 33, 14, 2, 1),
+                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+                                'piecewise linear transform model with ratio-segment'),
     'zscore':       ModelFields(MODEL_TYPE_PPT,
                                 zscoremodel.pdf,
                                 zscoremodel.section,
@@ -136,15 +137,16 @@ Models = {
                                 'piecewise linear transform model with ratio-segment'),
     }
 
+
 # choice_space = 4 * 2 * 2 * 2 * 2 * 3 * 4 * 2 * 2 * 3 * 2,  18432
-# real used choice = 4 * 2 * 2 * 3 * 2 * 3 = 96    ## prox, cumu, sort, one_point, non_point
+# real used choice = 4 * 2**5  * 3**2 = 1152    ## prox, cumu, sort, section_
 Strategies = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
-    'mode_sort_order':              ('ascending', 'descending'),
-    'mode_section_point_first':     ('real', 'defined'),      # first point of first section
-    'mode_section_point_start':     ('step', 'share'),      # first point except first section
-    'mode_section_point_last':      ('real', 'defined'),      # useful to type--ppt
+    'mode_sort_order':              ('descending', 'ascending'),
+    'mode_section_point_first':     ('real', 'defined'),        # first point of first section
+    'mode_section_point_start':     ('step', 'share'),          # first point except first section
+    'mode_section_point_last':      ('real', 'defined'),        # last point of last section, useful to type--ppt
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
     'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
     }

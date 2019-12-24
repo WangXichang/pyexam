@@ -511,6 +511,31 @@ class ModelAlgorithm:
         return Result(formula, ppt_formula)
 
     @classmethod
+    def get_tai_formula(cls,
+                        df,
+                        col,
+                        pecent_first=0.01,
+                        mode_ratio_prox='upper_min',
+                        raw_score_max=100,
+                        raw_score_min=0,
+                        grade_num=15
+                        ):
+
+        map_table = run_seg(df=df,
+                            cols=[col],
+                            segmax=raw_score_max,
+                            segmin=raw_score_min,
+                            )
+
+        top_level_score = df[col]
+
+        def formula(x):
+            return x
+
+        Result = namedtuple('Result', ('formula', 'map_dict'))
+        return Result(formula, map_table)
+
+    @classmethod
     @run_timer
     def get_stm_score(cls,
                       df,
@@ -520,6 +545,7 @@ class ModelAlgorithm:
                       model_type='plt',
                       raw_score_max=100,
                       raw_score_min=0,
+                      raw_score_step=1,
                       mode_ratio_cumu='no',
                       mode_ratio_prox='upper_min',
                       mode_sort_order='d',
@@ -530,12 +556,12 @@ class ModelAlgorithm:
                       mode_section_lost='ignore',
                       out_score_decimal=0,
                       ):
-        seg = run_seg(indf=df,
+        seg = run_seg(df=df,
                       cols=cols,
                       segmax=raw_score_max,
                       segmin=raw_score_min,
-                      segsort='d',
-                      segstep=1
+                      segsort=mode_sort_order,
+                      segstep=raw_score_step,
                       )
         map_table = seg.outdf
         cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
@@ -585,7 +611,7 @@ class ModelAlgorithm:
 
 # call SegTable.run() return instance of SegTable
 def run_seg(
-            indf: pd.DataFrame,
+            df: pd.DataFrame,
             cols: list,
             segmax=100,
             segmin=0,
@@ -596,7 +622,7 @@ def run_seg(
             ):
     seg = SegTable()
     seg.set_data(
-        indf=indf,
+        df=df,
         cols=cols
     )
     seg.set_para(
@@ -611,18 +637,18 @@ def run_seg(
     return seg
 
 
-# version 1.0.1 2018-09-24
 class SegTable(object):
     """
-    * 计算pandas.DataFrame中分数字段的分段人数表
-    * segment table for score dataframe
+    * 分数分段及百分位表模型
+    * model for score segment-percentile table
+    * from 09-17-2017
     * version1.01, 2018-06-21
     * version1.02, 2018-08-31
-    * from 09-17-2017
+    # version 1.0.1 2018-09-24
 
     输入数据：分数表（pandas.DataFrame）,  计算分数分段人数的字段（list）
-    set_data(indf:DataFrame, fs:list)
-        indf: input dataframe, with a value fields(int,float) to calculate segment table
+    set_data(df:DataFrame, fs:list)
+        df: input dataframe, with a value fields(int,float) to calculate segment table
                 用于计算分段表的数据表，类型为pandas.DataFrmae
         fs: list, field names used to calculate seg table, empty for calculate all fields
                    用于计算分段表的字段，多个字段以字符串列表方式设置，如：['sf1', 'sf2']
@@ -683,7 +709,7 @@ class SegTable(object):
         2)分段字段的类型为整数或浮点数（实数）
           fs type is digit, for example: int or float
 
-        3)可以单独设置数据(indf),字段列表（fs),各项参数（segmax, segmin, segsort,segalldata, segmode)
+        3)可以单独设置数据(df),字段列表（fs),各项参数（segmax, segmin, segsort,segalldata, segmode)
           如，seg.col = ['score_1', 'score_2'];
               seg.segmax = 120
           重新设置后需要运行才能更新输出数据ouput_data, 即调用run()
@@ -696,7 +722,7 @@ class SegTable(object):
 
     def __init__(self):
         # raw data
-        self.__indfframe = None
+        self.__dfframe = None
         self.__cols = []
 
         # parameter for model
@@ -722,12 +748,12 @@ class SegTable(object):
         return self.__outdfframe
 
     @property
-    def indf(self):
-        return self.__indfframe
+    def df(self):
+        return self.__dfframe
 
-    @indf.setter
-    def indf(self, df):
-        self.__indfframe = df
+    @df.setter
+    def df(self, df):
+        self.__dfframe = df
 
     @property
     def cols(self):
@@ -809,12 +835,12 @@ class SegTable(object):
     def display(self, display):
         self.__display = display
 
-    def set_data(self, indf, cols=None):
-        self.__indfframe = indf
+    def set_data(self, df, cols=None):
+        self.__dfframe = df
         if type(cols) == str:
             cols = [cols]
-        if (not isinstance(cols, list)) & isinstance(indf, pd.DataFrame):
-            self.__cols = indf.columns.values
+        if (not isinstance(cols, list)) & isinstance(df, pd.DataFrame):
+            self.__cols = df.columns.values
         else:
             self.__cols = cols
         self.__check()
@@ -882,9 +908,9 @@ class SegTable(object):
         print(self.__doc__)
 
     def __check(self):
-        if isinstance(self.__indfframe, pd.Series):
-            self.__indfframe = pd.DataFrame(self.__indfframe)
-        if not isinstance(self.__indfframe, pd.DataFrame):
+        if isinstance(self.__dfframe, pd.Series):
+            self.__dfframe = pd.DataFrame(self.__dfframe)
+        if not isinstance(self.__dfframe, pd.DataFrame):
             print('error: raw score data is not ready!')
             return False
         if self.__segMax <= self.__segMin:
@@ -901,9 +927,9 @@ class SegTable(object):
                 return False
 
         for f in self.__cols:
-            if f not in self.indf.columns:
-                print("error: field('{}') is not in indf fields({})".
-                      format(f, self.indf.columns.values))
+            if f not in self.df.columns:
+                print("error: field('{}') is not in df fields({})".
+                      format(f, self.df.columns.values))
                 return False
         if not isinstance(self.__usealldata, bool):
             print('error: segalldata({}) is not bool type!'.format(self.__usealldata))
@@ -924,7 +950,7 @@ class SegTable(object):
         outdf = self.__outdfframe
         for f in self.__cols:
             # calculate preliminary group count
-            tempdf = self.indf
+            tempdf = self.df
             tempdf.loc[:, f] = tempdf[f].apply(round45r)
 
             # count seg_count in [segmin, segmax]
