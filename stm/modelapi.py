@@ -527,7 +527,13 @@ class ModelAlgorithm:
                             segmin=raw_score_min,
                             )
 
-        top_level_score = df[col]
+        section_list = [df[col].max()]
+        for j in range(15):
+            r = ModelAlgorithm.get_score_from_score_ratio_sequence(
+                dest_ratio=0.01,
+                seg_seq=map_table.seg,
+                ratio_seq=map_table[col+'_percent']
+            )
 
         def formula(x):
             return x
