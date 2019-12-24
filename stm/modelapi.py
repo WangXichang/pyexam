@@ -525,7 +525,7 @@ class ModelAlgorithm:
                             cols=[col],
                             segmax=raw_score_max,
                             segmin=raw_score_min,
-                            )
+                            ).outdf
 
         section_list = [df[col].max()]
         for j in range(15):
