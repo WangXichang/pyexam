@@ -514,8 +514,9 @@ class ModelAlgorithm:
     def get_tai_formula(cls,
                         df,
                         col,
-                        pecent_first=0.01,
+                        percent_first=0.01,
                         mode_ratio_prox='upper_min',
+                        mode_sort_order='d',
                         raw_score_max=100,
                         raw_score_min=0,
                         grade_num=15
@@ -525,18 +526,48 @@ class ModelAlgorithm:
                             cols=[col],
                             segmax=raw_score_max,
                             segmin=raw_score_min,
+                            segsort=mode_sort_order,
                             ).outdf
 
-        section_list = [df[col].max()]
-        for j in range(15):
-            r = ModelAlgorithm.get_score_from_score_ratio_sequence(
-                dest_ratio=0.01,
-                seg_seq=map_table.seg,
-                ratio_seq=map_table[col+'_percent']
-            )
+        section_point_list = [df[col].max()]
+        r = ModelAlgorithm.get_score_from_score_ratio_sequence(
+            dest_ratio=percent_first,
+            seg_seq=map_table.seg,
+            ratio_seq=map_table[col+'_percent']
+        )
 
+        top_score = None
+        if mode_ratio_prox == 'upper_min' or r.bottom or r.top:
+            top_score=r.this_seg
+        elif mode_ratio_prox == 'lower_max':
+            top_score=r.last_seg
+        elif 'near' in mode_ratio_prox:
+            if r.this_seg_near:
+                top_score=r.this_seg
+            else:
+                top_score=r.last_seg
+        section_point_list.append(top_score)
+
+        _step = -1 if mode_sort_order in ['d', 'descending'] else 1
+        grade_step = (top_score- raw_score_min)/(grade_num-1)
+        for j in range(grade_num-1):
+            section_point_list.append(round45r(top_score+grade_step*_step*(j+1), 0))
+        print(section_point_list)
+
+        map_dict = dict()
+        for si, sp in enumerate(section_point_list[1:]):  # grade_level == si+1
+            if si == 0:
+                for ss in range(section_point_list[si], sp+_step, _step):
+                    map_dict.update({ss: si+1})
+            else:
+                for ss in range(section_point_list[si]+_step, sp+_step, _step):
+                    map_dict.update({ss: si+1})
+        
         def formula(x):
-            return x
+            if x in map_dict.keys():
+                return map_dict[x]
+            else:
+                return -1
 
         Result = namedtuple('Result', ('formula', 'map_dict'))
         return Result(formula, map_table)
