@@ -8,7 +8,8 @@ from collections import namedtuple as ntp
 import scipy.stats as sts
 import time
 from stm import modelapp
-from stm import modellib as mapi
+from stm import modellib as mlib
+from stm import main
 
 
 # 有关stm测试的问题：
@@ -98,7 +99,7 @@ class TestLvData():
 
         self.data = data_cumu
 
-    @mapi.run_timer
+    @mlib.run_timer
     def test(self, data):
         r_dict = dict()
         for num in range(9):
@@ -114,7 +115,7 @@ class TestLvData():
 
     def test_stm_with_lvdata(self, data=None, cols=('wl', 'hx', 'sw'), cumu='no', name=''):
         cols_real = [f for f in cols if f in data.columns]
-        mr = modelapp.run(df=data, cols=cols_real, mode_ratio_cumu=cumu)
+        mr = main.run(df=data, cols=cols_real, mode_ratio_cumu=cumu)
         mr.save_report_to_file('f:/mywrite/新高考改革/modelstestdata/testdata/report_'+name+'.txt')
         result = []
         for col in cols_real:
@@ -123,7 +124,7 @@ class TestLvData():
         self.result_model = mr
 
 
-@mapi.run_timer
+@mlib.run_timer
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
@@ -133,8 +134,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = modelapp.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = modelapp.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
+        ra = main.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = main.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -172,7 +173,7 @@ class TestShandongData():
                 mode_sort_order='d',
                 all='no'
                 ):
-        pb.reload(modelapp)
+        pb.reload(main)
         dfs = {
             '16like': self.df16like,
             '16wenke': self.df16wen,
@@ -185,7 +186,7 @@ class TestShandongData():
         else:
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
-            m = modelapp.run(
+            m = main.run(
                 name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
