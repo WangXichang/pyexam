@@ -21,6 +21,18 @@ def round45r(number, digits=0):
         raise NotImplemented
 
 
+def run_timer(fun):
+
+    def dec_fun(*args, **kwargs):
+        st = time.time()
+        print('process start: {}'.format(fun))
+        result = fun(*args, **kwargs)
+        print('process[{}] elapsed time: {:.3f}'.format(fun, time.time() - st))
+        return result
+
+    return dec_fun
+
+
 def use_ellipsis_in_digits_seq(digit_seq):
     _digit_seq = None
     if type(digit_seq) == str:
@@ -414,6 +426,7 @@ class ModelAlgorithm:
         return Result(formula, plt_formula)
 
     @classmethod
+    @run_timer
     def get_ppt_formula(cls,
                         raw_score_points,
                         raw_score_percent,
@@ -498,6 +511,7 @@ class ModelAlgorithm:
         return Result(formula, ppt_formula)
 
     @classmethod
+    @run_timer
     def get_stm_score(cls,
                       df,
                       cols,

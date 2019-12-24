@@ -8,6 +8,7 @@ from collections import namedtuple as ntp
 import scipy.stats as sts
 import time
 from stm import model
+from stm import modelapi as mapi
 
 
 # 有关stm测试的问题：
@@ -27,18 +28,6 @@ from stm import model
 #   (2) weight may decrease to 1/3 if common subject score is 900,
 #     it is reasonable if common subjects use raw score 150.
 #
-
-
-def time_disper(fun):
-
-    def dec_fun(*args, **kwargs):
-        st = time.time()
-        print('process start: {}'.format(fun))
-        result = fun(*args, **kwargs)
-        print('process[{}] elapsed time: {:.3f}'.format(fun, time.time() - st))
-        return result
-
-    return dec_fun
 
 
 class TestLvData():
@@ -109,7 +98,7 @@ class TestLvData():
 
         self.data = data_cumu
 
-    @time_disper
+    @mapi.run_timer
     def test(self, data):
         r_dict = dict()
         for num in range(9):
@@ -134,7 +123,7 @@ class TestLvData():
         self.result_model = mr
 
 
-@time_disper
+@mapi.run_timer
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
