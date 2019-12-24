@@ -5,7 +5,6 @@ import time
 from  collections import namedtuple
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plot
 import scipy.stats as sts
 
 
@@ -536,23 +535,29 @@ class ModelAlgorithm:
             ratio_seq=map_table[col+'_percent']
         )
 
-        top_score = None
+        top_level_score = None
         if mode_ratio_prox == 'upper_min' or r.bottom or r.top:
-            top_score=r.this_seg
+            top_level_score=r.this_seg
         elif mode_ratio_prox == 'lower_max':
-            top_score=r.last_seg
+            top_level_score=r.last_seg
         elif 'near' in mode_ratio_prox:
             if r.this_seg_near:
-                top_score=r.this_seg
+                top_level_score=r.this_seg
             else:
-                top_score=r.last_seg
-        section_point_list.append(top_score)
+                top_level_score=r.last_seg
+        section_point_list.append(top_level_score)
 
         _step = -1 if mode_sort_order in ['d', 'descending'] else 1
-        grade_step = (top_score- raw_score_min)/(grade_num-1)
+        grade_step = (top_level_score - raw_score_min)/(grade_num-1)
         for j in range(grade_num-1):
-            section_point_list.append(round45r(top_score+grade_step*_step*(j+1), 0))
-        print(section_point_list)
+            section_point_list.append(round45r(top_level_score+grade_step*_step*(j+1), 0))
+        section_list = []
+        for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:])):
+            if i == 0:
+                section_list.append((x, y))
+            else:
+                section_list.append((x+_step, y))
+        print(section_point_list, '\n', section_list)
 
         map_dict = dict()
         for si, sp in enumerate(section_point_list[1:]):  # grade_level == si+1
@@ -569,8 +574,8 @@ class ModelAlgorithm:
             else:
                 return -1
 
-        Result = namedtuple('Result', ('formula', 'map_dict'))
-        return Result(formula, map_table)
+        Result = namedtuple('Result', ('formula', 'section', 'map_dict', 'grade_step', 'top_level'))
+        return Result(formula, section_list, map_dict, grade_step, top_level_score)
 
     @classmethod
     @run_timer
@@ -602,6 +607,7 @@ class ModelAlgorithm:
                       )
         map_table = seg.outdf
         cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
+        # print(cumu_ratio)
         for col in cols:
             print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
@@ -624,7 +630,7 @@ class ModelAlgorithm:
                     out_section=model_section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimal
-                )
+                    ).formula
             elif model_type.lower() == 'ppt':
                 formula = ModelAlgorithm.get_ppt_formula(
                     raw_score_points=map_table.seg,
@@ -637,11 +643,23 @@ class ModelAlgorithm:
                     mode_raw_score_max=mode_section_point_first,
                     mode_raw_score_min=mode_section_point_last,
                     out_score_decimal=out_score_decimal
-                )
+                    ).formula
+            elif model_type.lower() == 'tai':
+                # print('tai running. . .')
+                formula = ModelAlgorithm.get_tai_formula(
+                    df=df,
+                    col=col,
+                    percent_first=model_ratio_pdf[0]/100,
+                    mode_ratio_prox=mode_ratio_prox,
+                    mode_sort_order=mode_sort_order,
+                    raw_score_max=raw_score_max,
+                    raw_score_min=raw_score_min,
+                    grade_num=len(model_ratio_pdf)
+                    ).formula
             else:
                 raise ValueError
-            map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula.formula)
-            df[col+'_ts'] = df[col].apply(formula.formula)
+            map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
+            df[col+'_ts'] = df[col].apply(formula)
         result=namedtuple('r', ['df', 'map_table'])
         return result(df, map_table)
 

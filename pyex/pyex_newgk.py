@@ -600,7 +600,7 @@ class StmStats(object):
 
     @staticmethod
     def show_mean_std(ms, modelname):
-        from stm import model as stm
+        from stm import modelobj as stm
         years = ['15', '16', '17']
         wkkm = ['lsn', 'dln', 'zzn']
         lkkm = ['wln', 'hxn', 'swn']
