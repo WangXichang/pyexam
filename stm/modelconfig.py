@@ -56,7 +56,7 @@
 
 
 from collections import namedtuple
-from stm import modellib as mp
+from stm import modellib as mlib
 
 
 # model type
@@ -64,10 +64,10 @@ MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
 MODEL_TYPE_PPT = 'ppt'      # standard score transform
 
 
-hn900model = mp.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
-hn300model = mp.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
-zscoremodel = mp.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
-tscoremodel = mp.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
+hn900model = mlib.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
+hn300model = mlib.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
+zscoremodel = mlib.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
+tscoremodel = mlib.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 
 # model including: type,    transfrom mode, in ['plt', 'ppt', 'tai']
 #                  ratio,   used to get raw score section in plt, to define out score percent in ppt

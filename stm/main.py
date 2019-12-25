@@ -3,7 +3,7 @@
 import pandas as pd
 
 from stm import modelconfig as mcfg
-from stm import modelapp as mapp
+from stm import modelbase as mbas
 from stm import modellib as mlib
 
 
@@ -26,7 +26,7 @@ def run(
                          'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
                          'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
                          'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
-                         'zscore', 'tscore', 'tlinear'                  # pvt model for z, t, t-linear transform score
+                         'zscore', 'tscore', 'tlinear'                  # ppt model for z, t, t-linear transform score
                  default = 'shandong'
     :param df: DataFrame,
        values: raw score data, instance of pandas.DataFrame, including score field, which type must be int or float
@@ -103,7 +103,7 @@ def run(
     # ratio-seg score model: plt, ppt
     if (name in mcfg.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
         ratio_tuple = tuple(x * 0.01 for x in mcfg.Models[name].ratio)
-        plt_model = mapp.PltScore(name)
+        plt_model = mbas.PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(

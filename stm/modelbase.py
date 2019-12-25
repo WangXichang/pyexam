@@ -104,8 +104,8 @@ import scipy.stats as sts
 import seaborn as sbn
 
 # stm import
-from stm import modelconfig as mcf
-from stm import modellib as mapi
+from stm import modelconfig as mcfg
+from stm import modellib as mlib
 
 warnings.filterwarnings('ignore')
 
@@ -131,8 +131,8 @@ class ScoreTransformModel(abc.ABC):
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
-        if model_name in mcf.Models.keys():
-            self.model_type = mcf.Models[model_name].type
+        if model_name in mcfg.Models.keys():
+            self.model_type = mcfg.Models[model_name].type
         else:
             self.model_type = 'other'
 
@@ -371,8 +371,8 @@ class PltScore(ScoreTransformModel):
         self.raw_score_defined_min = None
 
         # strategy
-        self.strategy_dict = {k: mcf.Strategies[k][0]
-                              for k in mcf.Strategies}
+        self.strategy_dict = {k: mcfg.Strategies[k][0]
+                              for k in mcfg.Strategies}
 
         # result
         self.map_table = pd.DataFrame()
@@ -482,7 +482,7 @@ class PltScore(ScoreTransformModel):
         # calculate seg table
         print('--- calculating map_table ...')
         _segsort = 'a' if self.strategy_dict['mode_sort_order'] in ['ascending', 'a'] else 'd'
-        seg_model = mapi.run_seg(
+        seg_model = mlib.run_seg(
                   df=self.df,
                   cols=self.cols,
                   segmax=self.raw_score_defined_max,
@@ -516,7 +516,7 @@ class PltScore(ScoreTransformModel):
 
             # get formula and save
             _get_formula = False
-            if mcf.Models[self.model_name].type == 'ppt':
+            if mcfg.Models[self.model_name].type == 'ppt':
                 _get_formula = self.get_formula_ppt(col)
             else:
                 _get_formula = self.get_formula_ts(col)
@@ -554,7 +554,7 @@ class PltScore(ScoreTransformModel):
     def get_ts_score_from_formula_ax_b(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                return mapi.round45r(cf[0][0] * x + cf[0][1])
+                return mlib.round45r(cf[0][0] * x + cf[0][1])
         return -1
 
     # -----------------------------------------------------------------------------------
@@ -568,11 +568,11 @@ class PltScore(ScoreTransformModel):
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 v = (cf[1][1]-cf[1][0])
                 if v == 0:
-                    return mapi.round45r(cf[0][1])
+                    return mlib.round45r(cf[0][1])
                 a = (cf[2][1]-cf[2][0])/v
                 b = cf[1][0]
                 c = cf[2][0]
-                return mapi.round45r(a * (x - b) + c)
+                return mlib.round45r(a * (x - b) + c)
         return -1
 
     # -----------------------------------------------------------------------------------
@@ -600,10 +600,10 @@ class PltScore(ScoreTransformModel):
                     elif self.strategy_dict['mode_section_degraded'] == 'map_to_min':
                         return min(cf[2])
                     elif self.strategy_dict['mode_section_degraded'] == 'map_to_mean':
-                        return mapi.round45r(np.mean(cf[2]))
+                        return mlib.round45r(np.mean(cf[2]))
                     else:
                         return -1
-                return mapi.round45r((a*x + b)/c, self.out_decimal_digits)
+                return mlib.round45r((a * x + b) / c, self.out_decimal_digits)
         return -1
 
     # formula hainan, each segment is a single point
@@ -889,16 +889,16 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc = '{}[{}]  {}\n'.\
             format('Transform Model: '.rjust(20),
                    self.model_name,
-                   mcf.Models[self.model_name].desc)
+                   mcfg.Models[self.model_name].desc)
         self.out_report_doc += '{}{}\n'.\
             format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>20') + '\n'
 
-        for k in mcf.Strategies:
+        for k in mcfg.Strategies:
             self.out_report_doc += ' ' * 20 + '{0:<50s} {1}'. \
                 format(k + ' = ' + self.strategy_dict[k],
-                       mcf.Strategies[k]) + '\n'
+                       mcfg.Strategies[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
@@ -972,7 +972,7 @@ class PltScore(ScoreTransformModel):
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
         # if len(_raw_seg_list) > 30:     # for hainan too many segs(801) and single point seg
         #     _out_seg_list = [x[0] if x[0] == x[1] else x for x in _out_seg_list]
-        if mcf.Models[self.model_name].type == 'plt':
+        if mcfg.Models[self.model_name].type == 'plt':
             _out_report_doc += '  out score endpoints: [{}]\n'.\
                 format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _out_seg_list]))
         else:
@@ -1010,7 +1010,7 @@ class PltScore(ScoreTransformModel):
         _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(mapi.use_ellipsis_in_digits_seq(_count_zero))
+                           format(mlib.use_ellipsis_in_digits_seq(_count_zero))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1028,13 +1028,13 @@ class PltScore(ScoreTransformModel):
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')[field+'_ts'].values
         _count_non_zero = self.map_table.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
-        if mcf.Models[self.model_name].type == 'plt':
+        if mcfg.Models[self.model_name].type == 'plt':
             _count_zero = [x for x in range(self.out_score_real_min, self.out_score_real_max + 1)
                            if x not in _count_non_zero]
         else:
-            _count_zero = None
+            _count_zero = ''
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(mapi.use_ellipsis_in_digits_seq(_count_zero))
+                           format(mlib.use_ellipsis_in_digits_seq(_count_zero))
         _out_report_doc += 'count: '.rjust(28) + 'record={}\n' .\
                            format(self.outdf.count()[0])
 
@@ -1063,9 +1063,9 @@ class PltScore(ScoreTransformModel):
                 if rseg[1] > oseg[1]:
                     _diff_list.append(rseg)
             if (rseg[0] > oseg[0]) and (rseg[1] <= oseg[1]):
-                _diff_list.append((int(rseg[0]), int(mapi.round45r(b/(1-a)))))
+                _diff_list.append((int(rseg[0]), int(mlib.round45r(b / (1 - a)))))
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
-                _diff_list.append((int(mapi.round45r(b/(1-a), 0)), int(rseg[1])))
+                _diff_list.append((int(mlib.round45r(b / (1 - a), 0)), int(rseg[1])))
         _out_report_doc += '   shift down segment: ' + str(_diff_list) + ' => '
         # merge to some continuous segments
         while True:
@@ -1438,7 +1438,7 @@ class Zscore(ScoreTransformModel):
 
     @staticmethod
     def get_map_table(df, maxscore, minscore, cols, seg_order='a'):
-        seg = mapi.SegTable()
+        seg = mlib.SegTable()
         seg.set_data(df, cols)
         seg.set_para(segmax=maxscore, segmin=minscore, segsort=seg_order)
         seg.run()
@@ -1520,7 +1520,7 @@ class Tscore(ScoreTransformModel):
         namelist = self.outdf.columns
 
         def formula(x):
-            return mapi.round45r(x * self.t_score_std + self.t_score_mean, self.outdf_decimal)
+            return mlib.round45r(x * self.t_score_std + self.t_score_mean, self.outdf_decimal)
 
         for sf in namelist:
             if '_zscore' in sf:
@@ -1615,7 +1615,7 @@ class TaiScore(ScoreTransformModel):
 
     def run_create_grade_dist_list(self):
         # mode_ratio_prox = 'near'
-        seg = mapi.SegTable()
+        seg = mlib.SegTable()
         seg.set_para(segmax=self.mode_score_paper_max,
                      segmin=self.mode_score_paper_min,
                      segsort='d')
@@ -1636,7 +1636,7 @@ class TaiScore(ScoreTransformModel):
                         max_score = curseg
                     max_point = self.df[self.df[fs] >= max_score][fs].mean()
                     # print(fs, max_score, curseg, lastseg)
-                    self.grade_dist_dict.update({fs: mapi.round45r(max_point/self.grade_num, 8)})
+                    self.grade_dist_dict.update({fs: mlib.round45r(max_point / self.grade_num, 8)})
                     break
                 lastpercent = curpercent
                 lastseg = curseg

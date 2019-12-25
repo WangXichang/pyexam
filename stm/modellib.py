@@ -38,6 +38,9 @@ def use_ellipsis_in_digits_seq(digit_seq):
         _digit_seq = tuple(int(x) for x in digit_seq)
     elif type(digit_seq) in (list, tuple):
         _digit_seq = digit_seq
+    else:
+        print('digit_seq error type: {}'.format(type(digit_seq)))
+        raise ValueError
     ellipsis_list = []
     if len(_digit_seq) > 0:
         start_p, end_p, count_p = -1, -1, -1
