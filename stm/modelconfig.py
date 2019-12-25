@@ -16,15 +16,15 @@
                           'seg': list := output score segments or points
                           'desc': str := test to describe model
                           }
-        各省市等级分数转换比例设置，用于定义模型
-        CONST_ZHEJIANG_RATIO = [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
-        CONST_SHANGHAI_RATIO = [5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5]
-        CONST_BEIJING_RATIO = [1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1]
-        CONST_TIANJIN_RATIO = [2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1]
-        CONST_SHANDONG_RATIO = [3, 7, 16, 24, 24, 16, 7, 3]
-        CONST_SHANDONG_SECTION = [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-        CONST_SS7_RATIO = [2, 13, 35, 35, 15]
-        CONST_SS7_SECTION = [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+        各等级分数转换比例设置，用于定义模型
+        比例的设置从高分段到低分段，与分段设置相对应
+        例如：
+        ZHEJIANG_RATIO   =  [1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1]
+        ZHEJIANG_SECTION =  tuple((x, x) for x in range(100, 39, -3)),
+        SHANDONG_RATIO =    [3, 7, 16, 24, 24, 16, 7, 3]
+        SHANDONG_SECTION =  [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
+        SS7_RATIO =         [2, 13, 35, 35, 15]
+        SS7_SECTION =       [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
     转换算法策略
     MODEL_STRATEGY_DICT = {key_name_str: value_str}   # some choice assigned in value_str, seprated by comma
