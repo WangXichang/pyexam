@@ -70,8 +70,8 @@ def run(
 
     # check model name
     name = name.lower()
-    if name.lower() not in mapp.MODELS_NAME_LIST:
-        print('invalid name, not in {}'.format(list(mapp.MODELS_NAME_LIST)))
+    if name.lower() not in mcfg.Models.keys():
+        print('invalid name, not in {}'.format(list(mcfg.Models.keys())))
         return
 
     # check input data: DataFrame
