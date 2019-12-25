@@ -167,7 +167,6 @@ Strategies = {
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
     'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
     }
-
 # to add in future
 # MODEL_STRATEGIES_RESERVE_DICT = {
 #       'mode_score_empty': ('use', 'jump'),          # ** consider to deprecated, processed in other strategies
