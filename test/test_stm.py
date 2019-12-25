@@ -5,7 +5,7 @@ import pandas as pd
 import importlib as pb
 import os
 from collections import namedtuple as ntp
-from stm import main, modeltools as mtl, modellib as mlib
+from stm import main, modelutil as mtl, modellib as mlib
 
 
 # 有关stm测试的问题：
