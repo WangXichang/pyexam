@@ -256,6 +256,7 @@ class ModelAlgorithm:
                 _startpoint = seg
                 break
         section_point_list = [_startpoint]
+        dest_ratio_list = []
 
         # step-2: set end-point of else sections
         section_percent_list = []
@@ -271,6 +272,7 @@ class ModelAlgorithm:
                     dest_ratio = real_percent + ratio - last_ratio
                 else:
                     dest_ratio = ratio
+            dest_ratio_list.append(dest_ratio)
             # avoid to locate invalid ratio
             _seg, _percent = -1, -1
             if not goto_bottom:
@@ -375,8 +377,9 @@ class ModelAlgorithm:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
-        Result = namedtuple('result', ['section', 'point', 'percent'])
-        return Result(section_list, section_point_list, section_percent_list)
+        Result = namedtuple('result', ['section', 'point', 'dest_ratio', 'percent'])
+        r = Result(section_list, section_point_list, dest_ratio_list, section_percent_list)
+        return r
 
     @classmethod
     def get_plt_formula(cls,
@@ -450,19 +453,12 @@ class ModelAlgorithm:
                 return
 
         # lcoate out-score to raw-ratio in out-score-ratio-sequence
+        dest_ratio_list = []
+        real_ratio_list = []
         dest_ratio = None
         last_ratio = 0
         real_percent = 0
         for rscore, raw_ratio in zip(raw_score_points, raw_score_percent):
-            if rscore == _rmax:
-                if mode_raw_score_max == 'map_to_max':
-                    map_score.update({rscore: max(out_score_points)})
-                    continue
-            if rscore == _rmin:
-                if mode_raw_score_min == 'map_to_min':
-                    map_score.update({rscore: min(out_score_points)})
-                    continue
-
             if dest_ratio is None:
                 dest_ratio = raw_ratio
             else:
@@ -470,6 +466,17 @@ class ModelAlgorithm:
                     dest_ratio = real_percent + raw_ratio - last_ratio
                 else:
                     dest_ratio = raw_ratio
+            dest_ratio_list.append(dest_ratio)
+            if rscore == _rmax:
+                if mode_raw_score_max == 'map_to_max':
+                    map_score.update({rscore: max(out_score_points)})
+                    real_ratio_list.append(0)
+                    continue
+            if rscore == _rmin:
+                if mode_raw_score_min == 'map_to_min':
+                    map_score.update({rscore: min(out_score_points)})
+                    real_ratio_list.append(1)
+                    continue
 
             # set invalid ratio if can not found ration in out_percent
             _seg, _percent = -1, -1
@@ -478,7 +485,6 @@ class ModelAlgorithm:
                 out_score_points,
                 out_score_ratio_cumu,
                 tiny_value)
-            # print(raw_ratio, result)
 
             # strategy: mode_ratio_prox:
             # choose this_seg if near equal to this or upper_min
@@ -501,6 +507,7 @@ class ModelAlgorithm:
                 print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                 raise ValueError
             map_score.update({rscore: _seg})
+            real_ratio_list.append(_percent)
 
         # function of formula
         def formula(x):
@@ -509,8 +516,9 @@ class ModelAlgorithm:
             else:
                 return -1
 
-        Result = namedtuple('Result', ('formula', 'map_dict'))
-        return Result(formula, map_score)
+        print(dest_ratio, '\n', real_ratio_list)
+        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio'))
+        return Result(formula, map_score, dest_ratio_list, real_ratio_list)
 
     @classmethod
     def get_tai_formula(cls,
@@ -639,7 +647,28 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimal
                     )
                 formula = result.formula
-                print(result.coeff_raw_out_section_formula)
+                # print(result.coeff_raw_out_section_formula)
+
+                # display ratio searching result at section i
+                for i, (cumu_ratio, dest_ratio, section, percent, out_section) in enumerate(zip(
+                        cumu_ratio,
+                        raw_section.dest_ratio,
+                        raw_section.section,
+                        raw_section.percent,
+                        model_section
+                        )):
+                    print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
+                          'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
+                          format(i + 1,
+                                 cumu_ratio,
+                                 dest_ratio,
+                                 percent,
+                                 section[0],
+                                 section[1],
+                                 int(out_section[0]),
+                                 int(out_section[1]),
+                                 )
+                          )
             elif model_type.lower() == 'ppt':
                 result = ModelAlgorithm.get_ppt_formula(
                     raw_score_points=map_table.seg,
@@ -654,7 +683,13 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimal
                     )
                 formula = result.formula
-                print(''.format(result.map_dict))
+                print('  raw ratio: [{0}] \ntable ratio: [{1}]\n'
+                      '  raw score: [{2}] \n  out score: [{3}]'.format(
+                      ', '.join([format(x, '.4f') for x in result.dest_ratio]),
+                      ', '.join([format(x, '.4f') for x in result.real_ratio]),
+                      ', '.join([format(x, '>6d') for x in result.map_dict.keys()]),
+                      ', '.join([format(int(result.map_dict[x]), '>6d') for x in result.map_dict.keys()])
+                      ))
             elif model_type.lower() == 'tai':
                 # print('tai running. . .')
                 result = ModelAlgorithm.get_tai_formula(

@@ -1229,19 +1229,27 @@ class PltScore(ScoreTransformModel):
                                     self.outdf[f+'_ts'].std(), self.outdf[f+'_ts'].max()))
             for bars in disp_bar:
                 make_color = 0
+                last_height = 0
                 for _bar in bars:
                     height = _bar.get_height()
                     # height = height - 2 if height > 3 else height
                     xpos = _bar.get_x() + _bar.get_width() / 2
                     # xwid = _bar.get_width()
-                    # print(xpos, xwid, height)
+                    # print(xpos, height, last_height)
                     note_str= '{}'.format(int(height))
+                    ypos = 0
+                    if (height > 100) and abs(height - last_height) < 20:
+                        if height < last_height:
+                            ypos = - 10
+                        else:
+                            ypos = + 10
                     ax.annotate(note_str,
                                 xy=(xpos, height),
-                                xytext=(0, 3),              # vertical offset
+                                xytext=(0, ypos),              # vertical offset
                                 textcoords="offset points",
                                 ha='center',
-                                va='bottom')
+                                va='bottom'
+                                )
                     if display == 'all':
                         continue
                     if make_color == 2:
@@ -1249,6 +1257,7 @@ class PltScore(ScoreTransformModel):
                         make_color = 0
                     else:
                         make_color += 1
+                    last_height = height + ypos
             if display == 'all':
                 ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()

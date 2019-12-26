@@ -1,10 +1,20 @@
 # coding: utf-8
 
 import pandas as pd
+import importlib as pb
+import sys
+for mname, model in [('stm.mbas', 'modelbase'), ('stm.mutl', 'modelutil'),
+              ('stm.mlib', 'modellib'), ('stm.mcfg', 'modelconfig')]:
+    if mname in sys.modules:
+        pb.reload(mname.split('.')[1])
+    else:
+        exec('from ' + mname.split('.')[0] + ' import ' + model + ' as ' + mname.split('.')[1])
+# from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelconfig as mcfg
 
-from stm import modelconfig as mcfg
-from stm import modelbase as mbas
-from stm import modellib as mlib
+
+def exp(name='shandong'):
+    td = mutl.TestData()()
+    return run(name=name, df=td, cols='km1')
 
 
 # interface to use model for some typical application
@@ -195,7 +205,7 @@ def run_model(
 
 
 # run to get stm score by calling methods in modelapi.ModelAlgorithm
-def run_fun(
+def run_para(
         df,
         cols,
         model_ratio_pdf,
