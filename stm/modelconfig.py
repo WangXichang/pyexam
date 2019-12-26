@@ -149,8 +149,8 @@ Models = {
                                 ),
     'tai':          ModelFields(
                                 'tai',
-                                (1,),     # only first==1 is useful
-                                tuple((i, i) for i in range(1, 16, 1)),
+                                [1 for _ in range(15)],     # only first==1 is useful
+                                tuple((i+1, i+1) for i in range(15)),
                                 'piecewise linear transform model with ratio-segment'
                                 ),
     }

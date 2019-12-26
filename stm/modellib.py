@@ -442,7 +442,7 @@ class ModelAlgorithm:
                         out_score_decimal=0,
                         tiny_value=10**-12
                         ):
-        ppt_formula = dict()
+        map_score = dict()
         _rmax, _rmin = max(raw_score_points), min(raw_score_points)
         if mode_sort_order in ['d', 'descending']:
             if any([x <= y for x, y in zip(raw_score_points[:-1], raw_score_points[1:])]):
@@ -456,11 +456,11 @@ class ModelAlgorithm:
         for rscore, raw_ratio in zip(raw_score_points, raw_score_percent):
             if rscore == _rmax:
                 if mode_raw_score_max == 'map_to_max':
-                    ppt_formula.update({rscore: max(out_score_points)})
+                    map_score.update({rscore: max(out_score_points)})
                     continue
             if rscore == _rmin:
                 if mode_raw_score_min == 'map_to_min':
-                    ppt_formula.update({rscore: min(out_score_points)})
+                    map_score.update({rscore: min(out_score_points)})
                     continue
 
             if dest_ratio is None:
@@ -500,17 +500,17 @@ class ModelAlgorithm:
             else:
                 print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                 raise ValueError
-            ppt_formula.update({rscore: _seg})
+            map_score.update({rscore: _seg})
 
         # function of formula
         def formula(x):
-            if x in ppt_formula:
-                return round45r(ppt_formula[x], out_score_decimal)
+            if x in map_score:
+                return round45r(map_score[x], out_score_decimal)
             else:
                 return -1
 
         Result = namedtuple('Result', ('formula', 'map_dict'))
-        return Result(formula, ppt_formula)
+        return Result(formula, map_score)
 
     @classmethod
     def get_tai_formula(cls,
@@ -548,9 +548,13 @@ class ModelAlgorithm:
                 top_level_score=r.this_seg
             else:
                 top_level_score=r.last_seg
+        top_level_score = round45r(df.query(col+'>='+str(top_level_score))[col].mean(), 0)
         section_point_list.append(top_level_score)
 
         _step = -1 if mode_sort_order in ['d', 'descending'] else 1
+
+        # use float value for grade step
+        # to avoid to increase much cumulative error in last section
         grade_step = (top_level_score - raw_score_min)/(grade_num-1)
         for j in range(grade_num-1):
             section_point_list.append(round45r(top_level_score+grade_step*_step*(j+1), 0))
@@ -628,14 +632,16 @@ class ModelAlgorithm:
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
                 )
-                formula = ModelAlgorithm.get_plt_formula(
+                result = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
                     out_section=model_section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimal
-                    ).formula
+                    )
+                formula = result.formula
+                print(result.coeff_raw_out_section_formula)
             elif model_type.lower() == 'ppt':
-                formula = ModelAlgorithm.get_ppt_formula(
+                result = ModelAlgorithm.get_ppt_formula(
                     raw_score_points=map_table.seg,
                     raw_score_percent=map_table[col+'_percent'],
                     out_score_points=[x[0] for x in model_section],
@@ -646,10 +652,12 @@ class ModelAlgorithm:
                     mode_raw_score_max=mode_section_point_first,
                     mode_raw_score_min=mode_section_point_last,
                     out_score_decimal=out_score_decimal
-                    ).formula
+                    )
+                formula = result.formula
+                print(''.format(result.map_dict))
             elif model_type.lower() == 'tai':
                 # print('tai running. . .')
-                formula = ModelAlgorithm.get_tai_formula(
+                result = ModelAlgorithm.get_tai_formula(
                     df=df,
                     col=col,
                     percent_first=model_ratio_pdf[0]/100,
@@ -658,7 +666,11 @@ class ModelAlgorithm:
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
                     grade_num=len(model_section)
-                    ).formula
+                    )
+                print('tai score section: {}'.format(result.section))
+                print('       grade step: {}'.format(result.grade_step))
+                print('        top level: {}'.format(result.top_level))
+                formula=result.formula
             else:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)

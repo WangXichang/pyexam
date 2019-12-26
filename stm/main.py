@@ -15,11 +15,12 @@ def run(
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='descending',
-        mode_section_degraded='map_to_max',
         raw_score_range=(0, 100),
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
+        mode_section_degraded='map_to_max',
+        mode_section_lost='ignore',
         out_decimal_digits=0
         ):
     """
@@ -55,6 +56,16 @@ def run(
                                   'map_to_mean', map to mean value of out score section
                          default= 'map_to_max'
     :param mode_section_point_first: str,
+                           strategy: how to set first point of first section
+                             values: 'real', use real raw score max or min value
+                                     'defined', use test paper full score or least score
+                            default= 'real_max_min'
+    :param mode_section_point_start: str,
+                           strategy: how to set first point of first section
+                             values: 'real', use real raw score max or min value
+                                     'defined', use test paper full score or least score
+                            default= 'real_max_min'
+    :param mode_section_point_last: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
@@ -117,7 +128,10 @@ def run(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
             mode_section_point_first=mode_section_point_first,
+            mode_section_point_start=mode_section_point_start,
+            mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
+            mode_section_lost=mode_section_lost,
             out_decimal_digits=out_decimal_digits
             )
         plt_model.run()

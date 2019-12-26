@@ -131,10 +131,6 @@ class ScoreTransformModel(abc.ABC):
     """
     def __init__(self, model_name=''):
         self.model_name = model_name
-        if model_name in mcfg.Models.keys():
-            self.model_type = mcfg.Models[model_name].type
-        else:
-            self.model_type = 'other'
 
         self.df = pd.DataFrame()
         self.cols = []
@@ -359,7 +355,7 @@ class PltScore(ScoreTransformModel):
         # intit df, outdf, model_name, model_type
         super(PltScore, self).__init__(model_name)
 
-        # new properties for shandong model
+        # new properties
         self.raw_score_ratio_cum = []
         self.out_score_points = []
         self.out_decimal_digits = 0
@@ -371,8 +367,9 @@ class PltScore(ScoreTransformModel):
         self.raw_score_defined_min = None
 
         # strategy
-        self.strategy_dict = {k: mcfg.Strategies[k][0]
-                              for k in mcfg.Strategies}
+        self.strategy_dict = dict()
+        # self.strategy_dict = {k: mcfg.Strategies[k][0]
+        #                       for k in mcfg.Strategies}
 
         # result
         self.map_table = pd.DataFrame()
@@ -419,7 +416,10 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_cumu='no',
                  mode_sort_order='descending',
                  mode_section_point_first='real',
+                 mode_section_point_start='step',
+                 mode_section_point_last='real',
                  mode_section_degraded='map_to_max',
+                 mode_section_lost='ignore',
                  mode_seg_end_share='no',
                  out_decimal_digits=None):
         if len(raw_score_ratio_tuple) != len(out_score_seg_tuple):
@@ -447,8 +447,10 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
         self.strategy_dict['mode_sort_order'] = mode_sort_order
         self.strategy_dict['mode_section_point_first'] = mode_section_point_first
+        self.strategy_dict['mode_section_point_start'] = mode_section_point_start
+        self.strategy_dict['mode_section_point_last'] = mode_section_point_last
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
-        # self.strategy_dict['mode_seg_end_share'] = mode_seg_end_share
+        self.strategy_dict['mode_section_lost'] = mode_section_lost
 
     def check_parameter(self):
         if not self.cols:
@@ -886,19 +888,20 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in map_table
     def make_report(self):
-        self.out_report_doc = '{}[{}]  {}\n'.\
+        self.out_report_doc = '{}[{}] \n'.\
             format('Transform Model: '.rjust(20),
                    self.model_name,
-                   mcfg.Models[self.model_name].desc)
+                   # mcfg.Models[self.model_name].desc
+                   )
         self.out_report_doc += '{}{}\n'.\
             format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
         self.out_report_doc += '---'*40 + '\n'
         self.out_report_doc += format('strategies: ', '>20') + '\n'
 
-        for k in mcfg.Strategies:
+        for k in self.strategy_dict.keys():
             self.out_report_doc += ' ' * 20 + '{0:<50s} {1}'. \
-                format(k + ' = ' + self.strategy_dict[k],
-                       mcfg.Strategies[k]) + '\n'
+                format(k + ' = ', self.strategy_dict[k]) + '\n'
+                       # self.strategy_dict[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             print('   create report ...')
@@ -1217,7 +1220,7 @@ class PltScore(ScoreTransformModel):
                 raw_bar = ax.bar(bar_wid, df, width, label=f)
                 disp_bar = [raw_bar]
                 ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
-                             format(f, self.outdf[f].mean(), self.outdf[f].std(), self.outdf[f].max()))
+                             format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
             else:
                 out_bar = ax.bar(bar_wid, outdf, width, label=f + '_ts')
                 disp_bar = [out_bar]
@@ -1228,7 +1231,7 @@ class PltScore(ScoreTransformModel):
                 make_color = 0
                 for _bar in bars:
                     height = _bar.get_height()
-                    height = height - 2 if height > 3 else height
+                    # height = height - 2 if height > 3 else height
                     xpos = _bar.get_x() + _bar.get_width() / 2
                     # xwid = _bar.get_width()
                     # print(xpos, xwid, height)
