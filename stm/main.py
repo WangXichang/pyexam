@@ -16,8 +16,10 @@ def run(
         mode_ratio_cumu='no',
         mode_sort_order='descending',
         mode_section_degraded='map_to_max',
-        mode_section_point_first='real',
         raw_score_range=(0, 100),
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
         out_decimal_digits=0
         ):
     """
@@ -121,15 +123,29 @@ def run(
         plt_model.run()
         return plt_model
     else:
-        print('no model in modelimp, use run2 to get model!')
-        return
+        print('use run_model cols={}... '.format(cols))
+        result = run_model(model_name=name,
+                           df=df,
+                           cols=cols,
+                           raw_score_max=max(raw_score_range),
+                           raw_score_min=min(raw_score_range),
+                           mode_ratio_prox=mode_ratio_prox,
+                           mode_ratio_cumu=mode_ratio_cumu,
+                           mode_sort_order=mode_sort_order,
+                           mode_section_point_first=mode_section_point_first,
+                           mode_section_point_start=mode_section_point_start,
+                           mode_section_point_last=mode_section_point_last,
+                           mode_section_degraded=mode_section_degraded,
+                           out_score_decimal=out_decimal_digits
+                           )
+        return result
 
 
 # with model_name to get stm score by calling modelfunc.ModelAlgorithm
 def run_model(
-        df,
-        cols,
         model_name='shandong',
+        df=None,
+        cols=(),
         raw_score_max=100,
         raw_score_min=0,
         raw_score_step=1,

@@ -560,7 +560,7 @@ class ModelAlgorithm:
                 section_list.append((x, y))
             else:
                 section_list.append((x+_step, y))
-        print(section_point_list, '\n', section_list)
+        # print(section_point_list, '\n', section_list)
 
         map_dict = dict()
         for si, sp in enumerate(section_point_list[1:]):  # grade_level == si+1
@@ -657,7 +657,7 @@ class ModelAlgorithm:
                     mode_sort_order=mode_sort_order,
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
-                    grade_num=len(model_ratio_pdf)
+                    grade_num=len(model_section)
                     ).formula
             else:
                 raise ValueError
@@ -977,11 +977,12 @@ class SegTable(object):
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        if not isinstance(self.__cols, list):
+        if type(self.__cols) not in [tuple, list]:
+            print(self.__cols)
             if isinstance(self.__cols, str):
                 self.__cols = [self.__cols]
             else:
-                print('error: segfields type({}) error.'.format(type(self.__cols)))
+                print('error: segfields type=({})!'.format(type(self.__cols)))
                 return False
 
         for f in self.__cols:
