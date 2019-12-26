@@ -657,7 +657,7 @@ class ModelAlgorithm:
                         raw_section.percent,
                         model_section
                         )):
-                    print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
+                    print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                           'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
                           format(i + 1,
                                  cumu_ratio,

@@ -3,13 +3,7 @@
 import pandas as pd
 import importlib as pb
 import sys
-for mname, model in [('stm.mbas', 'modelbase'), ('stm.mutl', 'modelutil'),
-              ('stm.mlib', 'modellib'), ('stm.mcfg', 'modelconfig')]:
-    if mname in sys.modules:
-        pb.reload(mname.split('.')[1])
-    else:
-        exec('from ' + mname.split('.')[0] + ' import ' + model + ' as ' + mname.split('.')[1])
-# from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelconfig as mcfg
+from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelconfig as mcfg
 
 
 def exp(name='shandong'):
@@ -31,7 +25,8 @@ def run(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        out_decimal_digits=0
+        out_decimal_digits=0,
+        reload_modules=False
         ):
     """
     :param name: str, model name,
@@ -90,6 +85,15 @@ def run(
 
     :return: model: instance of model class, subclass of ScoreTransformModel
     """
+
+    if reload_modules:
+        for n1, n2, n3 in [('stm', 'mbas', 'modelbase'), ('stm', 'mutl', 'modelutil'),
+                           ('stm', 'mlib', 'modellib'), ('stm', 'mcfg', 'modelconfig')]:
+            print('stm modules:'.rjust(20),[x for x in sys.modules if 'stm' in x])
+            if n1+'.'+n3 in sys.modules:
+                print('reload:'.rjust(20) + n1 + '.' + n3)
+                exec('pb.reload('+n2+')')
+                # print(mcfg.Models['zhejiang'].ratio)
 
     # check model name
     name = name.lower()
