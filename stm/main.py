@@ -3,7 +3,7 @@
 import pandas as pd
 import importlib as pb
 import sys
-from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelconfig as mcfg
+from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelin as mcfg
 
 
 def exp(name='shandong'):

@@ -70,8 +70,13 @@ zscoremodel = mlib.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 1
 tscoremodel = mlib.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 
 # model including: type,    transfrom mode, in ['plt', 'ppt', 'tai']
-#                  ratio,   used to get raw score section in plt, to define out score percent in ppt
-#                  section, out score section
+#                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3
+#                           ppt: hn900, hn300, zscore, tscore
+#                           tai: tai
+#                  ratio,   tuple, list     # used to get raw score section in plt, to define out score percent in ppt
+#                           sum==100
+#                  section, tuple or list of tuple or list     # out score section
+#                           len(section) == len(ratio);  p1>=p2 for each (p1, p2) in section
 #                  desc,    describing model
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models = {
