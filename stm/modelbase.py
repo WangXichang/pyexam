@@ -104,7 +104,7 @@ import scipy.stats as sts
 import seaborn as sbn
 
 # stm import
-from stm import modelin as mcfg
+from stm import modelsetin as mcfg
 from stm import modellib as mlib
 
 warnings.filterwarnings('ignore')

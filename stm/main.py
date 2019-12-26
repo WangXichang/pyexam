@@ -3,7 +3,7 @@
 import pandas as pd
 import importlib as pb
 import sys
-from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelin as mcfg
+from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelsetin as msin
 
 
 def exp(name='shandong'):
@@ -86,19 +86,19 @@ def run(
     :return: model: instance of model class, subclass of ScoreTransformModel
     """
 
-    # reload modules if any chenges done, especially in modelconfig.Models
+    # reload modules if any chenges done, especially in modelsetin.Models
     if reload_modules:
         print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
         for n1, n2, n3 in [('stm', 'mbas', 'modelbase'), ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib', 'modellib'), ('stm', 'mcfg', 'modelconfig')]:
+                           ('stm', 'mlib', 'modellib'), ('stm', 'msin', 'modelsetin')]:
             if n1+'.'+n3 in sys.modules:
                 print('reload:'.rjust(20) + ' '+ n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
 
     # check model name
     name = name.lower()
-    if name.lower() not in mcfg.Models.keys():
-        print('invalid name, not in {}'.format(list(mcfg.Models.keys())))
+    if name.lower() not in msin.Models.keys():
+        print('invalid name, not in {}'.format(list(msin.Models.keys())))
         return
 
     # check input data: DataFrame
@@ -128,14 +128,14 @@ def run(
         return
 
     # ratio-seg score model: plt, ppt
-    if (name in mcfg.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in mcfg.Models[name].ratio)
+    if (name in msin.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
+        ratio_tuple = tuple(x * 0.01 for x in msin.Models[name].ratio)
         plt_model = mbas.PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=mcfg.Models[name].section,
+            out_score_seg_tuple=msin.Models[name].section,
             raw_score_defined_max=max(raw_score_range),
             raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -190,9 +190,9 @@ def run_model(
     return mlib.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
-        model_ratio_pdf=mcfg.Models[model_name].ratio,
-        model_section=mcfg.Models[model_name].section,
-        model_type=mcfg.Models[model_name].type.lower(),
+        model_ratio_pdf=msin.Models[model_name].ratio,
+        model_section=msin.Models[model_name].section,
+        model_type=msin.Models[model_name].type.lower(),
         raw_score_max=raw_score_max,
         raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,

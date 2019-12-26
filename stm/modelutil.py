@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import modelin as mcfg, main as main
+from stm import modelsetin as mcfg, main as main
 
 
 def plot_models(font_size=12, hainan='900'):
