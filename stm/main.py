@@ -86,14 +86,14 @@ def run(
     :return: model: instance of model class, subclass of ScoreTransformModel
     """
 
+    # reload modules if any chenges done, especially in modelconfig.Models
     if reload_modules:
+        print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
         for n1, n2, n3 in [('stm', 'mbas', 'modelbase'), ('stm', 'mutl', 'modelutil'),
                            ('stm', 'mlib', 'modellib'), ('stm', 'mcfg', 'modelconfig')]:
-            print('stm modules:'.rjust(20),[x for x in sys.modules if 'stm' in x])
             if n1+'.'+n3 in sys.modules:
-                print('reload:'.rjust(20) + n1 + '.' + n3)
+                print('reload:'.rjust(20) + ' '+ n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
-                # print(mcfg.Models['zhejiang'].ratio)
 
     # check model name
     name = name.lower()
