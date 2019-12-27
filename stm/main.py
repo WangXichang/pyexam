@@ -50,7 +50,7 @@ def run(
         mode_section_lost='ignore',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
-        reload_modules=False
+        reload=False,
         ):
     """
     :param model_name: str, model name,
@@ -137,11 +137,7 @@ def run(
     # check model name
     model_name = model_name.lower()
     if model_name.lower() not in msin.Models.keys():
-        print('invalid name, not in {}'.format(list(msin.Models.keys())))
-        return
-    name = name.lower()
-    if name.lower() not in msin.Models.keys():
-        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(name))
+        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
         return None
 
     # check input data: DataFrame
@@ -185,9 +181,9 @@ def run(
             (model_name not in ['tai', 'zscore', 'tscore']):
         ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
         plt_model = mlib.PltScore(model_name)
-    if (name in msin.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in msin.Models[name].ratio)
-        plt_model = mlib.PltScore(name)
+    if (model_name in msin.Models.keys()) and (model_name not in ['tai', 'zscore', 'tscore']):
+        ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
+        plt_model = mlib.PltScore(model_name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
