@@ -93,7 +93,7 @@ def check_model(
     if abs(sum(model_ratio) - 100) > 10**-12:
         print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
         return False
-    if model_desc is not str:
+    if not isinstance(model_desc, str):
         print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
     if model_type == 'ppt':
         if not all([x == y for x, y in model_section]):

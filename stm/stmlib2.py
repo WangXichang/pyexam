@@ -521,7 +521,7 @@ class ModelAlgorithm:
         return Result(formula, map_score, dest_ratio_list, real_ratio_list)
 
     @classmethod
-    def get_tai_formula(cls,
+    def get_pgt_formula(cls,
                         df,
                         col,
                         percent_first=0.01,
@@ -690,9 +690,9 @@ class ModelAlgorithm:
                       ', '.join([format(x, '>6d') for x in result.map_dict.keys()]),
                       ', '.join([format(int(result.map_dict[x]), '>6d') for x in result.map_dict.keys()])
                       ))
-            elif model_type.lower() == 'tai':
-                # print('tai running. . .')
-                result = ModelAlgorithm.get_tai_formula(
+            elif model_type.lower() == 'pgt':
+                # print('pgt running. . .')
+                result = ModelAlgorithm.get_pgt_formula(
                     df=df,
                     col=col,
                     percent_first=model_ratio_pdf[0]/100,

@@ -26,7 +26,7 @@ def run(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         out_decimal_digits=0,
-        reload=False
+        reload=True,
         ):
     """
     :param name: str, model name,
@@ -87,14 +87,14 @@ def run(
     """
 
     # reload modules if any chenges done, especially in modelsetin.Models
+    # reload modules: [x for x in sys.modules if 'stm' in x]
     if reload:
+        print('reload modules ...')
         exec('import importlib as pb')
-        print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
         for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
                            ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
                            ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
-                print('reload:'.rjust(20) + ' ' + n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
 
     for mk in mext.Models_ext.keys():
@@ -105,34 +105,43 @@ def run(
                                 model_ratio=m.ratio,
                                 model_section=m.section,
                                 model_desc=m.desc
-                            ):
+                                ):
             print('model:{} in modelext defined incorrect!'.format(mk))
-            return None
         else:
             msin.Models.update(mext.Models_ext)
 
     # check model name
     name = name.lower()
     if name.lower() not in msin.Models.keys():
-        print('invalid name, not in {}'.format(list(msin.Models.keys())))
-        return
+        print('error name: name={} not in modelsetin.Models!'.format(list(msin.Models.keys())))
+        return None
 
     # check input data: DataFrame
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
             df = pd.DataFrame(df)
         else:
-            print('no score dataframe!')
+            print('error data: df is not a pandas.DataFrame or pandas.Series!')
             return
-    else:
-        df = df
 
     # check col
     if isinstance(cols, str):
         cols = [cols]
+    # condition is: sequence and element is str and is a column name in columns
     elif type(cols) not in (list, tuple):
-        print('invalid cols type:{}!'.format(type(cols)))
-        return
+        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        return None
+
+    # check col type
+    import numbers
+    if len(df) > 0:
+        for col in cols:
+            if col not in df.columns:
+                print('error col: [{}] is not a name of df columns!'.format(col))
+                return None
+            if not isinstance(df[col][0], numbers.Number):
+                print('type error: column[{}] not Number type!'.format(col))
+                return None
 
     # check mode_ratio_prox
     if mode_ratio_prox not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
