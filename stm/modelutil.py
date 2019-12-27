@@ -234,7 +234,7 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = main.run(name=name,
+        m = main.run(model_name=name,
                      df=dfscore, cols=['kmx'],
                      mode_ratio_prox=mode_ratio_prox,
                      mode_ratio_cumu=mode_ratio_cumu

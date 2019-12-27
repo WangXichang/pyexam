@@ -130,8 +130,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = main.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = main.run(name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
+        ra = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -183,7 +183,7 @@ class TestShandongData():
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
             m = main.run(
-                name=name,
+                model_name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_prox=mode_ratio_prox,

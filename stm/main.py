@@ -1,5 +1,31 @@
 # coding: utf-8
 
+
+"""
+what in this module:
+    (1) function: run
+    run() is an interface to call stmlib or stmlib2
+    return model(stmlib.ScoreTransform) or result(stmlib2.get_stm_score.Result: (map_table, df))
+    if model_name in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
+                      'shandong', 'guangdong', 'SS7', 'hn900', 'hn300',
+                      'hn300plt1', 'hn300plt2', 'hn300plt3']
+        use stmlib.PltScore
+    then
+        call stmlib2.get_stm_score
+    (2) function: run_model
+    run_model() is an interface to call stmlib2 with model_name, df, cols
+        and other parameters(score range, strategies, out score decimal digits)
+    (3) function: run_para
+    run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
+        and other parameters(score range, strategies, out score decimal digits)
+
+How to use modelext:
+    if use model in modelext.Models_ext,
+    must call run() with reload=True, that will check and add models in Models_ext to modelsetin.Models
+    so run can use model_name to find model in Models
+"""
+
+
 import pandas as pd
 import importlib as pb
 import sys
@@ -8,33 +34,33 @@ from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelset
 
 def exp(name='shandong'):
     td = mutl.TestData()()
-    return run(name=name, df=td, cols='km1')
+    return run(model_name=name, df=td, cols='km1')
 
 
-# interface to use model for some typical application
 def run(
-        name='shandong',
+        model_name='shandong',
         df=None,
         cols=(),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='descending',
-        raw_score_range=(0, 100),
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        out_decimal_digits=0,
+        raw_score_range=(0, 100),
+        out_score_decimal_digits=0,
         reload_modules=False
         ):
     """
-    :param name: str, model name,
+    :param model_name: str, model name,
                  values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
                          'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
                          'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
                          'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
-                         'zscore', 'tscore', 'tlinear'                  # ppt model for z, t, t-linear transform score
+                         'zscore', 'tscore'                             # ppt model for z, t, t-linear transform score
+                         'tai'                                          # pgt model for taiwan grade score model
                  default = 'shandong'
     :param df: DataFrame,
        values: raw score data, instance of pandas.DataFrame, including score field, which type must be int or float
@@ -79,7 +105,7 @@ def run(
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
                    default= (0, 100)
-    :param out_decimal_digits: int,
+    :param out_score_decimal_digits: int,
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
 
@@ -96,8 +122,8 @@ def run(
                 exec('pb.reload('+n2+')')
 
     # check model name
-    name = name.lower()
-    if name.lower() not in msin.Models.keys():
+    model_name = model_name.lower()
+    if model_name.lower() not in msin.Models.keys():
         print('invalid name, not in {}'.format(list(msin.Models.keys())))
         return
 
@@ -128,14 +154,15 @@ def run(
         return
 
     # ratio-seg score model: plt, ppt
-    if (name in msin.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in msin.Models[name].ratio)
-        plt_model = mbas.PltScore(name)
+    if (model_name in msin.Models.keys()) and \
+            (model_name not in ['tai', 'zscore', 'tscore']):
+        ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
+        plt_model = mbas.PltScore(model_name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=msin.Models[name].section,
+            out_score_seg_tuple=msin.Models[model_name].section,
             raw_score_defined_max=max(raw_score_range),
             raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -146,13 +173,13 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            out_decimal_digits=out_decimal_digits
+            out_decimal_digits=out_score_decimal_digits
             )
         plt_model.run()
         return plt_model
     else:
         print('use run_model cols={}... '.format(cols))
-        result = run_model(model_name=name,
+        result = run_model(model_name=model_name,
                            df=df,
                            cols=cols,
                            raw_score_max=max(raw_score_range),
@@ -164,7 +191,7 @@ def run(
                            mode_section_point_start=mode_section_point_start,
                            mode_section_point_last=mode_section_point_last,
                            mode_section_degraded=mode_section_degraded,
-                           out_score_decimal=out_decimal_digits
+                           out_score_decimal_digits=out_score_decimal_digits
                            )
         return result
 
@@ -185,7 +212,7 @@ def run_model(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        out_score_decimal=0,
+        out_score_decimal_digits=0,
         ):
     return mlib.ModelAlgorithm.get_stm_score(
         df=df,
@@ -204,7 +231,7 @@ def run_model(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimal=out_score_decimal,
+        out_score_decimal=out_score_decimal_digits,
         )
 
 
@@ -226,7 +253,7 @@ def run_para(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        out_score_decimal=0,
+        out_score_decimal_digits=0,
         ):
     return mlib.ModelAlgorithm.get_stm_score(
         df=df,
@@ -245,5 +272,5 @@ def run_para(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimal=out_score_decimal,
+        out_score_decimal=out_score_decimal_digits,
         )
