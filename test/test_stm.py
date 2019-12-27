@@ -5,7 +5,8 @@ import pandas as pd
 import importlib as pb
 import os
 from collections import namedtuple as ntp
-from stm import main, modelutil as mtl, modellib as mlib
+import scipy.stats as sts
+from stm import main, modelutil as mutl, stmlib2 as mlib, modelext as mext, modelsetin as msetin
 
 
 # 有关stm测试的问题：
@@ -126,7 +127,7 @@ def test_hainan(mean=60, size=60000, std=16):
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
     # data1
     #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
-    test_data = mtl.TestData(mean=mean, std=std, size=size)
+    test_data = mutl.TestData(mean=mean, std=std, size=size)
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
@@ -197,3 +198,63 @@ class TestShandongData():
         for m in self.models_list:
             _root = 'e:/mywrite/newgk/gkdata/report/report_'
             m[1].save_report_to_file(_root + m[0] + '.txt')
+
+
+def test_stm_with_stat_data(
+        name='shandong',
+        mode_ratio_cumu='no',
+        mode_ratio_prox='upper_min',
+        score_max=100,
+        score_min=0,
+        data_size=1000,
+        data_no=1
+        ):
+
+    if name.lower() not in msetin.Models.key():
+        print('Invalid model name:{}! \ncorrect model name in: [{}]'.
+              format(name, ','.join(msetin.Models.key())))
+        return None
+
+    # create data set
+    print('create test dataset...')
+
+    # --- normal data set
+    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
+    norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
+    norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
+
+    # --- discrete data set
+    norm_data2 = []
+    for x in range(score_min, score_max, 5):
+        if x < (score_min+score_max)/2:
+            norm_data2 += [x] * (x % 3)
+        else:
+            norm_data2 += [x] * (100-x+2)
+
+    # --- triangle data set
+    norm_data3 = []
+    for x in range(0, score_max+1):
+        if x < (score_min+score_max)/2:
+            norm_data3 += [x]*(2*x+1)
+        else:
+            norm_data3 += [x]*2*(score_max-x+1)
+
+    # --- triangle data set
+    norm_data4 = mutl.TestData(mean=60, size=500000)
+    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
+    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: {35: 0, 36: 3, 37: 5}.get(x, 0) if 35<= x < 38 else x)
+
+    test_data = map(lambda d: pd.DataFrame({'kmx': d}), [norm_data1, norm_data2, norm_data3, list(norm_data4.df.km1)])
+    test_data = list(test_data)
+    dfscore = test_data[data_no-1]
+
+    if name in msetin.Models.keys():
+        print('plt model={}'.format(name))
+        print('data set size={}, score range from {} to {}'.
+              format(data_size, score_min, score_max))
+        m = main.run(name=name,
+                     df=dfscore, cols=['kmx'],
+                     mode_ratio_prox=mode_ratio_prox,
+                     mode_ratio_cumu=mode_ratio_cumu
+                     )
+        return m

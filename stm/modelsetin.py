@@ -56,12 +56,13 @@
 
 
 from collections import namedtuple
-from stm import modellib as mlib
+from stm import stmlib2 as mlib
 
 
 # model type
-MODEL_TYPE_PLT = 'plt'      # piecewise linear transform
-MODEL_TYPE_PPT = 'ppt'      # standard score transform
+MODEL_TYPE_PLT = 'plt'      # piece-section linear transform
+MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transform
+MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
 hn900model = mlib.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
@@ -153,7 +154,7 @@ Models = {
                                 'piecewise linear transform model with ratio-segment'
                                 ),
     'tai':          ModelFields(
-                                'tai',
+                                MODEL_TYPE_PGT,
                                 [1 for _ in range(15)],     # only first==1 is useful
                                 tuple((i+1, i+1) for i in range(15)),
                                 'piecewise linear transform model with ratio-segment'

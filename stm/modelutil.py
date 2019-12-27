@@ -5,16 +5,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import modelsetin as mcfg, main as main
+from stm import modelsetin as msetin, main as main, modelext as mext
 
 
-def plot_models(font_size=12, hainan='900'):
+def plot_models(font_size=12):
     _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
-    if hainan == '300':
-        _names.remove('hn900')
-        _names.append('hn300')
-    elif hainan is None:
-        _names.remove('hn900')
     ms_dict = dict()
     for _name in _names:
         ms_dict.update({_name: get_model_describe(name=_name)})
@@ -32,10 +27,10 @@ def plot_models(font_size=12, hainan='900'):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in mcfg.Models[k].section][::-1]
+            x_data = [np.mean(x) for x in msetin.Models[k].section][::-1]
             _wid = 10
         elif k in ['ss7']:
-            x_data = [np.mean(x) for x in mcfg.Models[k].section][::-1]
+            x_data = [np.mean(x) for x in msetin.Models[k].section][::-1]
             _wid = 10
         elif k in ['hn900']:
             x_data = [x for x in range(100, 901)]
@@ -45,21 +40,21 @@ def plot_models(font_size=12, hainan='900'):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, mcfg.Models[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, msetin.Models[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
-def show_models(cls):
-    for k in mcfg.Models:
-        v = mcfg.Models[k]
+def show_models():
+    for k in msetin.Models:
+        v = msetin.Models[k]
         print('{:<20s} {},  {} '.format(k, v.type, v.desc))
         print('{:<20s} {}'.format(' ', v.ratio))
         print('{:<20s} {}'.format('', v.section))
 
 
 def get_model_describe(name='shandong'):
-    __ratio = mcfg.Models[name].ratio
-    __section = mcfg.Models[name].section
+    __ratio = msetin.Models[name].ratio
+    __section = msetin.Models[name].section
     if name == 'hn900':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'hn300':
@@ -71,38 +66,65 @@ def get_model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def add_model(
-              model_name=None, 
-              model_type='plt', 
-              model_ratio=None, 
-              model_section=None, 
-              model_desc=''):
-    if model_type not in ['ppt', 'plt']:
-        print('error model type={}, valid type:{}'.format(model_type, ['ppt', 'plt']))
-        return
-    if model_name in mcfg.Models:
-        print('name existed in current mcf.Models_dict!')
-        return
+def check_model(model_name):
+    r1, r2 = False, False
+    if model_name in msetin.Models.keys():
+        r1 = check_model_para(
+            model_name,
+            msetin.Models[model_name].type,
+            msetin.Models[model_name].ratio,
+            msetin.Models[model_name].section,
+            msetin.Models[model_name].desc)
+    if model_name in mext.Models_ext.keys():
+        r2 = check_model_para(
+            model_name,
+            mext.Models_ext[model_name].type,
+            mext.Models_ext[model_name].ratio,
+            mext.Models_ext[model_name].section,
+            mext.Models_ext[model_name].desc
+        )
+    if not(r1 or r2):
+        print('error name: [{}] not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+        return False
+    if (model_name in mext.Models_ext.keys()) and (not r2):
+        return False
+    return True
+
+
+def check_model_para(
+                model_name=None,
+                model_type='plt',
+                model_ratio=None,
+                model_section=None,
+                model_desc=''
+                ):
+    if model_type not in ['ppt', 'plt', 'pgt']:
+        print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
+        return False
+    if model_name in msetin.Models:
+        print('warning: name collision! {} existed in modelsetin.Models!'.format(model_name))
+        # return False
     if len(model_ratio) != len(model_section):
-        print('ratio is not same as segment !')
-        return
+        print('error length: the length of ratio group is not same as section group length !')
+        return False
     for s in model_section:
         if len(s) > 2:
-            print('segment is not 2 endpoints: {}-{}'.format(s[0], s[1]))
-            return
+            print('error section: section must have 2 endpoints, real value: {}'.format(s))
+            return False
         if s[0] < s[1]:
-            print('the order is from large to small: {}-{}'.format(s[0], s[1]))
-            return
-    if not all([s1 >= s2 for s1, s2 in zip(model_section[:-1], model_section[1:])]):
-        print('section endpoints order is not from large to small!')
-        return
-    mcfg.Models.update({model_name:
-                       mcfg.ModelFields(
-                                       model_type,
-                                       model_ratio,
-                                       model_section,
-                                       model_desc
-                       )})
+            print('error order: section endpoint order must be from large to small, '
+                  'there: p1({}) < p2({})'.format(s[0], s[1]))
+            return False
+    if abs(sum(model_ratio) - 100) > 10**-12:
+        print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
+        return False
+    if not isinstance(model_desc, str):
+        print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+    if model_type == 'ppt':
+        if not all([x == y for x, y in model_section]):
+            print('error section: ppt section, two endpoints must be same value!')
+            return False
+    return True
 
 
 # create normal distributed data N(mean,std), [-std*stdNum, std*stdNum], sample points = size
@@ -180,63 +202,3 @@ class TestData:
 
     def __call__(self):
         return self.df
-
-
-def test_stm_with_stat_data(
-        name='shandong',
-        mode_ratio_cumu='no',
-        mode_ratio_prox='upper_min',
-        score_max=100,
-        score_min=0,
-        data_size=1000,
-        data_no=1
-        ):
-
-    if name.lower() not in mcfg.Models.key():
-        print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(mcfg.Models.key())))
-        return None
-
-    # create data set
-    print('create test dataset...')
-
-    # --- normal data set
-    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
-    norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
-    norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
-
-    # --- discrete data set
-    norm_data2 = []
-    for x in range(score_min, score_max, 5):
-        if x < (score_min+score_max)/2:
-            norm_data2 += [x] * (x % 3)
-        else:
-            norm_data2 += [x] * (100-x+2)
-
-    # --- triangle data set
-    norm_data3 = []
-    for x in range(0, score_max+1):
-        if x < (score_min+score_max)/2:
-            norm_data3 += [x]*(2*x+1)
-        else:
-            norm_data3 += [x]*2*(score_max-x+1)
-
-    # --- triangle data set
-    norm_data4 = TestData(mean=60, size=500000)
-    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
-    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: {35: 0, 36: 3, 37: 5}.get(x, 0) if 35<= x < 38 else x)
-
-    test_data = map(lambda d: pd.DataFrame({'kmx': d}), [norm_data1, norm_data2, norm_data3, list(norm_data4.df.km1)])
-    test_data = list(test_data)
-    dfscore = test_data[data_no-1]
-
-    if name in mcfg.Models.keys():
-        print('plt model={}'.format(name))
-        print('data set size={}, score range from {} to {}'.
-              format(data_size, score_min, score_max))
-        m = main.run(model_name=name,
-                     df=dfscore, cols=['kmx'],
-                     mode_ratio_prox=mode_ratio_prox,
-                     mode_ratio_cumu=mode_ratio_cumu
-                     )
-        return m

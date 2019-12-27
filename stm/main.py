@@ -27,9 +27,8 @@ How to use modelext:
 
 
 import pandas as pd
-import importlib as pb
 import sys
-from stm import modelbase as mbas, modelutil as mutl, modellib as mlib, modelsetin as msin
+from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msin, modelext as mext
 
 
 def exp(name='shandong'):
@@ -101,6 +100,12 @@ def run(
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
                             default= 'real_max_min'
+    :param mode_section_lost: str,
+                           strategy: how to prosess lost section
+                             values: 'ignore', use real raw score max or min value
+                                     'next_one',
+                                     'next_one',
+                            default= 'ignore'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
@@ -113,36 +118,58 @@ def run(
     """
 
     # reload modules if any chenges done, especially in modelsetin.Models
-    if reload_modules:
-        print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
-        for n1, n2, n3 in [('stm', 'mbas', 'modelbase'), ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib', 'modellib'), ('stm', 'msin', 'modelsetin')]:
+    # reload modules: [x for x in sys.modules if 'stm' in x]
+    if reload:
+        print('reload modules ...')
+        exec('import importlib as pb')
+        for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
+                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
+                           ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
-                print('reload:'.rjust(20) + ' '+ n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
+        # add Models_ext to Models
+        for mk in mext.Models_ext.keys():
+            if not mutl.check_model(model_name=mk):
+                print('error model: model={} defined incorrectly!'.format(mk))
+                return False
+            msin.Models.update({mk: mext.Models_ext[mk]})
 
     # check model name
     model_name = model_name.lower()
     if model_name.lower() not in msin.Models.keys():
         print('invalid name, not in {}'.format(list(msin.Models.keys())))
         return
+    name = name.lower()
+    if name.lower() not in msin.Models.keys():
+        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(name))
+        return None
 
     # check input data: DataFrame
     if type(df) != pd.DataFrame:
         if type(df) == pd.Series:
             df = pd.DataFrame(df)
         else:
-            print('no score dataframe!')
+            print('error data: df is not a pandas.DataFrame or pandas.Series!')
             return
-    else:
-        df = df
 
     # check col
     if isinstance(cols, str):
         cols = [cols]
+    # condition is: sequence and element is str and is a column name in columns
     elif type(cols) not in (list, tuple):
-        print('invalid cols type:{}!'.format(type(cols)))
-        return
+        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        return None
+
+    # check col type
+    import numbers
+    if len(df) > 0:
+        for col in cols:
+            if col not in df.columns:
+                print('error col: [{}] is not a name of df columns!'.format(col))
+                return None
+            if not isinstance(df[col][0], numbers.Number):
+                print('type error: column[{}] not Number type!'.format(col))
+                return None
 
     # check mode_ratio_prox
     if mode_ratio_prox not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
@@ -157,7 +184,10 @@ def run(
     if (model_name in msin.Models.keys()) and \
             (model_name not in ['tai', 'zscore', 'tscore']):
         ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
-        plt_model = mbas.PltScore(model_name)
+        plt_model = mlib.PltScore(model_name)
+    if (name in msin.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
+        ratio_tuple = tuple(x * 0.01 for x in msin.Models[name].ratio)
+        plt_model = mlib.PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
@@ -214,12 +244,23 @@ def run_model(
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
         ):
-    return mlib.ModelAlgorithm.get_stm_score(
+    if model_name in msin.Models.keys():
+        model = msin.Models[model_name]
+    elif model_name in mext.Models_ext.keys():
+        if mutl.check_model(mext.Models_ext):
+            model = mext.Models_ext[model_name]
+        else:
+            return None
+    else:
+        print('error model: {} is not in modelsetin.Models or modelext.Models_ext!'.format(model_name))
+        return None
+
+    return mlib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
-        model_ratio_pdf=msin.Models[model_name].ratio,
-        model_section=msin.Models[model_name].section,
-        model_type=msin.Models[model_name].type.lower(),
+        model_ratio_pdf=model.ratio,
+        model_section=model.section,
+        model_type=model.type.lower(),
         raw_score_max=raw_score_max,
         raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,
@@ -235,8 +276,8 @@ def run_model(
         )
 
 
-# run to get stm score by calling methods in modelapi.ModelAlgorithm
-def run_para(
+# run to get stm score by calling methods in stmlib2.ModelAlgorithm
+def run_lib2(
         df,
         cols,
         model_ratio_pdf,
@@ -255,7 +296,7 @@ def run_para(
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
         ):
-    return mlib.ModelAlgorithm.get_stm_score(
+    return mlib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,
