@@ -105,7 +105,7 @@ import seaborn as sbn
 
 # stm import
 from stm import modelsetin as mcfg
-from stm import modellib as mlib
+from stm import stmlib2 as mlib
 
 warnings.filterwarnings('ignore')
 

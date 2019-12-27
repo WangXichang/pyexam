@@ -56,7 +56,7 @@
 
 
 from collections import namedtuple
-from stm import modellib as mlib
+from stm import stmlib2 as mlib
 
 
 # model type
