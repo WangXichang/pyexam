@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import modelsetin as msetin, main as main
+from stm import modelsetin as msetin, main as main, modelext as mext
 
 
 def plot_models(font_size=12):
@@ -66,7 +66,32 @@ def get_model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def check_model(
+def check_model(model_name):
+    r1, r2 = False, False
+    if model_name in msetin.Models.keys():
+        r1 = check_model_para(
+            model_name,
+            msetin.Models[model_name].type,
+            msetin.Models[model_name].ratio,
+            msetin.Models[model_name].section,
+            msetin.Models[model_name].desc)
+    if model_name in mext.Models_ext.keys():
+        r2 = check_model_para(
+            model_name,
+            mext.Models_ext[model_name].type,
+            mext.Models_ext[model_name].ratio,
+            mext.Models_ext[model_name].section,
+            mext.Models_ext[model_name].desc
+        )
+    if not(r1 or r2):
+        print('error name: [{}] not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+        return False
+    if (model_name in mext.Models_ext.keys()) and (not r2):
+        return False
+    return True
+
+
+def check_model_para(
                 model_name=None,
                 model_type='plt',
                 model_ratio=None,
@@ -177,63 +202,3 @@ class TestData:
 
     def __call__(self):
         return self.df
-
-
-def test_stm_with_stat_data(
-        name='shandong',
-        mode_ratio_cumu='no',
-        mode_ratio_prox='upper_min',
-        score_max=100,
-        score_min=0,
-        data_size=1000,
-        data_no=1
-        ):
-
-    if name.lower() not in msetin.Models.key():
-        print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(msetin.Models.key())))
-        return None
-
-    # create data set
-    print('create test dataset...')
-
-    # --- normal data set
-    norm_data1 = [sts.norm.rvs() for _ in range(data_size)]
-    norm_data1 = [-4 if x < -4 else (4 if x > 4 else x) for x in norm_data1]
-    norm_data1 = [int(x * (score_max - score_min) / 8 + (score_max + score_min) / 2) for x in norm_data1]
-
-    # --- discrete data set
-    norm_data2 = []
-    for x in range(score_min, score_max, 5):
-        if x < (score_min+score_max)/2:
-            norm_data2 += [x] * (x % 3)
-        else:
-            norm_data2 += [x] * (100-x+2)
-
-    # --- triangle data set
-    norm_data3 = []
-    for x in range(0, score_max+1):
-        if x < (score_min+score_max)/2:
-            norm_data3 += [x]*(2*x+1)
-        else:
-            norm_data3 += [x]*2*(score_max-x+1)
-
-    # --- triangle data set
-    norm_data4 = TestData(mean=60, size=500000)
-    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
-    norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: {35: 0, 36: 3, 37: 5}.get(x, 0) if 35<= x < 38 else x)
-
-    test_data = map(lambda d: pd.DataFrame({'kmx': d}), [norm_data1, norm_data2, norm_data3, list(norm_data4.df.km1)])
-    test_data = list(test_data)
-    dfscore = test_data[data_no-1]
-
-    if name in msetin.Models.keys():
-        print('plt model={}'.format(name))
-        print('data set size={}, score range from {} to {}'.
-              format(data_size, score_min, score_max))
-        m = main.run(name=name,
-                     df=dfscore, cols=['kmx'],
-                     mode_ratio_prox=mode_ratio_prox,
-                     mode_ratio_cumu=mode_ratio_cumu
-                     )
-        return m

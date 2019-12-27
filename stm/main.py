@@ -102,26 +102,17 @@ def run(
                            ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
-
-    for mk in mext.Models_ext.keys():
-        m = mext.Models_ext[mk]
-        if mk in msin.Models.keys():
-            continue
-        if not mutl.check_model(
-                                model_name=mk,
-                                model_type=m.type,
-                                model_ratio=m.ratio,
-                                model_section=m.section,
-                                model_desc=m.desc
-                                ):
-            print('error model: {} in modelext defined incorrectly!'.format(mk))
-        else:
-            msin.Models.update(mext.Models_ext)
+        # add Models_ext to Models
+        for mk in mext.Models_ext.keys():
+            if not mutl.check_model(model_name=mk):
+                print('error model: model={} defined incorrectly!'.format(mk))
+                return False
+            msin.Models.update({mk: mext.Models_ext[mk]})
 
     # check model name
     name = name.lower()
     if name.lower() not in msin.Models.keys():
-        print('error name: name={} not in modelsetin.Models!'.format(list(msin.Models.keys())))
+        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(name))
         return None
 
     # check input data: DataFrame

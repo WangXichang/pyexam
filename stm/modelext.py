@@ -1,6 +1,8 @@
 # coding: utf-8
 
 """
+    本模块用于增加新的模型，或修改自定义模型。
+
     定义模型
     （1）模型
     模型由一个名称name和带有4个字段的tuple组成。
@@ -17,8 +19,9 @@
                   }
     （2）参数描述
      1）name
-    模型名称，不能与已有名称（modelsetin.Models.keys()）重复, 否则会覆盖内置的模型;
-    
+    模型名称，尽量避免与 modelsetin.Models 中的已有名称重复, 否则会覆盖内置的模型;
+    可以通过查看modelsetin 或 使用 name in modelsetin.Models.keys() 进行检查。
+    使用main.run(..., reload=True)时会检查提示。
      2）type
     'plt',    # 分段线性转换 piecewise linear transform
     'ppt'     # 逐点转换 piecewise point transform
@@ -34,7 +37,9 @@
     在plt中，用于将原始分数的每个区间映射到section区间，端点根据标准确定。
     在ppt中，用于将原始分数的每个分值映射到section端点，ppt的区间端点值是相等的，为本分值。
     在pgt中，用于将原始分数等级区间值映射到section端点, pgt的区间端点值是相同的，为本等级值。
-    
+
+    注1：如果在本模块中修改增加了模型，使用main.run时需要设置reload=True，重新载入Models_ext
+    注2：在使用 main.run 或 main.run_model 调用新定义的模型前，可以使用modelutil.check_model检查是否存在设置问题。
 """
 
 
@@ -50,5 +55,3 @@ Models_ext = {
                           'section wise linear transform model'
                           ),
     }
-# note: must check the model by modelutil.check_model
-#       then can use the model in main.run, main.run_model
