@@ -99,6 +99,8 @@ def run(
 
     for mk in mext.Models_ext.keys():
         m = mext.Models_ext[mk]
+        if mk in msin.Models.keys():
+            continue
         if not mutl.check_model(
                                 model_name=mk,
                                 model_type=m.type,
@@ -106,7 +108,7 @@ def run(
                                 model_section=m.section,
                                 model_desc=m.desc
                                 ):
-            print('model:{} in modelext defined incorrect!'.format(mk))
+            print('error model: {} in modelext defined incorrectly!'.format(mk))
         else:
             msin.Models.update(mext.Models_ext)
 
@@ -212,12 +214,23 @@ def run_model(
         mode_section_lost='ignore',
         out_score_decimal=0,
         ):
+    if model_name in msin.Models.keys():
+        model = msin.Models[model_name]
+    elif model_name in mext.Models_ext.keys():
+        if mutl.check_model(mext.Models_ext):
+            model = mext.Models_ext[model_name]
+        else:
+            return None
+    else:
+        print('error model: {} is not in modelsetin.Models or modelext.Models_ext!'.format(model_name))
+        return None
+
     return mlib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
-        model_ratio_pdf=msin.Models[model_name].ratio,
-        model_section=msin.Models[model_name].section,
-        model_type=msin.Models[model_name].type.lower(),
+        model_ratio_pdf=model.ratio,
+        model_section=model.section,
+        model_type=model.type.lower(),
         raw_score_max=raw_score_max,
         raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,

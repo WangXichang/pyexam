@@ -73,12 +73,12 @@ def check_model(
                 model_section=None,
                 model_desc=''
                 ):
-    if model_type not in ['ppt', 'plt']:
-        print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt']))
+    if model_type not in ['ppt', 'plt', 'pgt']:
+        print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
         return False
     if model_name in msetin.Models:
-        print('error name: collision! name {} existed in current mcf.Models_dict!'.format(model_name))
-        return False
+        print('warning: name collision! {} existed in modelsetin.Models!'.format(model_name))
+        # return False
     if len(model_ratio) != len(model_section):
         print('error length: the length of ratio group is not same as section group length !')
         return False
