@@ -90,11 +90,11 @@ def run(
     # reload modules if any chenges done, especially in modelsetin.Models
     if reload:
         print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
-        for n1, n2, n3 in [('stm', 'mlib', 'stmlib'), ('stm', 'mutl', 'modelutil'),
+        for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
                            ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
-                           ('stm', 'mext', 'modelext')]:
+                           ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
-                print('reload:'.rjust(20) + ' '+ n1 + '.' + n3 + ' as ' + n2)
+                print('reload:'.rjust(20) + ' ' + n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
 
     for mk in mext.Models_ext.keys():

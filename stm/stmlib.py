@@ -899,7 +899,7 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += format('strategies: ', '>20') + '\n'
 
         for k in self.strategy_dict.keys():
-            self.out_report_doc += ' ' * 20 + '{0:<50s} {1}'. \
+            self.out_report_doc += ' ' * 20 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.strategy_dict[k]) + '\n'
                        # self.strategy_dict[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
@@ -927,13 +927,13 @@ class PltScore(ScoreTransformModel):
             #     continue
             if formula[0][0] > 0:
                 self.result_formula_text_list += \
-                    ['(section -{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
-                     format(_fi, formula[0][0], formula[1][p], formula[2][p])]
+                    ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
+                     format(int(_fi), formula[0][0], formula[1][p], formula[2][p])]
             elif formula[0][0] == 0:
                 if formula[2][0] != formula[2][1]:
                     self.result_formula_text_list += \
-                        ['(section -{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
-                         format(_fi,
+                        ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
+                         format(int(_fi),
                                 formula[0][0], formula[1][p],
                                 self.strategy_dict['mode_section_degraded'],
                                 formula[2][0], formula[2][1])
@@ -941,7 +941,7 @@ class PltScore(ScoreTransformModel):
                 # y2 == y1
                 else:
                     self.result_formula_text_list += \
-                        ['(section -{0:.2f}):  y = 0 * (x-{2:.2f}) + {3:.2f}'.
+                        ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
                          format(_fi,
                                 formula[0][0],
                                 formula[1][p],
@@ -960,9 +960,9 @@ class PltScore(ScoreTransformModel):
             format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '0.6f')
                     for j in range(len(plist))]))
         _out_report_doc += '            cum ratio: [{}]\n'.\
-            format(', '.join([format(x, '0.6f') for x in self.raw_score_ratio_cum]))
+            format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
         _out_report_doc += '            get ratio: [{}]\n'.\
-            format(', '.join(self.result_ratio_dict[field]))
+            format(', '.join([format(float(x), '10.6f') for x in self.result_ratio_dict[field]]))
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
