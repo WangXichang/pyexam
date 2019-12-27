@@ -20,12 +20,16 @@ from _collections import namedtuple
                              i.e. [(p11, p12), ...(pn1, pn2)], pi1 > pi2
                   'desc': str := description for model
 """
+
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models_ext = {
-    'exp':          ModelFields(
-                                'plt',
-                                [1/15 * 100 for _ in range(15)],
-                                tuple((i+1, i+1) for i in range(15)),
-                                'section wise linear transform model'
-                                ),
+    'exp':    ModelFields(
+                          'plt',
+                          tuple(1/15 * 100 for _ in range(15)),
+                          tuple((i+1, i+1) for i in range(15)),
+                          'section wise linear transform model'
+                          ),
     }
+
+# note: must check the model by modelutil.check_model
+#       then can use the model in main.run, main.run_model
