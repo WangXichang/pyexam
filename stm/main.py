@@ -1,9 +1,10 @@
 # coding: utf-8
 
+
 import pandas as pd
 import importlib as pb
 import sys
-from stm import stmlib as mbas, modelutil as mutl, stmlib2 as mlib, modelsetin as msin
+from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msin, modelext as mext
 
 
 def exp(name='shandong'):
@@ -26,7 +27,7 @@ def run(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         out_decimal_digits=0,
-        reload_modules=False
+        reload=False
         ):
     """
     :param name: str, model name,
@@ -87,13 +88,28 @@ def run(
     """
 
     # reload modules if any chenges done, especially in modelsetin.Models
-    if reload_modules:
+    if reload:
         print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
-        for n1, n2, n3 in [('stm', 'mbas', 'modelbase'), ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib', 'modellib'), ('stm', 'msin', 'modelsetin')]:
+        for n1, n2, n3 in [('stm', 'mlib', 'stmlib'), ('stm', 'mutl', 'modelutil'),
+                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
+                           ('stm', 'mext', 'modelext')]:
             if n1+'.'+n3 in sys.modules:
                 print('reload:'.rjust(20) + ' '+ n1 + '.' + n3 + ' as ' + n2)
                 exec('pb.reload('+n2+')')
+
+    for mk in mext.Models_ext.keys():
+        m = mext.Models_ext[mk]
+        if not mutl.check_model(
+                                model_name=mk,
+                                model_type=m.type,
+                                model_ratio=m.ratio,
+                                model_section=m.section,
+                                model_desc=m.desc
+                            ):
+            print('model:{} in modelext defined incorrect!'.format(mk))
+            return None
+        else:
+            msin.Models.update(mext.Models_ext)
 
     # check model name
     name = name.lower()
@@ -130,7 +146,7 @@ def run(
     # ratio-seg score model: plt, ppt
     if (name in msin.Models.keys()) and (name not in ['tai', 'zscore', 'tscore']):
         ratio_tuple = tuple(x * 0.01 for x in msin.Models[name].ratio)
-        plt_model = mbas.PltScore(name)
+        plt_model = mlib.PltScore(name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
@@ -187,7 +203,7 @@ def run_model(
         mode_section_lost='ignore',
         out_score_decimal=0,
         ):
-    return mlib.ModelAlgorithm.get_stm_score(
+    return mlib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=msin.Models[model_name].ratio,
@@ -208,8 +224,8 @@ def run_model(
         )
 
 
-# run to get stm score by calling methods in modelapi.ModelAlgorithm
-def run_para(
+# run to get stm score by calling methods in stmlib2.ModelAlgorithm
+def run_lib2(
         df,
         cols,
         model_ratio_pdf,
@@ -228,7 +244,7 @@ def run_para(
         mode_section_lost='ignore',
         out_score_decimal=0,
         ):
-    return mlib.ModelAlgorithm.get_stm_score(
+    return mlib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,

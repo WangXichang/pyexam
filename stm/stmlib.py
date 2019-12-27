@@ -817,7 +817,7 @@ class PltScore(ScoreTransformModel):
             result_section_list.append(this_section_end_point)
 
             # display ratio searching result at section i
-            print('   <{0}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
+            print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                   'section_map: raw:[{4:3.0f}, {5:3.0f}] --> out:[{6:3.0f}, {7:3.0f}]'.
                   format(i+1,
                          cumu_ratio,

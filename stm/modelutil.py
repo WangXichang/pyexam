@@ -90,7 +90,7 @@ def check_model(
             print('error order: section endpoint order must be from large to small, '
                   'there: p1({}) < p2({})'.format(s[0], s[1]))
             return False
-    if sum(model_ratio) != 100:
+    if abs(sum(model_ratio) - 100) > 10**-12:
         print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
         return False
     if model_desc is not str:
