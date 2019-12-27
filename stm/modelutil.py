@@ -95,6 +95,10 @@ def check_model(
         return False
     if model_desc is not str:
         print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+    if model_type == 'ppt':
+        if not all([x == y for x, y in model_section]):
+            print('error section: ppt section, two endpoints must be same value!')
+            return False
     return True
 
 

@@ -2,7 +2,6 @@
 
 
 import pandas as pd
-import importlib as pb
 import sys
 from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msin, modelext as mext
 
@@ -89,6 +88,7 @@ def run(
 
     # reload modules if any chenges done, especially in modelsetin.Models
     if reload:
+        exec('import importlib as pb')
         print('stm modules:'.rjust(20), [x for x in sys.modules if 'stm' in x])
         for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
                            ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
