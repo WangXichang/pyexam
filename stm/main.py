@@ -75,6 +75,12 @@ def run(
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
                             default= 'real_max_min'
+    :param mode_section_lost: str,
+                           strategy: how to prosess lost section
+                             values: 'ignore', use real raw score max or min value
+                                     'next_one',
+                                     'next_one',
+                            default= 'ignore'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
