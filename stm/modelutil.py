@@ -5,14 +5,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import modelsetin as msetin, main as main, modelext as mext
+from stm import modelsetin as msetin, modelext as mext
+
+
+def show_models():
+    for k in msetin.Models:
+        v = msetin.Models[k]
+        print('{:<20s} {},  {} '.format(k, v.type, v.desc))
+        print('{:<20s} {}'.format(' ', v.ratio))
+        print('{:<20s} {}'.format('', v.section))
 
 
 def plot_models(font_size=12):
     _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
     ms_dict = dict()
     for _name in _names:
-        ms_dict.update({_name: get_model_describe(name=_name)})
+        ms_dict.update({_name: model_describe(name=_name)})
 
     plot.figure('New Gaokao Score mcf.Models: name(mean, std, skewness)')
     plot.rcParams.update({'font.size': font_size})
@@ -44,15 +52,7 @@ def plot_models(font_size=12):
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
-def show_models():
-    for k in msetin.Models:
-        v = msetin.Models[k]
-        print('{:<20s} {},  {} '.format(k, v.type, v.desc))
-        print('{:<20s} {}'.format(' ', v.ratio))
-        print('{:<20s} {}'.format('', v.section))
-
-
-def get_model_describe(name='shandong'):
+def model_describe(name='shandong'):
     __ratio = msetin.Models[name].ratio
     __section = msetin.Models[name].section
     if name == 'hn900':
@@ -153,50 +153,47 @@ def get_norm_table(size=400, std=1, mean=0, stdnum=4):
     return ndf
 
 
-def get_norm_data(mean=70, std=10, maxvalue=100, minvalue=0, size=1000, decimal=6):
+# test dataset
+class TestData:
     """
     生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
     create a score dataframe with fields 'score', used to test some application
-    :parameter
-        mean: 均值， std:标准差， maxvalue:最大值， minvalue:最小值， size:样本数
-    :return
-        DataFrame, columns = {'sv'}
+    :__init__:parameter
+        mean: 均值， std:标准差， max:最大值， min:最小值， size:行数
+    :df
+        DataFrame, columns = {'ksh', 'km1', 'km2'}
     """
-    # df = pd.DataFrame({'sv': [max(minvalue, min(int(np.random.randn(1)*std + mean), maxvalue))
-    #                           for _ in range(size)]})
-    df = pd.DataFrame({'sv': [max(minvalue,
-                                  min(round(x, decimal) if decimal > 0 else int(round(x, decimal)),
-                                      maxvalue))
-                              for x in np.random.normal(mean, std, size)]})
-    return df
-
-
-# test dataset
-class TestData:
-    def __init__(self, mean=60, std=18, size=100000, max_value=100, min_value=0):
+    def __init__(self, mean=60, std=18, size=100000, max=100, min=0, decimals=0, dist='norm'):
         self.df = None
         self.df_mean = mean
-        self.df_max = max_value
-        self.df_min = min_value
+        self.df_max = max
+        self.df_min = min
         self.df_std = std
         self.df_size = size
-        self.dist = 'norm'
+        self.decimals=decimals
+        self.dist = dist
         self.__make_data()
 
     def __make_data(self):
         self.df = pd.DataFrame({
-            'pid': [str(x).zfill(7) for x in range(1, self.df_size+1)],
+            'ksh': ['37'+str(x).zfill(7) for x in range(1, self.df_size+1)],
             'km1': self.get_score(),
             'km2': self.get_score(),
         })
 
     def get_score(self):
         print('create score...')
+
+        if self.decimals == 0:
+            myround = lambda x: int(x)
+        else:
+            myround = lambda x: round(x, ndigits=self.decimals)
         norm_list = None
         if self.dist == 'norm':
             norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
-            norm_list[np.where(norm_list>self.df_max)] = self.df_max
-            norm_list[np.where(norm_list<self.df_min)] = self.df_min
+            norm_list = np.array([myround(x) for x in norm_list])
+            norm_list[np.where(norm_list > self.df_max)] = self.df_max
+            norm_list[np.where(norm_list < self.df_min)] = self.df_min
             norm_list = norm_list.astype(np.int)
         return norm_list
 

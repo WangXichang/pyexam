@@ -32,7 +32,7 @@ How to add new model in modelext:
 
 import pandas as pd
 import sys
-from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msin, modelext as mext
+from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msetin, modelext as mext
 
 
 def exp(name='shandong'):
@@ -53,7 +53,7 @@ def run(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         raw_score_range=(0, 100),
-        out_score_decimal_digits=0,
+        out_score_decimals=0,
         reload=False,
         ):
     """
@@ -114,7 +114,7 @@ def run(
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
                    default= (0, 100)
-    :param out_score_decimal_digits: int,
+    :param out_score_decimals: int,
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
 
@@ -133,23 +133,19 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             raw_score_range=raw_score_range,
-            out_score_decimal_digits=out_score_decimal_digits,
+            out_score_decimal_digits=out_score_decimals,
             reload=reload
             ):
         return None
     # ratio-seg score model: plt, ppt
-    if (model_name in msin.Models.keys()) and \
-            (model_name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
-        plt_model = mlib.PltScore(model_name)
-    if (model_name in msin.Models.keys()) and (model_name not in ['tai', 'zscore', 'tscore']):
-        ratio_tuple = tuple(x * 0.01 for x in msin.Models[model_name].ratio)
+    if model_name not in ['tai', 'zscore', 'tscore']:
+        ratio_tuple = tuple(x * 0.01 for x in msetin.Models[model_name].ratio)
         plt_model = mlib.PltScore(model_name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=msin.Models[model_name].section,
+            out_score_seg_tuple=msetin.Models[model_name].section,
             raw_score_defined_max=max(raw_score_range),
             raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -160,7 +156,7 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            out_decimal_digits=out_score_decimal_digits
+            out_decimal_digits=out_score_decimals
             )
         plt_model.run()
         return plt_model
@@ -179,7 +175,7 @@ def run(
                            mode_section_point_start=mode_section_point_start,
                            mode_section_point_last=mode_section_point_last,
                            mode_section_degraded=mode_section_degraded,
-                           out_score_decimal_digits=out_score_decimal_digits
+                           out_score_decimals=out_score_decimals
                            )
         return result
 
@@ -200,10 +196,10 @@ def run_model(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        out_score_decimal_digits=0,
+        out_score_decimals=0,
         ):
-    if model_name in msin.Models.keys():
-        model = msin.Models[model_name]
+    if model_name in msetin.Models.keys():
+        model = msetin.Models[model_name]
     elif model_name in mext.Models_ext.keys():
         if mutl.check_model(mext.Models_ext):
             model = mext.Models_ext[model_name]
@@ -230,7 +226,7 @@ def run_model(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimal=out_score_decimal_digits,
+        out_score_decimals=out_score_decimals,
         )
 
 
@@ -271,7 +267,7 @@ def run_lib2(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimal=out_score_decimal_digits,
+        out_score_decimals=out_score_decimal_digits,
         )
 
 
@@ -293,7 +289,7 @@ def check_run(
         ):
     # check model name
     model_name = model_name.lower()
-    if model_name.lower() not in msin.Models.keys():
+    if model_name.lower() not in msetin.Models.keys():
         print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
         return False
 
@@ -339,7 +335,7 @@ def check_run(
         print('reload modules ...')
         exec('import importlib as pb')
         for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
+                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msetin', 'modelsetin'),
                            ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
@@ -348,6 +344,6 @@ def check_run(
             if not mutl.check_model(model_name=mk):
                 print('error model: model={} defined incorrectly!'.format(mk))
                 return False
-            msin.Models.update({mk: mext.Models_ext[mk]})
+            msetin.Models.update({mk: mext.Models_ext[mk]})
 
     return True

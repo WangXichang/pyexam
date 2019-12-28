@@ -2,7 +2,7 @@
 
 
 import time
-from  collections import namedtuple
+from collections import namedtuple
 import numpy as np
 import pandas as pd
 import scipy.stats as sts
@@ -613,7 +613,7 @@ class ModelAlgorithm:
                       mode_section_point_last='real',
                       mode_section_degraded='map_to_max',
                       mode_section_lost='ignore',
-                      out_score_decimal=0,
+                      out_score_decimals=0,
                       ):
         if isinstance(cols, tuple):
             cols = list(cols)
@@ -650,7 +650,7 @@ class ModelAlgorithm:
                     raw_section=raw_section.section,
                     out_section=model_section,
                     mode_section_degraded=mode_section_degraded,
-                    out_score_decimal=out_score_decimal
+                    out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
                 # print(result.coeff_raw_out_section_formula)
@@ -686,7 +686,7 @@ class ModelAlgorithm:
                     mode_sort_order=mode_sort_order,
                     mode_raw_score_max=mode_section_point_first,
                     mode_raw_score_min=mode_section_point_last,
-                    out_score_decimal=out_score_decimal
+                    out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
                 print('  raw ratio: [{0}] \ntable ratio: [{1}]\n'
@@ -696,8 +696,12 @@ class ModelAlgorithm:
                       ', '.join([format(x, '.8f') for x in result.dest_ratio]),
                       ', '.join([format(x, '.8f') for x in result.real_ratio]),
                       ', '.join([format(x, '>10d') for x in result.map_dict.keys()]),
-                      ', '.join([format(int(result.map_dict[x]), '>10d') for x in result.map_dict.keys()]),
-                      ', '.join([format(int(x), '>10d') for x, y in result.map_table]),
+                      ', '.join([format(round45r(result.map_dict[x], out_score_decimals), '>' +
+                                        ('10d' if out_score_decimals == 0 else '10.' + str(out_score_decimals) + 'f'))
+                                 for x in result.map_dict.keys()]),
+                      ', '.join([format(round45r(x, out_score_decimals),
+                                        '>' + ('10d' if out_score_decimals == 0 else '10.' + str(out_score_decimals) + 'f'))
+                                 for x, y in result.map_table]),
                       ', '.join([format(y, '.8f') for x, y in result.map_table]),
                       ))
             elif model_type.lower() == 'pgt':
