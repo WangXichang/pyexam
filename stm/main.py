@@ -37,7 +37,7 @@ from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin 
 
 def exp(name='shandong'):
     td = mutl.TestData()()
-    return run(model_name=name, df=td, cols='km1')
+    return run(model_name=name, df=td, cols=['km1'])
 
 
 def run(
