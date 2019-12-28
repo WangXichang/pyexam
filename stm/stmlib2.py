@@ -516,14 +516,16 @@ class ModelAlgorithm:
             else:
                 return -1
 
-        print(dest_ratio, '\n', real_ratio_list)
-        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio'))
-        return Result(formula, map_score, dest_ratio_list, real_ratio_list)
+        # print(dest_ratio, '\n', real_ratio_list)
+        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'map_table'))
+        return Result(formula, map_score, dest_ratio_list, real_ratio_list,
+                      list(zip(out_score_points, out_score_ratio_cumu)))
 
     @classmethod
     def get_pgt_formula(cls,
-                        df,
-                        col,
+                        df=None,
+                        col=None,
+                        map_table=None,
                         percent_first=0.01,
                         mode_ratio_prox='upper_min',
                         mode_sort_order='d',
@@ -532,12 +534,12 @@ class ModelAlgorithm:
                         grade_num=15
                         ):
 
-        map_table = run_seg(df=df,
-                            cols=[col],
-                            segmax=raw_score_max,
-                            segmin=raw_score_min,
-                            segsort=mode_sort_order,
-                            ).outdf
+        # map_table = run_seg(df=df,
+        #                     cols=[col],
+        #                     segmax=raw_score_max,
+        #                     segmin=raw_score_min,
+        #                     segsort=mode_sort_order,
+        #                     ).outdf
 
         section_point_list = [df[col].max()]
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
@@ -613,6 +615,10 @@ class ModelAlgorithm:
                       mode_section_lost='ignore',
                       out_score_decimal=0,
                       ):
+        if isinstance(cols, tuple):
+            cols = list(cols)
+        elif isinstance(cols, str):
+            cols = [cols]
         seg = run_seg(df=df,
                       cols=cols,
                       segmax=raw_score_max,
@@ -684,17 +690,23 @@ class ModelAlgorithm:
                     )
                 formula = result.formula
                 print('  raw ratio: [{0}] \ntable ratio: [{1}]\n'
-                      '  raw score: [{2}] \n  out score: [{3}]'.format(
-                      ', '.join([format(x, '.4f') for x in result.dest_ratio]),
-                      ', '.join([format(x, '.4f') for x in result.real_ratio]),
-                      ', '.join([format(x, '>6d') for x in result.map_dict.keys()]),
-                      ', '.join([format(int(result.map_dict[x]), '>6d') for x in result.map_dict.keys()])
+                      '  raw score: [{2}] \n  out score: [{3}]\n'
+                      '  map table: [{4}] \n      ratio: [{5}]'
+                      .format(
+                      ', '.join([format(x, '.8f') for x in result.dest_ratio]),
+                      ', '.join([format(x, '.8f') for x in result.real_ratio]),
+                      ', '.join([format(x, '>10d') for x in result.map_dict.keys()]),
+                      ', '.join([format(int(result.map_dict[x]), '>10d') for x in result.map_dict.keys()]),
+                      ', '.join([format(int(x), '>10d') for x, y in result.map_table]),
+                      ', '.join([format(y, '.8f') for x, y in result.map_table]),
                       ))
             elif model_type.lower() == 'pgt':
                 # print('pgt running. . .')
+                print(col, type(map_table))
                 result = ModelAlgorithm.get_pgt_formula(
                     df=df,
                     col=col,
+                    map_table=map_table,
                     percent_first=model_ratio_pdf[0]/100,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_sort_order=mode_sort_order,
@@ -706,6 +718,7 @@ class ModelAlgorithm:
                 print('       grade step: {}'.format(result.grade_step))
                 print('        top level: {}'.format(result.top_level))
                 formula=result.formula
+                # map_table = result.map_table
             else:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
@@ -942,10 +955,10 @@ class SegTable(object):
 
     def set_data(self, df, cols=None):
         self.__dfframe = df
-        if type(cols) == str:
+        if isinstance(cols, str):
             cols = [cols]
-        if (not isinstance(cols, list)) & isinstance(df, pd.DataFrame):
-            self.__cols = df.columns.values
+        if (not isinstance(cols, list)) & (not isinstance(cols, tuple)):
+            self.__cols = []
         else:
             self.__cols = cols
         self.__check()
@@ -1024,7 +1037,7 @@ class SegTable(object):
         if (self.__segStep <= 0) | (self.__segStep > self.__segMax):
             print('error: segstep({}) is too small or big!'.format(self.__segStep))
             return False
-        if type(self.__cols) not in [tuple, list]:
+        if not isinstance(self.cols, list) and not isinstance(self.cols, tuple):
             print(self.__cols)
             if isinstance(self.__cols, str):
                 self.__cols = [self.__cols]

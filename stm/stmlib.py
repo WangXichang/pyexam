@@ -94,6 +94,7 @@ import fractions as fr
 import bisect as bst
 import array
 import abc
+import collections as coll
 
 
 # external import
@@ -167,7 +168,8 @@ class ScoreTransformModel(abc.ABC):
         if not isinstance(self.df, pd.DataFrame):
             print('raw data type={} is not dataframe!'.format(type(self.df)))
             return False
-        if (type(self.cols) is not list) | (len(self.cols) == 0):
+        # import collections
+        if (not isinstance(self.cols, coll.Sequence)) | (len(self.cols) == 0):
             print('score fields not assigned in cols: {}!'.format(self.cols))
             return False
         for sf in self.cols:

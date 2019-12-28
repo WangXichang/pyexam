@@ -2,7 +2,7 @@
 
 
 """
-what in this module:
+about this module:
     (1) function: run
     run() is an interface to call stmlib or stmlib2
     return model(stmlib.ScoreTransform) or result(stmlib2.get_stm_score.Result: (map_table, df))
@@ -19,10 +19,14 @@ what in this module:
     run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
         and other parameters(score range, strategies, out score decimal digits)
 
-How to use modelext:
-    if use model in modelext.Models_ext,
-    must call run() with reload=True, that will check and add models in Models_ext to modelsetin.Models
-    so run can use model_name to find model in Models
+How to add new model in modelext:
+    you can add a new model in modelext.Models_ext,
+    then use the new model by calling run(model_name=new_model_name,...)
+    in order to add new model in modelext.Models_ext,
+    you can open the module modelext, modify Models_ext, add key-value: name-ModelFields
+    then call run() with reload=True: result = run(model_name=new_model_name, ..., reload=True)
+    then run() will check new model and add models in Models_ext to modelsetin.Models
+    at last run() use new_model_name to call stmlib or stmlib2
 """
 
 
@@ -117,65 +121,22 @@ def run(
     :return: model: instance of model class, subclass of ScoreTransformModel
     """
 
-    # reload modules if any chenges done, especially in modelsetin.Models
-    # reload modules: [x for x in sys.modules if 'stm' in x]
-    if reload:
-        print('reload modules ...')
-        exec('import importlib as pb')
-        for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
-                           ('stm', 'mext',  'modelext')]:
-            if n1+'.'+n3 in sys.modules:
-                exec('pb.reload('+n2+')')
-        # add Models_ext to Models
-        for mk in mext.Models_ext.keys():
-            if not mutl.check_model(model_name=mk):
-                print('error model: model={} defined incorrectly!'.format(mk))
-                return False
-            msin.Models.update({mk: mext.Models_ext[mk]})
-
-    # check model name
-    model_name = model_name.lower()
-    if model_name.lower() not in msin.Models.keys():
-        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+    if not check_run(
+            model_name=model_name,
+            df=df,
+            cols=cols,
+            mode_ratio_prox=mode_ratio_prox,
+            mode_ratio_cumu=mode_ratio_cumu,
+            mode_sort_order=mode_sort_order,
+            mode_section_point_first=mode_section_point_first,
+            mode_section_point_start=mode_section_point_start,
+            mode_section_point_last=mode_section_point_last,
+            mode_section_degraded=mode_section_degraded,
+            raw_score_range=raw_score_range,
+            out_score_decimal_digits=out_score_decimal_digits,
+            reload=reload
+            ):
         return None
-
-    # check input data: DataFrame
-    if type(df) != pd.DataFrame:
-        if type(df) == pd.Series:
-            df = pd.DataFrame(df)
-        else:
-            print('error data: df is not a pandas.DataFrame or pandas.Series!')
-            return
-
-    # check col
-    if isinstance(cols, str):
-        cols = [cols]
-    # condition is: sequence and element is str and is a column name in columns
-    elif type(cols) not in (list, tuple):
-        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
-        return None
-
-    # check col type
-    import numbers
-    if len(df) > 0:
-        for col in cols:
-            if col not in df.columns:
-                print('error col: [{}] is not a name of df columns!'.format(col))
-                return None
-            if not isinstance(df[col][0], numbers.Number):
-                print('type error: column[{}] not Number type!'.format(col))
-                return None
-
-    # check mode_ratio_prox
-    if mode_ratio_prox not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
-        print('invalid approx mode: {}'.format(mode_ratio_prox))
-        print('  valid approx mode: lower_max, upper_min, near_min, near_max')
-        return
-    if mode_ratio_cumu not in ['yes', 'no']:
-        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
-        return
-
     # ratio-seg score model: plt, ppt
     if (model_name in msin.Models.keys()) and \
             (model_name not in ['tai', 'zscore', 'tscore']):
@@ -205,7 +166,8 @@ def run(
         return plt_model
     else:
         print('use run_model cols={}... '.format(cols))
-        result = run_model(model_name=model_name,
+        result = run_model(
+                           model_name=model_name,
                            df=df,
                            cols=cols,
                            raw_score_max=max(raw_score_range),
@@ -311,3 +273,81 @@ def run_lib2(
         mode_section_lost=mode_section_lost,
         out_score_decimal=out_score_decimal_digits,
         )
+
+
+def check_run(
+        model_name='shandong',
+        df=None,
+        cols=(),
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='descending',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='map_to_max',
+        mode_section_lost='ignore',
+        raw_score_range=(0, 100),
+        out_score_decimal_digits=0,
+        reload=False,
+        ):
+    # check model name
+    model_name = model_name.lower()
+    if model_name.lower() not in msin.Models.keys():
+        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+        return False
+
+    # check input data: DataFrame
+    if not isinstance(df, pd.DataFrame):
+        if isinstance(df, pd.Series):
+            df = pd.DataFrame(df)
+        else:
+            print('error data type: df is not a pandas.DataFrame or pandas.Series!')
+            return False
+
+    # check col
+    # if isinstance(cols, str):
+    #     cols = [cols]
+    # condition is: sequence and element is str and is a column name in columns
+    if type(cols) not in (list, tuple):
+        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        return False
+
+    # check col type
+    import numbers
+    if len(df) > 0:
+        for col in cols:
+            if col not in df.columns:
+                print('error col: [{}] is not a name of df columns!'.format(col))
+                return False
+            if not isinstance(df[col][0], numbers.Number):
+                print('type error: column[{}] not Number type!'.format(col))
+                return False
+
+    # check mode_ratio_prox
+    if mode_ratio_prox not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
+        print('invalid prox mode: {}'.format(mode_ratio_prox))
+        print('  valid prox mode: lower_max, upper_min, near_min, near_max')
+        return False
+    if mode_ratio_cumu not in ['yes', 'no']:
+        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
+        return False
+
+    # reload modules if any chenges done, especially in modelsetin.Models
+    # reload modules: [x for x in sys.modules if 'stm' in x]
+    if reload:
+        print('reload modules ...')
+        exec('import importlib as pb')
+        for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
+                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msin', 'modelsetin'),
+                           ('stm', 'mext',  'modelext')]:
+            if n1+'.'+n3 in sys.modules:
+                exec('pb.reload('+n2+')')
+        # add Models_ext to Models
+        for mk in mext.Models_ext.keys():
+            if not mutl.check_model(model_name=mk):
+                print('error model: model={} defined incorrectly!'.format(mk))
+                return False
+            msin.Models.update({mk: mext.Models_ext[mk]})
+
+    return True
