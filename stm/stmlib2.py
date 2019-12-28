@@ -125,7 +125,7 @@ class ModelAlgorithm:
             last_pos = _zvalue
             _cdf += this_section_pdf
         if add_cutoff:
-            pdf_table[-1] += cutoff
+            pdf_table[0] += cutoff
             cdf_table[-1] = 1
         if model_type == 'plt':
             section_list = [(x, y) if i == 0 else (x+1, y)
