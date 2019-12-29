@@ -605,9 +605,9 @@ class PltScore(ScoreTransformModel):
                 c = (cf[1][1]-cf[1][0])
                 if c == 0:  # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
                     if self.strategy_dict['mode_section_degraded'] == 'map_to_max':
-                        return max(cf[2])
+                        return slib2.round45r(max(cf[2]), self.out_decimal_digits)
                     elif self.strategy_dict['mode_section_degraded'] == 'map_to_min':
-                        return min(cf[2])
+                        return slib2.round45r(min(cf[2]), self.out_decimal_digits)
                     elif self.strategy_dict['mode_section_degraded'] == 'map_to_mean':
                         return slib2.round45r(np.mean(cf[2]))
                     else:
@@ -659,7 +659,7 @@ class PltScore(ScoreTransformModel):
                 if _mode_ppt_score_max == 'map_to_max':
                     y = self.out_score_real_max
             if y is not None:
-                row[col + '_ts'] = y
+                row[col + '_ts'] = slib2.round45r(y, self.out_decimal_digits)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
                 continue
@@ -693,7 +693,7 @@ class PltScore(ScoreTransformModel):
                     break
             if y is not None:
                 # print('-1', row[col+'_ts'])
-                row[col+'_ts'] = y
+                row[col+'_ts'] = slib2.round45r(y, self.out_decimal_digits)
                 # print('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
