@@ -27,7 +27,7 @@
         SS7_SECTION =       [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
     转换算法策略
-    MODEL_STRATEGY_DICT = {key_name_str: value_str}   # some choice assigned in value_str, seprated by comma
+    STRATEGY = {strategy_name: value_str}
 
         目前分析实现的算法策略及选择值：
 
@@ -48,15 +48,89 @@
         消失区间处理：区间丢失情况，忽略(ignore)，向下增加一个点(next_one_point)，向下增加两个点(next_two_point)
           'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
 
-        在上述策略的实现中，默认值为第一选择值。
-
-        上述策略是目前已经实现的，被认为是最重要的
-        在转换中还存在一些策略，可以进一步研究。
+        注：1. 在上述策略的实现中，默认值为第一选择值。
+            2. 目前已经实现的，被认为是最重要的, 有些使用了默认值。
+            3. 分数转换中还存在一些其他策略，正在进一步的研究中。
 """
 
 
+import numpy as np
+import scipy.stats as sts
 from collections import namedtuple
-from stm import stmlib2 as slib2
+
+
+def get_section_pdf(
+                    start=21,
+                    end=100,
+                    section_num=8,
+                    std_num=2.6,
+                    add_cutoff=True,
+                    model_type='plt',
+                    ratio_coeff=1,  # 1, or 100
+                    sort_order='d',
+                    ):
+    """
+    create a ratio table from norm distribution
+        with range=[start, end]
+             section = (start, start+j*step), ...
+                       j in range(start, end, step)
+                       step = (end - start)/section_num
+              cutoff = norm.cdf((mean - start)/std_num)
+    return result: pdf, cdf, cutoff_err
+    set first and end seg to tail ratio from norm table
+    can be used to test std from seg ratio table
+    for example,
+       get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508)
+       [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
+       get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065)
+       [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
+       it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+
+    :param start:   start value
+    :param end:     end value
+    :param section_num: section number
+    :param std_num:     length from 0 to max equal to std_num*std, i.e. std = (end-start)/2/std_num
+    :param add_cutoff: bool, if adding cutoff cdf() at edge point
+                       i.e. cdf(-std_num), cdf(-4) = 3.167124183311986e-05, cdf(-2.5098)=0.029894254950869625
+    :param model_type: str, 'plt' or 'ppt'
+    :return: namedtuple('result', ('section':((),...), 'pdf': (), 'cdf': (), 'cutoff': float, 'add_cutoff': bool))
+    """
+    _mean, _std = (end + start) / 2, (end - start) / 2 / std_num
+    section_point_list = np.linspace(start, end, section_num + 1)
+    cutoff = sts.norm.cdf((start - _mean) / _std)
+    pdf_table = [0]
+    cdf_table = [0]
+    last_pos = (start - _mean) / _std
+    _cdf = 0
+    for i, pos in enumerate(section_point_list[1:]):
+        _zvalue = (pos - _mean) / _std
+        this_section_pdf = sts.norm.cdf(_zvalue) - sts.norm.cdf(last_pos)
+        if (i == 0) and add_cutoff:
+            this_section_pdf += cutoff
+        pdf_table.append(this_section_pdf)
+        cdf_table.append(this_section_pdf + _cdf)
+        last_pos = _zvalue
+        _cdf += this_section_pdf
+    if add_cutoff:
+        pdf_table[0] += cutoff
+        cdf_table[-1] = 1
+    if model_type == 'plt':
+        section_list = [(x, y) if i == 0 else (x + 1, y)
+                        for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
+    else:
+        section_list = [(x, x) for x in section_point_list]
+    if ratio_coeff != 1:
+        pdf_table = [x * ratio_coeff for x in pdf_table]
+    if sort_order in ['d', 'descending']:
+        section_list = sorted(section_list, key=(lambda x: -x[0]))
+    result = namedtuple('Result', ('section', 'pdf', 'cdf', 'point', 'cutoff', 'add_cutoff'))
+    r = result(tuple(section_list),
+               tuple(pdf_table),
+               tuple(cdf_table),
+               section_point_list,
+               cutoff,
+               add_cutoff)
+    return r
 
 
 # model type
@@ -65,10 +139,11 @@ MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transfor
 MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900model = slib2.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
-hn300model = slib2.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
-zscoremodel = slib2.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
-tscoremodel = slib2.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
+hn900model = get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
+hn300model = get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
+zscoremodel = get_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
+tscoremodel = get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
+
 
 # model including: type,    transfrom mode, in ['plt', 'ppt', 'tai']
 #                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3
@@ -124,25 +199,6 @@ Models = {
                                 hn300model.section,
                                 'standard score model: piecewise point transform'
                                 ),
-    'hn300plt1':    ModelFields(
-                                MODEL_TYPE_PLT,
-                                (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
-                                tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
-                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
-                                'piecewise linear transform model'
-                                ),
-    'hn300plt2':    ModelFields(
-                                MODEL_TYPE_PLT,
-                                (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
-                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'piecewise linear transform model'
-                                ),
-    'hn300plt3':    ModelFields(
-                                MODEL_TYPE_PLT,
-                                (1, 2, 14, 33, 33, 14, 2, 1),
-                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'piecewise linear transform model with ratio-segment'
-                                ),
     'zscore':       ModelFields(MODEL_TYPE_PPT,
                                 zscoremodel.pdf,
                                 zscoremodel.section,
@@ -163,7 +219,7 @@ Models = {
 
 
 # choice = 4 * 2**5  * 3**2 = 1152    ## prox, cumu, sort, section_
-Strategies = {
+Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('descending', 'ascending'),

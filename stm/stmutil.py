@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
+import numbers
 from stm import modelsetin as msetin, modelext as mext
 
 
@@ -124,6 +125,68 @@ def check_model_para(
         if not all([x == y for x, y in model_section]):
             print('error section: ppt section, two endpoints must be same value!')
             return False
+    return True
+
+
+def check_strategy(
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='descending',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='map_to_max',
+        mode_section_lost='ignore',
+    ):
+
+    st ={'mode_ratio_prox': mode_ratio_prox,
+         'mode_ratio_cumu':mode_ratio_cumu,
+         'mode_sort_order': mode_sort_order,
+         'mode_section_point_first': mode_section_point_first,
+         'mode_section_point_start': mode_section_point_start,
+         'mode_section_point_last': mode_section_point_last,
+         'mode_section_degraded': mode_section_degraded,
+         'mode_section_lost': mode_section_lost,
+         }
+    for sk in st.keys():
+        if sk in msetin.Strategy.keys():
+            if not st[sk] in msetin.Strategy[sk]:
+                print('error mode: {}={} not in {}'.format(sk, st[sk], msetin.Strategy[sk]))
+                return False
+        else:
+            print('error mode: {} is not in Strategy-dict!'.format(sk))
+            return False
+    return True
+
+
+def check_data(df=None, cols=None, raw_score_range=None):
+    if not isinstance(df, pd.DataFrame):
+        if isinstance(df, pd.Series):
+            print('warning: df is pandas.Series!')
+            return False
+        else:
+            print('error data: df is not pandas.DataFrame!')
+            return False
+    if len(df) == 0:
+        print('error data: df is empty!')
+        return False
+    if type(cols) not in (list, tuple):
+        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        return False
+    for col in cols:
+        if type(col) is not str:
+            print('error col: {} is not str!'.format(col))
+            return False
+        else:
+            if col not in df.columns:
+                print('error col: {} is not in df.columns!'.format(col))
+                return False
+            if not isinstance(df[col][0], numbers.Number):
+                print('type error: column[{}] not Number type!'.format(col))
+                return False
+            if df[col].min() < min(raw_score_range):
+                print('warning: some scores in col={} not in raw score range:{}'.format(col, raw_score_range))
+
     return True
 
 

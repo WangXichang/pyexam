@@ -57,6 +57,9 @@ def run(
         reload=False,
         ):
     """
+    use model_name to transform score
+    calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
+
     :param model_name: str, model name,
                  values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
                          'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
@@ -121,7 +124,7 @@ def run(
     :return: model: instance of model class, subclass of ScoreTransformModel
     """
 
-    if not check_run(
+    if not check_for_run(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -139,10 +142,11 @@ def run(
         return None
 
     # ratio-seg score model: plt, ppt
-    if msetin.Models[model_name].type in ['plt', 'ppt']:     # not in ['tai', 'zscore', 'tscore']:
+    model_type = msetin.Models[model_name].type
+    if model_type in ['plt', 'ppt']:     # not in ['tai', 'zscore', 'tscore']:
         ratio_tuple = tuple(x * 0.01 for x in msetin.Models[model_name].ratio)
-        plt_model = slib.PltScore(model_name)
-        plt_model.out_decimal_digits = 0
+        print(sum(ratio_tuple))
+        plt_model = slib.PltScore(model_name, model_type)
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
@@ -167,8 +171,7 @@ def run(
                            model_name=model_name,
                            df=df,
                            cols=cols,
-                           raw_score_max=max(raw_score_range),
-                           raw_score_min=min(raw_score_range),
+                           raw_score_range=raw_score_range,
                            mode_ratio_prox=mode_ratio_prox,
                            mode_ratio_cumu=mode_ratio_cumu,
                            mode_sort_order=mode_sort_order,
@@ -186,9 +189,6 @@ def run_model(
         model_name='shandong',
         df=None,
         cols=(),
-        raw_score_max=100,
-        raw_score_min=0,
-        raw_score_step=1,
         mode_ratio_cumu='no',
         mode_ratio_prox='upper_min',
         mode_sort_order='d',
@@ -197,8 +197,48 @@ def run_model(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
+        raw_score_range=(0, 100),
+        raw_score_step=1,
         out_score_decimals=0,
+        reload=False
         ):
+    """
+    use model_name to calculate out score by calling stmlib2
+    model_name in modelsetin.Models or modelext.Models_ext
+
+    :param model_name:
+    :param df:
+    :param cols:
+    :param raw_score_max:
+    :param raw_score_min:
+    :param raw_score_step:
+    :param mode_ratio_cumu:
+    :param mode_ratio_prox:
+    :param mode_sort_order:
+    :param mode_section_point_first:
+    :param mode_section_point_start:
+    :param mode_section_point_last:
+    :param mode_section_degraded:
+    :param mode_section_lost:
+    :param out_score_decimals:
+    :return:
+    """
+    if not check_for_run(
+            model_name=model_name,
+            df=df,
+            cols=cols,
+            mode_ratio_prox=mode_ratio_prox,
+            mode_ratio_cumu=mode_ratio_cumu,
+            mode_sort_order=mode_sort_order,
+            mode_section_point_first=mode_section_point_first,
+            mode_section_point_start=mode_section_point_start,
+            mode_section_point_last=mode_section_point_last,
+            mode_section_degraded=mode_section_degraded,
+            raw_score_range=raw_score_range,
+            out_score_decimal_digits=out_score_decimals,
+            reload=reload
+            ):
+        return None
     if model_name in msetin.Models.keys():
         model = msetin.Models[model_name]
     elif model_name in mext.Models_ext.keys():
@@ -216,8 +256,8 @@ def run_model(
         model_ratio_pdf=model.ratio,
         model_section=model.section,
         model_type=model.type.lower(),
-        raw_score_max=raw_score_max,
-        raw_score_min=raw_score_min,
+        raw_score_max=max(raw_score_range),
+        raw_score_min=min(raw_score_range),
         raw_score_step=raw_score_step,
         mode_ratio_cumu=mode_ratio_cumu,
         mode_ratio_prox=mode_ratio_prox,
@@ -231,13 +271,13 @@ def run_model(
         )
 
 
-# run to get stm score by calling methods in stmlib2.ModelAlgorithm
-def run_lib2(
+# calc stm score by calling methods in stmlib2.ModelAlgorithm
+def run_para(
         df,
         cols,
-        model_ratio_pdf,
-        model_section,
-        model_type='plt',
+        model_type=None,
+        model_ratio_pdf=None,
+        model_section=None,
         raw_score_max=100,
         raw_score_min=0,
         raw_score_step=1,
@@ -251,6 +291,28 @@ def run_lib2(
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
         ):
+    """
+    use each parameter to calculate out score by calling stmlib2
+
+    :param df:
+    :param cols:
+    :param model_ratio_pdf:
+    :param model_section:
+    :param model_type:
+    :param raw_score_max:
+    :param raw_score_min:
+    :param raw_score_step:
+    :param mode_ratio_cumu:
+    :param mode_ratio_prox:
+    :param mode_sort_order:
+    :param mode_section_point_first:
+    :param mode_section_point_start:
+    :param mode_section_point_last:
+    :param mode_section_degraded:
+    :param mode_section_lost:
+    :param out_score_decimal_digits:
+    :return:
+    """
     return slib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -272,10 +334,10 @@ def run_lib2(
         )
 
 
-def check_run(
+def check_for_run(
         model_name='shandong',
         df=None,
-        cols=(),
+        cols=None,
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='descending',
@@ -288,55 +350,14 @@ def check_run(
         out_score_decimal_digits=0,
         reload=False,
         ):
-    # check model name
-    model_name = model_name.lower()
-    if model_name.lower() not in msetin.Models.keys():
-        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
-        return False
-
-    # check input data: DataFrame
-    if not isinstance(df, pd.DataFrame):
-        if isinstance(df, pd.Series):
-            df = pd.DataFrame(df)
-        else:
-            print('error data type: df is not a pandas.DataFrame or pandas.Series!')
-            return False
-
-    # check col
-    # if isinstance(cols, str):
-    #     cols = [cols]
-    # condition is: sequence and element is str and is a column name in columns
-    if type(cols) not in (list, tuple):
-        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
-        return False
-
-    # check col type
-    import numbers
-    if len(df) > 0:
-        for col in cols:
-            if col not in df.columns:
-                print('error col: [{}] is not a name of df columns!'.format(col))
-                return False
-            if not isinstance(df[col][0], numbers.Number):
-                print('type error: column[{}] not Number type!'.format(col))
-                return False
-
-    # check mode_ratio_prox
-    if mode_ratio_prox not in ['lower_max', 'upper_min', 'near_min', 'near_max']:
-        print('invalid prox mode: {}'.format(mode_ratio_prox))
-        print('  valid prox mode: lower_max, upper_min, near_min, near_max')
-        return False
-    if mode_ratio_cumu not in ['yes', 'no']:
-        print('invalid cumu mode(yes/no): {}'.format(mode_ratio_cumu))
-        return False
 
     # reload modules if any chenges done, especially in modelsetin.Models
     # reload modules: [x for x in sys.modules if 'stm' in x]
     if reload:
         print('reload modules ...')
         exec('import importlib as pb')
-        for n1, n2, n3 in [('stm', 'mlib',  'stmlib'),  ('stm', 'mutl', 'modelutil'),
-                           ('stm', 'mlib2', 'stmlib2'), ('stm', 'msetin', 'modelsetin'),
+        for n1, n2, n3 in [('stm', 'slib',  'stmlib'),  ('stm', 'utl', 'stmutil'),
+                           ('stm', 'slib2', 'stmlib2'), ('stm', 'msetin', 'modelsetin'),
                            ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
@@ -346,5 +367,31 @@ def check_run(
                 print('error model: model={} defined incorrectly!'.format(mk))
                 return False
             msetin.Models.update({mk: mext.Models_ext[mk]})
+
+    # check model name
+    model_name = model_name.lower()
+    if model_name.lower() not in msetin.Models.keys():
+        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+        return False
+
+    # check input data: DataFrame
+    if not utl.check_data(df, cols, raw_score_range):
+        return False
+
+    # check strategy
+    if not utl.check_strategy(
+            mode_ratio_prox=mode_ratio_prox,
+            mode_ratio_cumu=mode_ratio_cumu,
+            mode_sort_order=mode_sort_order,
+            mode_section_point_first=mode_section_point_first,
+            mode_section_point_start=mode_section_point_start,
+            mode_section_point_last=mode_section_point_last,
+            mode_section_degraded=mode_section_degraded,
+            mode_section_lost=mode_section_lost,
+    ):
+        return False
+
+    if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
+        print('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
     return True
