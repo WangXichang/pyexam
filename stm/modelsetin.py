@@ -56,7 +56,7 @@
 
 
 from collections import namedtuple
-from stm import stmlib2 as mlib
+from stm import stmlib2 as slib2
 
 
 # model type
@@ -65,10 +65,10 @@ MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transfor
 MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900model = mlib.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
-hn300model = mlib.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
-zscoremodel = mlib.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
-tscoremodel = mlib.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
+hn900model = slib2.ModelAlgorithm.get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
+hn300model = slib2.ModelAlgorithm.get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
+zscoremodel = slib2.ModelAlgorithm.get_section_pdf(-4, 4, 8000, 4, True, 'ppt', 100, 'd')
+tscoremodel = slib2.ModelAlgorithm.get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 
 # model including: type,    transfrom mode, in ['plt', 'ppt', 'tai']
 #                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3

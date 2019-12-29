@@ -32,11 +32,11 @@ How to add new model in modelext:
 
 import pandas as pd
 import sys
-from stm import stmlib as mlib, modelutil as mutl, stmlib2 as mlib2, modelsetin as msetin, modelext as mext
+from stm import stmlib as slib, stmutil as utl, stmlib2 as slib2, modelsetin as msetin, modelext as mext
 
 
 def exp(name='shandong'):
-    td = mutl.TestData()()
+    td = utl.TestData()()
     return run(model_name=name, df=td, cols=['km1'])
 
 
@@ -137,10 +137,11 @@ def run(
             reload=reload
             ):
         return None
+
     # ratio-seg score model: plt, ppt
-    if model_name not in ['tai', 'zscore', 'tscore']:
+    if msetin.Models[model_name].type in ['plt', 'ppt']:     # not in ['tai', 'zscore', 'tscore']:
         ratio_tuple = tuple(x * 0.01 for x in msetin.Models[model_name].ratio)
-        plt_model = mlib.PltScore(model_name)
+        plt_model = slib.PltScore(model_name)
         plt_model.out_decimal_digits = 0
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
@@ -201,7 +202,7 @@ def run_model(
     if model_name in msetin.Models.keys():
         model = msetin.Models[model_name]
     elif model_name in mext.Models_ext.keys():
-        if mutl.check_model(mext.Models_ext):
+        if utl.check_model(mext.Models_ext):
             model = mext.Models_ext[model_name]
         else:
             return None
@@ -209,7 +210,7 @@ def run_model(
         print('error model: {} is not in modelsetin.Models or modelext.Models_ext!'.format(model_name))
         return None
 
-    return mlib2.ModelAlgorithm.get_stm_score(
+    return slib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model.ratio,
@@ -250,7 +251,7 @@ def run_lib2(
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
         ):
-    return mlib2.ModelAlgorithm.get_stm_score(
+    return slib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,
@@ -341,7 +342,7 @@ def check_run(
                 exec('pb.reload('+n2+')')
         # add Models_ext to Models
         for mk in mext.Models_ext.keys():
-            if not mutl.check_model(model_name=mk):
+            if not utl.check_model(model_name=mk):
                 print('error model: model={} defined incorrectly!'.format(mk))
                 return False
             msetin.Models.update({mk: mext.Models_ext[mk]})
