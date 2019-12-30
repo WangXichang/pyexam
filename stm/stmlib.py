@@ -1277,6 +1277,62 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
+
+    def plot_rawbar(self, hcolor='r', hwidth=6):
+        # raw_label = [str(x) for x in range(self.out_score_real_max + 1)]
+        # seg_list = list(self.map_table.seg)
+        raw_label = [str(x) for x in self.map_table.seg]
+        x_data = list(range(self.raw_score_defined_max + 1))
+        for f in self.cols:
+            df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+                  if xv in self.map_table.seg else 0
+                  for xv in x_data]
+
+            fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: bar graph')
+            ax.set_xticks(x_data)
+            ax.set_xticklabels(raw_label)
+            width = 0.4
+            bar_wid = [p + width/2 for p in x_data]
+
+            raw_bar = ax.bar(bar_wid, df, width, label=f)
+            disp_bar = [raw_bar]
+            ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
+                         format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
+
+            for bars in disp_bar:
+                make_color = 0
+                last_height = 0
+                for _bar in bars:
+                    height = _bar.get_height()
+                    # height = height - 2 if height > 3 else height
+                    xpos = _bar.get_x() + _bar.get_width() / 2
+                    # xwid = _bar.get_width()
+                    # print(xpos, height, last_height)
+                    note_str= '{}'.format(int(height))
+                    ypos = 0
+                    if (height > 100) and abs(height - last_height) < 20:
+                        if height < last_height:
+                            ypos = - 10
+                        else:
+                            ypos = + 10
+                    ax.annotate(note_str,
+                                xy=(xpos, height),
+                                xytext=(0, ypos),              # vertical offset
+                                textcoords="offset points",
+                                ha='center',
+                                va='bottom'
+                                )
+                    if make_color == 2:
+                        plot.plot([xpos, xpos], [0, height], hcolor, linewidth=hwidth)
+                        make_color = 0
+                    else:
+                        make_color += 1
+                    last_height = height + ypos
+            fig.tight_layout()
+            plot.show()
+
+
     def __plot_dist(self):
         def plot_dist_fit(field, _label):
             x_data = self.outdf[field]
