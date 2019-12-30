@@ -1210,8 +1210,21 @@ class PltScore(ScoreTransformModel):
             ax.bar(bar_wid, outdf, width, label=f)
 
     def plot_bar(self, display='all', hcolor='r', hwidth=6):
-        raw_label = [str(x) for x in range(self.out_score_real_max + 1)]
-        x_data = list(range(self.out_score_real_max + 1))
+        # raw_label = [str(x) for x in range(self.out_score_real_max + 1)]
+        raw_label = [str(int(float(x))) for x in np.linspace(self.raw_score_defined_min,
+                                                 self.raw_score_defined_max,
+                                                 (self.raw_score_defined_max-self.raw_score_defined_min)/
+                                                 len(self.raw_score_ratio_cum))
+                     ]
+        # x_data = list(range(self.out_score_real_max + 1))
+        self.out_score_max = max(self.out_score_points)[0]
+        self.out_score_min = min(self.out_score_points)[0]
+        x_data = [float(x) for x in np.linspace(self.out_score_min,
+                                                 self.out_score_max,
+                                                 (self.out_score_max-self.out_score_min)/
+                                                 len(self.out_score_points))
+                     ]
+        # x_data = [slib2.round45r(x, self.out_decimal_digits) for x in x_data]
         seg_list = list(self.map_table.seg)
         for f in self.cols:
             df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
@@ -1272,8 +1285,8 @@ class PltScore(ScoreTransformModel):
                     else:
                         make_color += 1
                     last_height = height + ypos
-            if display == 'all':
-                ax.legend(loc='upper right', shadow=True, fontsize='x-large')
+            # if display == 'all':
+            #     ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()
             plot.show()
 
