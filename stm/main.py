@@ -145,7 +145,7 @@ def run(
     model_type = msetin.Models[model_name].type
     if model_type in ['plt', 'ppt']:     # not in ['tai', 'zscore', 'tscore']:
         ratio_tuple = tuple(x * 0.01 for x in msetin.Models[model_name].ratio)
-        print(sum(ratio_tuple))
+        # print(sum(ratio_tuple))
         plt_model = slib.PltScore(model_name, model_type)
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(

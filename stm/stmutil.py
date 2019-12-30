@@ -75,7 +75,8 @@ def check_model(model_name):
             msetin.Models[model_name].type,
             msetin.Models[model_name].ratio,
             msetin.Models[model_name].section,
-            msetin.Models[model_name].desc)
+            msetin.Models[model_name].desc
+        )
     if model_name in mext.Models_ext.keys():
         r2 = check_model_para(
             model_name,
