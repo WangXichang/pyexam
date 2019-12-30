@@ -32,7 +32,7 @@ How to add new model in modelext:
 
 import pandas as pd
 import sys
-from stm import stmlib as slib, stmutil as utl, stmlib2 as slib2, modelsetin as msetin, modelext as mext
+from stm import stmlib as slib, stmutil as utl, stmlib2 as slib2, models_setin as msetin, models_ext as mext
 
 
 def exp(name='shandong'):

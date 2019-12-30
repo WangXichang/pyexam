@@ -6,7 +6,7 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, stmutil as mutl, stmlib2 as mlib, modelext as mext, modelsetin as msetin
+from stm import main, stmutil as mutl, stmlib2 as mlib, models_ext as mext, models_setin as msetin
 
 
 # 有关stm测试的问题：

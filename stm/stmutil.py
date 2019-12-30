@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import numbers
-from stm import modelsetin as msetin, modelext as mext
+from stm import models_setin as msetin, models_ext as mext
 
 
 def show_models():
