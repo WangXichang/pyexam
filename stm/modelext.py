@@ -47,7 +47,7 @@ from collections import namedtuple
 
 
 ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
-Models_ext = {
+Models = {
     'hn300plt1':    ModelFields(
                                 'plt',
                                 (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),

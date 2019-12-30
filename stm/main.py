@@ -241,9 +241,9 @@ def run_model(
         return None
     if model_name in msetin.Models.keys():
         model = msetin.Models[model_name]
-    elif model_name in mext.Models_ext.keys():
-        if utl.check_model(mext.Models_ext):
-            model = mext.Models_ext[model_name]
+    elif model_name in mext.Models.keys():
+        if utl.check_model(mext.Models):
+            model = mext.Models[model_name]
         else:
             return None
     else:
@@ -361,12 +361,17 @@ def check_for_run(
                            ('stm', 'mext',  'modelext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
-        # add Models_ext to Models
-        for mk in mext.Models_ext.keys():
-            if not utl.check_model(model_name=mk):
-                print('error model: model={} defined incorrectly!'.format(mk))
+        # check model in modelsetin
+        for mk in msetin.Models.keys():
+            if not utl.check_model(model_name=mk, model_lib=msetin.Models):
+                print('error model: model={} in modelsetin.Models!'.format(mk))
                 return False
-            msetin.Models.update({mk: mext.Models_ext[mk]})
+        # add Models_ext to Models
+        for mk in mext.Models.keys():
+            if not utl.check_model(model_name=mk, model_lib=mext.Models):
+                print('error model: model={} in modelext.Models!'.format(mk))
+                return False
+            msetin.Models.update({mk: mext.Models[mk]})
 
     # check model name
     model_name = model_name.lower()

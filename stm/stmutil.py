@@ -67,34 +67,21 @@ def model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def check_model(model_name):
-    r1, r2 = False, False
-    if model_name in msetin.Models.keys():
-        r1 = check_model_para(
-            model_name,
-            msetin.Models[model_name].type,
-            msetin.Models[model_name].ratio,
-            msetin.Models[model_name].section,
-            msetin.Models[model_name].desc
-        )
-    if model_name in mext.Models_ext.keys():
-        r2 = check_model_para(
-            model_name,
-            mext.Models_ext[model_name].type,
-            mext.Models_ext[model_name].ratio,
-            mext.Models_ext[model_name].section,
-            mext.Models_ext[model_name].desc
-        )
-    if not(r1 or r2):
-        print('error name: [{}] not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
-        return False
-    if (model_name in mext.Models_ext.keys()) and (not r2):
+def check_model(model_name, model_lib=msetin.Models):
+    if model_name in model_lib.keys():
+        if not check_model_para(
+            model_lib[model_name].type,
+            model_lib[model_name].ratio,
+            model_lib[model_name].section,
+            model_lib[model_name].desc
+        ):
+            return False
+    else:
         return False
     return True
 
 
 def check_model_para(
-                model_name=None,
                 model_type='plt',
                 model_ratio=None,
                 model_section=None,
@@ -103,9 +90,6 @@ def check_model_para(
     if model_type not in ['ppt', 'plt', 'pgt']:
         print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
         return False
-    if model_name in msetin.Models:
-        print('warning: name collision! {} existed in modelsetin.Models!'.format(model_name))
-        # return False
     if len(model_ratio) != len(model_section):
         print('error length: the length of ratio group is not same as section group length !')
         return False

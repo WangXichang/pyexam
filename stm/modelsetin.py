@@ -211,9 +211,9 @@ Models = {
                                 ),
     'tai':          ModelFields(
                                 MODEL_TYPE_PGT,
-                                [1 for _ in range(15)],     # only first==1 is useful
-                                tuple((i+1, i+1) for i in range(15)),
-                                'piecewise linear transform model with ratio-segment'
+                                [1] + [99 if i == 0 else 0 for i in range(14)],     # only first==1 is useful
+                                tuple((i+1, i+1) for i in range(15)),             # grade from 1 to 15
+                                'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
                                 ),
     }
 
