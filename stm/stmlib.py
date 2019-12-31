@@ -22,12 +22,10 @@
 import copy
 import time
 import os
-import warnings
 import fractions as fr
 import bisect as bst
 import array
 import abc
-import collections as coll
 
 
 # external import
@@ -40,11 +38,8 @@ import seaborn as sbn
 # stm import
 from stm import stmlib2 as slib2
 
+import warnings
 warnings.filterwarnings('ignore')
-
-
-def about():
-    print(__doc__)
 
 
 # Score Transform Model Interface
@@ -1001,9 +996,9 @@ class PltScore(ScoreTransformModel):
         print(self.out_report_doc)
 
     def plot(self, mode='model'):
-        if mode not in ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'bar', 'rawbar', 'outbar']:
-            print('mode:[{}] is no in [raw, out, model, shift, dist, diff, bar, ourbar, rawbar]'.
-                  format(mode))
+        plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'bar', 'rawbar', 'outbar']
+        if mode not in plot_name:
+            print('error plot: [{}] not in {}'.format(mode, plot_name))
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
@@ -1017,26 +1012,11 @@ class PltScore(ScoreTransformModel):
         elif mode == 'outbar':
             self.plot_bar('out')
         elif mode in 'diff':
-            self.__plot_diff()
-        elif mode in 'normtest':
-            self.__plot_norm_test()
+            self.plot_diff()
         elif not super(PltScore, self).plot(mode):
-            print('\"{}\" is invalid'.format(mode))
+            print('error plot: [{}] is invalid!'.format(mode))
 
-    def __plot_norm_test(self):
-        self.norm_test = dict()
-        for col in self.cols:
-            _len = self.map_table[col+'_count'].sum()
-            x1 = sorted(self.outdf[col])
-            x2 = sorted(self.outdf[col+'_ts'])
-            y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
-            fig, ax = plot.subplots()
-            # fig.suptitle('norm test for stm models')
-            ax.set_title(self.model_name+': norm test')
-            ax.plot(x1, y, 'o-', label='score:' + col)
-            ax.plot(x2, y, 'o-', label='score:' + col)
-
-    def __plot_diff(self):
+    def plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
         raw_label = [str(x) for x in self.map_table['seg']][::-1]
         for f in self.cols:
@@ -1107,21 +1087,7 @@ class PltScore(ScoreTransformModel):
 
     def plot_bar(self, display='all', hcolor='r', hwidth=6):
         raw_label = [str(x) for x in range(int(self.out_score_real_max) + 1)]
-        # raw_label = [str(int(float(x))) for x in np.linspace(self.raw_score_defined_min,
-        #                                          self.raw_score_defined_max,
-        #                                          (self.raw_score_defined_max-self.raw_score_defined_min)/
-        #                                          len(self.raw_score_ratio_cum))
-        #              ]
-        # # raw_label = reversed(raw_label)
         x_data = list(range(int(self.out_score_real_max) + 1))
-        # self.out_score_max = max(self.out_score_points)[0]
-        # self.out_score_min = min(self.out_score_points)[0]
-        # x_data = [float(x) for x in np.linspace(self.out_score_min,
-        #                                          self.out_score_max,
-        #                                          (self.out_score_max-self.out_score_min)/
-        #                                          len(self.out_score_points))
-        #              ]
-        # # x_data = [slib2.round45r(x, self.out_decimal_digits) for x in x_data]
         seg_list = list(self.map_table.seg)
         for f in self.cols:
             df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
@@ -1134,7 +1100,6 @@ class PltScore(ScoreTransformModel):
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
-            # bar_wid = [p - width/2 for p in x_data]
             bar_wid = [p + width/2 for p in x_data]
             if display in ['all']:
                 raw_bar = ax.bar(bar_wid, df, width, label=f)
@@ -1156,10 +1121,7 @@ class PltScore(ScoreTransformModel):
                 last_height = 0
                 for _bar in bars:
                     height = _bar.get_height()
-                    # height = height - 2 if height > 3 else height
                     xpos = _bar.get_x() + _bar.get_width() / 2
-                    # xwid = _bar.get_width()
-                    # print(xpos, height, last_height)
                     note_str= '{}'.format(int(height))
                     ypos = 0
                     if (height > 100) and abs(height - last_height) < 20:
@@ -1182,8 +1144,8 @@ class PltScore(ScoreTransformModel):
                     else:
                         make_color += 1
                     last_height = height + ypos
-            # if display == 'all':
-            #     ax.legend(loc='upper right', shadow=True, fontsize='x-large')
+            if display == 'all':
+                ax.legend(loc='upper right', shadow=True, fontsize='x-large')
             fig.tight_layout()
             plot.show()
 

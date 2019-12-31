@@ -24,12 +24,12 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import numbers
-from stm import models_setin as msetin
+from stm import models_in as mdin
 
 
 def show_models():
-    for k in msetin.Models:
-        v = msetin.Models[k]
+    for k in mdin.Models:
+        v = mdin.Models[k]
         print('{:<20s} {},  {} '.format(k, v.type, v.desc))
         print('{:<20s} {}'.format(' ', v.ratio))
         print('{:<20s} {}'.format('', v.section))
@@ -55,10 +55,10 @@ def plot_models(font_size=12):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [np.mean(x) for x in msetin.Models[k].section][::-1]
+            x_data = [np.mean(x) for x in mdin.Models[k].section][::-1]
             _wid = 10
         elif k in ['ss7']:
-            x_data = [np.mean(x) for x in msetin.Models[k].section][::-1]
+            x_data = [np.mean(x) for x in mdin.Models[k].section][::-1]
             _wid = 10
         elif k in ['hn900']:
             x_data = [x for x in range(100, 901)]
@@ -68,13 +68,24 @@ def plot_models(font_size=12):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, msetin.Models[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, mdin.Models[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
+def plot_norm_test(df, cols):
+    for col in cols:
+        _len = len(df)
+        x = sorted(df[col])
+        x1 = [np.log(v) for v in x]
+        y = [(_i-0.375)/(_len+0.25) for _i in range(1, _len+1)]
+        fig, ax = plot.subplots()
+        ax.set_title('norm test')
+        ax.plot(y, x1, 'o-', label='score:' + col)
+
+
 def model_describe(name='shandong'):
-    __ratio = msetin.Models[name].ratio
-    __section = msetin.Models[name].section
+    __ratio = mdin.Models[name].ratio
+    __section = mdin.Models[name].section
     if name == 'hn900':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'hn300':
@@ -86,7 +97,7 @@ def model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def check_model(model_name, model_lib=msetin.Models):
+def check_model(model_name, model_lib=mdin.Models):
     if model_name in model_lib.keys():
         if not check_model_para(
             model_lib[model_name].type,
@@ -153,9 +164,9 @@ def check_strategy(
           'mode_section_lost': mode_section_lost,
           }
     for sk in st.keys():
-        if sk in msetin.Strategy.keys():
-            if not st[sk] in msetin.Strategy[sk]:
-                print('error mode: {}={} not in {}'.format(sk, st[sk], msetin.Strategy[sk]))
+        if sk in mdin.Strategy.keys():
+            if not st[sk] in mdin.Strategy[sk]:
+                print('error mode: {}={} not in {}'.format(sk, st[sk], mdin.Strategy[sk]))
                 return False
         else:
             print('error mode: {} is not in Strategy-dict!'.format(sk))
@@ -192,7 +203,7 @@ def check_run_df_cols(df=None, cols=None, raw_score_range=None):
             if _min < min(raw_score_range):
                 print('warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
             _max = df[col].max()
-            if _max > min(raw_score_range):
+            if _max > max(raw_score_range):
                 print('warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
     return True
 

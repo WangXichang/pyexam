@@ -25,14 +25,14 @@ How to add new model in modelext:
     in order to add new model in modelext.Models_ext,
     you can open the module modelext, modify Models_ext, add key-value: name-ModelFields
     then call run() with reload=True: result = run(model_name=new_model_name, ..., reload=True)
-    then run() will check new model and add models in Models_ext to modelsetin.Models
+    then run() will check new model and add models in models_ext.Models to models_in.Models
     at last run() use new_model_name to call stmlib or stmlib2
 """
 
 
-import pandas as pd
 import sys
-from stm import stmlib as slib, stmutil as utl, stmlib2 as slib2, models_setin as msetin, models_ext as mext
+from stm import stmlib as slib, stmutil as utl, \
+     stmlib2 as slib2, models_in as mdin, models_ext as mdext
 
 
 def exp(name='shandong'):
@@ -58,71 +58,58 @@ def run(
         ):
     """
 
-    [functions] 模块中的函数
-       run(name, df, col, ratio_list, grade_max, grade_diff, mode_score_paper_max, mode_score_paper_min,
-           out_score_decimal=0, mode_ratio_prox='near', mode_ratio_cumu='yes')
-          运行各个模型的调用函数 calling model function
-          ---
-          参数描述
-          name:str := 'shandong', 'shanghai', 'zhejiang', 'beijing', 'tianjin', 'tai', 'hainan2', 'hainan3', 'hainan4'
-          调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
-          --
-          name:= 'zscore', 't_score', 'tlinear'
-          计算Z分数、T分数、线性转换T分数
-          --
-          data: input raw score data, type DataFrame of pandas
-          输入原始分数数据，类型为DataFrame
-          --
-          cols:list := raw score fields
-          计算转换分数的字段表，列表或元组，元素为字符串
-          --
-          ratio_list: ratio list including percent value for each interval of grade score
-          对原始分数进行等级区间划分的比例表
-          --
-          grade_max: max value of grade score
-          最大等级分数
-          --
-          grade_diff: differentiao value of grade score
-          等级分差值
-          --
-          raw_score_range: tuple,
-          最大原始分数,最小原始分数
-          --
-          out_score_decimal: decimal digit number
-          输出分数小数位数
-          --
-          mode_ratio_prox: the method to proxmate ratio value of raw score points
-                           通过搜索对应比例的确定等级区间分值点的方式
-              'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
-              'lower_max': get score with max value in less 大于该比例值的分值中最小的值
-              'near_min': get score with min value in near 最接近该比例值的分值中最小的值
-              'near_max': get score with max value in near 最接近该比例值的分值中最大的值
+    [functions]
+    run(model_name='shandong',  # model name in models_in.Models or models_ext.Models
+        df=None,
+        cols=None,
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='descending',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='map_to_max',
+        mode_section_lost='ignore',
+        raw_score_range=(0, 100),
+        out_score_decimals=0,
+        reload=False,
+        )
+        8个算法策略：
+        --
+        mode_ratio_prox: the mode to proxmate ratio value of raw score points
+                         搜索对应比例的确定等级区间分值点的方式
+              'upper_min': 小于该比例值的分值中最大的值   get score with min value in bigger percentile
+              'lower_max': 大于该比例值的分值中最小的值   get score with max value in less percentile
+               'near_min': 最接近该比例值的分值中最小的值 get score with min value in near percentile
+               'near_max': 最接近该比例值的分值中最大的值 get score with max value in near percentile
 
-          mode_ratio_cumu: 比例累加控制(2019.09.09)
-              'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
-              'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
+          mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
+                    'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
+                     'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
           ---
           usage:调用方式
-          [1] import pyex_stm as stm
-          [2] m = stm.run(name='shandong', df=data, col=['ls'])
+          [1] from stm import main
+          [2] m = main.run(name='shandong', df=data, col=['ls'])
           [3] m.report()
-          [4] m.output.head()
-          [5] m.save_outdf_to_csv
+          [4] m.map_table.head()
+          [5] m.outdf.head()
+          [6] m.save_outdf_to_csv(filename_outdf)
+          [7] m.save_map_table_doc(filename_maptable)
 
     [function] run()
     calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
 
-    :param model_name: str, model name,
-                 values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
-                         'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
-                         'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
-                         'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
-                         'zscore', 'tscore'                             # ppt model for z, t, t-linear transform score
-                         'tai'                                          # pgt model for taiwan grade score model
-                 default = 'shandong'
-    :param df: DataFrame,
-       values: raw score data, instance of pandas.DataFrame, including score field, which type must be int or float
+    :param model_name: str, in models_in.Models.keys or models_ext.Models.keys
+         values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
+                 'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
+                 'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
+                 'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
+                 'zscore', 'tscore'                             # ppt model for z, t, t-linear transform score
+                 'tai'                                          # pgt model for taiwan grade score model
+         default = 'shandong'
+    :param df: pandas.DataFrame,
+       values: raw score data, including score field, which type must be int or float
       default= None
     :param cols: list,
          values: [column name, that is score field name of df]
@@ -149,32 +136,36 @@ def run(
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
-                            default= 'real_max_min'
+                            default= 'real'
     :param mode_section_point_start: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
-                            default= 'real_max_min'
+                            default= 'real'
     :param mode_section_point_last: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
-                            default= 'real_max_min'
+                            default= 'real'
     :param mode_section_lost: str,
                            strategy: how to prosess lost section
                              values: 'ignore', use real raw score max or min value
-                                     'next_one',
-                                     'next_one',
+                                     'next_one_point',
+                                     'next_two_point',
                             default= 'ignore'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
                    default= (0, 100)
-    :param out_score_decimals: int,
+    :param out_score_decimals: int, >=0
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
+    :param reload: bool
+            usage: reload related modules, especially when modify models_ext.Models
+          default= False
 
-    :return: model: instance of model class, subclass of ScoreTransformModel
+    :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
+             (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
     if not check_for_run(
@@ -194,16 +185,15 @@ def run(
             ):
         return None
 
-    # ratio-seg score model: plt, ppt
-    model_type = msetin.Models[model_name].type
-    if model_type in ['plt', 'ppt']:     # not in ['tai', 'zscore', 'tscore']:
-        ratio_tuple = tuple(x * 0.01 for x in msetin.Models[model_name].ratio)
-        # print(sum(ratio_tuple))
+    model_type = mdin.Models[model_name].type
+    # model: plt, ppt
+    if model_type in ['plt']:
+        ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
         plt_model = slib.PltScore(model_name, model_type)
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=msetin.Models[model_name].section,
+            out_score_seg_tuple=mdin.Models[model_name].section,
             raw_score_defined_max=max(raw_score_range),
             raw_score_defined_min=min(raw_score_range),
             mode_ratio_prox=mode_ratio_prox,
@@ -218,8 +208,9 @@ def run(
             )
         plt_model.run()
         return plt_model
+    # for 'ppt', 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
-        print('use run_model cols={}... '.format(cols))
+        print('run model by stmlib2, cols={} ... '.format(cols))
         result = run_model(
                            model_name=model_name,
                            df=df,
@@ -237,7 +228,7 @@ def run(
         return result
 
 
-# with model_name to get stm score by calling modelfunc.ModelAlgorithm
+# get stm score by calling stmlib2.ModelAlgorithm
 def run_model(
         model_name='shandong',
         df=None,
@@ -256,8 +247,8 @@ def run_model(
         reload=False
         ):
     """
-    use model_name to calculate out score by calling stmlib2
-    model_name in modelsetin.Models or modelext.Models_ext
+    to calculate out score by calling stmlib2.Algorithm.get_stm_score
+    model_name in models_in.Models or models_ext.Models
 
     :param model_name:
     :param df:
@@ -292,15 +283,15 @@ def run_model(
             reload=reload
             ):
         return None
-    if model_name in msetin.Models.keys():
-        model = msetin.Models[model_name]
-    elif model_name in mext.Models.keys():
-        if utl.check_model(mext.Models):
-            model = mext.Models[model_name]
+    if model_name in mdin.Models.keys():
+        model = mdin.Models[model_name]
+    elif model_name in mdext.Models.keys():
+        if utl.check_model(mdext.Models):
+            model = mdext.Models[model_name]
         else:
             return None
     else:
-        print('error model: {} is not in modelsetin.Models or modelext.Models_ext!'.format(model_name))
+        print('error model: {} is not in models_in.Models or modelext.Models_ext!'.format(model_name))
         return None
 
     return slib2.ModelAlgorithm.get_stm_score(
@@ -404,32 +395,32 @@ def check_for_run(
         reload=False,
         ):
 
-    # reload modules if any chenges done, especially in modelsetin.Models
+    # reload modules if any chenges done, especially in models_in.Models
     # reload modules: [x for x in sys.modules if 'stm' in x]
     if reload:
         print('reload modules ...')
         exec('import importlib as pb')
         for n1, n2, n3 in [('stm', 'slib',  'stmlib'),  ('stm', 'utl', 'stmutil'),
-                           ('stm', 'slib2', 'stmlib2'), ('stm', 'msetin', 'models_setin'),
-                           ('stm', 'mext',  'models_ext')]:
+                           ('stm', 'slib2', 'stmlib2'), ('stm', 'mdin', 'models_in'),
+                           ('stm', 'mdext',  'models_ext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
-        # check model in modelsetin
-        for mk in msetin.Models.keys():
-            if not utl.check_model(model_name=mk, model_lib=msetin.Models):
-                print('error model: model={} in modelsetin.Models!'.format(mk))
+        # check model in models_in
+        for mk in mdin.Models.keys():
+            if not utl.check_model(model_name=mk, model_lib=mdin.Models):
+                print('error model: model={} in models_in.Models!'.format(mk))
                 return False
         # add Models_ext to Models
-        for mk in mext.Models.keys():
-            if not utl.check_model(model_name=mk, model_lib=mext.Models):
-                print('error model: model={} in modelext.Models!'.format(mk))
+        for mk in mdext.Models.keys():
+            if not utl.check_model(model_name=mk, model_lib=mdext.Models):
+                print('error model: model={} in models_ext.Models!'.format(mk))
                 return False
-            msetin.Models.update({mk: mext.Models[mk]})
+            mdin.Models.update({mk: mdext.Models[mk]})
 
     # check model name
     model_name = model_name.lower()
-    if model_name.lower() not in msetin.Models.keys():
-        print('error name: name={} not in modelsetin.Models and modelext.Models_ext!'.format(model_name))
+    if model_name.lower() not in mdin.Models.keys():
+        print('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
