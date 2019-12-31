@@ -627,7 +627,6 @@ class ModelAlgorithm:
                       )
         map_table = seg.outdf
         cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
-        # print(cumu_ratio)
         for col in cols:
             print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
@@ -652,7 +651,6 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                # print(result.coeff_raw_out_section_formula)
 
                 # display ratio searching result at section i
                 for i, (cumu_ratio, dest_ratio, section, percent, out_section) in enumerate(zip(
@@ -688,24 +686,20 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                print('  raw ratio: [{0}] \ntable ratio: [{1}]\n'
+                print('  map table: [{4}] \n real ratio: [{1}]\n'
                       '  raw score: [{2}] \n  out score: [{3}]\n'
-                      '  map table: [{4}] \n      ratio: [{5}]'
+                      #'  map table: [{4}] \n'
                       .format(
-                      ', '.join([format(x, '.8f') for x in result.dest_ratio]),
-                      ', '.join([format(x, '.8f') for x in result.real_ratio]),
-                      ', '.join([format(x, '>10d') for x in result.map_dict.keys()]),
+                      ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                      ', '.join([format(x, '12.8f') for x in result.real_ratio]),
+                      ', '.join([format(x, '>12d') for x in result.map_dict.keys()]),
                       ', '.join([format(round45r(result.map_dict[x], out_score_decimals), '>' +
-                                        ('10d' if out_score_decimals == 0 else '10.' + str(out_score_decimals) + 'f'))
+                                        ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
                                  for x in result.map_dict.keys()]),
-                      ', '.join([format(round45r(x, out_score_decimals),
-                                        '>' + ('10d' if out_score_decimals == 0 else '10.' + str(out_score_decimals) + 'f'))
-                                 for x, y in result.map_table]),
-                      ', '.join([format(y, '.8f') for x, y in result.map_table]),
+                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f') for x, y in result.map_table]),
                       ))
             elif model_type.lower() == 'pgt':
-                # print('pgt running. . .')
-                print(col, type(map_table))
+                # print(col, type(map_table))
                 result = ModelAlgorithm.get_pgt_formula(
                     df=df,
                     col=col,
@@ -721,7 +715,6 @@ class ModelAlgorithm:
                 print('       grade step: {}'.format(result.grade_step))
                 print('        top level: {}'.format(result.top_level))
                 formula=result.formula
-                # map_table = result.map_table
             else:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
