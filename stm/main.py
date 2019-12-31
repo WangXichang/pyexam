@@ -57,7 +57,60 @@ def run(
         reload=False,
         ):
     """
-    use model_name to transform score
+
+    [functions] 模块中的函数
+       run(name, df, col, ratio_list, grade_max, grade_diff, mode_score_paper_max, mode_score_paper_min,
+           out_score_decimal=0, mode_ratio_prox='near', mode_ratio_cumu='yes')
+          运行各个模型的调用函数 calling model function
+          ---
+          参数描述
+          name:str := 'shandong', 'shanghai', 'zhejiang', 'beijing', 'tianjin', 'tai', 'hainan2', 'hainan3', 'hainan4'
+          调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
+          --
+          name:= 'zscore', 't_score', 'tlinear'
+          计算Z分数、T分数、线性转换T分数
+          --
+          data: input raw score data, type DataFrame of pandas
+          输入原始分数数据，类型为DataFrame
+          --
+          cols:list := raw score fields
+          计算转换分数的字段表，列表或元组，元素为字符串
+          --
+          ratio_list: ratio list including percent value for each interval of grade score
+          对原始分数进行等级区间划分的比例表
+          --
+          grade_max: max value of grade score
+          最大等级分数
+          --
+          grade_diff: differentiao value of grade score
+          等级分差值
+          --
+          raw_score_range: tuple,
+          最大原始分数,最小原始分数
+          --
+          out_score_decimal: decimal digit number
+          输出分数小数位数
+          --
+          mode_ratio_prox: the method to proxmate ratio value of raw score points
+                           通过搜索对应比例的确定等级区间分值点的方式
+              'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
+              'lower_max': get score with max value in less 大于该比例值的分值中最小的值
+              'near_min': get score with min value in near 最接近该比例值的分值中最小的值
+              'near_max': get score with max value in near 最接近该比例值的分值中最大的值
+
+          mode_ratio_cumu: 比例累加控制(2019.09.09)
+              'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
+              'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
+
+          ---
+          usage:调用方式
+          [1] import pyex_stm as stm
+          [2] m = stm.run(name='shandong', df=data, col=['ls'])
+          [3] m.report()
+          [4] m.output.head()
+          [5] m.save_outdf_to_csv
+
+    [function] run()
     calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
 
     :param model_name: str, model name,
@@ -357,8 +410,8 @@ def check_for_run(
         print('reload modules ...')
         exec('import importlib as pb')
         for n1, n2, n3 in [('stm', 'slib',  'stmlib'),  ('stm', 'utl', 'stmutil'),
-                           ('stm', 'slib2', 'stmlib2'), ('stm', 'msetin', 'modelsetin'),
-                           ('stm', 'mext',  'modelext')]:
+                           ('stm', 'slib2', 'stmlib2'), ('stm', 'msetin', 'models_setin'),
+                           ('stm', 'mext',  'models_ext')]:
             if n1+'.'+n3 in sys.modules:
                 exec('pb.reload('+n2+')')
         # check model in modelsetin
@@ -380,7 +433,7 @@ def check_for_run(
         return False
 
     # check input data: DataFrame
-    if not utl.check_data(df, cols, raw_score_range):
+    if not utl.check_run_df_cols(df, cols, raw_score_range):
         return False
 
     # check strategy

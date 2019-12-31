@@ -1,12 +1,30 @@
 # coding: utf-8
 
 
+"""
+    plot_models(font_size=12)
+    山东、浙江、上海、北京、天津、广东、湖南方案等级转换分数分布直方图
+    plot models distribution hist graph including shandong, zhejiang, shanghai, beijing, tianjin
+
+    round45r(v: float, dec = 0)
+    四舍五入函数, 用于改进round产生的偶数逼近和二进制表示方式产生的四舍五入误差
+    function for rounding strictly at some decimal position
+          v： 输入浮点数
+        dec： 保留小数位数
+
+    get_norm_table(size=400, std=1, mean=0, stdnum=4)
+    生成具有指定记录数（size = 400）、标准差(std=1)、均值(mean=0)、截止标准差数（最小最大）(stdnum=4)的正态分布表
+    create norm data dataframe with assigned scale, mean, standard deviation, std range
+    return DataFrame({'rv': random var, 'cdf': cdf , 'pdf': pdf}
+"""
+
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import numbers
-from stm import models_setin as msetin, models_ext as mext
+from stm import models_setin as msetin
 
 
 def show_models():
@@ -19,6 +37,7 @@ def show_models():
 
 def plot_models(font_size=12):
     _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
+
     ms_dict = dict()
     for _name in _names:
         ms_dict.update({_name: model_describe(name=_name)})
@@ -122,17 +141,17 @@ def check_strategy(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-    ):
+        ):
 
-    st ={'mode_ratio_prox': mode_ratio_prox,
-         'mode_ratio_cumu':mode_ratio_cumu,
-         'mode_sort_order': mode_sort_order,
-         'mode_section_point_first': mode_section_point_first,
-         'mode_section_point_start': mode_section_point_start,
-         'mode_section_point_last': mode_section_point_last,
-         'mode_section_degraded': mode_section_degraded,
-         'mode_section_lost': mode_section_lost,
-         }
+    st = {'mode_ratio_prox': mode_ratio_prox,
+          'mode_ratio_cumu':mode_ratio_cumu,
+          'mode_sort_order': mode_sort_order,
+          'mode_section_point_first': mode_section_point_first,
+          'mode_section_point_start': mode_section_point_start,
+          'mode_section_point_last': mode_section_point_last,
+          'mode_section_degraded': mode_section_degraded,
+          'mode_section_lost': mode_section_lost,
+          }
     for sk in st.keys():
         if sk in msetin.Strategy.keys():
             if not st[sk] in msetin.Strategy[sk]:
@@ -144,7 +163,7 @@ def check_strategy(
     return True
 
 
-def check_data(df=None, cols=None, raw_score_range=None):
+def check_run_df_cols(df=None, cols=None, raw_score_range=None):
     if not isinstance(df, pd.DataFrame):
         if isinstance(df, pd.Series):
             print('warning: df is pandas.Series!')
@@ -166,12 +185,15 @@ def check_data(df=None, cols=None, raw_score_range=None):
             if col not in df.columns:
                 print('error col: {} is not in df.columns!'.format(col))
                 return False
-            if not isinstance(df[col][0], numbers.Number):
+            if not isinstance(df[col][0], numbers.Real):
                 print('type error: column[{}] not Number type!'.format(col))
                 return False
-            if df[col].min() < min(raw_score_range):
-                print('warning: some scores in col={} not in raw score range:{}'.format(col, raw_score_range))
-
+            _min = df[col].min()
+            if _min < min(raw_score_range):
+                print('warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
+            _max = df[col].max()
+            if _max > min(raw_score_range):
+                print('warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
     return True
 
 
@@ -183,21 +205,21 @@ def get_norm_table(size=400, std=1, mean=0, stdnum=4):
         create normal distributed data(pdf,cdf) with preset std,mean,samples size
         变量区间： [-stdNum * std, std * stdNum]
         interval: [-stdNum * std, std * stdNum]
-    parameter
+    parameters
         变量取值数 size: variable value number for create normal distributed PDF and CDF
-        分布标准差  std:  standard difference
+        分布标准差  std: standard difference
         分布均值   mean: mean value
-        标准差数 stdnum: used to define data range [-std*stdNum, std*stdNum]
+        标准差数 stdnum: used to define data range [-std * stdNum, std * stdNum]
     return
-        DataFrame: 'sv':stochastic variable value,
-                  'pdf': pdf value, 'cdf': cdf value
+        DataFrame:   sv:stochastic variable value,
+                    pdf: pdf value, 'cdf': cdf value
     """
     interval = [mean - std * stdnum, mean + std * stdnum]
     step = (2 * std * stdnum) / size
     varset = [mean + interval[0] + v*step for v in range(size+1)]
     cdflist = [sts.norm.cdf(v) for v in varset]
     pdflist = [sts.norm.pdf(v) for v in varset]
-    ndf = pd.DataFrame({'sv': varset, 'cdf': cdflist, 'pdf': pdflist})
+    ndf = pd.DataFrame({'rv': varset, 'cdf': cdflist, 'pdf': pdflist})
     return ndf
 
 

@@ -145,7 +145,7 @@ zscoremodel = get_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
 tscoremodel = get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 
 
-# model including: type,    transfrom mode, in ['plt', 'ppt', 'tai']
+# model parameters: type,   transform mode, in ['plt', 'ppt', 'tai']
 #                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3
 #                           ppt: hn900, hn300, zscore, tscore
 #                           tai: tai
@@ -218,7 +218,7 @@ Models = {
     }
 
 
-# choice = 4 * 2**5  * 3**2 = 1152    ## prox, cumu, sort, section_
+# choice = 4 * 2**5 * 3**2 = 1152   ## prox, cumu, sort, section_
 Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
@@ -229,11 +229,3 @@ Strategy = {
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
     'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
     }
-# to add in future
-# MODEL_STRATEGIES_RESERVE_DICT = {
-#       'mode_score_empty': ('use', 'jump'),          # ** consider to deprecated, processed in other strategies
-#       'mode_score_rmin_to_min': ('ignore', 'yes'),  # real raw score min value to out score min value,
-#                                                     # case: sort by 'a', standard score mode
-#       'mode_score_rmax_to_max': ('ignore', 'yes'),  # real raw score max value to out score max value,
-#                                                     # case: top ratio large, sort by 'a', standard score mode
-# }

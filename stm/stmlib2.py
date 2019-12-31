@@ -5,7 +5,7 @@ import time
 from collections import namedtuple
 import numpy as np
 import pandas as pd
-import scipy.stats as sts
+# import scipy.stats as sts
 
 
 def round45r(number, digits=0):

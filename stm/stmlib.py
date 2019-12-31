@@ -8,80 +8,13 @@
     designed for new High Test grade score model
     also for shandong interval linear transform
 
-    stm module description stm模块说明：
-
-    [functions] 模块中的函数
-       run(name, df, col, ratio_list, grade_max, grade_diff, mode_score_paper_max, mode_score_paper_min,
-           out_score_decimal=0, mode_ratio_prox='near', mode_ratio_cumu='yes')
-          运行各个模型的调用函数 calling model function
-          ---
-          参数描述
-          name:str := 'shandong', 'shanghai', 'zhejiang', 'beijing', 'tianjin', 'tai', 'hainan2', 'hainan3', 'hainan4'
-          调用山东、上海、浙江、北京、天津、广州、海南、...等模型进行分数转换
-          --
-          name:= 'zscore', 't_score', 'tlinear'
-          计算Z分数、T分数、线性转换T分数
-          --
-          data: input raw score data, type DataFrame of pandas
-          输入原始分数数据，类型为DataFrame
-          --
-          cols:list := raw score fields
-          计算转换分数的字段表，列表或元组，元素为字符串
-          --
-          ratio_list: ratio list including percent value for each interval of grade score
-          对原始分数进行等级区间划分的比例表
-          --
-          grade_max: max value of grade score
-          最大等级分数
-          --
-          grade_diff: differentiao value of grade score
-          等级分差值
-          --
-          raw_score_range: tuple,
-          最大原始分数,最小原始分数
-          --
-          out_score_decimal: decimal digit number
-          输出分数小数位数
-          --
-          mode_ratio_prox: the method to proxmate ratio value of raw score points
-                           通过搜索对应比例的确定等级区间分值点的方式
-              'upper_min': get score with min value in bigger 小于该比例值的分值中最大的值
-              'lower_max': get score with max value in less 大于该比例值的分值中最小的值
-              'near_min': get score with min value in near 最接近该比例值的分值中最小的值
-              'near_max': get score with max value in near 最接近该比例值的分值中最大的值
-
-          mode_ratio_cumu: 比例累加控制(2019.09.09)
-              'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
-              'no':  以区间比例独立方式搜索 look up ratio with interval ratio individually
-
-          ---
-          usage:调用方式
-          [1] import pyex_stm as stm
-          [2] m = stm.run(name='shandong', df=data, col=['ls'])
-          [3] m.report()
-          [4] m.output.head()
-          [5] m.save_outdf_to_csv
-
-       plot_models_outscore_hist_graph()
-          山东、浙江、上海、北京、天津、广东、湖南方案等级转换分数分布直方图
-          plot models distribution hist graph including shandong,zhejiang,shanghai,beijing,tianjin
-
-       round45r(v: float, dec=0)
-          四舍五入函数, 用于改进round产生的偶数逼近和二进制表示方式产生的四舍五入误差
-          function for rounding strictly at some decimal position
-          v： 输入浮点数，
-          dec：保留小数位数
-
-       get_norm_dist_table(size=400, std=1, mean=0, stdnum=4)
-          生成具有指定记录数（size=400）、标准差(std=1)、均值(mean=0)、截止标准差数（最小最大）(stdnum=4)的正态分布表
-          create norm data dataframe with assigned scale, mean, standard deviation, std range
-
+    stm模块说明：
 
     [classes] 模块中的类
-       PltScore: 分段线性转换模型, 山东省新高考改革使用 shandong model
+       PltScore: 分段线性转换模型, 新高考改革使用
        TaiScore: 台湾等级分数模型 Taiwan college entrance test and middle school achievement test model
-       Zscore: Z分数转换模型 zscore model
-       Tscore: T分数转换模型 t_score model
+         Zscore: Z分数转换模型 zscore model
+         Tscore: T分数转换模型 t_score model
 """
 
 
@@ -122,27 +55,28 @@ class ScoreTransformModel(abc.ABC):
     基于该类的子类（转换分数模型）：
         Z分数非线性模型(Zscore)
         T分数非线性模型(Tscore）
-        T分数线性模型（TscoreLinear),
-        新高考等级分数转换分数模型（PltScore）（分段线性转换分数）
-        param model_name, type==str
-        param df: raw score data, type==datafrmae
-        param col: fields in df, assign somr subjects score to transform
-        param outdf: transform score data, type==dataframe
+        新高考分段线性等级分数转换分数模型（PltScore）
+        param model_name: type==str, in model_setin.Models.keys or models_ext.Models.keys
+        param model_type: type==str, in ['plt', 'ppt', 'pgt']
+        param df:         type==DataFrame, raw score data,
+        param cols:       type==list, fields in df, assign somr subjects score to transform
+        param outdf:      type==DataFrame, transform score data,
     """
+
     def __init__(self, model_name='', model_type=''):
         self.model_name = model_name
         self.model_type = model_type
 
         self.df = pd.DataFrame()
         self.cols = []
+        self.map_table = pd.DataFrame()
+        self.outdf = pd.DataFrame()
+
         self.raw_score_defined_min = None
         self.raw_score_defined_max = None
 
         self.out_decimal_digits = 0
         self.out_report_doc = ''
-
-        self.map_table = pd.DataFrame()
-        self.outdf = pd.DataFrame()
 
     @abc.abstractmethod
     def set_data(self, df=None, cols=None):
@@ -164,31 +98,10 @@ class ScoreTransformModel(abc.ABC):
         return score transforming report created by model running
         """
 
-    def check_data(self):
-        if not isinstance(self.df, pd.DataFrame):
-            print('raw data type={} is not dataframe!'.format(type(self.df)))
-            return False
-        # import collections
-        # if (not isinstance(self.cols, coll.Sequence)) | (len(self.cols) == 0):
-        #     print('score fields not assigned in cols: {}!'.format(self.cols))
-        #     return False
-        # for sf in self.cols:
-        #     if sf not in self.df.columns:
-        #         print('score field {} not in raw data columns {}!'.format(sf, list(self.df.columns)))
-        #         return False
-        return True
-
-    def check_parameter(self):
-        return True
-
     def run(self):
-        if not self.check_data():
-            print('check data find error!')
-            return False
-        if not self.check_parameter():
-            print('parameter checking find errors!')
-            return False
-        return True
+        """
+        run to get map_table, formula, outdf...
+        """
 
     def read_df_from_csv(self, filename=''):
         if not os.path.isfile(filename):
@@ -454,19 +367,6 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         self.strategy_dict['mode_section_lost'] = mode_section_lost
 
-    def check_parameter(self):
-        if not self.cols:
-            print('no score field assign in cols={}!'.format(self.cols))
-            return False
-        # if (type(self.raw_score_ratio_cum) != tuple) | (type(self.out_score_points) != tuple):
-        #     print('raw_scorepoints or stdscorepoints is not tuple type!')
-        #     return False
-        # if (len(self.raw_score_ratio_cum) != len(self.out_score_points)) | \
-        #         len(self.raw_score_ratio_cum) == 0:
-        #     print('ratio_tuple len==0 or len(raw_ratio)!=len(out_points)! \nraw={} \nout={}'.
-        #           format(self.raw_score_ratio_cum, self.out_score_points))
-        #     return False
-        return True
     # --------------data and para setting end
 
     # plt score run
@@ -474,10 +374,6 @@ class PltScore(ScoreTransformModel):
 
         print('stm-run begin...\n'+'='*110)
         stime = time.time()
-
-        # check valid
-        if not super(PltScore, self).run():
-            return
 
         if self.out_score_points is not None:
             self.out_score_real_max = max([max(x) for x in self.out_score_points])
@@ -1484,20 +1380,8 @@ class Zscore(ScoreTransformModel):
         self.mode_sort_order = mode_sort_order
         self.out_score_decimal = out_decimal
 
-    def check_parameter(self):
-        if self.raw_score_max <= self.raw_score_min:
-            print('error: max raw score is less than min raw score!')
-            return False
-        if self.out_score_std_num <= 0:
-            print('error: std number {} is error!'.format(self.out_score_std_num))
-            return False
-        return True
-
     # Zscore run
     def run(self):
-        # check data and parameter in super
-        if not super(Zscore, self).run():
-            return
         print('start run...')
         st = time.clock()
         self.outdf = self.df
@@ -1583,15 +1467,15 @@ class Tscore(ScoreTransformModel):
         self.df = df
         self.cols = cols
 
-    def set_para(self, 
-                 mode_score_paper_min=0,
-                 mode_score_paper_max=100,
+    def set_para(self,
+                 mode_score_defined_min=0,
+                 mode_score_defined_max=100,
                  t_score_mean=50,
                  t_score_std=10,
                  t_score_stdnum=4,
                  out_decimal=0):
-        self.mode_score_paper_max = mode_score_paper_max
-        self.mode_score_paper_min = mode_score_paper_min
+        self.mode_score_paper_max = mode_score_defined_max
+        self.mode_score_paper_min = mode_score_defined_min
         self.t_score_mean = t_score_mean
         self.t_score_std = t_score_std
         self.t_score_stdnum = t_score_stdnum
@@ -1603,7 +1487,8 @@ class Tscore(ScoreTransformModel):
         zm = Zscore()
         zm.set_data(self.df, self.cols)
         zm.set_para(std_num=self.t_score_stdnum,
-                    raw_score_range=(self.mode_score_paper_min, self.mode_score_paper_max),
+                    raw_score_defined_min=self.mode_score_paper_min,
+                    raw_score_defined_max=self.mode_score_paper_max,
                     out_decimal=self.zscore_decimal
                     )
         zm.run()
@@ -1735,12 +1620,12 @@ class TaiScore(ScoreTransformModel):
     def run_create_outdf(self):
         dt = copy.deepcopy(self.df[self.cols])
         for fs in self.cols:
-            dt.loc[:, fs+'_grade'] = dt[fs].apply(lambda x: self.run__get_grade_score(fs, x))
+            dt.loc[:, fs+'_grade'] = dt[fs].apply(lambda x: self.run_get_grade_score(fs, x))
             dt2 = self.map_table
-            dt2.loc[:, fs+'_grade'] = dt2['seg'].apply(lambda x: self.run__get_grade_score(fs, x))
+            dt2.loc[:, fs+'_grade'] = dt2['seg'].apply(lambda x: self.run_get_grade_score(fs, x))
             self.outdf = dt
 
-    def run__get_grade_score(self, fs, x):
+    def run_get_grade_score(self, fs, x):
         if x == 0:
             return x
         grade_dist = self.grade_dist_dict[fs]
