@@ -20,7 +20,7 @@ def round45r(number, digits=0):
         raise NotImplemented
 
 
-def run_timer(fun):
+def timer_wrapper(fun):
 
     def dec_fun(*args, **kwargs):
         st = time.time()
@@ -32,7 +32,7 @@ def run_timer(fun):
     return dec_fun
 
 
-def use_ellipsis_in_digits_seq(digit_seq):
+def set_ellipsis_in_digits_sequence(digit_seq):
     _digit_seq = None
     if type(digit_seq) == str:
         _digit_seq = tuple(int(x) for x in digit_seq)
@@ -89,15 +89,16 @@ class ModelAlgorithm:
                         sort_order='d',
                         ):
         """
-        # get pdf, cdf, cutoff_err form section end points,
-        # set first and end seg to tail ratio from norm table
-        # can be used to test std from seg ratio table
-        # for example,
-        #   get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508)
-        #   [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
-        #   get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065)
-        #   [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
-        #   it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+        get pdf, cdf, cutoff_err for defined model: start, end, section_num, std_num, model_type
+        add tail_ratio(cutoff_err) to first and end section from norm table
+        note: std_num = std number from mean to end point
+
+        example:
+           get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508).pdf
+           [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
+           get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065).pdf
+           [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
+           it means that std==15.95 is fitting ratio 0.03,0.07 in the table
 
         :param start:   start value
         :param end:     end value
@@ -431,7 +432,7 @@ class ModelAlgorithm:
         return Result(formula, plt_formula)
 
     @classmethod
-    @run_timer
+    @timer_wrapper
     def get_ppt_formula(cls,
                         raw_score_points,
                         raw_score_percent,
@@ -595,7 +596,7 @@ class ModelAlgorithm:
         return Result(formula, section_list, map_dict, grade_step, top_level_score)
 
     @classmethod
-    @run_timer
+    @timer_wrapper
     def get_stm_score(cls,
                       df,
                       cols,

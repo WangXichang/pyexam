@@ -918,7 +918,7 @@ class PltScore(ScoreTransformModel):
         _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(slib2.use_ellipsis_in_digits_seq(_count_zero))
+                           format(slib2.set_ellipsis_in_digits_sequence(_count_zero))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -942,7 +942,7 @@ class PltScore(ScoreTransformModel):
         else:
             _count_zero = ''
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(slib2.use_ellipsis_in_digits_seq(_count_zero))
+                           format(slib2.set_ellipsis_in_digits_sequence(_count_zero))
         _out_report_doc += 'count: '.rjust(28) + 'record={}\n' .\
                            format(self.outdf.count()[0])
 

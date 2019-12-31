@@ -96,7 +96,7 @@ class TestLvData():
 
         self.data = data_cumu
 
-    @mlib.run_timer
+    @mlib.timer_wrapper
     def test(self, data):
         r_dict = dict()
         for num in range(9):
@@ -121,7 +121,7 @@ class TestLvData():
         self.result_model = mr
 
 
-@mlib.run_timer
+@mlib.timer_wrapper
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
