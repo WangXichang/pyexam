@@ -174,7 +174,7 @@ def check_strategy(
     return True
 
 
-def check_run_df_cols(df=None, cols=None, raw_score_range=None):
+def check_df_cols(df=None, cols=None, raw_score_range=None):
     if not isinstance(df, pd.DataFrame):
         if isinstance(df, pd.Series):
             print('warning: df is pandas.Series!')

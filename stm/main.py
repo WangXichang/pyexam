@@ -30,9 +30,10 @@ How to add new model in modelext:
 """
 
 
-import sys
 from stm import stmlib as slib, stmutil as utl, \
      stmlib2 as slib2, models_in as mdin, models_ext as mdext
+import importlib as pb
+stm_modules = [slib, slib2, utl, mdin, mdext]
 
 
 def exp(name='shandong'):
@@ -168,7 +169,7 @@ def run(
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
-    if not check_for_run(
+    if not check_run_parameters(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -267,7 +268,7 @@ def run_model(
     :param out_score_decimals:
     :return:
     """
-    if not check_for_run(
+    if not check_run_parameters(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -283,16 +284,7 @@ def run_model(
             reload=reload
             ):
         return None
-    if model_name in mdin.Models.keys():
-        model = mdin.Models[model_name]
-    elif model_name in mdext.Models.keys():
-        if utl.check_model(mdext.Models):
-            model = mdext.Models[model_name]
-        else:
-            return None
-    else:
-        print('error model: {} is not in models_in.Models or modelext.Models_ext!'.format(model_name))
-        return None
+    model = mdin.Models[model_name]
 
     return slib2.ModelAlgorithm.get_stm_score(
         df=df,
@@ -378,7 +370,7 @@ def run_para(
         )
 
 
-def check_for_run(
+def check_run_parameters(
         model_name='shandong',
         df=None,
         cols=None,
@@ -398,33 +390,18 @@ def check_for_run(
     # reload modules if any chenges done, especially in models_in.Models
     # reload modules: [x for x in sys.modules if 'stm' in x]
     if reload:
-        print('reload modules ...')
-        exec('import importlib as pb')
-        for n1, n2, n3 in [('stm', 'slib',  'stmlib'),  ('stm', 'utl', 'stmutil'),
-                           ('stm', 'slib2', 'stmlib2'), ('stm', 'mdin', 'models_in'),
-                           ('stm', 'mdext',  'models_ext')]:
-            if n1+'.'+n3 in sys.modules:
-                exec('pb.reload('+n2+')')
-        # check model in models_in
-        for mk in mdin.Models.keys():
-            if not utl.check_model(model_name=mk, model_lib=mdin.Models):
-                print('error model: model={} in models_in.Models!'.format(mk))
-                return False
-        # add Models_ext to Models
-        for mk in mdext.Models.keys():
-            if not utl.check_model(model_name=mk, model_lib=mdext.Models):
-                print('error model: model={} in models_ext.Models!'.format(mk))
-                return False
-            mdin.Models.update({mk: mdext.Models[mk]})
+        reload_stm_modules()
+
+    if not check_merge_models():
+        return False
 
     # check model name
-    model_name = model_name.lower()
     if model_name.lower() not in mdin.Models.keys():
         print('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
-    if not utl.check_run_df_cols(df, cols, raw_score_range):
+    if not utl.check_df_cols(df, cols, raw_score_range):
         return False
 
     # check strategy
@@ -443,4 +420,25 @@ def check_for_run(
     if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
         print('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
+    return True
+
+
+def reload_stm_modules():
+    print('reload modules ...')
+    for m in stm_modules:
+        pb.reload(m)
+
+
+def check_merge_models():
+    # check model in models_in
+    for mk in mdin.Models.keys():
+        if not utl.check_model(model_name=mk, model_lib=mdin.Models):
+            print('error model: model={} in models_in.Models!'.format(mk))
+            return False
+    # add Models_ext to Models
+    for mk in mdext.Models.keys():
+        if not utl.check_model(model_name=mk, model_lib=mdext.Models):
+            print('error model: model={} in models_ext.Models!'.format(mk))
+            return False
+        mdin.Models.update({mk: mdext.Models[mk]})
     return True
