@@ -30,6 +30,7 @@ How to add new model in modelext:
 """
 
 
+import time
 from stm import stmlib as slib, stmutil as utl, \
      stmlib2 as slib2, models_in as mdin, models_ext as mdext
 import importlib as pb
@@ -55,6 +56,7 @@ def run(
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
+        save_result_path_name=None,
         ):
     """
 
@@ -229,6 +231,9 @@ def run(
                            out_score_decimals=out_score_decimals,
                            reload=False
                            )
+        if isinstance(save_result_path_name, str):
+            save_map_table(save_result_path_name, model_name)
+            save_out_score(save_result_path_name, model_name)
         return result
 
 
@@ -483,3 +488,21 @@ def check_merge_models():
             return False
         mdin.Models.update({mk: mdext.Models[mk]})
     return True
+
+
+def save_map_table(path_name=None, model_name=None, file_type='csv'):
+    """
+    save map table to file
+    """
+    ts = time.asctime().replace(' ', '-')
+    file_name = path_name + model_name + '_map_table_' + ts + file_type
+    pass
+
+
+def save_out_score(path_name=None, model_name=None, file_type='csv'):
+    """
+    save out score to file
+    """
+    ts = time.asctime().replace(' ', '-')
+    file_name = path_name + model_name + '_out_score_' + ts + file_type
+    pass
