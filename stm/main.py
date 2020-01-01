@@ -37,8 +37,7 @@ stm_modules = [slib, slib2, utl, mdin, mdext]
 
 
 def exp(name='shandong'):
-    td = utl.TestData()()
-    return run(model_name=name, df=td, cols=['km1'])
+    return run(model_name=name, df=utl.TestData()(), cols=['km1', 'km2'])
 
 
 def run(
@@ -169,6 +168,10 @@ def run(
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
+    if reload:
+        if not reload_stm_modules():
+            return None
+
     if not check_run_parameters(
             model_name=model_name,
             df=df,
@@ -182,7 +185,6 @@ def run(
             mode_section_degraded=mode_section_degraded,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
-            reload=reload
             ):
         return None
 
@@ -224,7 +226,8 @@ def run(
                            mode_section_point_start=mode_section_point_start,
                            mode_section_point_last=mode_section_point_last,
                            mode_section_degraded=mode_section_degraded,
-                           out_score_decimals=out_score_decimals
+                           out_score_decimals=out_score_decimals,
+                           reload=False
                            )
         return result
 
@@ -268,6 +271,12 @@ def run_model(
     :param out_score_decimals:
     :return:
     """
+
+    # reload modules if any chenges done, especially in models_in.Models
+    if reload:
+        if not reload_stm_modules():
+            return None
+
     if not check_run_parameters(
             model_name=model_name,
             df=df,
@@ -281,11 +290,10 @@ def run_model(
             mode_section_degraded=mode_section_degraded,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
-            reload=reload
             ):
         return None
-    model = mdin.Models[model_name]
 
+    model = mdin.Models[model_name]
     return slib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -326,15 +334,16 @@ def run_para(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
+        reload=False
         ):
     """
-    use each parameter to calculate out score by calling stmlib2
+    use model parameters to call stmlib2.Algorithm.get_stm_score
 
     :param df:
     :param cols:
+    :param model_type:
     :param model_ratio_pdf:
     :param model_section:
-    :param model_type:
     :param raw_score_max:
     :param raw_score_min:
     :param raw_score_step:
@@ -347,8 +356,42 @@ def run_para(
     :param mode_section_degraded:
     :param mode_section_lost:
     :param out_score_decimal_digits:
-    :return:
+    :param reload: reload lib, lib2,utl, models_in, models_ext
+    :return: result(df, map_table),     df contains out score field [col+'_ts'] for con in cols
     """
+
+    if reload:
+        if not reload_stm_modules():
+            return None
+
+    if not utl.check_model_para(
+        model_type=model_type,
+        model_ratio=model_ratio_pdf,
+        model_section=model_section,
+        model_desc=''
+        ):
+        return None
+
+    if not utl.check_df_cols(
+        df=df,
+        cols=cols,
+        raw_score_range=(raw_score_min, raw_score_max)
+        ):
+        return None
+
+    # check strategy
+    if not utl.check_strategy(
+            mode_ratio_prox=mode_ratio_prox,
+            mode_ratio_cumu=mode_ratio_cumu,
+            mode_sort_order=mode_sort_order,
+            mode_section_point_first=mode_section_point_first,
+            mode_section_point_start=mode_section_point_start,
+            mode_section_point_last=mode_section_point_last,
+            mode_section_degraded=mode_section_degraded,
+            mode_section_lost=mode_section_lost,
+            ):
+        return None
+
     return slib2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -384,13 +427,7 @@ def check_run_parameters(
         mode_section_lost='ignore',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
-        reload=False,
         ):
-
-    # reload modules if any chenges done, especially in models_in.Models
-    # reload modules: [x for x in sys.modules if 'stm' in x]
-    if reload:
-        reload_stm_modules()
 
     if not check_merge_models():
         return False
@@ -425,8 +462,12 @@ def check_run_parameters(
 
 def reload_stm_modules():
     print('reload modules ...')
-    for m in stm_modules:
-        pb.reload(m)
+    try:
+        for m in stm_modules:
+            pb.reload(m)
+    except:
+        return False
+    return True
 
 
 def check_merge_models():

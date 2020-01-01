@@ -628,6 +628,7 @@ class ModelAlgorithm:
                       segstep=raw_score_step,
                       )
         map_table = seg.outdf
+        print(map_table.head())
         cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
         for col in cols:
             print('transform {} of {}'.format(col, cols))
@@ -675,6 +676,8 @@ class ModelAlgorithm:
                                  )
                           )
             elif model_type.lower() == 'ppt':
+                if mode_sort_order in ['a', 'ascending']:
+                    model_section = reversed(model_section)
                 result = ModelAlgorithm.get_ppt_formula(
                     raw_score_points=map_table.seg,
                     raw_score_percent=map_table[col+'_percent'],
@@ -688,17 +691,17 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                print('  map table: [{4}] \n real ratio: [{1}]\n'
+                print('  map table: [{0}] \n real ratio: [{1}]\n'
                       '  raw score: [{2}] \n  out score: [{3}]\n'
                       #'  map table: [{4}] \n'
                       .format(
-                      ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f') for x, y in result.map_table]),
                       ', '.join([format(x, '12.8f') for x in result.real_ratio]),
                       ', '.join([format(x, '>12d') for x in result.map_dict.keys()]),
                       ', '.join([format(round45r(result.map_dict[x], out_score_decimals), '>' +
                                         ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
                                  for x in result.map_dict.keys()]),
-                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f') for x, y in result.map_table]),
+                      ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
                       ))
             elif model_type.lower() == 'pgt':
                 # print(col, type(map_table))
@@ -745,7 +748,7 @@ def run_seg(
         segmax=segmax,
         segmin=segmin,
         segstep=segstep,
-        segsort=segsort,
+        segsort='a' if segsort in ['a', 'ascending'] else 'd',
         display=display,
         useseglist=usealldata
     )
