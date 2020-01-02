@@ -117,12 +117,28 @@ def check_model_para(
                 model_section=None,
                 model_desc=''
                 ):
+    # check type
     if model_type not in ['ppt', 'plt', 'pgt']:
         print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
         return False
-    if len(model_ratio) != len(model_section):
-        print('error length: the length of ratio group is not same as section group length !')
-        return False
+
+    # check ratio
+    if model_type == 'pgt':
+        if len(model_ratio) == 0:
+            print('error ratio: length == 0 in model={}!'.format(model_type))
+            return False
+        if model_ratio[0] < 0 or model_ratio[0] > 100:
+            print('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
+            return False
+    else:
+        if len(model_ratio) != len(model_section):
+            print('error length: the length of ratio group is not same as section group length !')
+            return False
+        if abs(sum(model_ratio) - 100) > 10**-12:
+            print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
+            return False
+
+    # check section
     for s in model_section:
         if len(s) > 2:
             print('error section: section must have 2 endpoints, real value: {}'.format(s))
@@ -131,15 +147,15 @@ def check_model_para(
             print('error order: section endpoint order must be from large to small, '
                   'there: p1({}) < p2({})'.format(s[0], s[1]))
             return False
-    if abs(sum(model_ratio) - 100) > 10**-12:
-        print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
-        return False
-    if not isinstance(model_desc, str):
-        print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
-    if model_type == 'ppt':
+    if model_type in ['ppt', 'pgt']:
         if not all([x == y for x, y in model_section]):
             print('error section: ppt section, two endpoints must be same value!')
             return False
+
+    # check desc
+    if not isinstance(model_desc, str):
+        print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+
     return True
 
 

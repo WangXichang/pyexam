@@ -6,8 +6,8 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, stmutil as mutl, stmlib2 as mlib, models_ext as mext, models_in as msetin
-
+from stm import main, stmutil as mutl, stmlib2 as mlib2, stmlib as mlib, models_in as msetin
+import itertools as itl
 
 # 有关stm测试的问题：
 #
@@ -26,6 +26,48 @@ from stm import main, stmutil as mutl, stmlib2 as mlib, models_ext as mext, mode
 #   (2) weight may decrease to 1/3 if common subject score is 900,
 #     it is reasonable if common subjects use raw score 150.
 #
+
+
+def test_strategy():
+    pb.reload(mlib2)
+    pb.reload(mlib)
+    df = mutl.TestData(mean=45, std=12, size=1000)()
+    ss = [main.mdin.Strategy[s] for s in main.mdin.Strategy.keys()]
+    sn = [s for s in main.mdin.Strategy.keys()]
+    st = list(itl.product(*ss))
+    r = dict()
+    for num, ti in enumerate(st):
+        r1 = main.run(df=df, cols=['km1'],
+                      model_name='shandong',
+                      mode_ratio_prox=ti[0],
+                      mode_ratio_cumu=ti[1],
+                      mode_sort_order=ti[2],
+                      mode_section_point_first=ti[3],
+                      mode_section_point_start=ti[4],
+                      mode_section_point_last=ti[5],
+                      mode_section_degraded=ti[6],
+                      mode_section_lost=ti[7]
+                      )
+        r2 = main.run_model(
+            df=df,
+            cols=['km1'],
+            model_name='shandong',
+            mode_ratio_prox=ti[0],
+            mode_ratio_cumu=ti[1],
+            mode_sort_order=ti[2],
+            mode_section_point_first=ti[3],
+            mode_section_point_start=ti[4],
+            mode_section_point_last=ti[5],
+            mode_section_degraded=ti[6],
+            mode_section_lost=ti[7]
+        )
+        comp = all(r1.outdf.km1_ts == r2.df.km1_ts)
+        if not comp:
+            print('test fail: No={}, {}'.format(num, ti))
+            # return r1, r2, ti
+            r.update({num: (r1, r2, ti)})
+
+    return r
 
 
 class TestLvData():
@@ -96,7 +138,7 @@ class TestLvData():
 
         self.data = data_cumu
 
-    @mlib.timer_wrapper
+    @mlib2.timer_wrapper
     def test(self, data):
         r_dict = dict()
         for num in range(9):
@@ -121,7 +163,7 @@ class TestLvData():
         self.result_model = mr
 
 
-@mlib.timer_wrapper
+@mlib2.timer_wrapper
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])

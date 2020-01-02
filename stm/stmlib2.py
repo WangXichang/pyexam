@@ -168,20 +168,20 @@ class ModelAlgorithm:
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
         # too big dest_ratio
-        if dest_ratio > list(ratio_seq)[-1]:
-            result = Result(True, False, True,
-                            list(seg_seq)[-1], list(seg_seq)[-1],
-                            list(ratio_seq)[-1], list(ratio_seq)[-1],
-                            999, 999
-                            )
-            return result
+        # if dest_ratio > list(ratio_seq)[-1]:
+        #     result = Result(True, False, True,
+        #                     list(seg_seq)[-1], list(seg_seq)[-1],
+        #                     list(ratio_seq)[-1], list(ratio_seq)[-1],
+        #                     999, 999
+        #                     )
+        #     return result
         last_percent = -1
-        last_seg = -1
+        last_seg = None
         _top, _bottom, _len = False, False, len(seg_seq)
         for row_id, (seg, percent) in enumerate(zip(seg_seq, ratio_seq)):
             this_percent = percent
             this_seg = seg
-            if row_id == _len:
+            if (row_id == _len) or (abs(this_percent - 1) < tiny_value):
                 _bottom = True
             # meet a percent that bigger or at table bottom
             if (this_percent >= dest_ratio) or _bottom:
@@ -260,7 +260,7 @@ class ModelAlgorithm:
         section_point_list = [_startpoint]
         dest_ratio_list = []
 
-        # step-2: set end-point of else sections
+        # step-2: get end-point of each section
         section_percent_list = []
         dest_ratio = None
         last_ratio = 0
@@ -355,7 +355,7 @@ class ModelAlgorithm:
             section_list = [(x, y) for i, (x, y)
                             in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
         else:
-            section_list = [(x+_step, y) if i > 0 else (x, y)
+            section_list = [(x+_step if y >= 0 else -1, y) if i > 0 else (x, y)
                             for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
 
         # depricated: it is unreasonable to jump empty point, 
@@ -379,9 +379,8 @@ class ModelAlgorithm:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
-        Result = namedtuple('result', ['section', 'point', 'dest_ratio', 'percent'])
-        r = Result(section_list, section_point_list, dest_ratio_list, section_percent_list)
-        return r
+        Result = namedtuple('result', ['section', 'point', 'dest_ratio', 'real_ratio'])
+        return Result(section_list, section_point_list, dest_ratio_list, section_percent_list)
 
     @classmethod
     def get_plt_formula(cls,
@@ -404,7 +403,7 @@ class ModelAlgorithm:
                     b = np.mean(osec)
                 else:
                     raise ValueError
-            elif rsec[0] > 0:
+            elif abs(rsec[0]-rsec[1]) > 0:
                 y2, y1 = osec[1], osec[0]
                 x2, x1 = rsec[1], rsec[0]
                 a = (y2 - y1) / (x2 - x1)
@@ -429,7 +428,7 @@ class ModelAlgorithm:
                                     out_score_decimal)
             return -1
 
-        Result = namedtuple('Result', ('formula', 'coeff_raw_out_section_formula'))
+        Result = namedtuple('Result', ('formula', 'formula_dict'))
         return Result(formula, plt_formula)
 
     @classmethod
@@ -523,7 +522,7 @@ class ModelAlgorithm:
                 return None
 
         # print(dest_ratio, '\n', real_ratio_list)
-        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'map_table'))
+        Result = namedtuple('Result', ('formula', 'formula_dict', 'dest_ratio', 'real_ratio', 'map_table'))
         return Result(formula, map_score, dest_ratio_list, real_ratio_list,
                       list(zip(out_score_points, out_score_ratio_cumu)))
 
@@ -652,9 +651,12 @@ class ModelAlgorithm:
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
                 )
+                _section = model_section
+                if mode_sort_order in ['a', 'ascending']:
+                    _section = [tuple(reversed(x)) for x in reversed(model_section)]
                 result = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
-                    out_section=model_section,
+                    out_section=_section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimals
                     )
@@ -665,8 +667,8 @@ class ModelAlgorithm:
                         cumu_ratio,
                         raw_section.dest_ratio,
                         raw_section.section,
-                        raw_section.percent,
-                        model_section
+                        raw_section.real_ratio,
+                        _section
                         )):
                     print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                           'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
@@ -696,11 +698,11 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                print('  map table: [{0}] \n'
-                      ' dest ratio: [{1}]\n'
-                      ' real ratio: [{2}]\n'
-                      '  raw score: [{3}]\n'
-                      '  out score: [{4}]\n'
+                print(' model table: [{0}] \n'
+                      'real percent: [{1}]\n'
+                      '   get ratio: [{2}]\n'
+                      '   raw score: [{3}]\n'
+                      '   out score: [{4}]\n'
                       .format(
                       ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
                                  for (x, z), y in zip(model_section, cumu_ratio)
