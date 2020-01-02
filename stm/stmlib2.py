@@ -172,7 +172,7 @@ class ModelAlgorithm:
             result = Result(True, False, True,
                             list(seg_seq)[-1], list(seg_seq)[-1],
                             list(ratio_seq)[-1], list(ratio_seq)[-1],
-                            -1, -1
+                            999, 999
                             )
             return result
         last_percent = -1
@@ -191,6 +191,7 @@ class ModelAlgorithm:
                 dist_to_last = float(dest_ratio - last_percent)
                 if _top:    # at top and percent >= ratio
                     dist_to_this = float(this_percent - dest_ratio)
+                    dist_to_last = 999
                 if (this_percent - dest_ratio) < tiny_value:  # equal to ratio
                     dist_to_this = 0
                 this_seg_near = False if dist_to_last < dist_to_this else True
@@ -201,7 +202,7 @@ class ModelAlgorithm:
                               )
             last_percent = this_percent
             last_seg = this_seg
-        return Result(False, False, False, -1, -1, -1, -1, -1, -1)
+        return Result(False, False, False, -1, -1, -1, -1, 999, 999)
 
     @classmethod
     def get_raw_section(cls,
@@ -493,7 +494,10 @@ class ModelAlgorithm:
                 _seg, _percent = result.this_seg, result.this_percent
             # choose last if last is near or equal
             elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
-                _seg, _percent = result.last_seg, result.last_percent
+                if not result.top:
+                    _seg, _percent = result.last_seg, result.last_percent
+                else:
+                    _seg, _percent = result.this_seg, result.this_percent
             elif 'near' in mode_ratio_prox:
                 if result.dist_to_this < result.dist_to_last:
                     _seg, _percent = result.this_seg, result.this_percent
@@ -515,7 +519,8 @@ class ModelAlgorithm:
             if x in map_score:
                 return round45r(map_score[x], out_score_decimal)
             else:
-                return -1
+                # set None to raise ValueError in score calculating to avoid create misunderstand
+                return None
 
         # print(dest_ratio, '\n', real_ratio_list)
         Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'map_table'))
@@ -691,17 +696,21 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                print('  map table: [{0}] \n real ratio: [{1}]\n'
-                      '  raw score: [{2}] \n  out score: [{3}]\n'
-                      #'  map table: [{4}] \n'
+                print('  map table: [{0}] \n'
+                      ' dest ratio: [{1}]\n'
+                      ' real ratio: [{2}]\n'
+                      '  raw score: [{3}]\n'
+                      '  out score: [{4}]\n'
                       .format(
-                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f') for x, y in result.map_table]),
-                      ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                      ', '.join([format(x, '>12d') for x in result.map_dict.keys()]),
-                      ', '.join([format(round45r(result.map_dict[x], out_score_decimals), '>' +
-                                        ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
-                                 for x in result.map_dict.keys()]),
+                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
+                                 for (x, z), y in zip(model_section, cumu_ratio)
+                                 if x in result.map_dict.values()]),
                       ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                      ', '.join([format(x, '12.8f') for x in result.real_ratio]),
+                      ', '.join([format(x, '>12d') for x in map_table.seg]),
+                      ', '.join([format(round45r(result.formula(x), out_score_decimals), '>' +
+                                        ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
+                                 for x in map_table.seg]),
                       ))
             elif model_type.lower() == 'pgt':
                 # print(col, type(map_table))

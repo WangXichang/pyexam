@@ -47,7 +47,7 @@ def run(
         cols=(),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_sort_order='descending',
+        mode_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -66,7 +66,7 @@ def run(
         cols=None,
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_sort_order='descending',
+        mode_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -76,6 +76,7 @@ def run(
         out_score_decimals=0,
         reload=False,
         )
+
         8个算法策略：
         --
         mode_ratio_prox: the mode to proxmate ratio value of raw score points
@@ -126,8 +127,8 @@ def run(
                    default= 'no'
     :param mode_sort_order: string,
                   strategy: which score order to search ratio
-                    values: 'descending', 'ascending'
-                   default= 'descending'
+                    values: 'd', 'a'
+                   default= 'd'
     :param mode_section_degraded: str,
                         strategy: how to map raw score when segment is one-point, [a, a]
                           values: 'map_to_max', map to max value of out score section
@@ -192,7 +193,7 @@ def run(
 
     model_type = mdin.Models[model_name].type
     # model: plt, ppt
-    if model_type in ['plt']:
+    if model_type in ['plt', 'ppt']:
         ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
         plt_model = slib.PltScore(model_name, model_type)
         plt_model.set_data(df=df, cols=cols)
@@ -424,7 +425,7 @@ def check_run_parameters(
         cols=None,
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_sort_order='descending',
+        mode_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
