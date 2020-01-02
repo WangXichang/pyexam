@@ -651,35 +651,36 @@ class ModelAlgorithm:
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
                 )
-                _section = model_section
+                out_section = model_section
                 if mode_sort_order in ['a', 'ascending']:
-                    _section = [tuple(reversed(x)) for x in reversed(model_section)]
+                    out_section = [tuple(reversed(x)) for x in reversed(model_section)]
                 result = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
-                    out_section=_section,
+                    out_section=out_section,
                     mode_section_degraded=mode_section_degraded,
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
 
-                # display ratio searching result at section i
-                for i, (cumu_ratio, dest_ratio, section, percent, out_section) in enumerate(zip(
-                        cumu_ratio,
-                        raw_section.dest_ratio,
-                        raw_section.section,
-                        raw_section.real_ratio,
-                        _section
-                        )):
+                # display ratio searching result at each section
+                for i, (c_ratio, d_ratio, raw_sec, r_ratio, out_sec) \
+                        in enumerate(zip(
+                                        cumu_ratio,
+                                        raw_section.dest_ratio,
+                                        raw_section.section,
+                                        raw_section.real_ratio,
+                                        out_section
+                                        )):
                     print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
                           'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
                           format(i + 1,
-                                 cumu_ratio,
-                                 dest_ratio,
-                                 percent,
-                                 section[0],
-                                 section[1],
-                                 int(out_section[0]),
-                                 int(out_section[1]),
+                                 c_ratio,
+                                 d_ratio,
+                                 r_ratio,
+                                 raw_sec[0],
+                                 raw_sec[1],
+                                 int(out_sec[0]),
+                                 int(out_sec[1]),
                                  )
                           )
             elif model_type.lower() == 'ppt':

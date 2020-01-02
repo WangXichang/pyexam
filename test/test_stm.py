@@ -64,7 +64,7 @@ def test_strategy():
         comp = all(r1.outdf.km1_ts == r2.df.km1_ts)
         if not comp:
             print('test fail: No={}, {}'.format(num, ti))
-            # return r1, r2, ti
+            return r1, r2, ti
             r.update({num: (r1, r2, ti)})
 
     return r
