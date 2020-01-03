@@ -730,12 +730,16 @@ class PltScore(ScoreTransformModel):
 
             # set last point if mode_section_point_last == 'defined'
             if i > 1:
-                if (result_section_list[-1] < 0) and (result_section_list[-2] >= 0):
+                # -1 or bottom
+                if ((result_section_list[-1] < 0) and (result_section_list[-2] >= 0)) or \
+                        (i == len(_ratio_cum_list)-1):
                     if self.strategy_dict['mode_section_point_last'] == 'defined':
                         if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
                             result_section_list[-2] = section_defined_min
+                            this_section_end_point = section_defined_min
                         else:
                             result_section_list[-2] = section_defined_max
+                            this_section_end_point = section_defined_max
 
             # display ratio searching result at section i
             print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
@@ -756,12 +760,12 @@ class PltScore(ScoreTransformModel):
             last_percent = real_percent
 
         # set last point again if [-1] >= 0 else alread set in loop
-        if self.strategy_dict['mode_section_point_last'] == 'defined':
-            if result_section_list[-1] >= 0:
-                if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
-                    result_section_list[-1] = section_defined_min
-                else:
-                    result_section_list[-1] = section_defined_max
+        # if self.strategy_dict['mode_section_point_last'] == 'defined':
+        #     if result_section_list[-1] >= 0:
+        #         if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
+        #             result_section_list[-1] = section_defined_min
+        #         else:
+        #             result_section_list[-1] = section_defined_max
 
         self.result_ratio_dict[field] = result_ratio
         return result_section_list

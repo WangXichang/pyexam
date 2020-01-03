@@ -36,9 +36,13 @@ def test_strategy(df=None):
     ss = [main.mdin.Strategy[s] for s in main.mdin.Strategy.keys()]
     sn = [s for s in main.mdin.Strategy.keys()]
     st = list(itl.product(*ss))
+    result = ntp('r', ['df1', 'df2', 'map1', 'map2'])
     r = dict()
     for num, ti in enumerate(st):
-        if num < 70:
+        print(ti)
+        # if ti[5] != 'defined':
+        #     continue
+        if num != 153:
             continue
         r1 = main.run(df=df, cols=['km1'],
                       model_name='shandong',
@@ -65,15 +69,16 @@ def test_strategy(df=None):
             mode_section_lost=ti[7]
         )
         comp = (r1.outdf.km1_ts == r2.df.km1_ts)
+        cmplist = [i for i, x in enumerate(comp) if not x]
+        er1 = r1.outdf.loc[cmplist]
+        er2 = r2.df.loc[cmplist]
+        rt = result(r1.outdf, r2.df, r1.map_table, r2.map_table)
+        r.update({ti: all(comp)})
         if not all(comp):
             print('test fail: No={}, {}'.format(num, ti))
-            cmplist = [i for i, x in enumerate(comp) if not x]
-            er1 = r1.outdf.loc[cmplist]
-            er2 = r2.df.loc[cmplist]
             print(er1.head(), '\n', er2.head())
-            result = ntp('r', ['df1', 'df2', 'map1', 'map2'])
-            return result(r1.outdf, r2.df, r1.map_table, r2.map_table)
-
+            return r1, r2
+        print('='*120)
     return r
 
 
