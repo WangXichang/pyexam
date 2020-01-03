@@ -379,6 +379,9 @@ class ModelAlgorithm:
             section_list += [(-1, -1)] * less_len
             section_percent_list += [-1] * less_len
 
+        section_list = [x if ((x[0] >=0) and (x[1] >=0)) else (-1, -1)
+                        for x in section_list]
+
         Result = namedtuple('result', ['section', 'point', 'dest_ratio', 'real_ratio'])
         return Result(section_list, section_point_list, dest_ratio_list, section_percent_list)
 

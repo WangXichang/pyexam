@@ -38,7 +38,10 @@ stm_modules = [slib, slib2, utl, mdin, mdext]
 
 
 def exp(name='shandong'):
-    return run(model_name=name, df=utl.TestData()(), cols=['km1', 'km2'])
+    return run(model_name=name,
+               df=utl.TestData()(),
+               cols=['km1', 'km2'],
+               reload=True)
 
 
 def run(
@@ -56,6 +59,7 @@ def run(
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
+        save_result=False,
         save_result_path_name=None,
         ):
     """

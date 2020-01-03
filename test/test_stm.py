@@ -28,15 +28,18 @@ import itertools as itl
 #
 
 
-def test_strategy():
+def test_strategy(df=None):
     pb.reload(mlib2)
     pb.reload(mlib)
-    df = mutl.TestData(mean=45, std=12, size=1000)()
+    if df is None:
+        df = mutl.TestData(mean=45, std=12, size=1000)()
     ss = [main.mdin.Strategy[s] for s in main.mdin.Strategy.keys()]
     sn = [s for s in main.mdin.Strategy.keys()]
     st = list(itl.product(*ss))
     r = dict()
     for num, ti in enumerate(st):
+        if num < 70:
+            continue
         r1 = main.run(df=df, cols=['km1'],
                       model_name='shandong',
                       mode_ratio_prox=ti[0],
@@ -61,11 +64,15 @@ def test_strategy():
             mode_section_degraded=ti[6],
             mode_section_lost=ti[7]
         )
-        comp = all(r1.outdf.km1_ts == r2.df.km1_ts)
-        if not comp:
+        comp = (r1.outdf.km1_ts == r2.df.km1_ts)
+        if not all(comp):
             print('test fail: No={}, {}'.format(num, ti))
-            return r1, r2, ti
-            r.update({num: (r1, r2, ti)})
+            cmplist = [i for i, x in enumerate(comp) if not x]
+            er1 = r1.outdf.loc[cmplist]
+            er2 = r2.df.loc[cmplist]
+            print(er1.head(), '\n', er2.head())
+            result = ntp('r', ['df1', 'df2', 'map1', 'map2'])
+            return result(r1.outdf, r2.df, r1.map_table, r2.map_table)
 
     return r
 
