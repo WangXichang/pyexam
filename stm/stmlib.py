@@ -761,7 +761,7 @@ class PltScore(ScoreTransformModel):
 
         # set last point again if [-1] >= 0 else alread set in loop
         if self.strategy_dict['mode_section_point_last'] == 'defined':
-            for i in range(len(result_section_list), 0, -1):
+            for i in range(len(result_section_list)-1, 0, -1):
                 if result_section_list[i] >= 0:
                     if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
                         result_section_list[i] = section_defined_min
