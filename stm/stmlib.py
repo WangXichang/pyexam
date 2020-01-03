@@ -735,10 +735,10 @@ class PltScore(ScoreTransformModel):
                         (i == len(_ratio_cum_list)-1):
                     if self.strategy_dict['mode_section_point_last'] == 'defined':
                         if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
-                            result_section_list[-2] = section_defined_min
+                            result_section_list[-1] = section_defined_min
                             this_section_end_point = section_defined_min
                         else:
-                            result_section_list[-2] = section_defined_max
+                            result_section_list[-1] = section_defined_max
                             this_section_end_point = section_defined_max
 
             # display ratio searching result at section i
@@ -760,12 +760,14 @@ class PltScore(ScoreTransformModel):
             last_percent = real_percent
 
         # set last point again if [-1] >= 0 else alread set in loop
-        # if self.strategy_dict['mode_section_point_last'] == 'defined':
-        #     if result_section_list[-1] >= 0:
-        #         if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
-        #             result_section_list[-1] = section_defined_min
-        #         else:
-        #             result_section_list[-1] = section_defined_max
+        if self.strategy_dict['mode_section_point_last'] == 'defined':
+            for i in range(len(result_section_list), 0, -1):
+                if result_section_list[i] >= 0:
+                    if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
+                        result_section_list[i] = section_defined_min
+                    else:
+                        result_section_list[i] = section_defined_max
+                    break
 
         self.result_ratio_dict[field] = result_ratio
         return result_section_list
