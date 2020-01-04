@@ -28,7 +28,7 @@ import itertools as itl
 #
 
 
-def test_strategy(df=None):
+def test_strategy(df=None, model_name='shandong'):
     pb.reload(mlib2)
     pb.reload(mlib)
     if df is None:
@@ -45,7 +45,7 @@ def test_strategy(df=None):
         # if num != 153:
         #     continue
         r1 = main.run(df=df, cols=['km1'],
-                      model_name='shandong',
+                      model_name=model_name,
                       mode_ratio_prox=ti[0],
                       mode_ratio_cumu=ti[1],
                       mode_sort_order=ti[2],
@@ -58,7 +58,7 @@ def test_strategy(df=None):
         r2 = main.run_model(
             df=df,
             cols=['km1'],
-            model_name='shandong',
+            model_name=model_name,
             mode_ratio_prox=ti[0],
             mode_ratio_cumu=ti[1],
             mode_sort_order=ti[2],

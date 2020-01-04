@@ -787,9 +787,11 @@ class PltScore(ScoreTransformModel):
                         result_section_point[1:]):
             _step = -1 if self.strategy_dict['mode_sort_order'] in ['d', 'descending'] else 1
             if self.strategy_dict['mode_section_point_start'] != 'share':
-                raw_section.append((x+_step if i > 0 else x, y))
+                _x = x+_step if i > 0 else x
             else:
-                raw_section.append((x, y))
+                _x = x
+            _x = _x if y >=0 else -1
+            raw_section.append((_x, y))
             i += 1
 
 
