@@ -641,7 +641,7 @@ class PltScore(ScoreTransformModel):
             return False
         # --step 2
         # calculate Coefficients
-        self.get_formula_coeff()
+        self.get_formula_coeff(field)
         self.result_dict[field] = {'coeff': copy.deepcopy(self.result_formula_coeff)}
         return True
 
@@ -649,23 +649,25 @@ class PltScore(ScoreTransformModel):
     # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
     #        -2:   = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
     #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
-    def get_formula_coeff(self):
+    def get_formula_coeff(self, field=None):
 
         # create raw score segments list
-        x_points = self.result_raw_endpoints
-        if self.strategy_dict['mode_section_point_start'] == 'share':
-            step = 0
-        else:
-            step = 1 if self.strategy_dict['mode_sort_order'] in ['ascending', 'a'] else -1
-        x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
-                  for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
-        # 3-problems: minus score,
-        #             less than min,
-        #             no ratio interval(not found because of last too large ratio!)
-        x_list = [(-1, -1)
-                  if p[0] < 0 or min(p) < self.raw_score_defined_min or (p[0]-p[1])*step > 0
-                  else p
-                  for p in x_list]
+        # x_points = self.result_raw_endpoints
+        # if self.strategy_dict['mode_section_point_start'] == 'share':
+        #     step = 0
+        # else:
+        #     step = 1 if self.strategy_dict['mode_sort_order'] in ['ascending', 'a'] else -1
+        # x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
+        #           for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
+        # # 3-problems: minus score,
+        # #             less than min,
+        # #             no ratio interval(not found because of last too large ratio!)
+        # x_list = [(-1, -1)
+        #           if p[0] < 0 or min(p) < self.raw_score_defined_min or (p[0]-p[1])*step > 0
+        #           else p
+        #           for p in x_list]
+
+        x_list = self.result_ratio_dict[field]['section']
 
         # calculate coefficient
         y_list = self.out_score_points

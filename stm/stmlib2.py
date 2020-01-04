@@ -176,7 +176,7 @@ class ModelAlgorithm:
         #                     )
         #     return result
         last_percent = -1
-        last_seg = None
+        last_seg = -1
         _top, _bottom, _len = False, False, len(seg_seq)
         for row_id, (seg, percent) in enumerate(zip(seg_seq, ratio_seq)):
             this_percent = percent
@@ -187,10 +187,10 @@ class ModelAlgorithm:
             if (this_percent >= dest_ratio) or _bottom:
                 if row_id == 0:
                     _top = True
-                dist_to_this = float(this_percent - dest_ratio)
-                dist_to_last = float(dest_ratio - last_percent)
+                dist_to_this = abs(float(this_percent - dest_ratio))
+                dist_to_last = abs(float(dest_ratio - last_percent))
                 if _top:    # at top and percent >= ratio
-                    dist_to_this = float(this_percent - dest_ratio)
+                    dist_to_this = abs(float(this_percent - dest_ratio))
                     dist_to_last = 999
                 if (this_percent - dest_ratio) < tiny_value:  # equal to ratio
                     dist_to_this = 0
@@ -283,23 +283,32 @@ class ModelAlgorithm:
                     raw_score_sequence,
                     raw_score_percent_sequence,
                     tiny_value)
+
+                # print(dest_ratio, result.dist_to_last, result.dist_to_this)
+
                 # strategy: mode_ratio_prox:
                 # at top and single point
-                if result.last_seg < 0:
+                if result.top:
                     _seg, _percent = result.this_seg, result.this_percent
-                # equal to this or choosing upper min
-                elif (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
+                # equal to this, prori to mode
+                elif result.dist_to_this < tiny_value:
                     _seg, _percent = result.this_seg, result.this_percent
-                # equal to last or choosing lower max
-                elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
+                # equal to last, prior to mode
+                elif result.dist_to_last < tiny_value:
                     _seg, _percent = result.last_seg, result.last_percent
+                elif mode_ratio_prox == 'lower_max':
+                    _seg, _percent = result.last_seg, result.last_percent
+                elif mode_ratio_prox == 'upper_min':
+                    _seg, _percent = result.this_seg, result.this_percent
                 # near or 'near_max' or 'near_min'
                 elif 'near' in mode_ratio_prox:
+                    # same dist
                     if abs(result.dist_to_this - result.dist_to_last) < tiny_value:
                         if mode_ratio_prox == 'near_max':
                             _seg, _percent = result.this_seg, result.this_percent
                         else:
                             _seg, _percent = result.last_seg, result.last_percent
+                    # near to this
                     elif result.dist_to_this < result.dist_to_last:
                         _seg, _percent = result.this_seg, result.this_percent
                     else:
