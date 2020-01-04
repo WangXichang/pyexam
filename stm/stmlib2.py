@@ -295,15 +295,15 @@ class ModelAlgorithm:
                     _seg, _percent = result.last_seg, result.last_percent
                 # near or 'near_max' or 'near_min'
                 elif 'near' in mode_ratio_prox:
-                    if result.dist_to_this < result.dist_to_last:
-                        _seg, _percent = result.this_seg, result.this_percent
-                    elif result.dist_to_this > result.dist_to_last:
-                        _seg, _percent = result.last_seg, result.last_percent
-                    else: # dist is same
+                    if abs(result.dist_to_this - result.dist_to_last) < tiny_value:
                         if mode_ratio_prox == 'near_max':
                             _seg, _percent = result.this_seg, result.this_percent
                         else:
                             _seg, _percent = result.last_seg, result.last_percent
+                    elif result.dist_to_this < result.dist_to_last:
+                        _seg, _percent = result.this_seg, result.this_percent
+                    else:
+                        _seg, _percent = result.last_seg, result.last_percent
                 else:
                     print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                     raise ValueError
@@ -674,7 +674,7 @@ class ModelAlgorithm:
                                         raw_section.real_ratio,
                                         out_section
                                         )):
-                    print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
+                    print('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                           'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
                           format(i + 1,
                                  c_ratio,

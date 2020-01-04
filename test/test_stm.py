@@ -75,6 +75,7 @@ def test_strategy(df=None):
         rt = result(r1.outdf, r2.df, r1.map_table, r2.map_table)
         r.update({ti: all(comp)})
         if not all(comp):
+        # if ti[5] == 'defined':
             print('test fail: No={}, {}'.format(num, ti))
             print(er1.head(), '\n', er2.head())
             return r1, r2

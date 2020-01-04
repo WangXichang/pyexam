@@ -614,6 +614,29 @@ class PltScore(ScoreTransformModel):
         print('   get input score endpoints ...')
         points_list = self.get_section_points_list(field=field)
         self.result_raw_endpoints = points_list
+
+
+        # display ratio searching result at section i
+        for i, (cumu_ratio, dest_ratio, match, raw_sec, out_sec) in \
+            enumerate(zip(self.result_ratio_dict[field]['def'],
+                          self.result_ratio_dict[field]['dest'],
+                          self.result_ratio_dict[field]['match'],
+                          self.result_ratio_dict[field]['section'],
+                          self.out_score_points,
+                          )):
+            print('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                  'section_map: raw:[{4:3d}, {5:3d}] --> out:[{6:3d}, {7:3d}]'.
+                  format(i + 1,
+                         cumu_ratio,
+                         dest_ratio,
+                         float(match),
+                         int(raw_sec[0]),
+                         int(raw_sec[1]),
+                         int(out_sec[0]),
+                         int(out_sec[1])
+                         )
+                  )
+
         if len(points_list) == 0:
             return False
         # --step 2
@@ -671,7 +694,8 @@ class PltScore(ScoreTransformModel):
     # extract section points(first end point of first section and second point of all section) from map_table
     #   according ratios in preset ratio_list: raw_score_ratio_cum (cumulative ratio list)
     def get_section_points_list(self, field):
-        result_ratio = []
+        result_matched_ratio = []
+        result_dest_ratio = []
         _ratio_cum_list = self.raw_score_ratio_cum
 
         section_real_min = self.df[field].min()
@@ -690,7 +714,7 @@ class PltScore(ScoreTransformModel):
             section_start_point = section_defined_min \
                 if _mode_order in ['a', 'ascending'] else section_defined_max
 
-        result_section_list = [section_start_point]
+        result_section_point = [section_start_point]
 
         # ratio: preset,  percent: computed from data in map_table
         last_ratio = 0
@@ -702,19 +726,20 @@ class PltScore(ScoreTransformModel):
         for i, cumu_ratio in enumerate(_ratio_cum_list):
             this_seg_ratio = cumu_ratio-last_ratio
             dest_ratio = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_percent
+            result_dest_ratio.append(dest_ratio)
 
             # seek endpoint and real cumulative percent of this section from map_table
-            this_section_end_point, real_percent = self.get_score_point_from_map_table(field, dest_ratio)
+            this_section_end_point, match = self.get_score_point_from_map_table(field, dest_ratio)
 
             # first point at first section
             if i == 0:
-                this_section_start_point = result_section_list[0]
+                this_section_start_point = result_section_point[0]
             # not reached bottom
             elif last_percent <= 1:
                 # end_point already in result_seg_list
-                if result_section_list[i] != this_section_end_point:
+                if result_section_point[i] != this_section_end_point:
                     # auto get start point by step (1 or -1)
-                    this_section_start_point = result_section_list[i] + _step
+                    this_section_start_point = result_section_point[i] + _step
                 else:
                     this_section_start_point = -1
             else:
@@ -724,53 +749,58 @@ class PltScore(ScoreTransformModel):
                 this_section_end_point = -1
 
             # save to result ratio
-            result_ratio.append('{:.6f}'.format(real_percent))
+            result_matched_ratio.append('{:.6f}'.format(match))
             # save result endpoints (noshare, share)
-            result_section_list.append(this_section_end_point)
+            # position = i+1: add start point
+            result_section_point.append(this_section_end_point)
 
             # set last point if mode_section_point_last == 'defined'
             if i > 1:
-                # -1 or bottom
-                if ((result_section_list[-1] < 0) and (result_section_list[-2] >= 0)) or \
-                        (i == len(_ratio_cum_list)-1):
+                # current point: item[i+1] == -1
+                if (result_section_point[i+1] < 0) and (result_section_point[i] >= 0):
                     if self.strategy_dict['mode_section_point_last'] == 'defined':
                         if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
-                            result_section_list[-1] = section_defined_min
+                            result_section_point[i] = section_defined_min
                             this_section_end_point = section_defined_min
                         else:
-                            result_section_list[-1] = section_defined_max
+                            result_section_point[i] = section_defined_max
                             this_section_end_point = section_defined_max
-
-            # display ratio searching result at section i
-            print('   <{0:02d}> ratio: [def:{1:.4f}  real:{2:.4f}  matched:{3:.4f}] => '
-                  'section_map: raw:[{4:3.0f}, {5:3.0f}] --> out:[{6:3.0f}, {7:3.0f}]'.
-                  format(i+1,
-                         cumu_ratio,
-                         dest_ratio,
-                         real_percent,
-                         this_section_start_point,
-                         this_section_end_point if this_section_start_point >= 0 else -1,
-                         self.out_score_points[i][0],
-                         self.out_score_points[i][1]
-                         )
-                  )
 
             # save last segment endpoint and percent
             last_ratio = cumu_ratio
-            last_percent = real_percent
+            last_percent = match
 
         # set last point again if [-1] >= 0 else alread set in loop
         if self.strategy_dict['mode_section_point_last'] == 'defined':
-            for i in range(len(result_section_list)-1, 0, -1):
-                if result_section_list[i] >= 0:
+            for i in range(len(result_section_point)-1, 0, -1):
+                if result_section_point[i] >= 0:
                     if self.strategy_dict['mode_sort_order'] in ['d', 'descending']:
-                        result_section_list[i] = section_defined_min
+                        result_section_point[i] = section_defined_min
                     else:
-                        result_section_list[i] = section_defined_max
+                        result_section_point[i] = section_defined_max
                     break
 
-        self.result_ratio_dict[field] = result_ratio
-        return result_section_list
+        # create section
+        raw_section = []
+        i = 0
+        for x, y in zip(result_section_point[:-1],
+                        result_section_point[1:]):
+            _step = -1 if self.strategy_dict['mode_sort_order'] in ['d', 'descending'] else 1
+            if self.strategy_dict['mode_section_point_start'] != 'share':
+                raw_section.append((x+_step if i > 0 else x, y))
+            else:
+                raw_section.append((x, y))
+            i += 1
+
+
+        self.result_ratio_dict[field] = {
+            'def': self.raw_score_ratio_cum,
+            'match': result_matched_ratio,
+            'dest': result_dest_ratio,
+            'section': raw_section
+            }
+
+        return result_section_point
 
     # new at 2019-09-09
     def get_score_point_from_map_table(self, field, dest_ratio):
@@ -901,7 +931,8 @@ class PltScore(ScoreTransformModel):
             _out_report_doc += '            cum ratio: [{}]\n'.\
                 format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
             _out_report_doc += '            get ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '10.6f') for x in self.result_ratio_dict[field]]))
+                format(', '.join([format(float(x), '10.6f')
+                                  for x in self.result_ratio_dict[field]['match']]))
         else:
             _out_report_doc += '  raw score seg ratio: [{}]\n'.\
                 format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
