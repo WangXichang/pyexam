@@ -42,8 +42,8 @@ def test_strategy(df=None, model_name='shandong'):
         print(ti)
         # if ti[5] != 'defined':
         #     continue
-        # if num != 153:
-        #     continue
+        if num != 72:
+            continue
         r1 = main.run(df=df, cols=['km1'],
                       model_name=model_name,
                       mode_ratio_prox=ti[0],

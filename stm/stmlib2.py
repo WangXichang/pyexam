@@ -646,6 +646,7 @@ class ModelAlgorithm:
         map_table = seg.outdf
         # print(map_table.head())
         cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
+        print(cumu_ratio)
         for col in cols:
             print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
