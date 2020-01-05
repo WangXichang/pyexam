@@ -6,7 +6,7 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, stmutil as mutl, stmlib2 as mlib2, stmlib as mlib, models_in as msetin
+from stm import main, stmutil as mutl, stm2 as stm2, stm1 as stm1, models_in as mdin
 import itertools as itl
 
 # 有关stm测试的问题：
@@ -62,8 +62,8 @@ import itertools as itl
 #
 
 def test_strategy(df=None, model_name='shandong'):
-    pb.reload(mlib2)
-    pb.reload(mlib)
+    pb.reload(stm2)
+    pb.reload(stm1)
     if df is None:
         df = mutl.TestData(mean=45, std=12, size=1000)()
     ss = [main.mdin.Strategy[s] for s in main.mdin.Strategy.keys()]
@@ -186,7 +186,7 @@ class TestLvData():
 
         self.data = data_cumu
 
-    @mlib2.timer_wrapper
+    @stm2.timer_wrapper
     def test(self, data):
         r_dict = dict()
         for num in range(9):
@@ -211,7 +211,7 @@ class TestLvData():
         self.result_model = mr
 
 
-@mlib2.timer_wrapper
+@stm2.timer_wrapper
 def test_hainan(mean=60, size=60000, std=16):
     result = dict()
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
@@ -300,9 +300,9 @@ def test_stm_with_stat_data(
         data_no=1
         ):
 
-    if name.lower() not in msetin.Models.key():
+    if name.lower() not in mdin.Models.key():
         print('Invalid model name:{}! \ncorrect model name in: [{}]'.
-              format(name, ','.join(msetin.Models.key())))
+              format(name, ','.join(mdin.Models.key())))
         return None
 
     # create data set
@@ -338,7 +338,7 @@ def test_stm_with_stat_data(
     test_data = list(test_data)
     dfscore = test_data[data_no-1]
 
-    if name in msetin.Models.keys():
+    if name in mdin.Models.keys():
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))

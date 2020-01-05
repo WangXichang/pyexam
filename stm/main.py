@@ -31,10 +31,10 @@ How to add new model in modelext:
 
 
 import time
-from stm import stmlib as slib, stmutil as utl, \
-     stmlib2 as slib2, models_in as mdin, models_ext as mdext
+from stm import stm1, stm2, stmutil as utl, \
+     models_in as mdin, models_ext as mdext
 import importlib as pb
-stm_modules = [slib, slib2, utl, mdin, mdext]
+stm_modules = [stm1, stm2, utl, mdin, mdext]
 
 
 def exp(name='shandong'):
@@ -206,7 +206,7 @@ def run(
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
         ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
-        plt_model = slib.PltScore(model_name, model_type)
+        plt_model = stm1.PltScore(model_name, model_type)
         plt_model.set_data(df=df, cols=cols)
         plt_model.set_para(
             raw_score_ratio_tuple=ratio_tuple,
@@ -341,7 +341,7 @@ def run_model(
         return None
 
     model = mdin.Models[model_name]
-    return slib2.ModelAlgorithm.get_stm_score(
+    return stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model.ratio,
@@ -441,7 +441,7 @@ def run_para(
             ):
         return None
 
-    return slib2.ModelAlgorithm.get_stm_score(
+    return stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,
