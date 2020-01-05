@@ -265,7 +265,7 @@ class ModelAlgorithm:
         dest_ratio = None
         last_ratio = 0
         real_percent = 0
-        goto_bottom = False
+        _bottom = False
         for ratio in section_ratio_cumu_sequence:
             if dest_ratio is None:
                 dest_ratio = ratio
@@ -277,14 +277,12 @@ class ModelAlgorithm:
             dest_ratio_list.append(dest_ratio)
             # avoid to locate invalid ratio
             _seg, _percent = -1, -1
-            if not goto_bottom:
+            if not _bottom:
                 result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                     dest_ratio,
                     raw_score_sequence,
                     raw_score_percent_sequence,
                     tiny_value)
-
-                # print(dest_ratio, result.dist_to_last, result.dist_to_this)
 
                 # strategy: mode_ratio_prox:
                 # at top and single point
@@ -318,19 +316,30 @@ class ModelAlgorithm:
                     raise ValueError
             # avoid to repeat search if dest_ratio > 1 last time
             if dest_ratio > 1:
-                goto_bottom = True
+                _bottom = True
             section_point_list.append(_seg)
             section_percent_list.append(float(_percent))
             last_ratio = ratio
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
-        # step-3: process same point
+        # step-3-1: process same point at tail
+        for i in range(len(section_point_list)-1, 1, -1):
+            if i == len(section_point_list)-1:
+                if section_point_list[i] == section_point_list[i-1]:
+                    section_point_list[i] = -1
+            else:
+                if section_point_list[i+1] < 0:
+                    if section_point_list[i] == section_point_list[i - 1]:
+                        section_point_list[i] = -1
+        print(section_point_list)
+
+        # step-3-2: process same point in middle section
         #         that means a lost section ???!
         _step = -1 if mode_sort_order in ['d', 'descending'] else 1
         new_section = [section_point_list[0]]
         for p, x in enumerate(section_point_list[1:]):
-            # if p == 0, the first section is degraded, not lost, because of no section to be lost in
+            # p == 0, first section is degraded, not lost, because of no section to be lost in
             if (p == 0) or (x != section_point_list[p]):
                 # not same as the last
                 new_section.append(x)
@@ -345,7 +354,7 @@ class ModelAlgorithm:
                     new_section.append(x+2*_step)
         section_point_list = new_section
 
-        # step-3-2: process last point
+        #step-3-3: process last point
         if mode_section_point_last == 'defined':
             _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
                           raw_score_max
@@ -366,21 +375,6 @@ class ModelAlgorithm:
         else:
             section_list = [(x+_step if y >= 0 else -1, y) if i > 0 else (x, y)
                             for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:]))]
-
-        # depricated: it is unreasonable to jump empty point, 
-        #   when add some real score to empty point, no value can be used
-        # if mode_section_point_start == 'jump_empty':
-        #     new_step = 0
-        #     new_section_endpoints = []
-        #     for x, y in section_list:
-        #         while (x in raw_score_sequence) and (x != y):
-        #             pos = list(raw_score_sequence).index(x)
-        #             if raw_score_percent_sequence[pos] == raw_score_percent_sequence[pos - 1]:
-        #                 new_step += -1 if x > y else 1
-        #             else:
-        #                 break
-        #         new_section_endpoints.append((x + new_step, y))
-        #     section_list = new_section_endpoints
 
         # step-5: add lost section with (-1, -1)
         less_len = len(section_ratio_cumu_sequence) - len(section_list)
@@ -631,6 +625,7 @@ class ModelAlgorithm:
                       mode_section_degraded='map_to_max',
                       mode_section_lost='ignore',
                       out_score_decimals=0,
+                      display=True
                       ):
         if isinstance(cols, tuple):
             cols = list(cols)
@@ -642,13 +637,20 @@ class ModelAlgorithm:
                       segmin=raw_score_min,
                       segsort=mode_sort_order,
                       segstep=raw_score_step,
+                      display=False,
                       )
         map_table = seg.outdf
         # print(map_table.head())
-        cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(len(model_ratio_pdf))]
-        print(cumu_ratio)
+        section_num = len(model_ratio_pdf)
+        if mode_sort_order in ['d', 'descending']:
+            cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(section_num)]
+        else:
+            _ratio_list = model_ratio_pdf[::-1]
+            cumu_ratio = [sum(_ratio_list[0:i + 1]) / 100 for i in range(section_num)]
+        # print(cumu_ratio)
         for col in cols:
-            print('transform {} of {}'.format(col, cols))
+            if display:
+                print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     section_ratio_cumu_sequence=cumu_ratio,
@@ -676,26 +678,27 @@ class ModelAlgorithm:
                 formula = result.formula
 
                 # display ratio searching result at each section
-                for i, (c_ratio, d_ratio, raw_sec, r_ratio, out_sec) \
-                        in enumerate(zip(
-                                        cumu_ratio,
-                                        raw_section.dest_ratio,
-                                        raw_section.section,
-                                        raw_section.real_ratio,
-                                        out_section
-                                        )):
-                    print('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
-                          'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
-                          format(i + 1,
-                                 c_ratio,
-                                 d_ratio,
-                                 r_ratio,
-                                 raw_sec[0],
-                                 raw_sec[1],
-                                 int(out_sec[0]),
-                                 int(out_sec[1]),
-                                 )
-                          )
+                if display:
+                    for i, (c_ratio, d_ratio, raw_sec, r_ratio, out_sec) \
+                            in enumerate(zip(
+                                            cumu_ratio,
+                                            raw_section.dest_ratio,
+                                            raw_section.section,
+                                            raw_section.real_ratio,
+                                            out_section
+                                            )):
+                        print('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                              'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
+                              format(i + 1,
+                                     c_ratio,
+                                     d_ratio,
+                                     r_ratio,
+                                     raw_sec[0],
+                                     raw_sec[1],
+                                     int(out_sec[0]),
+                                     int(out_sec[1]),
+                                     )
+                              )
             elif model_type.lower() == 'ppt':
                 if mode_sort_order in ['a', 'ascending']:
                     model_section = reversed(model_section)
@@ -712,22 +715,23 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                print(' model table: [{0}] \n'
-                      'real percent: [{1}]\n'
-                      '   get ratio: [{2}]\n'
-                      '   raw score: [{3}]\n'
-                      '   out score: [{4}]\n'
-                      .format(
-                      ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
-                                 for (x, z), y in zip(model_section, cumu_ratio)
-                                 if x in result.map_dict.values()]),
-                      ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
-                      ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                      ', '.join([format(x, '>12d') for x in map_table.seg]),
-                      ', '.join([format(round45r(result.formula(x), out_score_decimals), '>' +
-                                        ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
-                                 for x in map_table.seg]),
-                      ))
+                if display:
+                    print(' model table: [{0}] \n'
+                          'real percent: [{1}]\n'
+                          '   get ratio: [{2}]\n'
+                          '   raw score: [{3}]\n'
+                          '   out score: [{4}]\n'
+                          .format(
+                          ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
+                                     for (x, z), y in zip(model_section, cumu_ratio)
+                                     if x in result.map_dict.values()]),
+                          ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                          ', '.join([format(x, '12.8f') for x in result.real_ratio]),
+                          ', '.join([format(x, '>12d') for x in map_table.seg]),
+                          ', '.join([format(round45r(result.formula(x), out_score_decimals), '>' +
+                                            ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
+                                     for x in map_table.seg]),
+                          ))
             elif model_type.lower() == 'pgt':
                 # print(col, type(map_table))
                 result = ModelAlgorithm.get_pgt_formula(
@@ -741,9 +745,10 @@ class ModelAlgorithm:
                     raw_score_min=raw_score_min,
                     grade_num=len(model_section)
                     )
-                print('tai score section: {}'.format(result.section))
-                print('       grade step: {}'.format(result.grade_step))
-                print('        top level: {}'.format(result.top_level))
+                if display:
+                    print('tai score section: {}'.format(result.section))
+                    print('       grade step: {}'.format(result.grade_step))
+                    print('        top level: {}'.format(result.top_level))
                 formula=result.formula
             else:
                 raise ValueError

@@ -61,6 +61,7 @@ def run(
         reload=False,
         save_result=False,
         save_result_path_name=None,
+        display=True,
         ):
     """
 
@@ -214,7 +215,8 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            out_decimal_digits=out_score_decimals
+            out_decimal_digits=out_score_decimals,
+            display=display,
             )
         plt_model.run()
         return plt_model
@@ -234,7 +236,8 @@ def run(
                            mode_section_point_last=mode_section_point_last,
                            mode_section_degraded=mode_section_degraded,
                            out_score_decimals=out_score_decimals,
-                           reload=False
+                           reload=False,
+                           display=display,
                            )
         if isinstance(save_result_path_name, str):
             save_map_table(save_result_path_name, model_name)
@@ -258,7 +261,8 @@ def run_model(
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
-        reload=False
+        reload=False,
+        display=True,
         ):
     """
     to calculate out score by calling stmlib2.Algorithm.get_stm_score
@@ -322,6 +326,7 @@ def run_model(
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         out_score_decimals=out_score_decimals,
+        display=display,
         )
 
 
@@ -344,7 +349,8 @@ def run_para(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         out_score_decimal_digits=0,
-        reload=False
+        reload=False,
+        display=True,
         ):
     """
     use model parameters to call stmlib2.Algorithm.get_stm_score
@@ -420,6 +426,7 @@ def run_para(
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         out_score_decimals=out_score_decimal_digits,
+        display=display,
         )
 
 
