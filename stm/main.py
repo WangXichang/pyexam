@@ -62,6 +62,7 @@ def run(
         save_result=False,
         save_result_path_name=None,
         display=True,
+        verify=False,
         ):
     """
 
@@ -219,10 +220,34 @@ def run(
             display=display,
             )
         plt_model.run()
+        if verify:
+            result = run_model(
+                model_name=model_name,
+                df=df,
+                cols=cols,
+                raw_score_range=raw_score_range,
+                mode_ratio_prox=mode_ratio_prox,
+                mode_ratio_cumu=mode_ratio_cumu,
+                mode_sort_order=mode_sort_order,
+                mode_section_point_first=mode_section_point_first,
+                mode_section_point_start=mode_section_point_start,
+                mode_section_point_last=mode_section_point_last,
+                mode_section_degraded=mode_section_degraded,
+                out_score_decimals=out_score_decimals,
+                reload=False,
+                display=display,
+            )
+            for col in cols:
+                if not all(result.df[col] == plt_model.outdf[col]):
+                    print('verify error: col={} get different result in both algorithm!'.format(col))
+                    return plt_model, result
+            if display:
+                print('verify passed !')
         return plt_model
-    # for 'ppt', 'pgt' to call stmlib.Algorithm.get_stm_score
+    # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
-        print('run model by stmlib2, cols={} ... '.format(cols))
+        if display:
+            print('run model by stmlib2, cols={} ... '.format(cols))
         result = run_model(
                            model_name=model_name,
                            df=df,

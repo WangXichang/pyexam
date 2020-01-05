@@ -338,7 +338,8 @@ class PltScore(ScoreTransformModel):
         if isinstance(display, bool):
             self.display=display
         else:
-            raise ValueError
+            self.display=True
+            # raise ValueError
 
         self.out_decimal_digits = out_decimal_digits
 
@@ -824,12 +825,12 @@ class PltScore(ScoreTransformModel):
         _percent = -1
         last_percent = -1
         last_seg = None
-        last_diff = 1000
-        _use_last = False
+        dist_to_last = 1000
+        use_last_seg = False
         for index, row in self.map_table.iterrows():
             _percent = row[field+'_percent']
             _seg = row['seg']
-            _diff = abs(_percent - dest_ratio)
+            dist_to_this = abs(_percent - dest_ratio)
 
             # at table bottom or lowest score, use_current
             if (index == _top_index) or (_percent >= 1):
@@ -843,31 +844,31 @@ class PltScore(ScoreTransformModel):
                 # dealing with strategies
                 if 'near' in _mode_prox:
                     # same dist
-                    if abs(_diff-last_diff) < _tiny:
+                    if abs(dist_to_this-dist_to_last) < _tiny:
                         if _mode_prox == 'near_min':
-                            _use_last = True
+                            use_last_seg = True
                         else:
-                            _use_last = False
-                    elif _diff < last_diff:
-                        _use_last = False
+                            use_last_seg = False
+                    elif dist_to_this < dist_to_last:
+                        use_last_seg = False
                     else:
-                        _use_last = True
+                        use_last_seg = True
                 elif _mode_prox == 'lower_max':
                     # this != dest_ratio
-                    if abs(_percent-dest_ratio) > _tiny:
-                        _use_last = True
+                    if dist_to_this > _tiny:
+                        use_last_seg = True
                 elif _mode_prox == 'upper_min':
-                    # this == dest_ratio
-                    if abs(last_diff) < _tiny:
-                        _use_last = True
+                    # last_ratio == dest_ratio
+                    if dist_to_last < _tiny:
+                        use_last_seg = True
                 else:
                     print('Error ratio prox mode: {}'.format(_mode_prox))
                     raise ValueError
                 break
-            last_diff = _diff
+            dist_to_last = dist_to_this
             last_seg = _seg
             last_percent = _percent
-        if _use_last:
+        if use_last_seg:
             return last_seg, last_percent
         return _seg, _percent
 

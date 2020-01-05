@@ -74,10 +74,10 @@ def test_strategy(df=None, model_name='shandong'):
     for num, ti in enumerate(st):
         print(num, ti)
         disp = False
-        if num != 648:
-            continue
-        else:
-            disp = True
+        # if num != 648:
+        #     continue
+        # else:
+        #     disp = True
         r1 = main.run(df=df, cols=['km1'],
                       model_name=model_name,
                       mode_ratio_prox=ti[0],
