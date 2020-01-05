@@ -842,9 +842,15 @@ class PltScore(ScoreTransformModel):
                     break
                 # dealing with strategies
                 if 'near' in _mode_prox:
-                    # (same and near_min) or (last is near)
-                    if ((abs(_diff-last_diff) < _tiny) and ('near_min' in _mode_prox)) or \
-                       (_diff > last_diff):
+                    # same dist
+                    if abs(_diff-last_diff) < _tiny:
+                        if _mode_prox == 'near_min':
+                            _use_last = True
+                        else:
+                            _use_last = False
+                    elif _diff < last_diff:
+                        _use_last = False
+                    else:
                         _use_last = True
                 elif _mode_prox == 'lower_max':
                     # this != dest_ratio

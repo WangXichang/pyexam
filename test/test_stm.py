@@ -27,32 +27,39 @@ import itertools as itl
 #     it is reasonable if common subjects use raw score 150.
 #
 #
-"""
-    lower_max deadlock:
-    when use lower_max, may loop at some ratio  point and can not reach bottom
-    example at zhejiang model:
-   <01> ratio: [def:0.0100  dest:0.0100  match:0.0100] => section_map: raw:[ 72,  62] --> out:[100, 100]
-   <02> ratio: [def:0.0300  dest:0.0300  match:0.0280] => section_map: raw:[ 61,  58] --> out:[ 97,  97]
-   <03> ratio: [def:0.0600  dest:0.0580  match:0.0560] => section_map: raw:[ 57,  55] --> out:[ 94,  94]
-   <04> ratio: [def:0.1000  dest:0.0960  match:0.0880] => section_map: raw:[ 54,  53] --> out:[ 91,  91]
-   <05> ratio: [def:0.1500  dest:0.1380  match:0.1330] => section_map: raw:[ 52,  51] --> out:[ 88,  88]
-   <06> ratio: [def:0.2100  dest:0.1930  match:0.1900] => section_map: raw:[ 50,  49] --> out:[ 85,  85]
-   <07> ratio: [def:0.2800  dest:0.2600  match:0.2380] => section_map: raw:[ 48,  47] --> out:[ 82,  82]
-   <08> ratio: [def:0.3600  dest:0.3180  match:0.2980] => section_map: raw:[ 46,  45] --> out:[ 79,  79]
-   <09> ratio: [def:0.4300  dest:0.3680  match:0.3410] => section_map: raw:[ 44,  44] --> out:[ 76,  76]
-   <10> ratio: [def:0.5000  dest:0.4110  match:0.4110] => section_map: raw:[ 43,  42] --> out:[ 73,  73]
-   <11> ratio: [def:0.5700  dest:0.4810  match:0.4480] => section_map: raw:[ 41,  41] --> out:[ 70,  70]
-   <12> ratio: [def:0.6400  dest:0.5180  match:0.4830] => section_map: raw:[ 40,  40] --> out:[ 67,  67]
-   <13> ratio: [def:0.7100  dest:0.5530  match:0.5360] => section_map: raw:[ 39,  39] --> out:[ 64,  64]
-   <14> ratio: [def:0.7800  dest:0.6060  match:0.5770] => section_map: raw:[ 38,  38] --> out:[ 61,  61]
-   <15> ratio: [def:0.8400  dest:0.6370  match:0.6260] => section_map: raw:[ 37,  37] --> out:[ 58,  58]
-   <16> ratio: [def:0.8900  dest:0.6760  match:0.6570] => section_map: raw:[ 36,  36] --> out:[ 55,  55]
-   <17> ratio: [def:0.9300  dest:0.6970  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 52,  52]
-   <18> ratio: [def:0.9600  dest:0.6870  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 49,  49]
-   <19> ratio: [def:0.9800  dest:0.6770  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 46,  46]
-   <20> ratio: [def:0.9900  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 43,  43]
-   <21> ratio: [def:1.0000  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 40,  40]
-"""
+
+# ratio match result:
+#   (1) normal
+#   (2) last section lost
+#   (3) middle section lost
+#   (4) ratio-deadlock: cannot reach bottom because some ratio gap too large
+
+# ratio-deadlock example:
+# lower_max deadlock:
+# when use lower_max, may loop at some ratio  point and can not reach bottom
+# at zhejiang model:
+#    <01> ratio: [def:0.0100  dest:0.0100  match:0.0100] => section_map: raw:[ 72,  62] --> out:[100, 100]
+#    <02> ratio: [def:0.0300  dest:0.0300  match:0.0280] => section_map: raw:[ 61,  58] --> out:[ 97,  97]
+#    <03> ratio: [def:0.0600  dest:0.0580  match:0.0560] => section_map: raw:[ 57,  55] --> out:[ 94,  94]
+#    <04> ratio: [def:0.1000  dest:0.0960  match:0.0880] => section_map: raw:[ 54,  53] --> out:[ 91,  91]
+#    <05> ratio: [def:0.1500  dest:0.1380  match:0.1330] => section_map: raw:[ 52,  51] --> out:[ 88,  88]
+#    <06> ratio: [def:0.2100  dest:0.1930  match:0.1900] => section_map: raw:[ 50,  49] --> out:[ 85,  85]
+#    <07> ratio: [def:0.2800  dest:0.2600  match:0.2380] => section_map: raw:[ 48,  47] --> out:[ 82,  82]
+#    <08> ratio: [def:0.3600  dest:0.3180  match:0.2980] => section_map: raw:[ 46,  45] --> out:[ 79,  79]
+#    <09> ratio: [def:0.4300  dest:0.3680  match:0.3410] => section_map: raw:[ 44,  44] --> out:[ 76,  76]
+#    <10> ratio: [def:0.5000  dest:0.4110  match:0.4110] => section_map: raw:[ 43,  42] --> out:[ 73,  73]
+#    <11> ratio: [def:0.5700  dest:0.4810  match:0.4480] => section_map: raw:[ 41,  41] --> out:[ 70,  70]
+#    <12> ratio: [def:0.6400  dest:0.5180  match:0.4830] => section_map: raw:[ 40,  40] --> out:[ 67,  67]
+#    <13> ratio: [def:0.7100  dest:0.5530  match:0.5360] => section_map: raw:[ 39,  39] --> out:[ 64,  64]
+#    <14> ratio: [def:0.7800  dest:0.6060  match:0.5770] => section_map: raw:[ 38,  38] --> out:[ 61,  61]
+#    <15> ratio: [def:0.8400  dest:0.6370  match:0.6260] => section_map: raw:[ 37,  37] --> out:[ 58,  58]
+#    <16> ratio: [def:0.8900  dest:0.6760  match:0.6570] => section_map: raw:[ 36,  36] --> out:[ 55,  55]
+#    <17> ratio: [def:0.9300  dest:0.6970  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 52,  52]
+#    <18> ratio: [def:0.9600  dest:0.6870  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 49,  49]
+#    <19> ratio: [def:0.9800  dest:0.6770  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 46,  46]
+#    <20> ratio: [def:0.9900  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 43,  43]
+#    <21> ratio: [def:1.0000  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 40,  40]
+#
 
 def test_strategy(df=None, model_name='shandong'):
     pb.reload(mlib2)
@@ -67,12 +74,10 @@ def test_strategy(df=None, model_name='shandong'):
     for num, ti in enumerate(st):
         print(num, ti)
         disp = False
-        # if ti[5] != 'defined':
-        #     continue
-        # if num != 371:
-        #     continue
-        # else:
-        #     disp = True
+        if num != 648:
+            continue
+        else:
+            disp = True
         r1 = main.run(df=df, cols=['km1'],
                       model_name=model_name,
                       mode_ratio_prox=ti[0],
@@ -104,7 +109,7 @@ def test_strategy(df=None, model_name='shandong'):
         er1 = r1.outdf.loc[cmplist]
         er2 = r2.df.loc[cmplist]
         rt = result(r1.outdf, r2.df, r1.map_table, r2.map_table)
-        r.update({ti: all(comp)})
+        r.update({num: r1.result_dict})
         if not all(comp):
             print('test fail: No={}, {}'.format(num, ti))
             print(er1.head(), '\n', er2.head())
