@@ -332,7 +332,7 @@ class ModelAlgorithm:
                 if section_point_list[i+1] < 0:
                     if section_point_list[i] == section_point_list[i - 1]:
                         section_point_list[i] = -1
-        print(section_point_list)
+        # print(section_point_list)
 
         # step-3-2: process same point in middle section
         #         that means a lost section ???!
@@ -344,7 +344,9 @@ class ModelAlgorithm:
                 # not same as the last
                 new_section.append(x)
             else:
-                if mode_section_lost == 'ignore':
+                if x < 0:
+                    pass
+                elif mode_section_lost == 'ignore':
                     # new_section.append(-1)
                     pass
                 elif mode_section_lost == 'next_one_point':
@@ -353,6 +355,7 @@ class ModelAlgorithm:
                     # maybe coliide to next section if it is single point section
                     new_section.append(x+2*_step)
         section_point_list = new_section
+        # print(section_point_list)
 
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
