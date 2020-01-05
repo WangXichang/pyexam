@@ -60,7 +60,7 @@ def run(
         out_score_decimals=0,
         reload=False,
         save_result=False,
-        save_result_path_name=None,
+        path_name=None,
         display=True,
         verify=False,
         ):
@@ -81,6 +81,7 @@ def run(
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
+        verify=False
         )
 
         8个算法策略：
@@ -171,7 +172,11 @@ def run(
                       default= 0, that means out score type is int
     :param reload: bool
             usage: reload related modules, especially when modify models_ext.Models
-          default= False
+          default= False, dont reload
+
+    :param verify: bool
+            usage: use two algorithm to verify result
+          default: False, do not verify
 
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
@@ -264,9 +269,12 @@ def run(
                            reload=False,
                            display=display,
                            )
-        if isinstance(save_result_path_name, str):
-            save_map_table(save_result_path_name, model_name)
-            save_out_score(save_result_path_name, model_name)
+        if save_result:
+            if isinstance(path_name, str):
+                save_map_table(path_name, model_name)
+                save_out_score(path_name, model_name)
+            else:
+                print('error path_name: {}'.format(path_name))
         return result
 
 
