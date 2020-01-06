@@ -31,8 +31,8 @@ How to add new model in modelext:
 
 
 import time
-from stm import stm1, stm2, stmutil as utl, \
-     models_in as mdin, models_ext as mdext
+from stm import stm1, stm2, stmlib as slib,\
+     stmutil as utl, models_in as mdin, models_ext as mdext
 import importlib as pb
 stm_modules = [stm1, stm2, utl, mdin, mdext]
 
