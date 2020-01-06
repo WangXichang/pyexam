@@ -125,9 +125,20 @@ class TestLvData():
     def __init__(self):
         self.data = None
         self.result = None
+        self.path = None
 
     def load_data(self):
-        file_path = 'f:/mywrite/新高考改革/modelstestdata/testdata/'
+        file_path1 = 'f:/mywrite/新高考改革/modelstestdata/testdata/'
+        file_path2 = 'e:/mywrite/newgk/lvdata/testdata/'
+        if os.path.isdir(file_path1):
+            file_path = file_path1
+        elif os.path.isdir(file_path2):
+            file_path = file_path2
+        else:
+            print('no valid data path!')
+            return
+        self.path = file_path
+
         cumu_file_list = [file_path+'cumu/'+str(p)+'/out18wl_stand.csv' for p in range(1, 10)]
         nocumu_file_dict = dict()
         data_cumu = dict()
@@ -140,6 +151,7 @@ class TestLvData():
                 continue
             with open(fname) as f:
                 data_cumu.update({'cumu'+str(i): pd.read_csv(f)})
+
         nocumu_file_dict.update({'test1': file_path+'nocumu/test1/结果/out2018lz_stand.csv'})
         nocumu_file_dict.update({'test2': file_path+'nocumu/test2/结果/out_stand.csv'})
         nocumu_file_dict.update({'test3': file_path+'nocumu/test3/结果/out2018wl_stand.csv'})
@@ -192,7 +204,9 @@ class TestLvData():
     def test(self, data):
         r_dict = dict()
         for num in range(9):
-            r = self.test_stm_with_lvdata(name='cumu'+str(num), data=data['cumu'+str(num)], cols=['wl'], cumu='yes')
+            r = self.test_stm_with_lvdata(name='cumu'+str(num),
+                                          path=self.path,
+                                          data=data['cumu'+str(num)], cols=['wl'], cumu='yes')
             r_dict.update({'cumu'+str(num): r})
         nocumu_names = ['test'+str(i) for i in range(1, 4)] + \
                        ['test4wl', 'test4hx', 'test5wl', 'test5hx', 'test5sw', 'test6hx', 'test7wl18', 'test7wl19', 'test8']
@@ -209,7 +223,7 @@ class TestLvData():
                       mode_ratio_cumu=cumu,
                       display=False
                       )
-        mr.save_report_doc('f:/mywrite/新高考改革/modelstestdata/testdata/r2_'+name+'.txt')
+        mr.save_report_doc(self.path + 'report/r2_'+name+'.txt')
         result = []
         for col in cols_real:
             comp = all(mr.outdf[col+'_ts'] == mr.outdf[col+'_stand'])
