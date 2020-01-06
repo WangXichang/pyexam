@@ -100,13 +100,13 @@ class ModelAlgorithm:
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
         # too big dest_ratio
-        # if dest_ratio > list(ratio_seq)[-1]:
-        #     result = Result(True, False, True,
-        #                     list(seg_seq)[-1], list(seg_seq)[-1],
-        #                     list(ratio_seq)[-1], list(ratio_seq)[-1],
-        #                     999, 999
-        #                     )
-        #     return result
+        if dest_ratio > 1:
+            return Result(False, False, True,
+                          -1, -1,
+                          1, 1,
+                          99, 999
+                          )
+
         last_percent = -1
         last_seg = -1
         _top, _bottom, _len = False, False, len(seg_seq)
@@ -207,8 +207,9 @@ class ModelAlgorithm:
                 else:
                     dest_ratio = ratio
             dest_ratio_list.append(dest_ratio)
+
             # avoid to locate invalid ratio
-            _seg, _percent = -1, -1
+            _seg, _percent = -1, 1
             if not _bottom:
                 result = ModelAlgorithm.get_score_from_score_ratio_sequence(
                     dest_ratio,
@@ -250,11 +251,12 @@ class ModelAlgorithm:
             if dest_ratio > 1:
                 _bottom = True
             section_point_list.append(_seg)
-            section_percent_list.append(float(_percent))
+            section_percent_list.append(_percent)
             last_ratio = ratio
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
+        # print(section_percent_list)
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
             _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
@@ -321,7 +323,7 @@ class ModelAlgorithm:
         less_len = len(section_ratio_cumu_sequence) - len(section_list)
         if less_len > 0:
             section_list += [(-1, -1)] * less_len
-            section_percent_list += [-1] * less_len
+            section_percent_list += [1] * less_len
 
         section_list = [x if ((x[0] >= 0) and (x[1] >= 0)) else (-1, -1)
                         for x in section_list]
