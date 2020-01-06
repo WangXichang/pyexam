@@ -55,7 +55,7 @@ def run(
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
-        mode_section_lost='ignore',
+        mode_section_lost='lost',
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
@@ -159,10 +159,9 @@ def run(
                             default= 'real'
     :param mode_section_lost: str,
                            strategy: how to prosess lost section
-                             values: 'ignore', use real raw score max or min value
-                                     'next_one_point',
-                                     'next_two_point',
-                            default= 'ignore'
+                             values: 'lost', retain lost, use [-1, -1]
+                                     'zip',  to next section, no [-1, -1] in middle
+                            default= 'lost'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
@@ -290,7 +289,7 @@ def run_model(
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
-        mode_section_lost='ignore',
+        mode_section_lost='lost',
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
@@ -380,7 +379,7 @@ def run_para(
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
-        mode_section_lost='ignore',
+        mode_section_lost='lost',
         out_score_decimal_digits=0,
         reload=False,
         display=True,
@@ -474,7 +473,7 @@ def check_run_parameters(
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
-        mode_section_lost='ignore',
+        mode_section_lost='lost',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
         ):

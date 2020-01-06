@@ -147,7 +147,7 @@ class ModelAlgorithm:
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
-            mode_section_lost='ignore',
+            mode_section_lost='lost',
             raw_score_max=100,
             raw_score_min=0,
             tiny_value=10**-12,
@@ -255,41 +255,6 @@ class ModelAlgorithm:
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
-        # step-3-1: process same point at tail
-        # for i in range(len(section_point_list)-1, 1, -1):
-        #     if i == len(section_point_list)-1:
-        #         if section_point_list[i] == section_point_list[i-1]:
-        #             section_point_list[i] = -1
-        #     else:
-        #         if section_point_list[i+1] < 0:
-        #             if section_point_list[i] == section_point_list[i - 1]:
-        #                 section_point_list[i] = -1
-        # print(section_point_list)
-
-        # print(section_point_list)
-        # # step-3-2: process same point in middle section
-        # #         that means a lost section ???!
-        # _step = -1 if mode_sort_order in ['d', 'descending'] else 1
-        # new_section = [section_point_list[0]]
-        # for p, x in enumerate(section_point_list[1:]):
-        #     # p == 0, first section is degraded, not lost, because of no section to be lost in
-        #     if (p == 0) or (x != section_point_list[p]):
-        #         # not same as the last
-        #         new_section.append(x)
-        #     else:
-        #         if x < 0:
-        #             pass
-        #         elif mode_section_lost == 'ignore':
-        #             # new_section.append(-1)
-        #             pass
-        #         elif mode_section_lost == 'next_one_point':
-        #             new_section.append(x+_step)
-        #         elif mode_section_lost == 'next_two_point':
-        #             # maybe coliide to next section if it is single point section
-        #             new_section.append(x+2*_step)
-        # section_point_list = new_section
-        # print(section_point_list)
-
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
             _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
@@ -305,7 +270,6 @@ class ModelAlgorithm:
         # step-4: make section
         #   with strategy: mode_section_point_start
         #                  default: step
-        # print(section_point_list)
         section_list = []
         lost = False
         for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:])):
@@ -341,16 +305,17 @@ class ModelAlgorithm:
                         _x, _y = x, y
                     else:
                         if (x > 0) and (y >= 0):
-                            forward = (x + _step > y) if mode_sort_order in ['d', 'desceding'] \
-                                      else (x + _step < y)
+                            forward = (x + _step >= y) if mode_sort_order in ['d', 'desceding'] \
+                                      else (x + _step <= y)
                             if not forward:
                                 _x, _y = -1, -1
                             else:
                                 _x, _y = x + _step, y
                         else:
                             _x, _y = -1, -1
+            if (mode_section_lost == 'zip') and (_x + _y == -2):
+                continue
             section_list.append((_x, _y))
-            # print(section_list)
 
         # step-5: add lost section with (-1, -1)
         less_len = len(section_ratio_cumu_sequence) - len(section_list)
@@ -599,7 +564,7 @@ class ModelAlgorithm:
                       mode_section_point_start='step',
                       mode_section_point_last='real',
                       mode_section_degraded='map_to_max',
-                      mode_section_lost='ignore',
+                      mode_section_lost='lost',
                       out_score_decimals=0,
                       display=True
                       ):

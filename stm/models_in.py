@@ -218,7 +218,7 @@ Models = {
     }
 
 
-# choices = 4 * 2**5 * 3**2 = 1152   ## prox, cumu, sort, section_
+# choices = 4 * 2**5 * 3*2 = 1152   ## prox, cumu, sort, section_
 Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
@@ -227,5 +227,5 @@ Strategy = {
     'mode_section_point_start':     ('step', 'share'),          # first point except first section
     'mode_section_point_last':      ('real', 'defined'),        # last point of last section, useful to type--ppt
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
+    'mode_section_lost':            ('lost', 'zip'),
     }
