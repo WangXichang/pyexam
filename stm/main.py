@@ -54,8 +54,8 @@ def run(
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
-        mode_section_lost='lost',
+        mode_section_degraded='to_max',
+        mode_section_lost='real',
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
@@ -76,7 +76,7 @@ def run(
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
+        mode_section_degraded='to_max',
         mode_section_lost='ignore',
         raw_score_range=(0, 100),
         out_score_decimals=0,
@@ -159,9 +159,9 @@ def run(
                             default= 'real'
     :param mode_section_lost: str,
                            strategy: how to prosess lost section
-                             values: 'lost', retain lost, use [-1, -1]
+                             values: 'real', retain lost, use [-1, -1]
                                      'zip',  to next section, no [-1, -1] in middle
-                            default= 'lost'
+                            default= 'real'
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
@@ -237,6 +237,7 @@ def run(
                 mode_section_point_start=mode_section_point_start,
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
+                mode_section_lost=mode_section_lost,
                 out_score_decimals=out_score_decimals,
                 reload=False,
                 display=display,
@@ -288,8 +289,8 @@ def run_model(
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
-        mode_section_lost='lost',
+        mode_section_degraded='to_max',
+        mode_section_lost='real',
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
@@ -378,8 +379,8 @@ def run_para(
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
-        mode_section_lost='lost',
+        mode_section_degraded='to_max',
+        mode_section_lost='real',
         out_score_decimal_digits=0,
         reload=False,
         display=True,
@@ -473,7 +474,7 @@ def check_run_parameters(
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
-        mode_section_lost='lost',
+        mode_section_lost='real',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
         ):

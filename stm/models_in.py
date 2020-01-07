@@ -43,8 +43,8 @@
           'mode_section_point_start':     ('step', 'share')
         最后端点确定：区间最后端点映射到实际最高（低）分(real)、卷面最高（低）分(defined)
           'mode_section_point_last':      ('real', 'defined')
-        退化区间映射：区间退化为单点情况，映射到转换分值的最大（map_to_max）、最小(map_to_min)、平均值(map_to_min)
-          'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
+        退化区间映射：区间退化为单点情况，映射到转换分值的最大（to_max）、最小(map_to_min)、平均值(map_to_min)
+          'mode_section_degraded':        ('to_max', 'map_to_min', 'map_to_mean'),
         消失区间处理：区间丢失情况，忽略(ignore)，向下增加一个点(next_one_point)，向下增加两个点(next_two_point)
           'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
 
@@ -223,9 +223,10 @@ Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_sort_order':              ('d', 'a'),                 # d: descending, a: ascending
-    'mode_section_point_first':     ('real', 'defined'),        # first point of first section
-    'mode_section_point_start':     ('step', 'share'),          # first point except first section
-    'mode_section_point_last':      ('real', 'defined'),        # last point of last section, useful to type--ppt
-    'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_lost':            ('real', 'zip'),
+    'mode_section_point_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
+    'mode_section_point_start':     ('step', 'share'),         # first point except first section
+    'mode_section_point_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
+    'mode_section_degraded':        ('to_max', 'to_min', 'to_mean'),
+    'mode_section_lost':            ('real', 'zip'),                             # not used in stm1
+    'mode_score_zero':              ('real', 'to_min_after', 'to_min_alone')    # not used now
     }

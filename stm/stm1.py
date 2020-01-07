@@ -329,7 +329,7 @@ class PltScore(ScoreTransformModel):
                  mode_section_point_first='real',
                  mode_section_point_start='step',
                  mode_section_point_last='real',
-                 mode_section_degraded='map_to_max',
+                 mode_section_degraded='to_max',
                  mode_section_lost='real',
                  mode_seg_end_share='no',
                  out_decimal_digits=None,
@@ -506,11 +506,11 @@ class PltScore(ScoreTransformModel):
                 b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
                 c = (cf[1][1]-cf[1][0])
                 if c == 0:  # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
-                    if self.strategy_dict['mode_section_degraded'] == 'map_to_max':
+                    if self.strategy_dict['mode_section_degraded'] == 'to_max':
                         return slib.round45r(max(cf[2]), self.out_decimal_digits)
-                    elif self.strategy_dict['mode_section_degraded'] == 'map_to_min':
+                    elif self.strategy_dict['mode_section_degraded'] == 'to_min':
                         return slib.round45r(min(cf[2]), self.out_decimal_digits)
-                    elif self.strategy_dict['mode_section_degraded'] == 'map_to_mean':
+                    elif self.strategy_dict['mode_section_degraded'] == 'to_mean':
                         return slib.round45r(np.mean(cf[2]))
                     else:
                         return -1
@@ -526,7 +526,7 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
-        _tiny = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
+        tiny_value = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
 
         _mode_sort = self.strategy_dict['mode_sort_order']
 
@@ -575,8 +575,8 @@ class PltScore(ScoreTransformModel):
             # loop: seeking ratio by percent to set out score
             for si, sr in enumerate(self.raw_score_ratio_cum):
                 # sr == _p or sr > _p
-                if (abs(sr - _p) < _tiny) or (sr > _p):
-                    if (abs(_p - sr) < _tiny) or (si == 0):
+                if (abs(sr - _p) < tiny_value) or (sr > _p):
+                    if (abs(_p - sr) < tiny_value) or (si == 0):
                         y = _start_score + si*_step
                     elif _mode_prox == 'upper_min':
                         y = _start_score + si*_step
@@ -687,11 +687,11 @@ class PltScore(ScoreTransformModel):
                 a = 0
                 # mode_section_degraded
                 _mode_section_degraded = self.strategy_dict['mode_section_degraded']
-                if _mode_section_degraded == 'map_to_max':         # x1 == x2 : y = max(y1, y2)
+                if _mode_section_degraded == 'to_max':         # x1 == x2 : y = max(y1, y2)
                     b = max(y)
-                elif _mode_section_degraded == 'map_to_min':       # x1 == x2 : y = min(y1, y2)
+                elif _mode_section_degraded == 'to_min':       # x1 == x2 : y = min(y1, y2)
                     b = min(y)
-                elif _mode_section_degraded == 'map_to_mean':      # x1 == x2 : y = mean(y1, y2)
+                elif _mode_section_degraded == 'to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
                 else:
                     print('error mode_section_degraded value: {}'.format(_mode_section_degraded))
@@ -813,9 +813,16 @@ class PltScore(ScoreTransformModel):
                 _x, _y = -1, -1
                 sectio_lost = True
             _x, _y = (_x, _y) if (_x >= 0) and (_y >= 0) else (-1, -1)
+            if self.strategy_dict['mode_section_lost'] == 'zip':
+                if (_x < 0) or (_y < 0):
+                    continue
             make_section.append((_x, _y))
             i += 1
         # print(make_section)
+        # add [-1, -1] to tail, fill up that removed in make_section because 'zip'
+        len_less = len(self.raw_score_ratio_cum) - len(make_section)
+        if len_less > 0:
+            make_section += [[-1, -1] for _ in range(len_less)]
 
         self.result_ratio_dict[field] = {
             'def': self.raw_score_ratio_cum,

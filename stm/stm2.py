@@ -335,7 +335,7 @@ class ModelAlgorithm:
     def get_plt_formula(cls,
             raw_section,
             out_section,
-            mode_section_degraded='map_to_max',
+            mode_section_degraded='to_max',
             out_score_decimal=0
             ):
         plt_formula = dict()
@@ -344,11 +344,11 @@ class ModelAlgorithm:
             # rsec is degraded
             if rsec[0] == rsec[1]:
                 a = 0
-                if mode_section_degraded == 'map_to_max':
+                if mode_section_degraded == 'to_max':
                     b = max(osec)
-                elif mode_section_degraded == 'map_to_min':
+                elif mode_section_degraded == 'to_min':
                     b = min(osec)
-                elif mode_section_degraded == 'map_to_mean':
+                elif mode_section_degraded == 'to_mean':
                     b = np.mean(osec)
                 else:
                     raise ValueError
@@ -359,10 +359,12 @@ class ModelAlgorithm:
                 b = (y1 * x2 - y2 * x1) / (x2 - x1)
             else:
                 a, b = 0, 0
-            plt_formula.update({i: ((a, b),
+            plt_formula.update({i+1: ((a, b),
                                     rsec,
                                     osec,
-                                    'y = {:.8f}*x + {:.8f}'.format(a, b),
+                                    'y = {:.6f} * x {:+10.6f}'.format(a, b),
+                                    '***' if rsec[0] < 0 else
+                                          'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, rsec[0], osec[0])
                                     )
                                 })
             i += 1
@@ -418,12 +420,12 @@ class ModelAlgorithm:
                     dest_ratio = raw_ratio
             dest_ratio_list.append(dest_ratio)
             if rscore == _rmax:
-                if mode_raw_score_max == 'map_to_max':
+                if mode_raw_score_max == 'to_max':
                     map_score.update({rscore: max(out_score_points)})
                     real_ratio_list.append(0)
                     continue
             if rscore == _rmin:
-                if mode_raw_score_min == 'map_to_min':
+                if mode_raw_score_min == 'to_min':
                     map_score.update({rscore: min(out_score_points)})
                     real_ratio_list.append(1)
                     continue
@@ -565,7 +567,7 @@ class ModelAlgorithm:
                       mode_section_point_first='real',
                       mode_section_point_start='step',
                       mode_section_point_last='real',
-                      mode_section_degraded='map_to_max',
+                      mode_section_degraded='to_max',
                       mode_section_lost='real',
                       out_score_decimals=0,
                       display=True
@@ -643,6 +645,9 @@ class ModelAlgorithm:
                                      int(out_sec[1]),
                                      )
                               )
+                    for k in result.formula_dict.keys():
+                        print('   [{0:2d}]: {1}'.format(k, result.formula_dict[k][4]))
+                    print('='*100)
             elif model_type.lower() == 'ppt':
                 if mode_sort_order in ['a', 'ascending']:
                     model_section = reversed(model_section)
