@@ -330,7 +330,7 @@ class PltScore(ScoreTransformModel):
                  mode_section_point_start='step',
                  mode_section_point_last='real',
                  mode_section_degraded='map_to_max',
-                 mode_section_lost='ignore',
+                 mode_section_lost='real',
                  mode_seg_end_share='no',
                  out_decimal_digits=None,
                  display=True,

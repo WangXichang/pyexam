@@ -227,5 +227,5 @@ Strategy = {
     'mode_section_point_start':     ('step', 'share'),          # first point except first section
     'mode_section_point_last':      ('real', 'defined'),        # last point of last section, useful to type--ppt
     'mode_section_degraded':        ('map_to_max', 'map_to_min', 'map_to_mean'),
-    'mode_section_lost':            ('lost', 'zip'),
+    'mode_section_lost':            ('real', 'zip'),
     }

@@ -147,7 +147,7 @@ class ModelAlgorithm:
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
-            mode_section_lost='lost',
+            mode_section_lost='real',
             raw_score_max=100,
             raw_score_min=0,
             tiny_value=10**-12,
@@ -566,7 +566,7 @@ class ModelAlgorithm:
                       mode_section_point_start='step',
                       mode_section_point_last='real',
                       mode_section_degraded='map_to_max',
-                      mode_section_lost='lost',
+                      mode_section_lost='real',
                       out_score_decimals=0,
                       display=True
                       ):

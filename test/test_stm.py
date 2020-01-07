@@ -205,8 +205,9 @@ class TestLvData():
         r_dict = dict()
         for num in range(9):
             r = self.test_stm_with_lvdata(name='cumu'+str(num),
-                                          path=self.path,
-                                          data=data['cumu'+str(num)], cols=['wl'], cumu='yes')
+                                          data=data['cumu'+str(num)],
+                                          cols=['wl'],
+                                          cumu='yes')
             r_dict.update({'cumu'+str(num): r})
         nocumu_names = ['test'+str(i) for i in range(1, 4)] + \
                        ['test4wl', 'test4hx', 'test5wl', 'test5hx', 'test5sw', 'test6hx', 'test7wl18', 'test7wl19', 'test8']
@@ -223,7 +224,7 @@ class TestLvData():
                       mode_ratio_cumu=cumu,
                       display=False
                       )
-        mr.save_report_doc(self.path + 'report/r2_'+name+'.txt')
+        mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
         for col in cols_real:
             comp = all(mr.outdf[col+'_ts'] == mr.outdf[col+'_stand'])
