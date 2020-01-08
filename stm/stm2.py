@@ -611,6 +611,8 @@ class ModelAlgorithm:
             _ratio_list = model_ratio_pdf[::-1]
             cumu_ratio = [sum(_ratio_list[0:i + 1]) / 100 for i in range(section_num)]
         # print(cumu_ratio)
+        df_zero = None
+        result = None
         for col in cols:
             # preprocess score==zero
             if mode_score_zero == 'alone':
@@ -724,7 +726,7 @@ class ModelAlgorithm:
                     print('tai score section: {}'.format(result.section))
                     print('       grade step: {}'.format(result.grade_step))
                     print('        top level: {}'.format(result.top_level))
-                formula=result.formula
+                formula = result.formula
             else:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)

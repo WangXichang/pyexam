@@ -813,6 +813,8 @@ class PltScore(ScoreTransformModel):
             else:
                 if i > 0:
                     _x, _y = -1, -1
+                else:
+                    _x = x
                 sectio_lost = True
             _x, _y = (_x, _y) if (_x >= 0) and (_y >= 0) else (-1, -1)
             if self.strategy_dict['mode_section_lost'] == 'zip':
@@ -856,15 +858,18 @@ class PltScore(ScoreTransformModel):
             dist_to_this = abs(_percent - dest_ratio)
 
             # at table bottom or lowest score, use_current
-            if (index == _top_index) or (_percent >= 1):
-                break
+            # if (index == _top_index) or (_percent >= 1):
+            #     break
 
             # this >= dest_ratio
             if _percent >= dest_ratio:
-                # at top row
+                print(_percent, dest_ratio)
+
+                # top: single point section
                 if last_seg is None:
                     break
-                # dealing with strategies
+
+                # ratio_prox
                 if 'near' in _mode_prox:
                     # same dist
                     if abs(dist_to_this-dist_to_last) < _tiny:
@@ -891,6 +896,7 @@ class PltScore(ScoreTransformModel):
             dist_to_last = dist_to_this
             last_seg = _seg
             last_percent = _percent
+
         if use_last_seg:
             return last_seg, last_percent
         return _seg, _percent

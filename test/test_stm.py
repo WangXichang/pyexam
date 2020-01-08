@@ -260,15 +260,15 @@ class TestShandongData():
         self.df16like.wl = self.df16like.wl.apply(lambda x: int(x*10/11))
         self.df16like.sw = self.df16like.sw.apply(lambda x: int(x*10/9))
         self.df16wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
-                                  usecols=('zz', 'ls', 'dl'))
+                                   usecols=('zz', 'ls', 'dl'))
         self.df17like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
-                                  usecols=('wl', 'hx', 'sw'))
+                                    usecols=('wl', 'hx', 'sw'))
         self.df17like.wl = self.df17like.wl.apply(lambda x: int(x*10/11))
         self.df17like.sw = self.df17like.sw.apply(lambda x: int(x*10/9))
         self.df17wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
-                                  usecols=('zz', 'ls', 'dl'))
+                                   usecols=('zz', 'ls', 'dl'))
         self.df18like = pd.read_csv('e:/mywrite/newgk/gkdata/18/like.csv', sep=',',
-                                  usecols=('wl', 'hx', 'sw'))
+                                    usecols=('wl', 'hx', 'sw'))
         self.df18like.wl = self.df18like.wl.apply(lambda x: int(x*10/11))
         self.df18like.sw = self.df18like.sw.apply(lambda x: int(x*10/9))
         self.df18wen = pd.read_csv('e:/mywrite/newgk/gkdata/18/wenke.csv', sep=',',

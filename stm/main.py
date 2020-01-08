@@ -250,7 +250,7 @@ def run(
                     print('verify error: col={} get different result in both algorithm!'.format(col))
                     return m1, m2
             if display:
-                print('verify passed !')
+                print('verify passed!')
             return m1, m2
         return m1
     # 'pgt' to call stmlib.Algorithm.get_stm_score
