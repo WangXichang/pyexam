@@ -797,6 +797,7 @@ class PltScore(ScoreTransformModel):
                         result_section_point[1:]):
             _step = -1 if self.strategy_dict['mode_sort_order'] in ['d', 'descending'] else 1
             _y = y
+            _x = None
             if x != y:
                 if self.strategy_dict['mode_section_point_start'] == 'share':
                     if not sectio_lost:
@@ -810,7 +811,8 @@ class PltScore(ScoreTransformModel):
                 else:
                     _x = x + _step if i > 0 else x
             else:
-                _x, _y = -1, -1
+                if i > 0:
+                    _x, _y = -1, -1
                 sectio_lost = True
             _x, _y = (_x, _y) if (_x >= 0) and (_y >= 0) else (-1, -1)
             if self.strategy_dict['mode_section_lost'] == 'zip':

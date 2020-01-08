@@ -256,7 +256,7 @@ class TestShandongData():
 
     def __init__(self):
         self.df16like = pd.read_csv('e:/mywrite/newgk/gkdata/17/like.csv', sep=',',
-                                  usecols=('wl', 'hx', 'sw'))
+                                    usecols=('wl', 'hx', 'sw'))
         self.df16like.wl = self.df16like.wl.apply(lambda x: int(x*10/11))
         self.df16like.sw = self.df16like.sw.apply(lambda x: int(x*10/9))
         self.df16wen = pd.read_csv('e:/mywrite/newgk/gkdata/17/wenke.csv', sep=',',
