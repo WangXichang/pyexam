@@ -591,6 +591,8 @@ class ModelAlgorithm:
             cols = list(cols)
         elif isinstance(cols, str):
             cols = [cols]
+        if mode_score_zero == 'to_min_alone':
+            raw_score_min = 1
         seg = slib.run_seg(
               df=df,
               cols=cols,
@@ -615,6 +617,7 @@ class ModelAlgorithm:
                 df_zero = df.loc[df[col] == 0]
                 df_zero.loc[:, col+'_ts'] = min(min(model_section))
                 df = df.drop(df.loc[df[col] == 0].index)
+                # print(df.describe())
 
             # start transform
             if display:
