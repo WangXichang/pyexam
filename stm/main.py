@@ -207,9 +207,9 @@ def run(
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
         ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
-        plt_model = stm1.PltScore(model_name, model_type)
-        plt_model.set_data(df=df, cols=cols)
-        plt_model.set_para(
+        m1 = stm1.PltScore(model_name, model_type)
+        m1.set_data(df=df, cols=cols)
+        m1.set_para(
             raw_score_ratio_tuple=ratio_tuple,
             out_score_seg_tuple=mdin.Models[model_name].section,
             raw_score_defined_max=max(raw_score_range),
@@ -225,9 +225,9 @@ def run(
             out_decimal_digits=out_score_decimals,
             display=display,
             )
-        plt_model.run()
+        m1.run()
         if verify:
-            result = run_model(
+            m2 = run_model(
                 model_name=model_name,
                 df=df,
                 cols=cols,
@@ -246,12 +246,13 @@ def run(
                 display=display,
             )
             for col in cols:
-                if not all(result.df[col] == plt_model.outdf[col]):
+                if not all(m1.outdf[col+'_ts'] == m2.outdf[col+'_ts']):
                     print('verify error: col={} get different result in both algorithm!'.format(col))
-                    return plt_model, result
+                    return m1, m2
             if display:
                 print('verify passed !')
-        return plt_model
+            return m1, m2
+        return m1
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
         if display:

@@ -591,7 +591,7 @@ class ModelAlgorithm:
             cols = list(cols)
         elif isinstance(cols, str):
             cols = [cols]
-        if mode_score_zero == 'to_min_alone':
+        if mode_score_zero == 'alone':
             raw_score_min = 1
         seg = slib.run_seg(
               df=df,
@@ -613,7 +613,7 @@ class ModelAlgorithm:
         # print(cumu_ratio)
         for col in cols:
             # preprocess score==zero
-            if mode_score_zero == 'to_min_alone':
+            if mode_score_zero == 'alone':
                 df_zero = df.loc[df[col] == 0]
                 df_zero.loc[:, col+'_ts'] = min(min(model_section))
                 df = df.drop(df.loc[df[col] == 0].index)
@@ -731,10 +731,10 @@ class ModelAlgorithm:
             df[col+'_ts'] = df[col].apply(formula)
 
             # process score==zero
-            if mode_score_zero == 'to_min_alone':
+            if mode_score_zero == 'alone':
                 df = pd.concat((df, df_zero))
-            elif mode_score_zero == 'to_min_after':
+            elif mode_score_zero == 'after':
                 df.loc[df[col] == 0, col + '_ts'] = min(min(model_section))
 
-        r = namedtuple('r', ['df', 'map_table', 'result'])
+        r = namedtuple('r', ['outdf', 'map_table', 'result'])
         return r(df, map_table, result)
