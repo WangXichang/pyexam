@@ -258,6 +258,7 @@ class ModelAlgorithm:
                 real_percent = _percent
 
         # print(section_percent_list)
+        print(section_point_list)
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
             _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
