@@ -3,6 +3,7 @@
 
 from collections import namedtuple
 import numpy as np
+import pandas as pd
 import scipy.stats as sts
 from stm import stmlib as slib
 
@@ -336,6 +337,7 @@ class ModelAlgorithm:
             raw_section,
             out_section,
             mode_section_degraded='to_max',
+            mode_sort_order='d',
             out_score_decimal=0
             ):
         plt_formula = dict()
@@ -352,19 +354,30 @@ class ModelAlgorithm:
                     b = np.mean(osec)
                 else:
                     raise ValueError
+                y0 = b
+                x0 = osec[0]
             elif abs(rsec[0]-rsec[1]) > 0:
-                y2, y1 = osec[1], osec[0]
-                x2, x1 = rsec[1], rsec[0]
-                a = (y2 - y1) / (x2 - x1)
-                b = (y1 * x2 - y2 * x1) / (x2 - x1)
+                if mode_sort_order in ['d', 'descending']:
+                    y2, y1 = osec[0], osec[1]
+                    x2, x1 = rsec[0], rsec[1]
+                    a = (y2 - y1) / (x2 - x1)
+                    b = (y1 * x2 - y2 * x1) / (x2 - x1)
+                    y0 = osec[1]
+                else:
+                    y2, y1 = osec[1], osec[0]
+                    x2, x1 = rsec[1], rsec[0]
+                    a = (y2 - y1) / (x2 - x1)
+                    b = (y1 * x2 - y2 * x1) / (x2 - x1)
+                    y0 = osec[0]
+                x0 = x1
             else:
-                a, b = 0, 0
+                a, b, y0, x0 = 0, 0, 0, 0
             plt_formula.update({i+1: ((a, b),
                                     rsec,
                                     osec,
                                     'y = {:.6f} * x {:+10.6f}'.format(a, b),
                                     '***' if rsec[0] < 0 else
-                                          'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, rsec[0], osec[0])
+                                          'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
                                     )
                                 })
             i += 1
@@ -569,9 +582,11 @@ class ModelAlgorithm:
                       mode_section_point_last='real',
                       mode_section_degraded='to_max',
                       mode_section_lost='real',
+                      mode_score_zero='real',
                       out_score_decimals=0,
                       display=True
                       ):
+        # start stm
         if isinstance(cols, tuple):
             cols = list(cols)
         elif isinstance(cols, str):
@@ -595,6 +610,13 @@ class ModelAlgorithm:
             cumu_ratio = [sum(_ratio_list[0:i + 1]) / 100 for i in range(section_num)]
         # print(cumu_ratio)
         for col in cols:
+            # preprocess score==zero
+            if mode_score_zero == 'to_min_alone':
+                df_zero = df.loc[df[col] == 0]
+                df_zero.loc[:, col+'_ts'] = min(min(model_section))
+                df = df.drop(df.loc[df[col] == 0].index)
+
+            # start transform
             if display:
                 print('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
@@ -619,6 +641,7 @@ class ModelAlgorithm:
                     raw_section=raw_section.section,
                     out_section=out_section,
                     mode_section_degraded=mode_section_degraded,
+                    mode_sort_order=mode_sort_order,
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
@@ -646,8 +669,8 @@ class ModelAlgorithm:
                                      )
                               )
                     for k in result.formula_dict.keys():
-                        print('   [{0:2d}]: {1}'.format(k, result.formula_dict[k][4]))
-                    print('='*100)
+                        print('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
+                    print('='*120)
             elif model_type.lower() == 'ppt':
                 if mode_sort_order in ['a', 'ascending']:
                     model_section = reversed(model_section)
@@ -703,5 +726,12 @@ class ModelAlgorithm:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
             df[col+'_ts'] = df[col].apply(formula)
-        result=namedtuple('r', ['df', 'map_table'])
-        return result(df, map_table)
+
+            # process score==zero
+            if mode_score_zero == 'to_min_alone':
+                df = pd.concat((df, df_zero))
+            elif mode_score_zero == 'to_min_after':
+                df.loc[df[col] == 0, col + '_ts'] = min(min(model_section))
+
+        r = namedtuple('r', ['df', 'map_table', 'result'])
+        return r(df, map_table, result)

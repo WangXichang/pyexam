@@ -168,6 +168,7 @@ def check_strategy(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
+        mode_score_zero='real',
         ):
 
     st = {'mode_ratio_prox': mode_ratio_prox,
@@ -178,6 +179,7 @@ def check_strategy(
           'mode_section_point_last': mode_section_point_last,
           'mode_section_degraded': mode_section_degraded,
           'mode_section_lost': mode_section_lost,
+          'mode_score_zero': mode_score_zero,
           }
     for sk in st.keys():
         if sk in mdin.Strategy.keys():

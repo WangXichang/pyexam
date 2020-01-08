@@ -56,6 +56,7 @@ def run(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
+        mode_score_zero='real',
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
@@ -196,6 +197,7 @@ def run(
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
+            mode_score_zero=mode_score_zero,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             ):
@@ -238,6 +240,7 @@ def run(
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
                 mode_section_lost=mode_section_lost,
+                mode_score_zero=mode_score_zero,
                 out_score_decimals=out_score_decimals,
                 reload=False,
                 display=display,
@@ -265,6 +268,7 @@ def run(
                            mode_section_point_start=mode_section_point_start,
                            mode_section_point_last=mode_section_point_last,
                            mode_section_degraded=mode_section_degraded,
+                           mode_score_zero=mode_score_zero,
                            out_score_decimals=out_score_decimals,
                            reload=False,
                            display=display,
@@ -291,6 +295,7 @@ def run_model(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
+        mode_score_zero='real',
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
@@ -358,6 +363,7 @@ def run_model(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
+        mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimals,
         display=display,
         )
@@ -381,6 +387,7 @@ def run_para(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
+        mode_score_zero='real',
         out_score_decimal_digits=0,
         reload=False,
         display=True,
@@ -438,6 +445,7 @@ def run_para(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
+            mode_score_zero=mode_score_zero,
             ):
         return None
 
@@ -458,6 +466,7 @@ def run_para(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
+        mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimal_digits,
         display=display,
         )
@@ -475,6 +484,7 @@ def check_run_parameters(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='real',
+        mode_score_zero='real',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
         ):
@@ -501,6 +511,7 @@ def check_run_parameters(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
+            mode_score_zero=mode_score_zero,
     ):
         return False
 
