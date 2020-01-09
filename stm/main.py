@@ -304,8 +304,8 @@ def runm(
                        )
         if save_result:
             if isinstance(path_name, str):
-                save_map_table(path_name, model_name)
-                save_out_score(path_name, model_name)
+                save_map_table(path_name, model_name, map_table=result.map_table)
+                save_out_score(path_name, model_name, outdf=result.outdf)
             else:
                 print('error path_name: {}'.format(path_name))
         return result
@@ -626,19 +626,21 @@ def check_merge_models():
     return True
 
 
-def save_map_table(path_name=None, model_name=None, file_type='csv'):
+def save_map_table(path_name=None, model_name=None, file_type='csv', map_table=None):
     """
     save map table to file
     """
     ts = time.asctime().replace(' ', '-')
-    file_name = path_name + model_name + '_map_table_' + ts + file_type
-    pass
+    file_name = path_name + model_name + '_map_table_' + ts + '.' + file_type
+    if map_table is not None:
+        map_table.to_csv(file_name)
 
 
-def save_out_score(path_name=None, model_name=None, file_type='csv'):
+def save_out_score(path_name=None, model_name=None, file_type='csv', outdf=None):
     """
     save out score to file
     """
     ts = time.asctime().replace(' ', '-')
-    file_name = path_name + model_name + '_out_score_' + ts + file_type
-    pass
+    file_name = path_name + model_name + '_out_score_' + ts + '.' + file_type
+    if outdf is not None:
+        outdf.to_csv(file_name)

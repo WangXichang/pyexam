@@ -1,7 +1,8 @@
 # coding: utf-8
 
 
-# user scripts for prepare data
+# user work
+# scripts for prepare data
 # import pandas as pd
 # df = pd.read_csv(filename)
 
@@ -32,8 +33,8 @@ run_other_para = {
     "out_score_decimals": 0,
     "reload": False,
     "save_result": False,
-    "path_name": None,
+    "path_name": "./",
     "display": True,
     "verify": False,
     "tiny_value": 10 ** -8
-}
+    }

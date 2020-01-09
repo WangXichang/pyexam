@@ -9,12 +9,12 @@ class Logger(object):
     level_relations = {
         'debug': logging.DEBUG,
         'info': logging.INFO,
-        'warning': logging.WARNING,
+        'warn': logging.WARNING,
         'error': logging.ERROR,
         'crit': logging.CRITICAL
     }
 
-    def __init__(self, filename, level='info', when='D', backCount=3,
+    def __init__(self, filename, level='info', when='D', back_count=3,
                  fmt='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'):
 
         # set logger
@@ -31,7 +31,7 @@ class Logger(object):
         # 1MB = 1024 * 1024 bytes
         # 这里设置文件的大小为500MB
         rotating_file_handler = handlers.RotatingFileHandler(
-            filename=filename, mode='a', maxBytes=1024 * 1024 * 500, backupCount=backCount, encoding='utf-8')
+            filename=filename, mode='a', maxBytes=1024 * 1024 * 500, backupCount=back_count, encoding='utf-8')
         rotating_file_handler.setFormatter(format_str)
         self.logger.addHandler(rotating_file_handler)
 
