@@ -295,9 +295,10 @@ class ModelAlgorithm:
                     else:
                         if (x > 0) and (y >= 0):
                             if lost:
-                                # not ajacent section ! must to step
+                                # last lost, no ajacent section !
+                                # must to step
                                 _x, _y = x + _step, y
-                                lost = False
+                                lost = False    # resume section state
                             else:
                                 _x, _y = x, y
                         else:
@@ -308,11 +309,13 @@ class ModelAlgorithm:
                         # first section
                         _x, _y = x, y
                     else:
-                        if (x > 0) and (y >= 0):
-                            forward = (x + _step >= y) if mode_sort_order in ['d', 'desceding'] \
-                                      else (x + _step <= y)
-                            if not forward:
+                        if (x >= 0) and (y >= 0):
+                            forward_ok = (x + _step >= y) \
+                                         if mode_sort_order in ['d', 'desceding'] \
+                                         else (x + _step <= y)
+                            if not forward_ok:
                                 _x, _y = -1, -1
+                                lost = True
                             else:
                                 _x, _y = x + _step, y
                         else:
