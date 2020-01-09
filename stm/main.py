@@ -4,17 +4,20 @@
 """
 about this module:
     (1) function: run
-    run() is an interface to call stmlib or stmlib2
-    return model(stmlib.ScoreTransform) or result(stmlib2.get_stm_score.Result: (map_table, df))
-    if model_name in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
+    run() is an interface to call stm1 or stm2
+    return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (map_table, df))
+    if model_name_in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
                       'shandong', 'guangdong', 'SS7', 'hn900', 'hn300',
-                      'hn300plt1', 'hn300plt2', 'hn300plt3']
-        use stmlib.PltScore
+                      'hn300plt1', 'hn300plt2', 'hn300plt3'
+                      ]
+        use stm1.PltScore
     then
-        call stmlib2.get_stm_score
+        call stm2.get_stm_score
+
     (2) function: run_model
     run_model() is an interface to call stmlib2 with model_name, df, cols
         and other parameters(score range, strategies, out score decimal digits)
+
     (3) function: run_para
     run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
         and other parameters(score range, strategies, out score decimal digits)
@@ -26,15 +29,16 @@ How to add new model in modelext:
     you can open the module modelext, modify Models_ext, add key-value: name-ModelFields
     then call run() with reload=True: result = run(model_name=new_model_name, ..., reload=True)
     then run() will check new model and add models in models_ext.Models to models_in.Models
-    at last run() use new_model_name to call stmlib or stmlib2
+    at last run() use new_model_name to call stm1 or stm2
 """
 
 
 import time
 from stm import stm1, stm2, stmlib as slib,\
-     stmutil as utl, models_in as mdin, models_ext as mdext
+     main_util as utl, models_in as mdin, models_ext as mdext
 import importlib as pb
 stm_modules = [stm1, stm2, utl, mdin, mdext]
+from stm import main_config
 
 
 def exp(name='shandong'):
@@ -42,6 +46,23 @@ def exp(name='shandong'):
                df=utl.TestData()(),
                cols=['km1', 'km2'],
                reload=True)
+
+
+def runc(model_name=None, df=None, cols=None):
+    pb.reload(main_config)
+
+    if model_name is None:
+        model_name = main_config.run_model_name
+    if (df is None) and (main_config.run_df is not None):
+        df = main_config.run_df
+    if (cols is None) and (main_config.run_cols is not None):
+        cols = main_config.run_cols
+
+    stg = list(main_config.run_strategy.values())
+    oth = list(main_config.run_other_para.values())
+    pp = stg + oth
+
+    return run(model_name, df, cols, *pp)
 
 
 def run(
@@ -66,6 +87,7 @@ def run(
         verify=False,
         tiny_value=10**-8,
         ):
+
     """
 
     [functions]

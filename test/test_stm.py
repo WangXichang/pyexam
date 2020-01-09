@@ -6,7 +6,7 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, stmutil as mutl, stm1 as stm1, \
+from stm import main, main_util as mutl, stm1 as stm1, \
     stm2 as stm2, stmlib as slib, models_in as mdin
 import itertools as itl
 
