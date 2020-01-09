@@ -863,8 +863,6 @@ class PltScore(ScoreTransformModel):
 
             # this >= dest_ratio
             if _percent >= dest_ratio:
-                print(_percent, dest_ratio)
-
                 # top: single point section
                 if last_seg is None:
                     break
