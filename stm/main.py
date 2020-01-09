@@ -48,24 +48,24 @@ def exp(name='shandong'):
                reload=True)
 
 
-def runc(model_name=None, df=None, cols=None):
+def run(model_name=None, df=None, cols=None):
     pb.reload(main_config)
 
     if model_name is None:
-        model_name = main_config.run_model_name
-    if (df is None) and (main_config.run_df is not None):
-        df = main_config.run_df
-    if (cols is None) and (main_config.run_cols is not None):
-        cols = main_config.run_cols
+        model_name = main_config.model_name
+    if (df is None) and (main_config.df is not None):
+        df = main_config.df
+    if (cols is None) and (main_config.cols is not None):
+        cols = main_config.cols
 
     stg = list(main_config.run_strategy.values())
     oth = list(main_config.run_other_para.values())
-    pp = stg + oth
+    pp = [model_name, df, cols] + stg + oth
 
-    return run(model_name, df, cols, *pp)
+    return runm(*pp)
 
 
-def run(
+def runm(
         model_name='shandong',
         df=None,
         cols=(),
@@ -233,14 +233,11 @@ def run(
     model_type = mdin.Models[model_name].type
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
-        ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
-        m1 = stm1.PltScore(model_name, model_type)
-        m1.set_data(df=df, cols=cols)
-        m1.set_para(
-            raw_score_ratio_tuple=ratio_tuple,
-            out_score_seg_tuple=mdin.Models[model_name].section,
-            raw_score_defined_max=max(raw_score_range),
-            raw_score_defined_min=min(raw_score_range),
+        m1 = run1(
+            model_name=model_name,
+            df=df,
+            cols=cols,
+            raw_score_range=raw_score_range,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -249,13 +246,14 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            out_decimal_digits=out_score_decimals,
+            mode_score_zero=mode_score_zero,    # not implemented in stm1
+            out_score_decimals=out_score_decimals,
+            reload=False,
             display=display,
             tiny_value=tiny_value,
             )
-        m1.run()
         if verify:
-            m2 = run_model(
+            m2 = run2(
                 model_name=model_name,
                 df=df,
                 cols=cols,
@@ -286,24 +284,24 @@ def run(
     else:
         if display:
             print('run model by stmlib2, cols={} ... '.format(cols))
-        result = run_model(
-                           model_name=model_name,
-                           df=df,
-                           cols=cols,
-                           raw_score_range=raw_score_range,
-                           mode_ratio_prox=mode_ratio_prox,
-                           mode_ratio_cumu=mode_ratio_cumu,
-                           mode_sort_order=mode_sort_order,
-                           mode_section_point_first=mode_section_point_first,
-                           mode_section_point_start=mode_section_point_start,
-                           mode_section_point_last=mode_section_point_last,
-                           mode_section_degraded=mode_section_degraded,
-                           mode_score_zero=mode_score_zero,
-                           out_score_decimals=out_score_decimals,
-                           reload=False,
-                           display=display,
-                           tiny_value=tiny_value,
-                           )
+        result = run2(
+                       model_name=model_name,
+                       df=df,
+                       cols=cols,
+                       raw_score_range=raw_score_range,
+                       mode_ratio_prox=mode_ratio_prox,
+                       mode_ratio_cumu=mode_ratio_cumu,
+                       mode_sort_order=mode_sort_order,
+                       mode_section_point_first=mode_section_point_first,
+                       mode_section_point_start=mode_section_point_start,
+                       mode_section_point_last=mode_section_point_last,
+                       mode_section_degraded=mode_section_degraded,
+                       mode_score_zero=mode_score_zero,
+                       out_score_decimals=out_score_decimals,
+                       reload=False,
+                       display=display,
+                       tiny_value=tiny_value,
+                       )
         if save_result:
             if isinstance(path_name, str):
                 save_map_table(path_name, model_name)
@@ -313,8 +311,57 @@ def run(
         return result
 
 
+def run1(
+        model_name='shandong',
+        df=None,
+        cols=(),
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='d',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='to_max',
+        mode_section_lost='real',
+        mode_score_zero='real',
+        raw_score_range=(0, 100),
+        out_score_decimals=0,
+        display=True,
+        reload=False,
+        tiny_value=10 ** -8,
+        ):
+
+    if reload:
+        if not reload_stm_modules():
+            return None
+
+    ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
+    model_type = mdin.Models[model_name].type
+    m = stm1.PltScore(model_name, model_type)
+    m.set_data(df=df, cols=cols)
+    m.set_para(
+        raw_score_ratio_tuple=ratio_tuple,
+        out_score_seg_tuple=mdin.Models[model_name].section,
+        raw_score_defined_max=max(raw_score_range),
+        raw_score_defined_min=min(raw_score_range),
+        mode_ratio_prox=mode_ratio_prox,
+        mode_ratio_cumu=mode_ratio_cumu,
+        mode_sort_order=mode_sort_order,
+        mode_section_point_first=mode_section_point_first,
+        mode_section_point_start=mode_section_point_start,
+        mode_section_point_last=mode_section_point_last,
+        mode_section_degraded=mode_section_degraded,
+        mode_section_lost=mode_section_lost,
+        out_decimal_digits=out_score_decimals,
+        display=display,
+        tiny_value=tiny_value,
+    )
+    m.run()
+    return m
+
+
 # get stm score by calling stmlib2.ModelAlgorithm
-def run_model(
+def run2(
         model_name='shandong',
         df=None,
         cols=(),
@@ -403,7 +450,7 @@ def run_model(
 
 
 # calc stm score by calling methods in stmlib2.ModelAlgorithm
-def run_para(
+def run2_para(
         df,
         cols,
         model_type=None,

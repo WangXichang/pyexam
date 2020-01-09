@@ -92,7 +92,7 @@ def test_all_strategy(df=None, model_name='shandong'):
                       mode_section_lost=ti[7],
                       display=disp
                       )
-        r2 = main.run_model(
+        r2 = main.run2(
             df=df,
             cols=['km1'],
             model_name=model_name,
