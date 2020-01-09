@@ -282,6 +282,9 @@ class PltScore(ScoreTransformModel):
         # run control
         self.display=True
 
+        # calc precision
+        self.tiny_value = 10**-8
+
         # result
         self.map_table = pd.DataFrame()
         self.result_raw_endpoints = []
@@ -334,6 +337,7 @@ class PltScore(ScoreTransformModel):
                  mode_seg_end_share='no',
                  out_decimal_digits=None,
                  display=True,
+                 tiny_value=10**-8,
                  ):
         if isinstance(display, bool):
             self.display=display
@@ -362,6 +366,8 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_section_point_last'] = mode_section_point_last
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         self.strategy_dict['mode_section_lost'] = mode_section_lost
+
+        self.tiny_value = tiny_value
 
     # --------------data and para setting end
 
@@ -526,7 +532,7 @@ class PltScore(ScoreTransformModel):
         self.map_table.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
-        tiny_value = 10**-8     # used to judge zero(s==0) or equality(s1==s2)
+        tiny_value = self.tiny_value     # used to judge zero(s==0) or equality(s1==s2)
 
         _mode_sort = self.strategy_dict['mode_sort_order']
 
@@ -844,7 +850,7 @@ class PltScore(ScoreTransformModel):
 
         _mode_prox = self.strategy_dict['mode_ratio_prox']
         _top_index = self.map_table.index.max()
-        _tiny = 10**-8
+        _tiny = self.tiny_value
 
         _seg = -1
         _percent = -1

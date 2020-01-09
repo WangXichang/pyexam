@@ -64,6 +64,7 @@ def run(
         path_name=None,
         display=True,
         verify=False,
+        tiny_value=10**-8,
         ):
     """
 
@@ -178,6 +179,10 @@ def run(
             usage: use two algorithm to verify result
           default: False, do not verify
 
+    :param tiny_value: float
+                usage: control precision or equal
+              default: 10**-8
+
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
@@ -224,6 +229,7 @@ def run(
             mode_section_lost=mode_section_lost,
             out_decimal_digits=out_score_decimals,
             display=display,
+            tiny_value=tiny_value,
             )
         m1.run()
         if verify:
@@ -244,6 +250,7 @@ def run(
                 out_score_decimals=out_score_decimals,
                 reload=False,
                 display=display,
+                tiny_value=tiny_value,
             )
             for col in cols:
                 if not all(m1.outdf[col+'_ts'] == m2.outdf[col+'_ts']):
@@ -273,6 +280,7 @@ def run(
                            out_score_decimals=out_score_decimals,
                            reload=False,
                            display=display,
+                           tiny_value=tiny_value,
                            )
         if save_result:
             if isinstance(path_name, str):
@@ -302,6 +310,7 @@ def run_model(
         out_score_decimals=0,
         reload=False,
         display=True,
+        tiny_value=10**-8,
         ):
     """
     to calculate out score by calling stmlib2.Algorithm.get_stm_score
@@ -367,6 +376,7 @@ def run_model(
         mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimals,
         display=display,
+        tiny_value=tiny_value,
         )
 
 

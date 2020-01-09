@@ -151,7 +151,7 @@ class ModelAlgorithm:
             mode_section_lost='real',
             raw_score_max=100,
             raw_score_min=0,
-            tiny_value=10**-12,
+            tiny_value=10**-8,
             ):
         """
         section point searching in seg-percent sequence
@@ -588,7 +588,8 @@ class ModelAlgorithm:
                       mode_section_lost='real',
                       mode_score_zero='real',
                       out_score_decimals=0,
-                      display=True
+                      display=True,
+                      tiny_value=10**-8,
                       ):
         # start stm
         if isinstance(cols, tuple):
@@ -642,6 +643,7 @@ class ModelAlgorithm:
                     mode_section_lost=mode_section_lost,
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
+                    tiny_value=tiny_value,
                 )
                 out_section = model_section
                 if mode_sort_order in ['a', 'ascending']:
