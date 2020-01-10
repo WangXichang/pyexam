@@ -264,6 +264,7 @@ def runm(
             reload=False,
             display=display,
             tiny_value=tiny_value,
+            logger=stmlogger,
             )
         if verify:
             m2 = run2(
@@ -284,6 +285,7 @@ def runm(
                 reload=False,
                 display=display,
                 tiny_value=tiny_value,
+                logger=stmlogger,
             )
             for col in cols:
                 if not all(m1.outdf[col+'_ts'] == m2.outdf[col+'_ts']):
@@ -314,6 +316,7 @@ def runm(
                        reload=False,
                        display=display,
                        tiny_value=tiny_value,
+                       logger=stmlogger,
                        )
         # if save_result:
         #     if isinstance(path_name, str):
@@ -607,16 +610,16 @@ def check_run_parameters(
         ):
 
     if not check_merge_models():
-        logger.logger.info('error: check models fail!')
+        logger.loginfo('error: check models fail!')
         return False
 
     # check model name
     if model_name.lower() not in mdin.Models.keys():
-        logger.logger.info('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
+        logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
-    if not utl.check_df_cols(df, cols, raw_score_range):
+    if not utl.check_df_cols(df, cols, raw_score_range, logger):
         return False
 
     # check strategy
@@ -642,8 +645,8 @@ def check_run_parameters(
 
 
 def reload_stm_modules(logger=None):
-    if logger:
-        logger.logger.info('reload modules ...')
+    # if logger:
+    #     logger.loginfo('reload modules ...')
     try:
         for m in stm_modules:
             pb.reload(m)

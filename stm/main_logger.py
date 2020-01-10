@@ -40,25 +40,28 @@ class Logger(object):
         self.logger_format = logging.Formatter(self.format)         # 设置日志格式
         self.logger.setLevel(self.level_relations.get(self.level))  # 设置日志级别
 
+        self.stream_handler = logging.StreamHandler()
+        self.stream_handler.setFormatter(self.logger_format)
+
+        self.rotating_file_handler = handlers.TimedRotatingFileHandler(
+            filename=self.filename,
+            when=self.when,
+            backupCount=self.back_count,
+            encoding='utf-8'
+        )
+        # maxBytes=1024 * 1024 * 500,
+        self.rotating_file_handler.setFormatter(self.logger_format)
+
+        # self.set_consol_logger()
+        # self.set_file_day_logger()
+
     # 向控制台输出日志
     def set_consol_logger(self):
-        if not self.logger.handlers:
-            stream_handler = logging.StreamHandler()
-            stream_handler.setFormatter(self.logger_format)
-            self.logger.addHandler(stream_handler)
+        self.logger.addHandler(self.stream_handler)
 
     # 按天写入文件
     def set_file_day_logger(self):
-        if not self.logger.handlers:
-            rotating_file_handler = handlers.TimedRotatingFileHandler(
-                filename=self.filename,
-                when=self.when,
-                backupCount=self.back_count,
-                encoding='utf-8'
-                )
-            # maxBytes=1024 * 1024 * 500,
-            rotating_file_handler.setFormatter(self.logger_format)
-            self.logger.addHandler(rotating_file_handler)
+        self.logger.addHandler(self.rotating_file_handler)
 
     def check_filename(self, filename):
         path = None
@@ -82,14 +85,12 @@ class Logger(object):
         elif level not in self.level_relations.keys():
             print('level error: not in {}'.format(list(self.level_relations.keys())))
 
+    def loginfo(self, ms=''):
+        # self.set_consol_logger()
+        self.set_file_day_logger()
+        self.logger.info(ms)
+        self.logger.handlers = []
 
-def loginfo(logger=None, ms=''):
-    if logger:
-        logger.logger.info(ms)
-        return True
-    else:
-        print(ms)
-    return False
 
 #
 # log = Logger('stm.log', level='info')
