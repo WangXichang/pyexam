@@ -86,7 +86,8 @@ class Logger(object):
             print('level error: not in {}'.format(list(self.level_relations.keys())))
 
     def loginfo(self, ms=''):
-        # self.set_consol_logger()
+        self.logger.handlers = []
+        self.set_consol_logger()
         self.set_file_day_logger()
         self.logger.info(ms)
         self.logger.handlers = []
