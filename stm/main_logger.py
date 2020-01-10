@@ -42,21 +42,23 @@ class Logger(object):
 
     # 向控制台输出日志
     def set_consol_logger(self):
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(self.logger_format)
-        self.logger.addHandler(stream_handler)
+        if not self.logger.handlers:
+            stream_handler = logging.StreamHandler()
+            stream_handler.setFormatter(self.logger_format)
+            self.logger.addHandler(stream_handler)
 
     # 按天写入文件
     def set_file_day_logger(self):
-        rotating_file_handler = handlers.TimedRotatingFileHandler(
-            filename=self.filename,
-            when=self.when,
-            backupCount=self.back_count,
-            encoding='utf-8'
-            )
-        # maxBytes=1024 * 1024 * 500,
-        rotating_file_handler.setFormatter(self.logger_format)
-        self.logger.addHandler(rotating_file_handler)
+        if not self.logger.handlers:
+            rotating_file_handler = handlers.TimedRotatingFileHandler(
+                filename=self.filename,
+                when=self.when,
+                backupCount=self.back_count,
+                encoding='utf-8'
+                )
+            # maxBytes=1024 * 1024 * 500,
+            rotating_file_handler.setFormatter(self.logger_format)
+            self.logger.addHandler(rotating_file_handler)
 
     def check_filename(self, filename):
         path = None
