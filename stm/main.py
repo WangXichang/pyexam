@@ -36,10 +36,10 @@ How to add new model in modelext:
 import time
 from stm import stm1, stm2, stmlib as slib,\
      main_util as utl, models_sys as mdin, models_ext as mdext
-import importlib as pb
-stm_modules = [stm1, stm2, utl, mdin, mdext]
 from stm import main_config
 from stm import main_logger as log
+import importlib as pb
+stm_modules = [stm1, stm2, utl, mdin, mdext, main_config, log]
 
 
 def exp(name='shandong'):
@@ -54,9 +54,9 @@ def exp(name='shandong'):
 def run(model_name=None, df=None, cols=None, reload=None):
     pb.reload(main_config)
     if reload is bool:
-        if reload != main_config.run_other_para['reload']:
+        if reload != main_config.run_parameters['reload']:
             print('reset reload: {}'.format(reload))
-        main_config.run_other_para['reload'] = reload
+        main_config.run_parameters['reload'] = reload
 
     if model_name is None:
         model_name = main_config.model_name
@@ -66,7 +66,7 @@ def run(model_name=None, df=None, cols=None, reload=None):
         cols = main_config.cols
 
     stg = list(main_config.run_strategy.values())
-    oth = list(main_config.run_other_para.values())
+    oth = list(main_config.run_parameters.values())
     pp = [model_name, df, cols] + stg + oth
 
     return runm(*pp)
@@ -88,12 +88,10 @@ def runm(
         raw_score_range=(0, 100),
         out_score_decimals=0,
         reload=False,
-        save_result=False,
-        path_name=None,
         display=True,
         verify=False,
         tiny_value=10**-8,
-        logger=None,
+        logging=None,
         ):
 
     """
@@ -213,16 +211,18 @@ def runm(
                 usage: control precision or equal
               default: 10**-8
 
+    :param logging: bool
+
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
     stmlogger = None
-    if main_config.run_other_para['logger']:
+    if logging:
         stmlogger = get_logger(model_name)
 
     if reload:
-        if not reload_stm_modules():
+        if not reload_stm_modules(stmlogger):
             return None
 
     if not check_run_parameters(
@@ -239,6 +239,7 @@ def runm(
             mode_score_zero=mode_score_zero,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
+            logger=stmlogger,
             ):
         return None
 
@@ -314,12 +315,13 @@ def runm(
                        display=display,
                        tiny_value=tiny_value,
                        )
-        if save_result:
-            if isinstance(path_name, str):
-                save_map_table(path_name, model_name, map_table=result.map_table)
-                save_out_score(path_name, model_name, outdf=result.outdf)
-            else:
-                print('error path_name: {}'.format(path_name))
+        # if save_result:
+        #     if isinstance(path_name, str):
+        #         save_map_table(path_name, model_name, map_table=result.map_table)
+        #         save_out_score(path_name, model_name, outdf=result.outdf)
+        #     else:
+        #         print('error path_name: {}'.format(path_name))
+
         return result
 
 
@@ -341,6 +343,7 @@ def run1(
         display=True,
         reload=False,
         tiny_value=10 ** -8,
+        logger=None,
         ):
 
     if reload:
@@ -364,6 +367,7 @@ def run1(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
+        mode_score_zero=mode_score_zero,
         out_decimal_digits=out_score_decimals,
         display=display,
         tiny_value=tiny_value,
@@ -392,6 +396,7 @@ def run2(
         reload=False,
         display=True,
         tiny_value=10**-8,
+        logger=None,
         ):
     """
     to calculate out score by calling stmlib2.Algorithm.get_stm_score
@@ -417,7 +422,7 @@ def run2(
 
     # reload modules if any chenges done, especially in models_in.Models
     if reload:
-        if not reload_stm_modules():
+        if not reload_stm_modules(logger):
             return None
 
     if not check_run_parameters(
@@ -433,6 +438,7 @@ def run2(
             mode_section_degraded=mode_section_degraded,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
+            logger=logger,
             ):
         return None
 
@@ -458,6 +464,7 @@ def run2(
         out_score_decimals=out_score_decimals,
         display=display,
         tiny_value=tiny_value,
+        logger=logger,
         )
 
 
@@ -483,6 +490,7 @@ def run2_para(
         out_score_decimal_digits=0,
         reload=False,
         display=True,
+        logger=None,
         ):
     """
     use model parameters to call stmlib2.Algorithm.get_stm_score
@@ -509,21 +517,23 @@ def run2_para(
     """
 
     if reload:
-        if not reload_stm_modules():
+        if not reload_stm_modules(logger):
             return None
 
     if not utl.check_model_para(
         model_type=model_type,
         model_ratio=model_ratio_pdf,
         model_section=model_section,
-        model_desc=''
+        model_desc='',
+        logger=logger,
         ):
         return None
 
     if not utl.check_df_cols(
         df=df,
         cols=cols,
-        raw_score_range=(raw_score_min, raw_score_max)
+        raw_score_range=(raw_score_min, raw_score_max),
+        logger=logger,
         ):
         return None
 
@@ -538,6 +548,7 @@ def run2_para(
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             mode_score_zero=mode_score_zero,
+            logger=logger,
             ):
         return None
 
@@ -561,16 +572,17 @@ def run2_para(
         mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimal_digits,
         display=display,
+        logger=logger,
         )
 
 
 def get_logger(model_name):
     stmlog = None
-    if main_config.run_other_para['logger']:
+    if main_config.run_parameters['logging']:
         gmt = time.gmtime()
         log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
         stmlog = log.Logger(log_file, level='info')
-        if main_config.run_other_para['display']:
+        if main_config.run_parameters['display']:
             stmlog.set_consol_logger()
         stmlog.set_file_day_logger()
     return stmlog
@@ -591,14 +603,16 @@ def check_run_parameters(
         mode_score_zero='real',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
+        logger=None,
         ):
 
     if not check_merge_models():
+        logger.logger.info('error: check models fail!')
         return False
 
     # check model name
     if model_name.lower() not in mdin.Models.keys():
-        print('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
+        logger.logger.info('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
@@ -616,17 +630,20 @@ def check_run_parameters(
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             mode_score_zero=mode_score_zero,
+            logger=logger,
     ):
         return False
 
     if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
-        print('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
+        if logger:
+            logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
     return True
 
 
-def reload_stm_modules():
-    print('reload modules ...')
+def reload_stm_modules(logger=None):
+    if logger:
+        logger.logger.info('reload modules ...')
     try:
         for m in stm_modules:
             pb.reload(m)
@@ -635,11 +652,12 @@ def reload_stm_modules():
     return True
 
 
-def check_merge_models():
+def check_merge_models(logger=None):
     # check model in models_in
     for mk in mdin.Models.keys():
         if not utl.check_model(model_name=mk, model_lib=mdin.Models):
-            print('error model: model={} in models_in.Models!'.format(mk))
+            if logger:
+                logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
             return False
     # add Models_ext to Models
     for mk in mdext.Models.keys():

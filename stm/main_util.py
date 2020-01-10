@@ -24,7 +24,7 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import numbers
-from stm import models_sys as mdin
+from stm import models_sys as mdin, main_logger as log
 
 
 def show_models():
@@ -97,13 +97,14 @@ def model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def check_model(model_name, model_lib=mdin.Models):
+def check_model(model_name, model_lib=mdin.Models, logger=None):
     if model_name in model_lib.keys():
         if not check_model_para(
             model_lib[model_name].type,
             model_lib[model_name].ratio,
             model_lib[model_name].section,
-            model_lib[model_name].desc
+            model_lib[model_name].desc,
+            logger=logger
         ):
             return False
     else:
@@ -115,46 +116,47 @@ def check_model_para(
                 model_type='plt',
                 model_ratio=None,
                 model_section=None,
-                model_desc=''
+                model_desc='',
+                logger=None,
                 ):
     # check type
     if model_type not in ['ppt', 'plt', 'pgt']:
-        print('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
+        log.loginfo(logger, 'error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
         return False
 
     # check ratio
     if model_type == 'pgt':
         if len(model_ratio) == 0:
-            print('error ratio: length == 0 in model={}!'.format(model_type))
+            log.loginfo(logger, 'error ratio: length == 0 in model={}!'.format(model_type))
             return False
         if model_ratio[0] < 0 or model_ratio[0] > 100:
-            print('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
+            log.loginfo(logger, 'error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
             return False
     else:
         if len(model_ratio) != len(model_section):
-            print('error length: the length of ratio group is not same as section group length !')
+            log.loginfo(logger, 'error length: the length of ratio group is not same as section group length !')
             return False
         if abs(sum(model_ratio) - 100) > 10**-12:
-            print('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
+            log.loginfo(logger, 'error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
             return False
 
     # check section
     for s in model_section:
         if len(s) > 2:
-            print('error section: section must have 2 endpoints, real value: {}'.format(s))
+            log.loginfo(logger, 'error section: section must have 2 endpoints, real value: {}'.format(s))
             return False
         if s[0] < s[1]:
-            print('error order: section endpoint order must be from large to small, '
+            log.loginfo(logger, 'error order: section endpoint order must be from large to small, '
                   'there: p1({}) < p2({})'.format(s[0], s[1]))
             return False
     if model_type in ['ppt', 'pgt']:
         if not all([x == y for x, y in model_section]):
-            print('error section: ppt section, two endpoints must be same value!')
+            log.loginfo(logger, 'error section: ppt section, two endpoints must be same value!')
             return False
 
     # check desc
     if not isinstance(model_desc, str):
-        print('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+        log.loginfo(logger, 'error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
 
     return True
 
@@ -169,6 +171,7 @@ def check_strategy(
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
         mode_score_zero='real',
+        logger=None
         ):
 
     st = {'mode_ratio_prox': mode_ratio_prox,
@@ -184,45 +187,45 @@ def check_strategy(
     for sk in st.keys():
         if sk in mdin.Strategy.keys():
             if not st[sk] in mdin.Strategy[sk]:
-                print('error mode: {}={} not in {}'.format(sk, st[sk], mdin.Strategy[sk]))
+                log.loginfo(logger, 'error mode: {}={} not in {}'.format(sk, st[sk], mdin.Strategy[sk]))
                 return False
         else:
-            print('error mode: {} is not in Strategy-dict!'.format(sk))
+            log.loginfo(logger, 'error mode: {} is not in Strategy-dict!'.format(sk))
             return False
     return True
 
 
-def check_df_cols(df=None, cols=None, raw_score_range=None):
+def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
     if not isinstance(df, pd.DataFrame):
         if isinstance(df, pd.Series):
-            print('warning: df is pandas.Series!')
+            log.loginfo(logger, 'warning: df is pandas.Series!')
             return False
         else:
-            print('error data: df is not pandas.DataFrame!')
+            log.loginfo(logger,'error data: df is not pandas.DataFrame!')
             return False
     if len(df) == 0:
-        print('error data: df is empty!')
+        log.loginfo(logger, 'error data: df is empty!')
         return False
     if type(cols) not in (list, tuple):
-        print('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        log.loginfo(logger, 'error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
         return False
     for col in cols:
         if type(col) is not str:
-            print('error col: {} is not str!'.format(col))
+            log.loginfo(logger, 'error col: {} is not str!'.format(col))
             return False
         else:
             if col not in df.columns:
-                print('error col: {} is not in df.columns!'.format(col))
+                log.loginfo(logger, 'error col: {} is not in df.columns!'.format(col))
                 return False
             if not isinstance(df[col][0], numbers.Real):
-                print('type error: column[{}] not Number type!'.format(col))
+                log.loginfo(logger, 'type error: column[{}] not Number type!'.format(col))
                 return False
             _min = df[col].min()
             if _min < min(raw_score_range):
-                print('warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
+                log.loginfo(logger, 'warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
             _max = df[col].max()
             if _max > max(raw_score_range):
-                print('warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
+                log.loginfo(logger, 'warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
     return True
 
 

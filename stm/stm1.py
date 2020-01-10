@@ -334,7 +334,8 @@ class PltScore(ScoreTransformModel):
                  mode_section_point_last='real',
                  mode_section_degraded='to_max',
                  mode_section_lost='real',
-                 mode_seg_end_share='no',
+                 mode_score_zero='real',
+                 # mode_seg_end_share='no',
                  out_decimal_digits=None,
                  display=True,
                  tiny_value=10**-8,
@@ -366,6 +367,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_section_point_last'] = mode_section_point_last
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         self.strategy_dict['mode_section_lost'] = mode_section_lost
+        self.strategy_dict['mode_score_zero'] = mode_score_zero
 
         self.tiny_value = tiny_value
 
@@ -1458,6 +1460,7 @@ class Zscore(ScoreTransformModel):
                  raw_score_defined_max=100,
                  mode_ratio_prox='near_max',
                  mode_sort_order='d',
+                 mode_score_zero='real',
                  out_decimal=8,
                  ):
         self.out_score_std_num = std_num
@@ -1466,6 +1469,7 @@ class Zscore(ScoreTransformModel):
         self.mode_ratio_prox = mode_ratio_prox
         self.mode_sort_order = mode_sort_order
         self.out_score_decimal = out_decimal
+        self.mode_score_zero=mode_score_zero
 
     # Zscore run
     def run(self):

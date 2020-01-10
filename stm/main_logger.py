@@ -60,7 +60,7 @@ class Logger(object):
 
     def check_filename(self, filename):
         path = None
-        if filename is not str:
+        if not isinstance(filename, str):
             print(f'filename={filename} is not str!')
             return False
         elif (len(filename.split('\\')) == 1) or (len(filename.split('/')) == 1):
@@ -74,11 +74,20 @@ class Logger(object):
         return True
 
     def check_level(self, level=None):
-        if level is not str:
+        if not isinstance(level, str):
             print('level is not str!')
             return False
         elif level not in self.level_relations.keys():
             print('level error: not in {}'.format(list(self.level_relations.keys())))
+
+
+def loginfo(logger=None, ms=''):
+    if logger:
+        logger.logger.info(ms)
+        return True
+    else:
+        print(ms)
+    return False
 
 #
 # log = Logger('stm.log', level='info')

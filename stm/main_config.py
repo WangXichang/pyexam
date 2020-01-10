@@ -24,18 +24,16 @@ run_strategy = {
     "mode_section_degraded": 'to_max',
     "mode_section_lost": 'real',
     "mode_score_zero": 'real',
-    "raw_score_range": (0, 100),
     }
 
 
 # set other parameters
-run_other_para = {
+run_parameters = {
+    "raw_score_range": (0, 100),
     "out_score_decimals": 0,
     "reload": False,
-    "save_result": False,
-    "path_name": "./",
     "display": True,
     "verify": False,
     "tiny_value": 10 ** -8,
-    "logger": True
+    "logging": True
     }
