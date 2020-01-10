@@ -36,5 +36,6 @@ run_other_para = {
     "path_name": "./",
     "display": True,
     "verify": False,
-    "tiny_value": 10 ** -8
+    "tiny_value": 10 ** -8,
+    "logger": True
     }

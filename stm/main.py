@@ -35,21 +35,28 @@ How to add new model in modelext:
 
 import time
 from stm import stm1, stm2, stmlib as slib,\
-     main_util as utl, models_in as mdin, models_ext as mdext
+     main_util as utl, models_sys as mdin, models_ext as mdext
 import importlib as pb
 stm_modules = [stm1, stm2, utl, mdin, mdext]
 from stm import main_config
+from stm import main_logger as log
 
 
 def exp(name='shandong'):
-    return run(model_name=name,
-               df=utl.TestData()(),
-               cols=['km1', 'km2'],
-               reload=True)
+    return run(
+        model_name=name,
+        df=utl.TestData()(),
+        cols=['km1', 'km2'],
+        reload=True,
+        )
 
 
-def run(model_name=None, df=None, cols=None):
+def run(model_name=None, df=None, cols=None, reload=None):
     pb.reload(main_config)
+    if reload is bool:
+        if reload != main_config.run_other_para['reload']:
+            print('reset reload: {}'.format(reload))
+        main_config.run_other_para['reload'] = reload
 
     if model_name is None:
         model_name = main_config.model_name
@@ -86,6 +93,7 @@ def runm(
         display=True,
         verify=False,
         tiny_value=10**-8,
+        logger=None,
         ):
 
     """
@@ -208,6 +216,10 @@ def runm(
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
+
+    stmlogger = None
+    if main_config.run_other_para['logger']:
+        stmlogger = get_logger(model_name)
 
     if reload:
         if not reload_stm_modules():
@@ -550,6 +562,18 @@ def run2_para(
         out_score_decimals=out_score_decimal_digits,
         display=display,
         )
+
+
+def get_logger(model_name):
+    stmlog = None
+    if main_config.run_other_para['logger']:
+        gmt = time.gmtime()
+        log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
+        stmlog = log.Logger(log_file, level='info')
+        if main_config.run_other_para['display']:
+            stmlog.set_consol_logger()
+        stmlog.set_file_day_logger()
+    return stmlog
 
 
 def check_run_parameters(
