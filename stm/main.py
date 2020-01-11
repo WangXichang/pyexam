@@ -47,9 +47,9 @@ stm_modules = [stm1, stm2, mdsys, mdext, main_config]
 
 def run(model_name=None, df=None, cols=None, reload=None):
     pb.reload(main_config)
-    if reload is bool:
+    if reload:
         if reload != main_config.run_parameters['reload']:
-            print('reset reload: {}'.format(reload))
+            print('reset reload in config: {}'.format(reload))
         main_config.run_parameters['reload'] = reload
 
     if model_name is None:
@@ -393,7 +393,8 @@ def run1(
         out_decimal_digits=out_score_decimals,
         display=display,
         tiny_value=tiny_value,
-    )
+        logger=logger,
+        )
     m.run()
     return m
 
@@ -596,18 +597,7 @@ def run2_para(
         display=display,
         logger=logger,
         )
-
-
-def get_logger(model_name):
-    stmlog = None
-    if main_config.run_parameters['logging']:
-        gmt = time.gmtime()
-        log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
-        stmlog = Logger(log_file, level='info')
-        if main_config.run_parameters['display']:
-            stmlog.logging_consol = True
-        stmlog.logging_file =True
-    return stmlog
+    # end--run2
 
 
 def check_run_parameters(
@@ -629,12 +619,14 @@ def check_run_parameters(
         ):
 
     if not check_merge_models():
-        logger.loginfo('error: check models fail!')
+        if logger:
+            logger.loginfo('error: check models fail!')
         return False
 
     # check model name
     if model_name.lower() not in mdsys.Models.keys():
-        logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
+        if logger:
+            logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
@@ -822,6 +814,18 @@ def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
     return True
 
 
+def get_logger(model_name):
+    stmlog = None
+    if main_config.run_parameters['logging']:
+        gmt = time.gmtime()
+        log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
+        stmlog = Logger(log_file, level='info')
+        if main_config.run_parameters['display']:
+            stmlog.logging_consol = True
+        stmlog.logging_file =True
+    return stmlog
+
+
 class Logger(object):
     level_relations = {
         'debug':    logging.DEBUG,
@@ -871,13 +875,13 @@ class Logger(object):
         self.logger.handlers = []
 
     def loginfo_start(self, ms=''):
-        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s]  at [%(asctime)s]\n' + '-'*120)
+        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s] start at [%(asctime)s]\n' + '-'*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)
 
     def loginfo_end(self, ms=''):
-        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  at [%(asctime)s]\n' + '='*120)
+        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  end at [%(asctime)s]\n' + '='*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)

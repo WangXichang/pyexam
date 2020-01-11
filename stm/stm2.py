@@ -568,7 +568,7 @@ class ModelAlgorithm:
         return Result(formula, section_list, map_dict, grade_step, top_level_score)
 
     @classmethod
-    @slib.timer_wrapper
+    # @slib.timer_wrapper
     def get_stm_score(cls,
                       df,
                       cols,
@@ -590,6 +590,7 @@ class ModelAlgorithm:
                       out_score_decimals=0,
                       display=True,
                       tiny_value=10**-8,
+                      logger=None,
                       ):
         # start stm
         if isinstance(cols, tuple):
@@ -607,6 +608,8 @@ class ModelAlgorithm:
               segstep=raw_score_step,
               display=False,
               )
+        if logger:
+            logger.loginfo('stm2 start ...')
         map_table = seg.outdf
         # print(map_table.head())
         section_num = len(model_ratio_pdf)
@@ -627,8 +630,8 @@ class ModelAlgorithm:
                 # print(df.describe())
 
             # start transform
-            if display:
-                print('transform {} of {}'.format(col, cols))
+            if logger:
+                logger.loginfo('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     section_ratio_cumu_sequence=cumu_ratio,
@@ -658,7 +661,7 @@ class ModelAlgorithm:
                 formula = result.formula
 
                 # display ratio searching result at each section
-                if display:
+                if logger:
                     for i, (c_ratio, d_ratio, raw_sec, r_ratio, out_sec) \
                             in enumerate(zip(
                                             cumu_ratio,
@@ -667,21 +670,22 @@ class ModelAlgorithm:
                                             raw_section.real_ratio,
                                             out_section
                                             )):
-                        print('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
-                              'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
-                              format(i + 1,
-                                     c_ratio,
-                                     d_ratio,
-                                     r_ratio,
-                                     raw_sec[0],
-                                     raw_sec[1],
-                                     int(out_sec[0]),
-                                     int(out_sec[1]),
-                                     )
+                        logger.loginfo(
+                            '   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                            'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
+                            format(i + 1,
+                                  c_ratio,
+                                  d_ratio,
+                                  r_ratio,
+                                  raw_sec[0],
+                                  raw_sec[1],
+                                  int(out_sec[0]),
+                                  int(out_sec[1]),
+                                  )
                               )
                     for k in result.formula_dict.keys():
-                        print('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
-                    print('='*120)
+                        logger.loginfo('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
+                    # logger.loginfo('='*100)
             elif model_type.lower() == 'ppt':
                 if mode_sort_order in ['a', 'ascending']:
                     model_section = reversed(model_section)
@@ -698,23 +702,24 @@ class ModelAlgorithm:
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
-                if display:
-                    print(' model table: [{0}] \n'
-                          'real percent: [{1}]\n'
-                          '   get ratio: [{2}]\n'
-                          '   raw score: [{3}]\n'
-                          '   out score: [{4}]\n'
-                          .format(
-                          ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
-                                     for (x, z), y in zip(model_section, cumu_ratio)
-                                     if x in result.map_dict.values()]),
-                          ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
-                          ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                          ', '.join([format(x, '>12d') for x in map_table.seg]),
-                          ', '.join([format(slib.round45r(result.formula(x), out_score_decimals), '>' +
-                                            ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
-                                     for x in map_table.seg]),
-                          ))
+                if logger:
+                    logger.loginfo(
+                        ' model table: [{0}] \n'
+                        'real percent: [{1}]\n'
+                        '   get ratio: [{2}]\n'
+                        '   raw score: [{3}]\n'
+                        '   out score: [{4}]\n'
+                        .format(
+                        ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
+                                  for (x, z), y in zip(model_section, cumu_ratio)
+                                  if x in result.map_dict.values()]),
+                        ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                        ', '.join([format(x, '12.8f') for x in result.real_ratio]),
+                        ', '.join([format(x, '>12d') for x in map_table.seg]),
+                        ', '.join([format(slib.round45r(result.formula(x), out_score_decimals), '>' +
+                                   ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
+                                   for x in map_table.seg]),
+                        ))
             elif model_type.lower() == 'pgt':
                 # print(col, type(map_table))
                 result = ModelAlgorithm.get_pgt_formula(
@@ -728,10 +733,10 @@ class ModelAlgorithm:
                     raw_score_min=raw_score_min,
                     grade_num=len(model_section)
                     )
-                if display:
-                    print('tai score section: {}'.format(result.section))
-                    print('       grade step: {}'.format(result.grade_step))
-                    print('        top level: {}'.format(result.top_level))
+                if logger:
+                    logger.loginfo('tai score section: {}'.format(result.section))
+                    logger.loginfo('       grade step: {}'.format(result.grade_step))
+                    logger.loginfo('        top level: {}'.format(result.top_level))
                 formula = result.formula
             else:
                 raise ValueError
@@ -743,6 +748,7 @@ class ModelAlgorithm:
                 df = pd.concat((df, df_zero))
             elif mode_score_zero == 'after':
                 df.loc[df[col] == 0, col + '_ts'] = min(min(model_section))
-
+        if logger:
+            logger.loginfo('stm2 running end \n' + '-'*100)
         r = namedtuple('r', ['outdf', 'map_table', 'result'])
         return r(df, map_table, result)
