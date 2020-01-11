@@ -34,12 +34,13 @@ How to add new model in modelext:
 
 
 import time
+import logging
+from logging import handlers
 from stm import stm1, stm2, stmlib as slib,\
-     main_util as utl, models_sys as mdin, models_ext as mdext
+     models_util as utl, models_sys as mdin, models_ext as mdext
 from stm import main_config
-from stm import main_logger as log
 import importlib as pb
-stm_modules = [stm1, stm2, utl, mdin, mdext, main_config, log]
+stm_modules = [stm1, stm2, utl, mdin, mdext, main_config]
 
 
 def exp(name='shandong'):
@@ -220,6 +221,7 @@ def runm(
     stmlogger = None
     if logging:
         stmlogger = get_logger(model_name)
+        stmlogger.loginfo_start(model_name)
 
     if reload:
         if not reload_stm_modules(stmlogger):
@@ -293,8 +295,8 @@ def runm(
                     return m1, m2
             if display:
                 print('verify passed!')
-            return m1, m2
-        return m1
+            result = (m1, m2)
+        result = m1
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
         if display:
@@ -318,14 +320,12 @@ def runm(
                        tiny_value=tiny_value,
                        logger=stmlogger,
                        )
-        # if save_result:
-        #     if isinstance(path_name, str):
-        #         save_map_table(path_name, model_name, map_table=result.map_table)
-        #         save_out_score(path_name, model_name, outdf=result.outdf)
-        #     else:
-        #         print('error path_name: {}'.format(path_name))
 
-        return result
+    if logging:
+        stmlogger.loginfo_end(model_name)
+
+    return result
+    # end runm
 
 
 def run1(
@@ -584,10 +584,10 @@ def get_logger(model_name):
     if main_config.run_parameters['logging']:
         gmt = time.gmtime()
         log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
-        stmlog = log.Logger(log_file, level='info')
+        stmlog = Logger(log_file, level='info')
         if main_config.run_parameters['display']:
-            stmlog.set_consol_logger()
-        stmlog.set_file_day_logger()
+            stmlog.logging_consol = True
+        stmlog.logging_file =True
     return stmlog
 
 
@@ -689,3 +689,75 @@ def save_out_score(path_name=None, model_name=None, file_type='csv', outdf=None)
     file_name = path_name + model_name + '_out_score_' + ts + '.' + file_type
     if outdf is not None:
         outdf.to_csv(file_name)
+
+
+class Logger(object):
+    level_relations = {
+        'debug':    logging.DEBUG,
+        'info':     logging.INFO,
+        'warn':     logging.WARNING,
+        'error':    logging.ERROR,
+        'critical': logging.CRITICAL
+    }
+
+    def __init__(self,
+                 filename='stm.log',
+                 level='info',
+                 when='D',
+                 back_count=3,
+                 ):
+
+        # stat
+        self.logging_file = True
+        self.logging_consol = True
+
+        # para
+        self.filename = filename
+        self.level = level
+        self.when = when
+        self.back_count = 3 if back_count is not int else back_count
+        self.format = '   %(message)s'
+        self.when = when
+        # self.format = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
+
+        # set logger
+        self.logger = logging.getLogger(self.filename)              # file name
+        self.logger.setLevel(self.level_relations.get(self.level))  # 设置日志级别
+        self.logger_format = logging.Formatter(self.format)         # 设置日志格式
+
+        # set handlers
+        self.stream_handler = None
+        self.rotating_file_handler = None
+        self.set_handlers(self.logger_format)
+
+    def loginfo(self, ms=''):
+        self.logger.handlers = []
+        if self.logging_consol:
+            self.logger.addHandler(self.stream_handler)
+        if self.logging_file:
+            self.logger.addHandler(self.rotating_file_handler)
+        self.logger.info(ms)
+        self.logger.handlers = []
+
+    def loginfo_start(self, ms=''):
+        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s]  at [%(asctime)s]\n ' + '-'*120)
+        self.set_handlers(first_logger_format)
+        self.loginfo(ms)
+        self.set_handlers(self.logger_format)
+
+    def loginfo_end(self, ms=''):
+        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  at [%(asctime)s]\n ' + '='*120)
+        self.set_handlers(first_logger_format)
+        self.loginfo(ms)
+        self.set_handlers(self.logger_format)
+
+    def set_handlers(self, log_format):
+        self.stream_handler = logging.StreamHandler()
+        self.stream_handler.setFormatter(log_format)
+        self.rotating_file_handler = handlers.TimedRotatingFileHandler(
+                    filename=self.filename,
+                    when=self.when,
+                    backupCount=self.back_count,
+                    encoding='utf-8'
+                )
+        self.rotating_file_handler.setFormatter(log_format)

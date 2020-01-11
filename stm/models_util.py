@@ -24,7 +24,7 @@ import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
 import numbers
-from stm import models_sys as mdin, main_logger as log
+from stm import models_sys as mdin
 
 
 def show_models():
