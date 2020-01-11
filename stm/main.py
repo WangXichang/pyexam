@@ -53,15 +53,11 @@ def run(model_name=None, df=None, cols=None):
         df = main_config.df
     if (cols is None) and (main_config.cols is not None):
         cols = main_config.cols
-
-    stg = list(main_config.run_strategy.values())
-    oth = list(main_config.run_parameters.values())
-    pp = [model_name, df, cols] + stg + oth
-
     return runm(
         model_name=model_name,
         df=df,
         cols=cols,
+        raw_score_range=main_config.run_parameters['raw_score_range'],
         mode_ratio_prox=main_config.run_strategy['mode_ratio_prox'],
         mode_ratio_cumu=main_config.run_strategy['mode_ratio_cumu'],
         mode_sort_order=main_config.run_strategy['mode_sort_order'],
@@ -71,12 +67,11 @@ def run(model_name=None, df=None, cols=None):
         mode_section_degraded=main_config.run_strategy['mode_section_degraded'],
         mode_section_lost=main_config.run_strategy['mode_section_lost'],
         mode_score_zero=main_config.run_strategy['mode_score_zero'],
-        raw_score_range=main_config.run_parameters['raw_score_range'],
-        out_score_decimals=main_config.run_parameters['out_score_decimals'],
         display=main_config.run_parameters['display'],
-        verify=main_config.run_parameters['verify'],
-        tiny_value=main_config.run_parameters['tiny_value'],
         logging=main_config.run_parameters['logging'],
+        verify=main_config.run_parameters['verify'],
+        out_score_decimals=main_config.run_parameters['out_score_decimals'],
+        tiny_value=main_config.run_parameters['tiny_value'],
         )
 
 
@@ -84,6 +79,7 @@ def runm(
         model_name='shandong',
         df=None,
         cols=(),
+        raw_score_range=(0, 100),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='d',
@@ -93,12 +89,11 @@ def runm(
         mode_section_degraded='to_max',
         mode_section_lost='real',
         mode_score_zero='real',
-        raw_score_range=(0, 100),
-        out_score_decimals=0,
         display=True,
-        verify=False,
-        tiny_value=10**-8,
         logging=None,
+        verify=False,
+        out_score_decimals=0,
+        tiny_value=10**-8,
         ):
 
     """

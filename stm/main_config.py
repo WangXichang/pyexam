@@ -29,9 +29,9 @@ run_strategy = {
 
 # set other parameters
 run_parameters = {
-    "verify": False,
     "display": True,
     "logging": True,
+    "verify": False,
     "raw_score_range": (0, 100),
     "out_score_decimals": 0,
     "tiny_value": 10 ** -8,
