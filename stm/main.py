@@ -36,20 +36,13 @@ How to add new model in modelext:
 import time
 import logging
 from logging import handlers
-from stm import stm1, stm2, stmlib as slib,\
-     models_util as utl, models_sys as mdin, models_ext as mdext
+import pandas as pd
+import numbers
+
+from stm import stm1, stm2, models_sys as mdsys, models_ext as mdext
 from stm import main_config
 import importlib as pb
-stm_modules = [stm1, stm2, utl, mdin, mdext, main_config]
-
-
-def exp(name='shandong'):
-    return run(
-        model_name=name,
-        df=utl.TestData()(),
-        cols=['km1', 'km2'],
-        reload=True,
-        )
+stm_modules = [stm1, stm2, mdsys, mdext, main_config]
 
 
 def run(model_name=None, df=None, cols=None, reload=None):
@@ -70,7 +63,27 @@ def run(model_name=None, df=None, cols=None, reload=None):
     oth = list(main_config.run_parameters.values())
     pp = [model_name, df, cols] + stg + oth
 
-    return runm(*pp)
+    return runm(
+        model_name=model_name,
+        df=df,
+        cols=cols,
+        mode_ratio_prox=main_config.run_strategy['mode_ratio_prox'],
+        mode_ratio_cumu=main_config.run_strategy['mode_ratio_cumu'],
+        mode_sort_order=main_config.run_strategy['mode_sort_order'],
+        mode_section_point_first=main_config.run_strategy['mode_section_point_first'],
+        mode_section_point_start=main_config.run_strategy['mode_section_point_start'],
+        mode_section_point_last=main_config.run_strategy['mode_section_point_last'],
+        mode_section_degraded=main_config.run_strategy['mode_section_degraded'],
+        mode_section_lost=main_config.run_strategy['mode_section_lost'],
+        mode_score_zero=main_config.run_strategy['mode_score_zero'],
+        raw_score_range=main_config.run_parameters['raw_score_range'],
+        out_score_decimals=main_config.run_parameters['out_score_decimals'],
+        reload=main_config.run_parameters['reload'],
+        display=main_config.run_parameters['display'],
+        verify=main_config.run_parameters['verify'],
+        tiny_value=main_config.run_parameters['tiny_value'],
+        logging=main_config.run_parameters['logging'],
+        )
 
 
 def runm(
@@ -221,10 +234,12 @@ def runm(
     stmlogger = None
     if logging:
         stmlogger = get_logger(model_name)
-        stmlogger.loginfo_start(model_name)
+        stmlogger.loginfo_start('model: ' + model_name)
 
     if reload:
         if not reload_stm_modules(stmlogger):
+            if logging:
+                stmlogger.loginfo_end('model: ' + model_name)
             return None
 
     if not check_run_parameters(
@@ -243,9 +258,11 @@ def runm(
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
             ):
+        if logging:
+            stmlogger.loginfo_end('model: ' + model_name)
         return None
 
-    model_type = mdin.Models[model_name].type
+    model_type = mdsys.Models[model_name].type
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
         m1 = run1(
@@ -268,7 +285,9 @@ def runm(
             tiny_value=tiny_value,
             logger=stmlogger,
             )
+        result = m1
         if verify:
+            verify_pass = True
             m2 = run2(
                 model_name=model_name,
                 df=df,
@@ -291,16 +310,16 @@ def runm(
             )
             for col in cols:
                 if not all(m1.outdf[col+'_ts'] == m2.outdf[col+'_ts']):
-                    print('verify error: col={} get different result in both algorithm!'.format(col))
-                    return m1, m2
-            if display:
-                print('verify passed!')
+                    if logging:
+                        stmlogger.loginfo('verify error: col={} get different result in both algorithm!'.format(col))
+                        verify_pass = False
+            if logging and verify_pass:
+                stmlogger.loginfo('verify passed!')
             result = (m1, m2)
-        result = m1
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
-        if display:
-            print('run model by stmlib2, cols={} ... '.format(cols))
+        if logging:
+            stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
         result = run2(
                        model_name=model_name,
                        df=df,
@@ -322,7 +341,7 @@ def runm(
                        )
 
     if logging:
-        stmlogger.loginfo_end(model_name)
+        stmlogger.loginfo_end('model: ' + model_name)
 
     return result
     # end runm
@@ -353,13 +372,13 @@ def run1(
         if not reload_stm_modules():
             return None
 
-    ratio_tuple = tuple(x * 0.01 for x in mdin.Models[model_name].ratio)
-    model_type = mdin.Models[model_name].type
+    ratio_tuple = tuple(x * 0.01 for x in mdsys.Models[model_name].ratio)
+    model_type = mdsys.Models[model_name].type
     m = stm1.PltScore(model_name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio_tuple=ratio_tuple,
-        out_score_seg_tuple=mdin.Models[model_name].section,
+        out_score_seg_tuple=mdsys.Models[model_name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -445,7 +464,7 @@ def run2(
             ):
         return None
 
-    model = mdin.Models[model_name]
+    model = mdsys.Models[model_name]
     return stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -515,7 +534,7 @@ def run2_para(
     :param mode_section_degraded:
     :param mode_section_lost:
     :param out_score_decimal_digits:
-    :param reload: reload lib, lib2,utl, models_in, models_ext
+    :param reload: reload lib, lib2, models_in, models_ext
     :return: result(df, map_table),     df contains out score field [col+'_ts'] for con in cols
     """
 
@@ -523,7 +542,7 @@ def run2_para(
         if not reload_stm_modules(logger):
             return None
 
-    if not utl.check_model_para(
+    if not check_model_para(
         model_type=model_type,
         model_ratio=model_ratio_pdf,
         model_section=model_section,
@@ -532,7 +551,7 @@ def run2_para(
         ):
         return None
 
-    if not utl.check_df_cols(
+    if not check_df_cols(
         df=df,
         cols=cols,
         raw_score_range=(raw_score_min, raw_score_max),
@@ -541,7 +560,7 @@ def run2_para(
         return None
 
     # check strategy
-    if not utl.check_strategy(
+    if not check_strategy(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -614,16 +633,16 @@ def check_run_parameters(
         return False
 
     # check model name
-    if model_name.lower() not in mdin.Models.keys():
+    if model_name.lower() not in mdsys.Models.keys():
         logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
-    if not utl.check_df_cols(df, cols, raw_score_range, logger):
+    if not check_df_cols(df, cols, raw_score_range, logger):
         return False
 
     # check strategy
-    if not utl.check_strategy(
+    if not check_strategy(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -657,38 +676,150 @@ def reload_stm_modules(logger=None):
 
 def check_merge_models(logger=None):
     # check model in models_in
-    for mk in mdin.Models.keys():
-        if not utl.check_model(model_name=mk, model_lib=mdin.Models):
+    for mk in mdsys.Models.keys():
+        if not check_model(model_name=mk, model_lib=mdsys.Models):
             if logger:
                 logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
             return False
     # add Models_ext to Models
     for mk in mdext.Models.keys():
-        if not utl.check_model(model_name=mk, model_lib=mdext.Models):
+        if not check_model(model_name=mk, model_lib=mdext.Models):
             print('error model: model={} in models_ext.Models!'.format(mk))
             return False
-        mdin.Models.update({mk: mdext.Models[mk]})
+        mdsys.Models.update({mk: mdext.Models[mk]})
     return True
 
 
-def save_map_table(path_name=None, model_name=None, file_type='csv', map_table=None):
-    """
-    save map table to file
-    """
-    ts = time.asctime().replace(' ', '-')
-    file_name = path_name + model_name + '_map_table_' + ts + '.' + file_type
-    if map_table is not None:
-        map_table.to_csv(file_name)
+def check_model(model_name, model_lib=mdsys.Models, logger=None):
+    if model_name in model_lib.keys():
+        if not check_model_para(
+            model_lib[model_name].type,
+            model_lib[model_name].ratio,
+            model_lib[model_name].section,
+            model_lib[model_name].desc,
+            logger=logger
+        ):
+            return False
+    else:
+        return False
+    return True
 
 
-def save_out_score(path_name=None, model_name=None, file_type='csv', outdf=None):
-    """
-    save out score to file
-    """
-    ts = time.asctime().replace(' ', '-')
-    file_name = path_name + model_name + '_out_score_' + ts + '.' + file_type
-    if outdf is not None:
-        outdf.to_csv(file_name)
+def check_model_para(
+                model_type='plt',
+                model_ratio=None,
+                model_section=None,
+                model_desc='',
+                logger=None,
+                ):
+    # check type
+    if model_type not in ['ppt', 'plt', 'pgt']:
+        logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
+        return False
+
+    # check ratio
+    if model_type == 'pgt':
+        if len(model_ratio) == 0:
+            logger.loginfo('error ratio: length == 0 in model={}!'.format(model_type))
+            return False
+        if model_ratio[0] < 0 or model_ratio[0] > 100:
+            logger.loginfo('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
+            return False
+    else:
+        if len(model_ratio) != len(model_section):
+            logger.loginfo('error length: the length of ratio group is not same as section group length !')
+            return False
+        if abs(sum(model_ratio) - 100) > 10**-12:
+            logger.loginfo('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
+            return False
+
+    # check section
+    for s in model_section:
+        if len(s) > 2:
+            logger.loginfo('error section: section must have 2 endpoints, real value: {}'.format(s))
+            return False
+        if s[0] < s[1]:
+            logger.loginfo('error order: section endpoint order must be from large to small, '
+                  'there: p1({}) < p2({})'.format(s[0], s[1]))
+            return False
+    if model_type in ['ppt', 'pgt']:
+        if not all([x == y for x, y in model_section]):
+            logger.loginfo('error section: ppt section, two endpoints must be same value!')
+            return False
+
+    # check desc
+    if not isinstance(model_desc, str):
+        logger.loginfo('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+
+    return True
+
+
+def check_strategy(
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='descending',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='map_to_max',
+        mode_section_lost='ignore',
+        mode_score_zero='real',
+        logger=None
+        ):
+
+    st = {'mode_ratio_prox': mode_ratio_prox,
+          'mode_ratio_cumu':mode_ratio_cumu,
+          'mode_sort_order': mode_sort_order,
+          'mode_section_point_first': mode_section_point_first,
+          'mode_section_point_start': mode_section_point_start,
+          'mode_section_point_last': mode_section_point_last,
+          'mode_section_degraded': mode_section_degraded,
+          'mode_section_lost': mode_section_lost,
+          'mode_score_zero': mode_score_zero,
+          }
+    for sk in st.keys():
+        if sk in mdsys.Strategy.keys():
+            if not st[sk] in mdsys.Strategy[sk]:
+                logger.loginfo('error mode: {}={} not in {}'.format(sk, st[sk], mdsys.Strategy[sk]))
+                return False
+        else:
+            logger.loginfo('error mode: {} is not in Strategy-dict!'.format(sk))
+            return False
+    return True
+
+
+def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
+    if not isinstance(df, pd.DataFrame):
+        if isinstance(df, pd.Series):
+            logger.loginfo('warning: df is pandas.Series!')
+            return False
+        else:
+            logger.loginfo(logger, 'error data: df is not pandas.DataFrame!')
+            return False
+    if len(df) == 0:
+        logger.loginfo('error data: df is empty!')
+        return False
+    if type(cols) not in (list, tuple):
+        logger.loginfo('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+        return False
+    for col in cols:
+        if type(col) is not str:
+            logger.loginfo('error col: {} is not str!'.format(col))
+            return False
+        else:
+            if col not in df.columns:
+                logger.loginfo('error col: {} is not in df.columns!'.format(col))
+                return False
+            if not isinstance(df[col][0], numbers.Real):
+                logger.loginfo('type error: column[{}] not Number type!'.format(col))
+                return False
+            _min = df[col].min()
+            if _min < min(raw_score_range):
+                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
+            _max = df[col].max()
+            if _max > max(raw_score_range):
+                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
+    return True
 
 
 class Logger(object):
@@ -740,13 +871,13 @@ class Logger(object):
         self.logger.handlers = []
 
     def loginfo_start(self, ms=''):
-        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s]  at [%(asctime)s]\n ' + '-'*120)
+        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s]  at [%(asctime)s]\n' + '-'*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)
 
     def loginfo_end(self, ms=''):
-        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  at [%(asctime)s]\n ' + '='*120)
+        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  at [%(asctime)s]\n' + '='*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)

@@ -12,6 +12,26 @@ def read_csv_with_chinese_file_name(fname:str):
     return df
 
 
+def save_map_table(path_name=None, model_name=None, file_type='csv', map_table=None):
+    """
+    save map table to file
+    """
+    ts = time.asctime().replace(' ', '-')
+    file_name = path_name + model_name + '_map_table_' + ts + '.' + file_type
+    if map_table is not None:
+        map_table.to_csv(file_name)
+
+
+def save_out_score(path_name=None, model_name=None, file_type='csv', outdf=None):
+    """
+    save out score to file
+    """
+    ts = time.asctime().replace(' ', '-')
+    file_name = path_name + model_name + '_out_score_' + ts + '.' + file_type
+    if outdf is not None:
+        outdf.to_csv(file_name)
+
+
 def test(df=None, f='', r=0.3):
     _r = fra.Fraction(r).limit_denominator(10000)
     print(_r)
