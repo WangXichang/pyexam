@@ -117,8 +117,8 @@ def runm(
         mode_section_lost='ignore',
         raw_score_range=(0, 100),
         out_score_decimals=0,
-        reload=False,
-        verify=False
+        verify=False，
+        logging=None,
         )
 
         8个算法策略：
@@ -155,57 +155,70 @@ def runm(
                  'zscore', 'tscore'                             # ppt model for z, t, t-linear transform score
                  'tai'                                          # pgt model for taiwan grade score model
          default = 'shandong'
+
     :param df: pandas.DataFrame,
        values: raw score data, including score field, which type must be int or float
       default= None
+
     :param cols: list,
          values: [column name, that is score field name of df]
                  default = None
+
     :param mode_ratio_prox: str,
                   strategy: how to find endpoint by ratio
                 values set: 'lower_max', 'upper_min', 'near_max', 'near_min'
                    default= 'upper_min'
+
     :param mode_ratio_cumu: str,
                   strategy: cumulate ratio or not
                 values set: 'yes', 'no'
                    default= 'no'
+
     :param mode_sort_order: string,
                   strategy: which score order to search ratio
                     values: 'd', 'a'
                    default= 'd'
+
     :param mode_section_degraded: str,
                         strategy: how to map raw score when segment is one-point, [a, a]
                           values: 'map_to_max', map to max value of out score section
                                   'map_to_min', map to min value of out score section
                                   'map_to_mean', map to mean value of out score section
                          default= 'map_to_max'
+
     :param mode_section_point_first: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
                             default= 'real'
+
     :param mode_section_point_start: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
                             default= 'real'
+
     :param mode_section_point_last: str,
                            strategy: how to set first point of first section
                              values: 'real', use real raw score max or min value
                                      'defined', use test paper full score or least score
                             default= 'real'
+
     :param mode_section_lost: str,
                            strategy: how to prosess lost section
                              values: 'real', retain lost, use [-1, -1]
                                      'zip',  to next section, no [-1, -1] in middle
                             default= 'real'
+
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
                    default= (0, 100)
+
     :param out_score_decimals: int, >=0
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
+
     :param verify: bool
             usage: use two algorithm to verify result
           default: False, do not verify
@@ -215,6 +228,8 @@ def runm(
               default: 10**-8
 
     :param logging: bool
+             usage: use logging to display messages to consol or write messages to file
+           default: None
 
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'

@@ -222,7 +222,8 @@ class TestLvData():
         print('test {}: {} ... '.format(name, cols))
         mr = main.runm(df=data, cols=cols_real,
                        mode_ratio_cumu=cumu,
-                       display=False
+                       display=False,
+                       logging=True
                        )
         # mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
