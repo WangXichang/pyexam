@@ -220,11 +220,11 @@ class TestLvData():
     def test_stm_with_lvdata(self, name, data=None, cols=None, cumu=None):
         cols_real = [f for f in cols if f in data.columns]
         print('test {}: {} ... '.format(name, cols))
-        mr = main.run(df=data, cols=cols_real,
-                      mode_ratio_cumu=cumu,
-                      display=False
-                      )
-        mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
+        mr = main.runm(df=data, cols=cols_real,
+                       mode_ratio_cumu=cumu,
+                       display=False
+                       )
+        # mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
         for col in cols_real:
             comp = all(mr.outdf[col+'_ts'] == mr.outdf[col+'_stand'])
@@ -246,8 +246,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
+        ra = main.runm(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = main.runm(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 

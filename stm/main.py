@@ -45,13 +45,8 @@ import importlib as pb
 stm_modules = [stm1, stm2, mdsys, mdext, main_config]
 
 
-def run(model_name=None, df=None, cols=None, reload=None):
+def run(model_name=None, df=None, cols=None):
     pb.reload(main_config)
-    if reload:
-        if reload != main_config.run_parameters['reload']:
-            print('reset reload in config: {}'.format(reload))
-        main_config.run_parameters['reload'] = reload
-
     if model_name is None:
         model_name = main_config.model_name
     if (df is None) and (main_config.df is not None):
@@ -78,7 +73,6 @@ def run(model_name=None, df=None, cols=None, reload=None):
         mode_score_zero=main_config.run_strategy['mode_score_zero'],
         raw_score_range=main_config.run_parameters['raw_score_range'],
         out_score_decimals=main_config.run_parameters['out_score_decimals'],
-        reload=main_config.run_parameters['reload'],
         display=main_config.run_parameters['display'],
         verify=main_config.run_parameters['verify'],
         tiny_value=main_config.run_parameters['tiny_value'],
@@ -101,7 +95,6 @@ def runm(
         mode_score_zero='real',
         raw_score_range=(0, 100),
         out_score_decimals=0,
-        reload=False,
         display=True,
         verify=False,
         tiny_value=10**-8,
@@ -213,10 +206,6 @@ def runm(
     :param out_score_decimals: int, >=0
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
-    :param reload: bool
-            usage: reload related modules, especially when modify models_ext.Models
-          default= False, dont reload
-
     :param verify: bool
             usage: use two algorithm to verify result
           default: False, do not verify
@@ -231,16 +220,20 @@ def runm(
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
-    stmlogger = None
     if logging:
         stmlogger = get_logger(model_name)
         stmlogger.loginfo_start('model: ' + model_name)
+        if main_config.run_parameters['display']:
+            stmlogger.logging_consol = True
+        stmlogger.logging_file = True
+    else:
+        stmlogger = get_logger('test')
+        stmlogger.logging_consol = True
+        stmlogger.logging_file = False
 
-    if reload:
-        if not reload_stm_modules(stmlogger):
-            if logging:
-                stmlogger.loginfo_end('model: ' + model_name)
-            return None
+    if not reload_stm_modules(stmlogger):
+        stmlogger.loginfo_end('model: ' + model_name)
+        return None
 
     if not check_run_parameters(
             model_name=model_name,
@@ -280,7 +273,6 @@ def runm(
             mode_section_lost=mode_section_lost,
             mode_score_zero=mode_score_zero,    # not implemented in stm1
             out_score_decimals=out_score_decimals,
-            reload=False,
             display=display,
             tiny_value=tiny_value,
             logger=stmlogger,
@@ -303,7 +295,6 @@ def runm(
                 mode_section_lost=mode_section_lost,
                 mode_score_zero=mode_score_zero,
                 out_score_decimals=out_score_decimals,
-                reload=False,
                 display=display,
                 tiny_value=tiny_value,
                 logger=stmlogger,
@@ -318,8 +309,7 @@ def runm(
             result = (m1, m2)
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
-        if logging:
-            stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
+        stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
         result = run2(
                        model_name=model_name,
                        df=df,
@@ -334,14 +324,12 @@ def runm(
                        mode_section_degraded=mode_section_degraded,
                        mode_score_zero=mode_score_zero,
                        out_score_decimals=out_score_decimals,
-                       reload=False,
                        display=display,
                        tiny_value=tiny_value,
                        logger=stmlogger,
                        )
 
-    if logging:
-        stmlogger.loginfo_end('model: ' + model_name)
+    stmlogger.loginfo_end('model: ' + model_name)
 
     return result
     # end runm
@@ -363,14 +351,9 @@ def run1(
         raw_score_range=(0, 100),
         out_score_decimals=0,
         display=True,
-        reload=False,
         tiny_value=10 ** -8,
         logger=None,
         ):
-
-    if reload:
-        if not reload_stm_modules():
-            return None
 
     ratio_tuple = tuple(x * 0.01 for x in mdsys.Models[model_name].ratio)
     model_type = mdsys.Models[model_name].type
@@ -416,7 +399,6 @@ def run2(
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
-        reload=False,
         display=True,
         tiny_value=10**-8,
         logger=None,
@@ -442,11 +424,6 @@ def run2(
     :param out_score_decimals:
     :return:
     """
-
-    # reload modules if any chenges done, especially in models_in.Models
-    if reload:
-        if not reload_stm_modules(logger):
-            return None
 
     if not check_run_parameters(
             model_name=model_name,
@@ -511,7 +488,6 @@ def run2_para(
         mode_section_lost='real',
         mode_score_zero='real',
         out_score_decimal_digits=0,
-        reload=False,
         display=True,
         logger=None,
         ):
@@ -535,13 +511,8 @@ def run2_para(
     :param mode_section_degraded:
     :param mode_section_lost:
     :param out_score_decimal_digits:
-    :param reload: reload lib, lib2, models_in, models_ext
     :return: result(df, map_table),     df contains out score field [col+'_ts'] for con in cols
     """
-
-    if reload:
-        if not reload_stm_modules(logger):
-            return None
 
     if not check_model_para(
         model_type=model_type,
@@ -618,15 +589,18 @@ def check_run_parameters(
         logger=None,
         ):
 
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
+
     if not check_merge_models():
-        if logger:
-            logger.loginfo('error: check models fail!')
+        logger.loginfo('error: check models fail!')
         return False
 
     # check model name
     if model_name.lower() not in mdsys.Models.keys():
-        if logger:
-            logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
+        logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
         return False
 
     # check input data: DataFrame
@@ -649,15 +623,17 @@ def check_run_parameters(
         return False
 
     if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
-        if logger:
-            logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
+        logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
     return True
 
 
 def reload_stm_modules(logger=None):
-    # if logger:
-    #     logger.loginfo('reload modules ...')
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
+    logger.loginfo('reload modules ...')
     try:
         for m in stm_modules:
             pb.reload(m)
@@ -667,16 +643,19 @@ def reload_stm_modules(logger=None):
 
 
 def check_merge_models(logger=None):
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
     # check model in models_in
     for mk in mdsys.Models.keys():
         if not check_model(model_name=mk, model_lib=mdsys.Models):
-            if logger:
-                logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
+            logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
             return False
     # add Models_ext to Models
     for mk in mdext.Models.keys():
         if not check_model(model_name=mk, model_lib=mdext.Models):
-            print('error model: model={} in models_ext.Models!'.format(mk))
+            logger.loginfo('error model: model={} in models_ext.Models!'.format(mk))
             return False
         mdsys.Models.update({mk: mdext.Models[mk]})
     return True
@@ -704,6 +683,11 @@ def check_model_para(
                 model_desc='',
                 logger=None,
                 ):
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
+
     # check type
     if model_type not in ['ppt', 'plt', 'pgt']:
         logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
@@ -759,6 +743,11 @@ def check_strategy(
         logger=None
         ):
 
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
+
     st = {'mode_ratio_prox': mode_ratio_prox,
           'mode_ratio_cumu':mode_ratio_cumu,
           'mode_sort_order': mode_sort_order,
@@ -781,6 +770,10 @@ def check_strategy(
 
 
 def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
+    if logger is None:
+        logger = get_logger('test')
+        logger.logging_consol = True
+        logger.logging_file = False
     if not isinstance(df, pd.DataFrame):
         if isinstance(df, pd.Series):
             logger.loginfo('warning: df is pandas.Series!')
@@ -816,13 +809,9 @@ def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
 
 def get_logger(model_name):
     stmlog = None
-    if main_config.run_parameters['logging']:
-        gmt = time.gmtime()
-        log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
-        stmlog = Logger(log_file, level='info')
-        if main_config.run_parameters['display']:
-            stmlog.logging_consol = True
-        stmlog.logging_file =True
+    gmt = time.gmtime()
+    log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
+    stmlog = Logger(log_file, level='info')
     return stmlog
 
 
