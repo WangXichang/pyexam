@@ -97,26 +97,26 @@ def runm(
         ):
 
     """
-
     [functions]
-    run(model_name='shandong',  # model name in models_in.Models or models_ext.Models
-        df=None,
-        cols=None,
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='d',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
-        mode_section_degraded='to_max',
-        mode_section_lost='ignore',
-        raw_score_range=(0, 100),
-        out_score_decimals=0,
-        verify=False，
-        logging=None,
-        )
+    runm(model_name='shandong',  # model name in models_in.Models or models_ext.Models
+         df=None,
+         cols=None,
+         raw_score_range=(0, 100),
+         mode_ratio_prox='upper_min',
+         mode_ratio_cumu='no',
+         mode_sort_order='d',
+         mode_section_point_first='real',
+         mode_section_point_start='step',
+         mode_section_point_last='real',
+         mode_section_degraded='to_max',
+         mode_section_lost='ignore',
+         verify=False，
+         logging=None,
+         out_score_decimals=0,
+         tiny_value=10**-8,
+         )
 
-        8个算法策略：
+        9个算法策略：
         --
         mode_ratio_prox: the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
@@ -261,8 +261,7 @@ def runm(
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
             ):
-        if logging:
-            stmlogger.loginfo_end('model: ' + model_name)
+        stmlogger.loginfo_end('model: ' + model_name)
         return None
 
     model_type = mdsys.Models[model_name].type
@@ -308,36 +307,44 @@ def runm(
                 display=display,
                 tiny_value=tiny_value,
                 logger=stmlogger,
-            )
+                )
             for col in cols:
-                if not all(m1.outdf[col+'_ts'] == m2.outdf[col+'_ts']):
-                    if logging:
-                        stmlogger.loginfo('verify error: col={} get different result in both algorithm!'.format(col))
-                        verify_pass = False
-            if logging and verify_pass:
+                out1 = m1.outdf.sort_values(col)[[col, col+'_ts']].values
+                out2 = m2.outdf.sort_values(col)[[col, col+'_ts']].values
+                comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
+                if len(comp) > 0:
+                    stmlogger.loginfo('verify error: col={},  {} records different in both algorithm!'.
+                                      format(col, len(comp)))
+                    for i in range(min(len(comp), 5)):
+                        vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
+                        stmlogger.loginfo(vs)
+                    if len(comp) > 5:
+                        stmlogger.loginfo('...')
+                    verify_pass = False
+            if verify_pass:
                 stmlogger.loginfo('verify passed!')
             result = (m1, m2)
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
         result = run2(
-                       model_name=model_name,
-                       df=df,
-                       cols=cols,
-                       raw_score_range=raw_score_range,
-                       mode_ratio_prox=mode_ratio_prox,
-                       mode_ratio_cumu=mode_ratio_cumu,
-                       mode_sort_order=mode_sort_order,
-                       mode_section_point_first=mode_section_point_first,
-                       mode_section_point_start=mode_section_point_start,
-                       mode_section_point_last=mode_section_point_last,
-                       mode_section_degraded=mode_section_degraded,
-                       mode_score_zero=mode_score_zero,
-                       out_score_decimals=out_score_decimals,
-                       display=display,
-                       tiny_value=tiny_value,
-                       logger=stmlogger,
-                       )
+                      model_name=model_name,
+                      df=df,
+                      cols=cols,
+                      raw_score_range=raw_score_range,
+                      mode_ratio_prox=mode_ratio_prox,
+                      mode_ratio_cumu=mode_ratio_cumu,
+                      mode_sort_order=mode_sort_order,
+                      mode_section_point_first=mode_section_point_first,
+                      mode_section_point_start=mode_section_point_start,
+                      mode_section_point_last=mode_section_point_last,
+                      mode_section_degraded=mode_section_degraded,
+                      mode_score_zero=mode_score_zero,
+                      out_score_decimals=out_score_decimals,
+                      display=display,
+                      tiny_value=tiny_value,
+                      logger=stmlogger,
+                      )
 
     stmlogger.loginfo_end('model: ' + model_name)
 
@@ -818,8 +825,7 @@ def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
 
 
 def get_logger(model_name):
-    stmlog = None
-    gmt = time.gmtime()
+    gmt = time.localtime()
     log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
     stmlog = Logger(log_file, level='info')
     return stmlog

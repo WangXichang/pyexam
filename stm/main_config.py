@@ -15,15 +15,15 @@ cols = None                 # must be list with score field as elements, ['wl', 
 
 # set strategy items
 run_strategy = {
-    "mode_ratio_prox": 'lower_max',
-    "mode_ratio_cumu": 'no',
-    "mode_sort_order": 'd',
-    "mode_section_point_first": 'real',
-    "mode_section_point_start": 'step',
-    "mode_section_point_last": 'real',
-    "mode_section_degraded": 'to_max',
-    "mode_section_lost": 'real',
-    "mode_score_zero": 'real',
+    "mode_ratio_prox": 'lower_max',         # ('upper_min', 'lower_max', 'near_max', 'near_min')
+    "mode_ratio_cumu": 'no',                # ('yes', 'no')
+    "mode_sort_order": 'd',                 # ('d', 'a')
+    "mode_section_point_first": 'real',     # ('real', 'defined')
+    "mode_section_point_start": 'step',     # ('step', 'share')
+    "mode_section_point_last": 'real',      # ('real', 'defined')
+    "mode_section_degraded": 'to_max',      # ('to_max', 'to_min', 'to_mean')
+    "mode_section_lost": 'real',            # ('real', 'zip')
+    "mode_score_zero": 'real',              # ('real', 'after', 'alone')
     }
 
 

@@ -377,24 +377,23 @@ class ModelAlgorithm:
             else:
                 a, b, y0, x0 = 0, 0, 0, 0
             plt_formula.update({i+1: ((a, b),
-                                    rsec,
-                                    osec,
-                                    'y = {:.6f} * x {:+10.6f}'.format(a, b),
-                                    '***' if rsec[0] < 0 else
-                                          'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
-                                    )
+                                      rsec,
+                                      osec,
+                                      'y = {:.6f} * x {:+10.6f}'.format(a, b),
+                                      '***' if rsec[0] < 0 else
+                                      'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
+                                      )
                                 })
             i += 1
 
         # function of formula
         def formula(x):
             for k in plt_formula.keys():
-                # print(x, plt_formula[k])
                 if (plt_formula[k][1][0] <= x <= plt_formula[k][1][1]) or \
                         (plt_formula[k][1][0] >= x >= plt_formula[k][1][1]):
                     return slib.round45r(plt_formula[k][0][0] * x + plt_formula[k][0][1],
-                                    out_score_decimal)
-            return -1
+                                         out_score_decimal)
+            return -1000
 
         Result = namedtuple('Result', ('formula', 'formula_dict'))
         return Result(formula, plt_formula)
@@ -748,6 +747,10 @@ class ModelAlgorithm:
                 df = pd.concat((df, df_zero))
             elif mode_score_zero == 'after':
                 df.loc[df[col] == 0, col + '_ts'] = min(min(model_section))
+
+            if out_score_decimals == 0:
+                df = df.astype({col+'_ts': int})
+
         if logger:
             logger.loginfo('stm2 running end \n' + '-'*100)
         r = namedtuple('r', ['outdf', 'map_table', 'result'])

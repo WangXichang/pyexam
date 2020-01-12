@@ -981,39 +981,39 @@ class PltScore(ScoreTransformModel):
         # calculating for ratio and segment
         plist = self.raw_score_ratio_cum
         if self.out_decimal_digits == 0:
-            _out_report_doc += '  raw score seg ratio: [{}]\n'.\
+            _out_report_doc += '  raw score sec ratio: [{}]\n'.\
                 format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '10.6f')
                         for j in range(len(plist))]))
-            _out_report_doc += '            cum ratio: [{}]\n'.\
+            _out_report_doc += '           cumu ratio: [{}]\n'.\
                 format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
-            _out_report_doc += '            get ratio: [{}]\n'.\
+            _out_report_doc += '           dest ratio: [{}]\n'.\
                 format(', '.join([format(float(x), '10.6f')
                                   for x in self.result_ratio_dict[field]['match']]))
         else:
-            _out_report_doc += '  raw score seg ratio: [{}]\n'.\
+            _out_report_doc += '  raw score sec ratio: [{}]\n'.\
                 format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
                         for j in range(len(plist))]))
-            _out_report_doc += '            cum ratio: [{}]\n'.\
+            _out_report_doc += '           cumu ratio: [{}]\n'.\
                 format(', '.join([format(x, '16.6f') for x in self.raw_score_ratio_cum]))
-            _out_report_doc += '            get ratio: [{}]\n'.\
+            _out_report_doc += '           dest ratio: [{}]\n'.\
                 format(', '.join([format(float(x), '16.6f') for x in self.result_ratio_dict[field]]))
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
         if self.out_decimal_digits == 0:
-            _out_report_doc += '            endpoints: [{}]\n'.\
+            _out_report_doc += '              section: [{}]\n'.\
                 format(', '.join(['({:3d}, {:3d})'.format(x, y) for x, y in _raw_seg_list]))
         else:
-            _out_report_doc += '            endpoints: [{}]\n'.\
+            _out_report_doc += '              section: [{}]\n'.\
                 format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _raw_seg_list]))
 
         # get out segment from result_dict[]['coeff']
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
         if self.out_decimal_digits > 0:
-            _out_report_doc += '  out score endpoints: [{}]\n'.\
+            _out_report_doc += '  out  score  section: [{}]\n'.\
                 format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
         else:
-            _out_report_doc += '  out score endpoints: [{}]\n'.\
+            _out_report_doc += '  out  score  section: [{}]\n'.\
                 format(', '.join(['({:>3.0f}, {:>3.0f})'.format(x, y) for x, y in _out_seg_list]))
 
         # transforming formulas
@@ -1133,7 +1133,7 @@ class PltScore(ScoreTransformModel):
             # mode: model describe the differrence of input and output score.
             self.plot_model()
         elif mode in 'dist':
-            self._plot_dist_seaborn()
+            self.plot_dist_seaborn()
         elif mode in 'bar':
             self.plot_bar('all')
         elif mode == 'rawbar':
@@ -1184,23 +1184,23 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
-    def __plot_rawbar(self):
-        raw_label = [str(x) for x in range(self.mode_score_paper_max+1)]
-        x_data = list(range(self.mode_score_paper_max+1))
-        seg_list = list(self.map_table.seg)
-        for f in self.cols:
-            df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
-                        if xv in seg_list else 0
-                        for xv in x_data]
-            fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+']: bar graph')
-            ax.set_xticks(x_data)
-            ax.set_xticklabels(raw_label)
-            width = 0.8
-            bar_wid = [p - width/2 for p in x_data]
-            ax.bar(bar_wid, df, width, label=f)
+    # def plot_rawbar(self):
+    #     raw_label = [str(x) for x in range(self.mode_score_paper_max+1)]
+    #     x_data = list(range(self.mode_score_paper_max+1))
+    #     seg_list = list(self.map_table.seg)
+    #     for f in self.cols:
+    #         df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+    #                     if xv in seg_list else 0
+    #                     for xv in x_data]
+    #         fig, ax = plot.subplots()
+    #         ax.set_title(self.model_name+'['+f+']: bar graph')
+    #         ax.set_xticks(x_data)
+    #         ax.set_xticklabels(raw_label)
+    #         width = 0.8
+    #         bar_wid = [p - width/2 for p in x_data]
+    #         ax.bar(bar_wid, df, width, label=f)
 
-    def __plot_outbar(self):
+    def plot_outbar(self):
         x_label = [str(x) for x in range(self.out_score_real_max + 1)]
         x_data = list(range(self.out_score_real_max + 1))
         for f in self.cols:
@@ -1329,7 +1329,7 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
 
-    def __plot_dist(self):
+    def plot_dist(self):
         def plot_dist_fit(field, _label):
             x_data = self.outdf[field]
             # local var _mu, __std
@@ -1351,7 +1351,7 @@ class PltScore(ScoreTransformModel):
             plot_dist_fit(f+'_ts', 'out score')
         plot.show()
 
-    def _plot_dist_seaborn(self):
+    def plot_dist_seaborn(self):
         for f in self.cols:
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: distribution garph')
@@ -1407,11 +1407,3 @@ class PltScore(ScoreTransformModel):
 
         plot.show()
         return
-
-    def report_map_table(self):
-        fs_list = ['seg']
-        for ffs in self.cols:
-            fs_list += [ffs+'_count']
-            fs_list += [ffs+'_percent']
-            fs_list += [ffs+'_ts']
-        print(self.map_table[fs_list])
