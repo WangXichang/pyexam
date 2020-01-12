@@ -15,7 +15,7 @@ cols = None                 # must be list with score field as elements, ['wl', 
 
 # set strategy items
 run_strategy = {
-    "mode_ratio_prox": 'lower_max',         # ('upper_min', 'lower_max', 'near_max', 'near_min')
+    "mode_ratio_prox": 'upper_min',         # ('upper_min', 'lower_max', 'near_max', 'near_min')
     "mode_ratio_cumu": 'no',                # ('yes', 'no')
     "mode_sort_order": 'd',                 # ('d', 'a')
     "mode_section_point_first": 'real',     # ('real', 'defined')
@@ -30,8 +30,8 @@ run_strategy = {
 # set other parameters
 run_parameters = {
     "display": True,
-    "logging": True,
-    "verify": False,
+    "logging": 0,
+    "verify": 1,
     "raw_score_range": (0, 100),
     "out_score_decimals": 0,
     "tiny_value": 10 ** -8,

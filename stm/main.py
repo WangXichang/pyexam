@@ -79,7 +79,6 @@ def runm(
         model_name='shandong',
         df=None,
         cols=(),
-        raw_score_range=(0, 100),
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
         mode_sort_order='d',
@@ -92,6 +91,7 @@ def runm(
         display=True,
         logout=None,
         verify=False,
+        raw_score_range=(0, 100),
         out_score_decimals=0,
         tiny_value=10**-8,
         ):
@@ -244,15 +244,16 @@ def runm(
     if logout:
         stmlogger = get_logger(model_name)
         stm_no = '  No.' + str(id(stmlogger))
-        stmlogger.loginfo_start('model: ' + model_name + stm_no)
         if display:
             stmlogger.logging_consol = True
         stmlogger.logging_file = True
+        stmlogger.loginfo_start('model:' + model_name + stm_no)
     else:
         stmlogger = get_logger('test')
         stm_no = '  No.' + str(id(stmlogger))
         stmlogger.logging_consol = True
         stmlogger.logging_file = False
+        stmlogger.loginfo_start('model:' + model_name + stm_no)
 
     if not check_run_parameters(
             model_name=model_name,
@@ -270,13 +271,14 @@ def runm(
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
             ):
-        stmlogger.loginfo_end(model_name + stm_no + '  fail!')
+        stmlogger.loginfo_end('model:' + model_name + stm_no)
         return None
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     if not reload_stm_modules(stmlogger):
         stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
-        stmlogger.loginfo_end(model_name + stm_no + '  df.colums={} score fields={}'.format(list(df.columns), cols))
+        stmlogger.loginfo_end('model:' + model_name + stm_no +
+                              '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
         return None
 
     model_type = mdsys.Models[model_name].type
@@ -361,8 +363,9 @@ def runm(
                       logger=stmlogger,
                       )
 
-    stmlogger.loginfo_end('{}{} colums={} cols={}  '.
-                          format(model_name, stm_no, list(df.columns), cols)
+    stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
+    stmlogger.loginfo_end('model:{}{} '.
+                          format(model_name, stm_no)
                           )
 
     return result
@@ -394,8 +397,8 @@ def run1(
     m = stm1.PltScore(model_name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
-        raw_score_ratio_tuple=ratio_tuple,
-        out_score_seg_tuple=mdsys.Models[model_name].section,
+        raw_score_ratio=ratio_tuple,
+        out_score_section=mdsys.Models[model_name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -902,13 +905,15 @@ class Logger(object):
         self.logger.handlers = []
 
     def loginfo_start(self, ms=''):
-        first_logger_format = logging.Formatter('='*120 + '\n[%(message)s] start at [%(asctime)s]\n' + '-'*120)
+        first_logger_format = logging.Formatter(
+            '='*120 + '\n[%(message)s] start at [%(asctime)s]\n' + '-'*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)
 
     def loginfo_end(self, ms=''):
-        first_logger_format = logging.Formatter('-'*120 + '\n[%(message)s]  end at [%(asctime)s]\n' + '='*120)
+        first_logger_format = logging.Formatter(
+            '-'*120 + '\n[%(message)s]   end at [%(asctime)s]\n' + '='*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         self.set_handlers(self.logger_format)
