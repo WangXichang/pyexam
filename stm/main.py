@@ -40,38 +40,38 @@ import pandas as pd
 import numbers
 
 from stm import stm1, stm2, models_sys as mdsys, models_ext as mdext
-from stm import main_config
+from stm import main_config as mcfg
 import importlib as pb
-stm_modules = [stm1, stm2, mdsys, mdext, main_config]
+stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
 
 
 def run(model_name=None, df=None, cols=None):
-    pb.reload(main_config)
+    pb.reload(mcfg)
     if model_name is None:
-        model_name = main_config.model_name
-    if (df is None) and (main_config.df is not None):
-        df = main_config.df
-    if (cols is None) and (main_config.cols is not None):
-        cols = main_config.cols
+        model_name = mcfg.model_name
+    if (df is None) and (mcfg.df is not None):
+        df = mcfg.df
+    if (cols is None) and (mcfg.cols is not None):
+        cols = mcfg.cols
     return runm(
         model_name=model_name,
         df=df,
         cols=cols,
-        raw_score_range=main_config.run_parameters['raw_score_range'],
-        mode_ratio_prox=main_config.run_strategy['mode_ratio_prox'],
-        mode_ratio_cumu=main_config.run_strategy['mode_ratio_cumu'],
-        mode_sort_order=main_config.run_strategy['mode_sort_order'],
-        mode_section_point_first=main_config.run_strategy['mode_section_point_first'],
-        mode_section_point_start=main_config.run_strategy['mode_section_point_start'],
-        mode_section_point_last=main_config.run_strategy['mode_section_point_last'],
-        mode_section_degraded=main_config.run_strategy['mode_section_degraded'],
-        mode_section_lost=main_config.run_strategy['mode_section_lost'],
-        mode_score_zero=main_config.run_strategy['mode_score_zero'],
-        display=main_config.run_parameters['display'],
-        logging=main_config.run_parameters['logging'],
-        verify=main_config.run_parameters['verify'],
-        out_score_decimals=main_config.run_parameters['out_score_decimals'],
-        tiny_value=main_config.run_parameters['tiny_value'],
+        raw_score_range=mcfg.run_parameters['raw_score_range'],
+        mode_ratio_prox=mcfg.run_strategy['mode_ratio_prox'],
+        mode_ratio_cumu=mcfg.run_strategy['mode_ratio_cumu'],
+        mode_sort_order=mcfg.run_strategy['mode_sort_order'],
+        mode_section_point_first=mcfg.run_strategy['mode_section_point_first'],
+        mode_section_point_start=mcfg.run_strategy['mode_section_point_start'],
+        mode_section_point_last=mcfg.run_strategy['mode_section_point_last'],
+        mode_section_degraded=mcfg.run_strategy['mode_section_degraded'],
+        mode_section_lost=mcfg.run_strategy['mode_section_lost'],
+        mode_score_zero=mcfg.run_strategy['mode_score_zero'],
+        display=mcfg.run_parameters['display'],
+        logout=mcfg.run_parameters['logging'],
+        verify=mcfg.run_parameters['verify'],
+        out_score_decimals=mcfg.run_parameters['out_score_decimals'],
+        tiny_value=mcfg.run_parameters['tiny_value'],
         )
 
 
@@ -90,7 +90,7 @@ def runm(
         mode_section_lost='real',
         mode_score_zero='real',
         display=True,
-        logging=None,
+        logout=None,
         verify=False,
         out_score_decimals=0,
         tiny_value=10**-8,
@@ -200,46 +200,57 @@ def runm(
                             default= 'real'
 
     :param mode_section_lost: str,
-                           strategy: how to prosess lost section
-                             values: 'real', retain lost, use [-1, -1]
-                                     'zip',  to next section, no [-1, -1] in middle
-                            default= 'real'
+                    strategy: how to prosess lost section
+                      values: 'real', retain lost, use [-1, -1]
+                              'zip',  to next section, no [-1, -1] in middle
+                     default= 'real'
+
+    :param mode_score_zero：str
+                    strategy: how to prosess lost section
+                      values: 'real',   retain real zero percent to map
+                              'after',  transform zero score to min after stm with zero records
+                              'alone',  transform zero alone, move zero score records from df
+                     default= 'real'
 
     :param raw_score_range: tuple,
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
                    default= (0, 100)
 
-    :param out_score_decimals: int, >=0
-                        usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
-                      default= 0, that means out score type is int
-
     :param verify: bool
             usage: use two algorithm to verify result
           default: False, do not verify
+
+    :param display: bool
+             usage: display messages to consol
+           default: True
+
+    :param logout: bool
+             usage: use logging to display messages to consol or write messages to file
+           default: None
+
+    :param out_score_decimals: int, >=0
+                        usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
+                      default= 0, that means out score type is int
 
     :param tiny_value: float
                 usage: control precision or equal
               default: 10**-8
 
-    :param logging: bool
-             usage: use logging to display messages to consol or write messages to file
-           default: None
-
     :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
-    if logging:
+    if logout:
         stmlogger = get_logger(model_name)
-        stm_no = '  No. ' + str(id(stmlogger))
+        stm_no = '  No.' + str(id(stmlogger))
         stmlogger.loginfo_start('model: ' + model_name + stm_no)
-        if main_config.run_parameters['display']:
+        if display:
             stmlogger.logging_consol = True
         stmlogger.logging_file = True
     else:
         stmlogger = get_logger('test')
-        stm_no = '  No. ' + str(id(stmlogger))
+        stm_no = '  No.' + str(id(stmlogger))
         stmlogger.logging_consol = True
         stmlogger.logging_file = False
 

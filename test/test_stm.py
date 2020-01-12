@@ -223,7 +223,7 @@ class TestLvData():
         mr = main.runm(df=data, cols=cols_real,
                        mode_ratio_cumu=cumu,
                        display=False,
-                       logging=True
+                       logout=True
                        )
         # mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
