@@ -59,7 +59,7 @@ import scipy.stats as sts
 from collections import namedtuple
 
 
-def get_section_pdf(
+def get_norm_section_pdf(
                     start=21,
                     end=100,
                     section_num=8,
@@ -139,10 +139,10 @@ MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transfor
 MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900model = get_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
-hn300model = get_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
-zscoremodel = get_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
-tscoremodel = get_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
+hn900model = get_norm_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
+hn300model = get_norm_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
+zscoremodel = get_norm_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
+tscoremodel = get_norm_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 
 
 # model parameters: type,   transform mode, in ['plt', 'ppt', 'tai']
@@ -218,7 +218,7 @@ Models = {
     }
 
 
-# choices = 4 * 2**5 * 3*2 = 768   ## prox, cumu, sort, section_
+# choices = 4 * 2**5 * 3 * 2 * 2 =    ## prox, cumu, sort, section_
 Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
