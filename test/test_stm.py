@@ -299,13 +299,14 @@ class TestShandongData():
         else:
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
-            m = main.run(
+            m = main.runm(
                 model_name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_prox=mode_ratio_prox,
                 mode_ratio_cumu=mode_ratio_cumu,
-                mode_sort_order=mode_sort_order
+                mode_sort_order=mode_sort_order,
+                display=1,
                 )
             self.models_list.append(
                 self.model(name + '_' + _run[0] + '_' + _run[1] + '_' + mode_ratio_prox + '_' + mode_ratio_cumu, m))

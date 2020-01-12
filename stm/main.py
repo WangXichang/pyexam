@@ -232,18 +232,16 @@ def runm(
 
     if logging:
         stmlogger = get_logger(model_name)
-        stmlogger.loginfo_start('model: ' + model_name)
+        stm_no = '  No. ' + str(id(stmlogger))
+        stmlogger.loginfo_start('model: ' + model_name + stm_no)
         if main_config.run_parameters['display']:
             stmlogger.logging_consol = True
         stmlogger.logging_file = True
     else:
         stmlogger = get_logger('test')
+        stm_no = '  No. ' + str(id(stmlogger))
         stmlogger.logging_consol = True
         stmlogger.logging_file = False
-
-    if not reload_stm_modules(stmlogger):
-        stmlogger.loginfo_end('model: ' + model_name)
-        return None
 
     if not check_run_parameters(
             model_name=model_name,
@@ -261,7 +259,13 @@ def runm(
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
             ):
-        stmlogger.loginfo_end('model: ' + model_name)
+        stmlogger.loginfo_end(model_name + stm_no + '  fail!')
+        return None
+    stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
+
+    if not reload_stm_modules(stmlogger):
+        stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
+        stmlogger.loginfo_end(model_name + stm_no + '  df.colums={} score fields={}'.format(list(df.columns), cols))
         return None
 
     model_type = mdsys.Models[model_name].type
@@ -346,7 +350,9 @@ def runm(
                       logger=stmlogger,
                       )
 
-    stmlogger.loginfo_end('model: ' + model_name)
+    stmlogger.loginfo_end('{}{} colums={} cols={}  '.
+                          format(model_name, stm_no, list(df.columns), cols)
+                          )
 
     return result
     # end runm
@@ -646,11 +652,11 @@ def check_run_parameters(
 
 
 def reload_stm_modules(logger=None):
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
-    logger.loginfo('reload modules ...')
+    # if logger is None:
+    #     logger = get_logger('test')
+    #     logger.logging_consol = True
+    #     logger.logging_file = False
+    # logger.loginfo('reload modules ...')
     try:
         for m in stm_modules:
             pb.reload(m)
@@ -793,7 +799,7 @@ def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
         logger.logging_file = False
     if not isinstance(df, pd.DataFrame):
         if isinstance(df, pd.Series):
-            logger.loginfo('warning: df is pandas.Series!')
+            logger.logger.critical('warning: df is pandas.Series!')
             return False
         else:
             logger.loginfo(logger, 'error data: df is not pandas.DataFrame!')
@@ -806,21 +812,23 @@ def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
         return False
     for col in cols:
         if type(col) is not str:
-            logger.loginfo('error col: {} is not str!'.format(col))
+            logger.loginfo('error col: {} is not str!'.format(col), 'error')
             return False
         else:
             if col not in df.columns:
-                logger.loginfo('error col: {} is not in df.columns!'.format(col))
+                logger.loginfo('error col: {} is not in df.columns!'.format(col), 'error')
                 return False
             if not isinstance(df[col][0], numbers.Real):
-                logger.loginfo('type error: column[{}] not Number type!'.format(col))
+                logger.loginfo('type error: column[{}] not Number type!'.format(col), 'error')
                 return False
             _min = df[col].min()
             if _min < min(raw_score_range):
-                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.format(_min, raw_score_range))
+                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
+                               format(_min, raw_score_range))
             _max = df[col].max()
             if _max > max(raw_score_range):
-                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.format(_max, raw_score_range))
+                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
+                               format(_max, raw_score_range))
     return True
 
 
@@ -870,13 +878,16 @@ class Logger(object):
         self.rotating_file_handler = None
         self.set_handlers(self.logger_format)
 
-    def loginfo(self, ms=''):
+    def loginfo(self, ms='', level='info'):
         self.logger.handlers = []
         if self.logging_consol:
             self.logger.addHandler(self.stream_handler)
         if self.logging_file:
             self.logger.addHandler(self.rotating_file_handler)
-        self.logger.info(ms)
+        if level == 'info':
+            self.logger.info(ms)
+        else:
+            self.logger.error(ms)
         self.logger.handlers = []
 
     def loginfo_start(self, ms=''):
