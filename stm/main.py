@@ -66,8 +66,8 @@ def run(model_name=None, df=None, cols=None):
         mode_section_point_last=mcfg.run_strategy['mode_section_point_last'],
         mode_section_degraded=mcfg.run_strategy['mode_section_degraded'],
         mode_section_lost=mcfg.run_strategy['mode_section_lost'],
-        mode_score_zero=mcfg.run_strategy['mode_score_zero'],
-        display=mcfg.run_parameters['display'],
+        # mode_score_zero=mcfg.run_strategy['mode_score_zero'],
+        # display=mcfg.run_parameters['display'],
         logout=mcfg.run_parameters['logging'],
         verify=mcfg.run_parameters['verify'],
         out_score_decimals=mcfg.run_parameters['out_score_decimals'],
@@ -87,8 +87,7 @@ def runm(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        mode_score_zero='real',
-        display=True,
+        # mode_score_zero='real',
         logout=None,
         verify=False,
         raw_score_range=(0, 100),
@@ -241,19 +240,12 @@ def runm(
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
 
+    stmlogger = get_logger(model_name)
+    stm_no = '  No.' + str(id(stmlogger))
+    stmlogger.logging_consol = True
     if logout:
-        stmlogger = get_logger(model_name)
-        stm_no = '  No.' + str(id(stmlogger))
-        if display:
-            stmlogger.logging_consol = True
         stmlogger.logging_file = True
-        stmlogger.loginfo_start('model:' + model_name + stm_no)
-    else:
-        stmlogger = get_logger('test')
-        stm_no = '  No.' + str(id(stmlogger))
-        stmlogger.logging_consol = True
-        stmlogger.logging_file = False
-        stmlogger.loginfo_start('model:' + model_name + stm_no)
+    stmlogger.loginfo_start('model:' + model_name + stm_no)
 
     if not check_run_parameters(
             model_name=model_name,
@@ -266,7 +258,7 @@ def runm(
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            mode_score_zero=mode_score_zero,
+            # mode_score_zero=mode_score_zero,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
@@ -297,9 +289,8 @@ def runm(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            mode_score_zero=mode_score_zero,    # not implemented in stm1
+            # mode_score_zero=mode_score_zero,    # not implemented in stm1
             out_score_decimals=out_score_decimals,
-            display=display,
             tiny_value=tiny_value,
             logger=stmlogger,
             )
@@ -319,9 +310,8 @@ def runm(
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
                 mode_section_lost=mode_section_lost,
-                mode_score_zero=mode_score_zero,
+                # mode_score_zero=mode_score_zero,
                 out_score_decimals=out_score_decimals,
-                display=display,
                 tiny_value=tiny_value,
                 logger=stmlogger,
                 )
@@ -356,17 +346,14 @@ def runm(
                       mode_section_point_start=mode_section_point_start,
                       mode_section_point_last=mode_section_point_last,
                       mode_section_degraded=mode_section_degraded,
-                      mode_score_zero=mode_score_zero,
+                      # mode_score_zero=mode_score_zero,
                       out_score_decimals=out_score_decimals,
-                      display=display,
                       tiny_value=tiny_value,
                       logger=stmlogger,
                       )
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
-    stmlogger.loginfo_end('model:{}{} '.
-                          format(model_name, stm_no)
-                          )
+    stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
 
     return result
     # end runm
@@ -384,10 +371,9 @@ def run1(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        mode_score_zero='real',
+        # mode_score_zero='real',       # not implemented
         raw_score_range=(0, 100),
         out_score_decimals=0,
-        display=True,
         tiny_value=10 ** -8,
         logger=None,
         ):
@@ -409,9 +395,8 @@ def run1(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        mode_score_zero=mode_score_zero,
+        # mode_score_zero=mode_score_zero,
         out_decimal_digits=out_score_decimals,
-        display=display,
         tiny_value=tiny_value,
         logger=logger,
         )
@@ -436,7 +421,6 @@ def run2(
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
-        display=True,
         tiny_value=10**-8,
         logger=None,
         ):
@@ -497,9 +481,8 @@ def run2(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        mode_score_zero=mode_score_zero,
+        # mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimals,
-        display=display,
         tiny_value=tiny_value,
         logger=logger,
         )
@@ -523,7 +506,7 @@ def run2_para(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        mode_score_zero='real',
+        # mode_score_zero='real',
         out_score_decimal_digits=0,
         display=True,
         logger=None,
@@ -578,7 +561,7 @@ def run2_para(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            mode_score_zero=mode_score_zero,
+            # mode_score_zero=mode_score_zero,
             logger=logger,
             ):
         return None
@@ -600,7 +583,7 @@ def run2_para(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        mode_score_zero=mode_score_zero,
+        # mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimal_digits,
         display=display,
         logger=logger,
@@ -666,11 +649,6 @@ def check_run_parameters(
 
 
 def reload_stm_modules(logger=None):
-    # if logger is None:
-    #     logger = get_logger('test')
-    #     logger.logging_consol = True
-    #     logger.logging_file = False
-    # logger.loginfo('reload modules ...')
     try:
         for m in stm_modules:
             pb.reload(m)
@@ -720,10 +698,6 @@ def check_model_para(
                 model_desc='',
                 logger=None,
                 ):
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
 
     # check type
     if model_type not in ['ppt', 'plt', 'pgt']:

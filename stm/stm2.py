@@ -587,7 +587,6 @@ class ModelAlgorithm:
                       mode_section_lost='real',
                       mode_score_zero='real',
                       out_score_decimals=0,
-                      display=True,
                       tiny_value=10**-8,
                       logger=None,
                       ):

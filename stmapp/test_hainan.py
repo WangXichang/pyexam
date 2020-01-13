@@ -2,7 +2,7 @@
 
 
 from stm import stm1
-from test import test_stm
+from stmapp import test_stm
 
 
 # hainan model problems:

@@ -346,9 +346,6 @@ class PltScore(ScoreTransformModel):
                  ):
         if isinstance(display, bool):
             self.display=display
-        else:
-            self.display=True
-            # raise ValueError
 
         self.out_decimal_digits = out_decimal_digits
 
@@ -1112,7 +1109,7 @@ class PltScore(ScoreTransformModel):
                 break
         _diff_list = [x for x in _diff_list if x[0] != x[1]]
         _out_report_doc += str(_diff_list) + '\n'
-        _out_report_doc += '---'*40
+        _out_report_doc += '---'*40 + '\n'
 
         return _out_report_doc
 

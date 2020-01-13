@@ -6,8 +6,9 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, models_util as mutl, stm1 as stm1, \
+from stm import main, stm1 as stm1, \
     stm2 as stm2, stmlib as slib, models_sys as mdin
+from stmapp import models_util as mutl
 import itertools as itl
 
 # 有关stm测试的问题：
