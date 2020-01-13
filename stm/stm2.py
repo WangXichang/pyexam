@@ -105,7 +105,7 @@ class ModelAlgorithm:
             return Result(False, False, True,
                           -1, -1,
                           1, 1,
-                          99, 999
+                          999, 999
                           )
 
         last_percent = -1
@@ -116,6 +116,15 @@ class ModelAlgorithm:
             this_seg = seg
             if (row_id == _len) or (abs(this_percent - 1) < tiny_value):
                 _bottom = True
+                this_seg_near = True
+                _top = False
+                dist_to_this = 100
+                dist_to_last = 999
+                return Result(this_seg_near, _top, _bottom,
+                              this_seg, last_seg,
+                              float(this_percent), float(last_percent),
+                              float(dist_to_this), float(dist_to_last),
+                              )
             # meet a percent that bigger or at table bottom
             if (this_percent >= dest_ratio) or _bottom:
                 if row_id == 0:
@@ -217,11 +226,17 @@ class ModelAlgorithm:
                     raw_score_sequence,
                     raw_score_percent_sequence,
                     tiny_value)
-
-                # strategy: mode_ratio_prox:
-                # at top and single point
-                if result.top:
+                # print(result)
+                # at bottom, last search for sequence
+                #   set bottom value and avoid to search again
+                if dest_ratio > 1:
+                    _seg = [x for x in raw_score_sequence][-1]
+                    _percent = 1
+                    _bottom = True  # avoid to repeat search
+                # at top, single point for first section
+                elif result.top:
                     _seg, _percent = result.this_seg, result.this_percent
+                # strategy: mode_ratio_prox:
                 # equal to this, prori to mode
                 elif result.dist_to_this < tiny_value:
                     _seg, _percent = result.this_seg, result.this_percent
@@ -246,18 +261,14 @@ class ModelAlgorithm:
                     else:
                         _seg, _percent = result.last_seg, result.last_percent
                 else:
-                    print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
+                    # print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
                     raise ValueError
-            # avoid to repeat search if dest_ratio > 1 last time
-            if dest_ratio > 1:
-                _bottom = True
             section_point_list.append(_seg)
             section_percent_list.append(_percent)
             last_ratio = ratio
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
-        # print(section_percent_list)
         # print(section_point_list)
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
@@ -268,7 +279,7 @@ class ModelAlgorithm:
                 if section_point_list[-1-i] >= 0:
                     if section_point_list[-1-i] != _last_value:
                         section_point_list[-1-i] = _last_value
-                        break
+                    break
                 i += 1
 
         # step-4: make section
@@ -376,14 +387,11 @@ class ModelAlgorithm:
                 x0 = x1
             else:
                 a, b, y0, x0 = 0, 0, 0, 0
-            plt_formula.update({i+1: ((a, b),
-                                      rsec,
-                                      osec,
-                                      'y = {:.6f} * x {:+10.6f}'.format(a, b),
-                                      '***' if rsec[0] < 0 else
-                                      'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
-                                      )
-                                })
+            a, b = (a, b) if rsec[0] >=0 else (0, 0)
+            formula_str1 = '***' if rsec[0] < 0 else 'y = {:.6f} * x {:+10.6f}'.format(a, b)
+            formula_str2 = '***' if rsec[0] < 0 else \
+                           'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
+            plt_formula.update({i+1: ((a, b), rsec, osec, formula_str1, formula_str2)})
             i += 1
 
         # function of formula
@@ -646,6 +654,7 @@ class ModelAlgorithm:
                     raw_score_min=raw_score_min,
                     tiny_value=tiny_value,
                 )
+                # print(raw_section)
                 out_section = model_section
                 if mode_sort_order in ['a', 'ascending']:
                     out_section = [tuple(reversed(x)) for x in reversed(model_section)]

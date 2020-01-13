@@ -227,6 +227,6 @@ Strategy = {
     'mode_section_point_start':     ('step', 'share'),         # first point except first section
     'mode_section_point_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
     'mode_section_degraded':        ('to_max', 'to_min', 'to_mean'),
-    'mode_section_lost':            ('real', 'zip'),                             # not used in stm1
-    'mode_score_zero':              ('real', 'after', 'alone')    # not used now
+    'mode_section_lost':            ('real', 'zip'),                # not used in stm1
+    # 'mode_score_zero':              ('real', 'after', 'alone')    # not used now
     }

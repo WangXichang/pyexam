@@ -38,6 +38,7 @@ import logging
 from logging import handlers
 import pandas as pd
 import numbers
+from collections import namedtuple
 
 from stm import stm1, stm2, models_sys as mdsys, models_ext as mdext
 from stm import main_config as mcfg
@@ -236,9 +237,11 @@ def runm(
                 usage: control precision or equal
               default: 10**-8
 
-    :return: (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
+    :return: namedtuple(success: bool, result: (model) or None)
+    (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
              (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
     """
+    result = namedtuple('Result', ['ok', 'm1', 'm2'])
 
     stmlogger = get_logger(model_name)
     stm_no = '  No.' + str(id(stmlogger))
@@ -264,14 +267,14 @@ def runm(
             logger=stmlogger,
             ):
         stmlogger.loginfo_end('model:' + model_name + stm_no)
-        return None
+        return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     if not reload_stm_modules(stmlogger):
         stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
         stmlogger.loginfo_end('model:' + model_name + stm_no +
                               '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
-        return None
+        return result(False, None, None)
 
     model_type = mdsys.Models[model_name].type
     # model: plt, ppt
@@ -294,7 +297,7 @@ def runm(
             tiny_value=tiny_value,
             logger=stmlogger,
             )
-        result = m1
+        r = result(True, m1, None)
         if verify:
             verify_pass = True
             m2 = run2(
@@ -330,32 +333,33 @@ def runm(
                     verify_pass = False
             if verify_pass:
                 stmlogger.loginfo('verify passed!')
-            result = (m1, m2)
+            r = result(verify_pass, m1, m2)
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
-        result = run2(
-                      model_name=model_name,
-                      df=df,
-                      cols=cols,
-                      raw_score_range=raw_score_range,
-                      mode_ratio_prox=mode_ratio_prox,
-                      mode_ratio_cumu=mode_ratio_cumu,
-                      mode_sort_order=mode_sort_order,
-                      mode_section_point_first=mode_section_point_first,
-                      mode_section_point_start=mode_section_point_start,
-                      mode_section_point_last=mode_section_point_last,
-                      mode_section_degraded=mode_section_degraded,
-                      # mode_score_zero=mode_score_zero,
-                      out_score_decimals=out_score_decimals,
-                      tiny_value=tiny_value,
-                      logger=stmlogger,
-                      )
+        r2 = run2(
+                  model_name=model_name,
+                  df=df,
+                  cols=cols,
+                  raw_score_range=raw_score_range,
+                  mode_ratio_prox=mode_ratio_prox,
+                  mode_ratio_cumu=mode_ratio_cumu,
+                  mode_sort_order=mode_sort_order,
+                  mode_section_point_first=mode_section_point_first,
+                  mode_section_point_start=mode_section_point_start,
+                  mode_section_point_last=mode_section_point_last,
+                  mode_section_degraded=mode_section_degraded,
+                  # mode_score_zero=mode_score_zero,
+                  out_score_decimals=out_score_decimals,
+                  tiny_value=tiny_value,
+                  logger=stmlogger,
+                  )
+        r = result(True, r2, None)
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
 
-    return result
+    return r
     # end runm
 
 
@@ -417,7 +421,7 @@ def run2(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        mode_score_zero='real',
+        # mode_score_zero='real',
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
@@ -603,7 +607,7 @@ def check_run_parameters(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='real',
-        mode_score_zero='real',
+        # mode_score_zero='real',
         raw_score_range=(0, 100),
         out_score_decimal_digits=0,
         logger=None,
@@ -637,7 +641,7 @@ def check_run_parameters(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            mode_score_zero=mode_score_zero,
+            # mode_score_zero=mode_score_zero,
             logger=logger,
     ):
         return False
@@ -750,7 +754,7 @@ def check_strategy(
         mode_section_point_last='real',
         mode_section_degraded='map_to_max',
         mode_section_lost='ignore',
-        mode_score_zero='real',
+        # mode_score_zero='real',
         logger=None
         ):
 
@@ -767,7 +771,7 @@ def check_strategy(
           'mode_section_point_last': mode_section_point_last,
           'mode_section_degraded': mode_section_degraded,
           'mode_section_lost': mode_section_lost,
-          'mode_score_zero': mode_score_zero,
+          # 'mode_score_zero': mode_score_zero,
           }
     for sk in st.keys():
         if sk in mdsys.Strategy.keys():

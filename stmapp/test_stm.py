@@ -6,8 +6,8 @@ import importlib as pb
 import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
-from stm import main, stm1 as stm1, \
-    stm2 as stm2, stmlib as slib, models_sys as mdin
+from stm import main, stm1, stm2, \
+     stmlib as slib, models_sys as mdin
 from stmapp import models_util as mutl
 import itertools as itl
 
@@ -65,23 +65,22 @@ import itertools as itl
 #
 
 def test_all_strategy(df=None, model_name='shandong'):
-    pb.reload(stm2)
-    pb.reload(stm1)
+    # pb.reload(stm2)
+    # pb.reload(stm1)
     if df is None:
         df = mutl.TestData(mean=45, std=12, size=1000)()
-    ss = [main.mdin.Strategy[s] for s in main.mdin.Strategy.keys()]
-    sn = [s for s in main.mdin.Strategy.keys()]
+    print([k for k in mdin.Strategy.keys()])
+    ss = [mdin.Strategy[s] for s in mdin.Strategy.keys()]
+    sn = [s for s in mdin.Strategy.keys()]
     st = list(itl.product(*ss))
     result = ntp('r', ['df1', 'df2', 'map1', 'map2'])
     r = dict()
     for num, ti in enumerate(st):
+        verify = True
+        if num != 18:
+            continue
         print(num, ti)
-        disp = False
-        # if num != 648:
-        #     continue
-        # else:
-        #     disp = True
-        r1 = main.run(df=df, cols=['km1'],
+        r = main.runm(df=df, cols=['km1'],
                       model_name=model_name,
                       mode_ratio_prox=ti[0],
                       mode_ratio_cumu=ti[1],
@@ -91,33 +90,11 @@ def test_all_strategy(df=None, model_name='shandong'):
                       mode_section_point_last=ti[5],
                       mode_section_degraded=ti[6],
                       mode_section_lost=ti[7],
-                      display=disp
+                      verify=verify,
                       )
-        r2 = main.run2(
-            df=df,
-            cols=['km1'],
-            model_name=model_name,
-            mode_ratio_prox=ti[0],
-            mode_ratio_cumu=ti[1],
-            mode_sort_order=ti[2],
-            mode_section_point_first=ti[3],
-            mode_section_point_start=ti[4],
-            mode_section_point_last=ti[5],
-            mode_section_degraded=ti[6],
-            mode_section_lost=ti[7],
-            display=disp
-        )
-        comp = (r1.outdf.km1_ts == r2.df.km1_ts)
-        cmplist = [i for i, x in enumerate(comp) if not x]
-        er1 = r1.outdf.loc[cmplist]
-        er2 = r2.df.loc[cmplist]
-        rt = result(r1.outdf, r2.df, r1.map_table, r2.map_table)
-        r.update({num: r1.result_dict})
-        if not all(comp):
-            print('test fail: No={}, {}'.format(num, ti))
-            print(er1.head(), '\n', er2.head())
-            return r1, r2
-        print('='*120)
+        if verify:
+            if not r[0]:
+                return r
     return r
 
 

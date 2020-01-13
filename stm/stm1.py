@@ -368,7 +368,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_section_point_last'] = mode_section_point_last
         self.strategy_dict['mode_section_degraded'] = mode_section_degraded
         self.strategy_dict['mode_section_lost'] = mode_section_lost
-        self.strategy_dict['mode_score_zero'] = mode_score_zero
+        # self.strategy_dict['mode_score_zero'] = mode_score_zero
 
         self.tiny_value = tiny_value
         self.logger = logger
