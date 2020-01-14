@@ -27,9 +27,10 @@ run_strategy = {
 
 # set parameters
 run_parameters = {
-    "logging": True,
+    "logdisp": True,
+    "logfile": True,
     "verify": False,
     "raw_score_range": (0, 100),
     "out_score_decimals": 0,
-    "tiny_value": 10 ** -10,
+    "tiny_value": 10 ** -12,
     }
