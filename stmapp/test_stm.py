@@ -199,19 +199,20 @@ class TestLvData():
     def test_stm_with_lvdata(self, name, data=None, cols=None, cumu=None):
         cols_real = [f for f in cols if f in data.columns]
         print('test {}: {} ... '.format(name, cols))
-        mr = main.runm(df=data, cols=cols_real,
+        mr = main.runm(df=data,
+                       cols=cols_real,
                        mode_ratio_cumu=cumu,
-                       # display=False,
-                       logout=True
+                       logdisp=True,
+                       logfile=False
                        )
         # mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
         for col in cols_real:
-            comp = all(mr.outdf[col+'_ts'] == mr.outdf[col+'_stand'])
-            result.append([col, comp])
-            if not comp:
-                print('not equal: name={}, col={}'.format(name, col))
-        # self.result = result
+            if mr.ok:
+                comp = all(mr[1].outdf[col+'_ts'] == mr[1].outdf[col+'_stand'])
+                result.append([col, comp])
+                if not comp:
+                    print('not equal: name={}, col={}'.format(name, col))
         self.result_model = mr
         return result
 
