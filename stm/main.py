@@ -48,6 +48,8 @@ stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
 
 def run(model_name=None, df=None, cols=None):
     pb.reload(mcfg)
+    if Checker.check_merge_models():
+        return False, None, None
     if model_name is None:
         model_name = mcfg.model_name
     if (df is None) and (mcfg.df is not None):
@@ -67,9 +69,8 @@ def run(model_name=None, df=None, cols=None):
         mode_section_point_last=mcfg.run_strategy['mode_section_point_last'],
         mode_section_degraded=mcfg.run_strategy['mode_section_degraded'],
         mode_section_lost=mcfg.run_strategy['mode_section_lost'],
-        # mode_score_zero=mcfg.run_strategy['mode_score_zero'],
-        # display=mcfg.run_parameters['display'],
-        logout=mcfg.run_parameters['logging'],
+        logdisp=mcfg.run_parameters['logdisp'],
+        logfile=mcfg.run_parameters['logfile'],
         verify=mcfg.run_parameters['verify'],
         out_score_decimals=mcfg.run_parameters['out_score_decimals'],
         tiny_value=mcfg.run_parameters['tiny_value'],
@@ -88,8 +89,8 @@ def runm(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        # mode_score_zero='real',
-        logout=None,
+        logdisp=None,
+        logfile=None,
         verify=False,
         raw_score_range=(0, 100),
         out_score_decimals=0,
@@ -221,11 +222,11 @@ def runm(
             usage: use two algorithm to verify result
           default: False, do not verify
 
-    :param display: bool
+    :param logdisp: bool
              usage: display messages to consol
            default: True
 
-    :param logout: bool
+    :param logfile: bool
              usage: use logging to display messages to consol or write messages to file
            default: None
 
@@ -245,12 +246,13 @@ def runm(
 
     stmlogger = get_logger(model_name)
     stm_no = '  No.' + str(id(stmlogger))
-    stmlogger.logging_consol = True
-    if logout:
+    if logdisp:
+        stmlogger.logging_consol = True
+    if logfile:
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
-    if not check_run_parameters(
+    if not Checker.check_run_parameters(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -270,12 +272,13 @@ def runm(
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    if not reload_stm_modules(stmlogger):
+    if not Checker.reload_stm_modules(stmlogger):
         stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
         stmlogger.loginfo_end('model:' + model_name + stm_no +
                               '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
         return result(False, None, None)
 
+    mdsys.Models.update(mdext.Models)
     model_type = mdsys.Models[model_name].type
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
@@ -450,7 +453,7 @@ def run2(
     :return:
     """
 
-    if not check_run_parameters(
+    if not Checker.check_run_parameters(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -512,7 +515,7 @@ def run2_para(
         mode_section_lost='real',
         # mode_score_zero='real',
         out_score_decimal_digits=0,
-        display=True,
+        # display=True,
         logger=None,
         ):
     """
@@ -538,7 +541,7 @@ def run2_para(
     :return: result(df, map_table),     df contains out score field [col+'_ts'] for con in cols
     """
 
-    if not check_model_para(
+    if not Checker.check_model_para(
         model_type=model_type,
         model_ratio=model_ratio_pdf,
         model_section=model_section,
@@ -547,7 +550,7 @@ def run2_para(
         ):
         return None
 
-    if not check_df_cols(
+    if not Checker.check_df_cols(
         df=df,
         cols=cols,
         raw_score_range=(raw_score_min, raw_score_max),
@@ -556,7 +559,7 @@ def run2_para(
         return None
 
     # check strategy
-    if not check_strategy(
+    if not Checker.check_strategy(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -589,239 +592,244 @@ def run2_para(
         mode_section_lost=mode_section_lost,
         # mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimal_digits,
-        display=display,
+        # display=display,
         logger=logger,
         )
     # end--run2
 
 
-def check_run_parameters(
-        model_name='shandong',
-        df=None,
-        cols=None,
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='d',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
-        mode_section_lost='real',
-        # mode_score_zero='real',
-        raw_score_range=(0, 100),
-        out_score_decimal_digits=0,
-        logger=None,
-        ):
+class Checker:
 
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
+    @staticmethod
+    def check_run_parameters(
+            model_name='shandong',
+            df=None,
+            cols=None,
+            mode_ratio_prox='upper_min',
+            mode_ratio_cumu='no',
+            mode_sort_order='d',
+            mode_section_point_first='real',
+            mode_section_point_start='step',
+            mode_section_point_last='real',
+            mode_section_degraded='map_to_max',
+            mode_section_lost='real',
+            # mode_score_zero='real',
+            raw_score_range=(0, 100),
+            out_score_decimal_digits=0,
+            logger=None,
+            ):
 
-    if not check_merge_models():
-        logger.loginfo('error: check models fail!')
-        return False
+        if logger is None:
+            logger = get_logger('test')
+            logger.logging_consol = True
+            logger.logging_file = False
 
-    # check model name
-    if model_name.lower() not in mdsys.Models.keys():
-        logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
-        return False
-
-    # check input data: DataFrame
-    if not check_df_cols(df, cols, raw_score_range, logger):
-        return False
-
-    # check strategy
-    if not check_strategy(
-            mode_ratio_prox=mode_ratio_prox,
-            mode_ratio_cumu=mode_ratio_cumu,
-            mode_sort_order=mode_sort_order,
-            mode_section_point_first=mode_section_point_first,
-            mode_section_point_start=mode_section_point_start,
-            mode_section_point_last=mode_section_point_last,
-            mode_section_degraded=mode_section_degraded,
-            mode_section_lost=mode_section_lost,
-            # mode_score_zero=mode_score_zero,
-            logger=logger,
-    ):
-        return False
-
-    if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
-        logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
-
-    return True
-
-
-def reload_stm_modules(logger=None):
-    try:
-        for m in stm_modules:
-            pb.reload(m)
-    except:
-        return False
-    return True
-
-
-def check_merge_models(logger=None):
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
-    # check model in models_in
-    for mk in mdsys.Models.keys():
-        if not check_model(model_name=mk, model_lib=mdsys.Models):
-            logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
+        if not Checker.check_merge_models():
+            logger.loginfo('error: check models fail!')
             return False
-    # add Models_ext to Models
-    for mk in mdext.Models.keys():
-        if not check_model(model_name=mk, model_lib=mdext.Models):
-            logger.loginfo('error model: model={} in models_ext.Models!'.format(mk))
+
+        # check model name
+        if model_name.lower() not in mdsys.Models.keys():
+            logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
             return False
-        mdsys.Models.update({mk: mdext.Models[mk]})
-    return True
 
+        # check input data: DataFrame
+        if not Checker.check_df_cols(df, cols, raw_score_range, logger):
+            return False
 
-def check_model(model_name, model_lib=mdsys.Models, logger=None):
-    if model_name in model_lib.keys():
-        if not check_model_para(
-            model_lib[model_name].type,
-            model_lib[model_name].ratio,
-            model_lib[model_name].section,
-            model_lib[model_name].desc,
-            logger=logger
+        # check strategy
+        if not Checker.check_strategy(
+                mode_ratio_prox=mode_ratio_prox,
+                mode_ratio_cumu=mode_ratio_cumu,
+                mode_sort_order=mode_sort_order,
+                mode_section_point_first=mode_section_point_first,
+                mode_section_point_start=mode_section_point_start,
+                mode_section_point_last=mode_section_point_last,
+                mode_section_degraded=mode_section_degraded,
+                mode_section_lost=mode_section_lost,
+                # mode_score_zero=mode_score_zero,
+                logger=logger,
         ):
             return False
-    else:
-        return False
-    return True
 
+        if out_score_decimal_digits < 0 or out_score_decimal_digits > 10:
+            logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
-def check_model_para(
-                model_type='plt',
-                model_ratio=None,
-                model_section=None,
-                model_desc='',
-                logger=None,
-                ):
+        return True
 
-    # check type
-    if model_type not in ['ppt', 'plt', 'pgt']:
-        logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
-        return False
-
-    # check ratio
-    if model_type == 'pgt':
-        if len(model_ratio) == 0:
-            logger.loginfo('error ratio: length == 0 in model={}!'.format(model_type))
+    @staticmethod
+    def reload_stm_modules(logger=None):
+        try:
+            for m in stm_modules:
+                pb.reload(m)
+        except:
             return False
-        if model_ratio[0] < 0 or model_ratio[0] > 100:
-            logger.loginfo('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
-            return False
-    else:
-        if len(model_ratio) != len(model_section):
-            logger.loginfo('error length: the length of ratio group is not same as section group length !')
-            return False
-        if abs(sum(model_ratio) - 100) > 10**-12:
-            logger.loginfo('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
-            return False
+        return True
 
-    # check section
-    for s in model_section:
-        if len(s) > 2:
-            logger.loginfo('error section: section must have 2 endpoints, real value: {}'.format(s))
-            return False
-        if s[0] < s[1]:
-            logger.loginfo('error order: section endpoint order must be from large to small, '
-                  'there: p1({}) < p2({})'.format(s[0], s[1]))
-            return False
-    if model_type in ['ppt', 'pgt']:
-        if not all([x == y for x, y in model_section]):
-            logger.loginfo('error section: ppt section, two endpoints must be same value!')
-            return False
+    @staticmethod
+    def check_merge_models(logger=None):
+        if logger is None:
+            logger = get_logger('test')
+            logger.logging_consol = True
+            logger.logging_file = True
+        # check model in models_in
+        for mk in mdsys.Models.keys():
+            if not Checker.check_model(model_name=mk, model_lib=mdsys.Models):
+                logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
+                return False
+        # add Models_ext to Models
+        for mk in mdext.Models.keys():
+            if not Checker.check_model(model_name=mk, model_lib=mdext.Models):
+                logger.loginfo('error model: model={} in models_ext.Models!'.format(mk))
+                return False
+            mdsys.Models.update({mk: mdext.Models[mk]})
+        # print(mdsys.Models.keys())
+        # warning: update no effect to mdsys.Models in runm
+        return True
 
-    # check desc
-    if not isinstance(model_desc, str):
-        logger.loginfo('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
-
-    return True
-
-
-def check_strategy(
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='descending',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
-        mode_section_degraded='map_to_max',
-        mode_section_lost='ignore',
-        # mode_score_zero='real',
-        logger=None
-        ):
-
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
-
-    st = {'mode_ratio_prox': mode_ratio_prox,
-          'mode_ratio_cumu':mode_ratio_cumu,
-          'mode_sort_order': mode_sort_order,
-          'mode_section_point_first': mode_section_point_first,
-          'mode_section_point_start': mode_section_point_start,
-          'mode_section_point_last': mode_section_point_last,
-          'mode_section_degraded': mode_section_degraded,
-          'mode_section_lost': mode_section_lost,
-          # 'mode_score_zero': mode_score_zero,
-          }
-    for sk in st.keys():
-        if sk in mdsys.Strategy.keys():
-            if not st[sk] in mdsys.Strategy[sk]:
-                logger.loginfo('error mode: {}={} not in {}'.format(sk, st[sk], mdsys.Strategy[sk]))
+    @staticmethod
+    def check_model(model_name, model_lib=mdsys.Models, logger=None):
+        if model_name in model_lib.keys():
+            if not Checker.check_model_para(
+                model_lib[model_name].type,
+                model_lib[model_name].ratio,
+                model_lib[model_name].section,
+                model_lib[model_name].desc,
+                logger=logger
+            ):
                 return False
         else:
-            logger.loginfo('error mode: {} is not in Strategy-dict!'.format(sk))
             return False
-    return True
+        return True
 
+    @staticmethod
+    def check_model_para(
+                    model_type='plt',
+                    model_ratio=None,
+                    model_section=None,
+                    model_desc='',
+                    logger=None,
+                    ):
 
-def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
-    if logger is None:
-        logger = get_logger('test')
-        logger.logging_consol = True
-        logger.logging_file = False
-    if not isinstance(df, pd.DataFrame):
-        if isinstance(df, pd.Series):
-            logger.logger.critical('warning: df is pandas.Series!')
+        # check type
+        if model_type not in ['ppt', 'plt', 'pgt']:
+            logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
             return False
-        else:
-            logger.loginfo(logger, 'error data: df is not pandas.DataFrame!')
-            return False
-    if len(df) == 0:
-        logger.loginfo('error data: df is empty!')
-        return False
-    if type(cols) not in (list, tuple):
-        logger.loginfo('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
-        return False
-    for col in cols:
-        if type(col) is not str:
-            logger.loginfo('error col: {} is not str!'.format(col), 'error')
-            return False
-        else:
-            if col not in df.columns:
-                logger.loginfo('error col: {} is not in df.columns!'.format(col), 'error')
+
+        # check ratio
+        if model_type == 'pgt':
+            if len(model_ratio) == 0:
+                logger.loginfo('error ratio: length == 0 in model={}!'.format(model_type))
                 return False
-            if not isinstance(df[col][0], numbers.Real):
-                logger.loginfo('type error: column[{}] not Number type!'.format(col), 'error')
+            if model_ratio[0] < 0 or model_ratio[0] > 100:
+                logger.loginfo('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
                 return False
-            _min = df[col].min()
-            if _min < min(raw_score_range):
-                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
-                               format(_min, raw_score_range))
-            _max = df[col].max()
-            if _max > max(raw_score_range):
-                logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
-                               format(_max, raw_score_range))
-    return True
+        else:
+            if len(model_ratio) != len(model_section):
+                logger.loginfo('error length: the length of ratio group is not same as section group length !')
+                return False
+            if abs(sum(model_ratio) - 100) > 10**-12:
+                logger.loginfo('error ratio: the sum of ratio must be 100, real sum={}!'.format(sum(model_ratio)))
+                return False
+
+        # check section
+        for s in model_section:
+            if len(s) > 2:
+                logger.loginfo('error section: section must have 2 endpoints, real value: {}'.format(s))
+                return False
+            if s[0] < s[1]:
+                logger.loginfo('error order: section endpoint order must be from large to small, '
+                      'there: p1({}) < p2({})'.format(s[0], s[1]))
+                return False
+        if model_type in ['ppt', 'pgt']:
+            if not all([x == y for x, y in model_section]):
+                logger.loginfo('error section: ppt section, two endpoints must be same value!')
+                return False
+
+        # check desc
+        if not isinstance(model_desc, str):
+            logger.loginfo('error desc: model desc(ription) must be str, but real type={}'.format(type(model_desc)))
+
+        return True
+
+    @staticmethod
+    def check_strategy(
+            mode_ratio_prox='upper_min',
+            mode_ratio_cumu='no',
+            mode_sort_order='descending',
+            mode_section_point_first='real',
+            mode_section_point_start='step',
+            mode_section_point_last='real',
+            mode_section_degraded='map_to_max',
+            mode_section_lost='ignore',
+            # mode_score_zero='real',
+            logger=None
+            ):
+
+        if logger is None:
+            logger = get_logger('test')
+            logger.logging_consol = True
+            logger.logging_file = False
+
+        st = {'mode_ratio_prox': mode_ratio_prox,
+              'mode_ratio_cumu':mode_ratio_cumu,
+              'mode_sort_order': mode_sort_order,
+              'mode_section_point_first': mode_section_point_first,
+              'mode_section_point_start': mode_section_point_start,
+              'mode_section_point_last': mode_section_point_last,
+              'mode_section_degraded': mode_section_degraded,
+              'mode_section_lost': mode_section_lost,
+              # 'mode_score_zero': mode_score_zero,
+              }
+        for sk in st.keys():
+            if sk in mdsys.Strategy.keys():
+                if not st[sk] in mdsys.Strategy[sk]:
+                    logger.loginfo('error mode: {}={} not in {}'.format(sk, st[sk], mdsys.Strategy[sk]))
+                    return False
+            else:
+                logger.loginfo('error mode: {} is not in Strategy-dict!'.format(sk))
+                return False
+        return True
+
+    @staticmethod
+    def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
+        if logger is None:
+            logger = get_logger('test')
+            logger.logging_consol = True
+            logger.logging_file = False
+        if not isinstance(df, pd.DataFrame):
+            if isinstance(df, pd.Series):
+                logger.logger.critical('warning: df is pandas.Series!')
+                return False
+            else:
+                logger.loginfo(logger, 'error data: df is not pandas.DataFrame!')
+                return False
+        if len(df) == 0:
+            logger.loginfo('error data: df is empty!')
+            return False
+        if type(cols) not in (list, tuple):
+            logger.loginfo('error type: cols must be list or tuple, real type is {}!'.format(type(cols)))
+            return False
+        for col in cols:
+            if type(col) is not str:
+                logger.loginfo('error col: {} is not str!'.format(col), 'error')
+                return False
+            else:
+                if col not in df.columns:
+                    logger.loginfo('error col: {} is not in df.columns!'.format(col), 'error')
+                    return False
+                if not isinstance(df[col][0], numbers.Real):
+                    logger.loginfo('type error: column[{}] not Number type!'.format(col), 'error')
+                    return False
+                _min = df[col].min()
+                if _min < min(raw_score_range):
+                    logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
+                                   format(_min, raw_score_range))
+                _max = df[col].max()
+                if _max > max(raw_score_range):
+                    logger.loginfo('warning: some scores in col={} not in raw score range:{}'.
+                                   format(_max, raw_score_range))
+        return True
 
 
 def get_logger(model_name):
@@ -848,8 +856,8 @@ class Logger(object):
                  ):
 
         # stat
-        self.logging_file = True
-        self.logging_consol = True
+        self.logging_file = False
+        self.logging_consol = False
 
         # para
         self.filename = filename

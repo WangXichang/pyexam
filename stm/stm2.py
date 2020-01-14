@@ -101,12 +101,12 @@ class ModelAlgorithm:
                              'this_percent', 'last_percent',
                              'dist_to_this', 'dist_to_last'])
         # too big dest_ratio
-        if dest_ratio > 1:
-            return Result(False, False, True,
-                          -1, -1,
-                          1, 1,
-                          999, 999
-                          )
+        # if dest_ratio > 1+tiny_value:
+        #     return Result(False, False, True,
+        #                   -200, -200,
+        #                   1, 1,
+        #                   999, 999
+        #                   )
 
         last_percent = -1
         last_seg = -1
@@ -114,11 +114,11 @@ class ModelAlgorithm:
         for row_id, (seg, percent) in enumerate(zip(seg_seq, ratio_seq)):
             this_percent = percent
             this_seg = seg
-            if (row_id == _len) or (abs(this_percent - 1) < tiny_value):
+            if row_id == (_len-1):
                 _bottom = True
                 this_seg_near = True
                 _top = False
-                dist_to_this = 100
+                dist_to_this = 900
                 dist_to_last = 999
                 return Result(this_seg_near, _top, _bottom,
                               this_seg, last_seg,
@@ -126,7 +126,7 @@ class ModelAlgorithm:
                               float(dist_to_this), float(dist_to_last),
                               )
             # meet a percent that bigger or at table bottom
-            if (this_percent >= dest_ratio) or _bottom:
+            if this_percent >= dest_ratio:
                 if row_id == 0:
                     _top = True
                 dist_to_this = abs(float(this_percent - dest_ratio))
@@ -144,7 +144,7 @@ class ModelAlgorithm:
                               )
             last_percent = this_percent
             last_seg = this_seg
-        return Result(False, False, False, -1, -1, -1, -1, 999, 999)
+        return Result(False, False, False, -11, -11, -1, -1, 999, 999)
 
     @classmethod
     def get_raw_section(cls,
@@ -407,7 +407,7 @@ class ModelAlgorithm:
         return Result(formula, plt_formula)
 
     @classmethod
-    @slib.timer_wrapper
+    # @slib.timer_wrapper
     def get_ppt_formula(cls,
                         raw_score_points,
                         raw_score_percent,
@@ -416,8 +416,8 @@ class ModelAlgorithm:
                         mode_ratio_prox='upper_min',
                         mode_ratio_cumu='no',
                         mode_sort_order='d',
-                        mode_raw_score_max='map_by_ratio',
-                        mode_raw_score_min='map_by_ratio',
+                        mode_raw_score_max='real',  # map by real ratio
+                        mode_raw_score_min='real',  # map by real ratio
                         out_score_decimal=0,
                         tiny_value=10**-12
                         ):
@@ -444,12 +444,12 @@ class ModelAlgorithm:
                     dest_ratio = raw_ratio
             dest_ratio_list.append(dest_ratio)
             if rscore == _rmax:
-                if mode_raw_score_max == 'to_max':
+                if mode_raw_score_max == 'defined':
                     map_score.update({rscore: max(out_score_points)})
                     real_ratio_list.append(0)
                     continue
             if rscore == _rmin:
-                if mode_raw_score_min == 'to_min':
+                if mode_raw_score_min == 'defined':
                     map_score.update({rscore: min(out_score_points)})
                     real_ratio_list.append(1)
                     continue
@@ -466,7 +466,7 @@ class ModelAlgorithm:
             # choose this_seg if near equal to this or upper_min
             if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
                 _seg, _percent = result.this_seg, result.this_percent
-            # choose last if last is near or equal
+            # choose last_seg if last is near or equal
             elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
                 if not result.top:
                     _seg, _percent = result.last_seg, result.last_percent
@@ -494,10 +494,10 @@ class ModelAlgorithm:
                 return slib.round45r(map_score[x], out_score_decimal)
             else:
                 # set None to raise ValueError in score calculating to avoid create misunderstand
-                return None
+                return -2000
 
         # print(dest_ratio, '\n', real_ratio_list)
-        Result = namedtuple('Result', ('formula', 'formula_dict', 'dest_ratio', 'real_ratio', 'map_table'))
+        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'map_table'))
         return Result(formula, map_score, dest_ratio_list, real_ratio_list,
                       list(zip(out_score_points, out_score_ratio_cumu)))
 
@@ -569,7 +569,7 @@ class ModelAlgorithm:
             if x in map_dict.keys():
                 return map_dict[x]
             else:
-                return -1
+                return -3000
 
         Result = namedtuple('Result', ('formula', 'section', 'map_dict', 'grade_step', 'top_level'))
         return Result(formula, section_list, map_dict, grade_step, top_level_score)
@@ -603,8 +603,11 @@ class ModelAlgorithm:
             cols = list(cols)
         elif isinstance(cols, str):
             cols = [cols]
-        if mode_score_zero == 'alone':
-            raw_score_min = 1
+
+        if logger:
+            logger.loginfo('stm2 start ...')
+
+        # create seg_table
         seg = slib.run_seg(
               df=df,
               cols=cols,
@@ -614,28 +617,18 @@ class ModelAlgorithm:
               segstep=raw_score_step,
               display=False,
               )
-        if logger:
-            logger.loginfo('stm2 start ...')
         map_table = seg.outdf
-        # print(map_table.head())
         section_num = len(model_ratio_pdf)
         if mode_sort_order in ['d', 'descending']:
             cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(section_num)]
         else:
             _ratio_list = model_ratio_pdf[::-1]
             cumu_ratio = [sum(_ratio_list[0:i + 1]) / 100 for i in range(section_num)]
-        # print(cumu_ratio)
-        df_zero = None
+            model_section = [tuple(reversed(x)) for x in reversed(model_section)]
+
+        # start transform
         result = None
         for col in cols:
-            # preprocess score==zero
-            if mode_score_zero == 'alone':
-                df_zero = df.loc[df[col] == 0]
-                df_zero.loc[:, col+'_ts'] = min(min(model_section))
-                df = df.drop(df.loc[df[col] == 0].index)
-                # print(df.describe())
-
-            # start transform
             if logger:
                 logger.loginfo('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
@@ -654,13 +647,9 @@ class ModelAlgorithm:
                     raw_score_min=raw_score_min,
                     tiny_value=tiny_value,
                 )
-                # print(raw_section)
-                out_section = model_section
-                if mode_sort_order in ['a', 'ascending']:
-                    out_section = [tuple(reversed(x)) for x in reversed(model_section)]
                 result = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
-                    out_section=out_section,
+                    out_section=model_section,
                     mode_section_degraded=mode_section_degraded,
                     mode_sort_order=mode_sort_order,
                     out_score_decimal=out_score_decimals
@@ -675,7 +664,7 @@ class ModelAlgorithm:
                                             raw_section.dest_ratio,
                                             raw_section.section,
                                             raw_section.real_ratio,
-                                            out_section
+                                            model_section
                                             )):
                         logger.loginfo(
                             '   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
@@ -694,8 +683,6 @@ class ModelAlgorithm:
                         logger.loginfo('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
                     # logger.loginfo('='*100)
             elif model_type.lower() == 'ppt':
-                if mode_sort_order in ['a', 'ascending']:
-                    model_section = reversed(model_section)
                 result = ModelAlgorithm.get_ppt_formula(
                     raw_score_points=map_table.seg,
                     raw_score_percent=map_table[col+'_percent'],
@@ -711,7 +698,7 @@ class ModelAlgorithm:
                 formula = result.formula
                 if logger:
                     logger.loginfo(
-                        ' model table: [{0}] \n'
+                        ' model table: [{0}]\n'
                         'real percent: [{1}]\n'
                         '   get ratio: [{2}]\n'
                         '   raw score: [{3}]\n'
@@ -728,7 +715,6 @@ class ModelAlgorithm:
                                    for x in map_table.seg]),
                         ))
             elif model_type.lower() == 'pgt':
-                # print(col, type(map_table))
                 result = ModelAlgorithm.get_pgt_formula(
                     df=df,
                     col=col,
@@ -749,12 +735,6 @@ class ModelAlgorithm:
                 raise ValueError
             map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
             df[col+'_ts'] = df[col].apply(formula)
-
-            # process score==zero
-            if mode_score_zero == 'alone':
-                df = pd.concat((df, df_zero))
-            elif mode_score_zero == 'after':
-                df.loc[df[col] == 0, col + '_ts'] = min(min(model_section))
 
             if out_score_decimals == 0:
                 df = df.astype({col+'_ts': int})
