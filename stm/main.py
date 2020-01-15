@@ -46,7 +46,7 @@ import importlib as pb
 stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
 
 
-def run(model_name=None, df=None, cols=None):
+def run(model_name=None, df=None, cols=None, task_name=None):
     pb.reload(mcfg)
     if Checker.check_merge_models():
         return False, None, None
@@ -57,6 +57,7 @@ def run(model_name=None, df=None, cols=None):
     if (cols is None) and (mcfg.cols is not None):
         cols = mcfg.cols
     return runm(
+        task=task_name,
         model_name=model_name,
         df=df,
         cols=cols,
@@ -78,6 +79,7 @@ def run(model_name=None, df=None, cols=None):
 
 
 def runm(
+        task=None,
         model_name='shandong',
         df=None,
         cols=(),
@@ -244,7 +246,7 @@ def runm(
     """
     result = namedtuple('Result', ['ok', 'm1', 'm2'])
 
-    stmlogger = get_logger(model_name)
+    stmlogger = get_logger(model_name, task=task)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
         stmlogger.logging_consol = True
@@ -612,7 +614,7 @@ class Checker:
             ):
 
         if logger is None:
-            logger = get_logger('test')
+            logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = False
 
@@ -660,7 +662,7 @@ class Checker:
     @staticmethod
     def check_merge_models(logger=None):
         if logger is None:
-            logger = get_logger('test')
+            logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = True
         # check model in models_in
@@ -704,7 +706,7 @@ class Checker:
 
         # set logger
         if logger is None:
-            logger = get_logger('test')
+            logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = False
 
@@ -763,7 +765,7 @@ class Checker:
             ):
 
         if logger is None:
-            logger = get_logger('test')
+            logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = False
 
@@ -790,7 +792,7 @@ class Checker:
     @staticmethod
     def check_df_cols(df=None, cols=None, raw_score_range=None, logger=None):
         if logger is None:
-            logger = get_logger('test')
+            logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = False
         if not isinstance(df, pd.DataFrame):
@@ -828,9 +830,18 @@ class Checker:
         return True
 
 
-def get_logger(model_name):
+def get_logger(model_name, task=None):
     gmt = time.localtime()
-    log_file = model_name + str(gmt.tm_year) + str(gmt.tm_mon) + str(gmt.tm_mday) + '.log'
+    if not isinstance(task, str):
+        task_str = ''
+    else:
+        task_str = task + '_'
+    log_file = model_name + '_' + \
+               task_str + \
+               str(gmt.tm_year) + '_' + \
+               str(gmt.tm_mon) + '_' + \
+               str(gmt.tm_mday) + \
+               '.log'
     stmlog = Logger(log_file, level='info')
     return stmlog
 
