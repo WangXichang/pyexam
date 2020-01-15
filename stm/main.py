@@ -49,6 +49,7 @@ stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
 def run(model_name=None, df=None, cols=None, task_name=None):
     pb.reload(mcfg)
     if Checker.check_merge_models():
+        print('check model error!')
         return False, None, None
     if model_name is None:
         model_name = mcfg.model_name
