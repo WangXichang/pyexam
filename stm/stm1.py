@@ -972,13 +972,12 @@ class PltScore(ScoreTransformModel):
         # calculating for ratio and segment
         plist = self.raw_score_ratio_cum
         if self.out_decimal_digits == 0:
-            _out_report_doc += '  raw score sec ratio: [{}]\n'.\
-                format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '10.6f')
-                        for j in range(len(plist))]))
-            _out_report_doc += '           cumu ratio: [{}]\n'.\
+            _out_report_doc += '  raw score def ratio: [{}]\n'.\
                 format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
-            # print(self.result_ratio_dict)
             _out_report_doc += '           dest ratio: [{}]\n'.\
+                format(', '.join([format(float(x), '10.6f')
+                                  for x in self.result_ratio_dict[field]['dest']]))
+            _out_report_doc += '          match ratio: [{}]\n'. \
                 format(', '.join([format(float(x), '10.6f')
                                   for x in self.result_ratio_dict[field]['match']]))
         else:
@@ -987,8 +986,8 @@ class PltScore(ScoreTransformModel):
                         for j in range(len(plist))]))
             _out_report_doc += '           cumu ratio: [{}]\n'.\
                 format(', '.join([format(x, '16.6f') for x in self.raw_score_ratio_cum]))
-            _out_report_doc += '           dest ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '16.6f') for x in self.result_ratio_dict[field]]))
+            _out_report_doc += '          match ratio: [{}]\n'.\
+                format(', '.join([format(float(x), '16.6f') for x in self.result_ratio_dict[field]['match']]))
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]

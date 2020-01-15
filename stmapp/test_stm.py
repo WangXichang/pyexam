@@ -74,9 +74,11 @@ def test_all_strategy(df=None, model_name='shandong'):
     sn = [s for s in mdin.Strategy.keys()]
     st = list(itl.product(*ss))
     rr = dict()
+    verify = True
+    log_disp = True
+    log_file = False
     for num, ti in enumerate(st):
-        verify = True
-        # if num != 192:
+        # if num != 288:
         #     continue
         print(num, ti)
         r = main.runm(df=df, cols=['km1'],
@@ -90,12 +92,13 @@ def test_all_strategy(df=None, model_name='shandong'):
                       mode_section_degraded=ti[6],
                       mode_section_lost=ti[7],
                       verify=verify,
-                      logdisp=False,
-                      logfile=False,
+                      logdisp=log_disp,
+                      logfile=log_file,
                       )
         if verify:
             if not r[0]:
-                return rr.update({num: r})
+                rr.update({num: r})
+                return rr
     return rr
 
 

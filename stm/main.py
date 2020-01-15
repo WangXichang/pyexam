@@ -89,8 +89,8 @@ def runm(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        logdisp=None,
-        logfile=None,
+        logdisp=True,
+        logfile=False,
         verify=False,
         raw_score_range=(0, 100),
         out_score_decimals=0,
@@ -252,7 +252,7 @@ def runm(
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
-    if not Checker.check_run_parameters(
+    if not Checker.check_run(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -424,7 +424,6 @@ def run2(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        # mode_score_zero='real',
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
@@ -453,7 +452,7 @@ def run2(
     :return:
     """
 
-    if not Checker.check_run_parameters(
+    if not Checker.check_run(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -488,7 +487,6 @@ def run2(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        # mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimals,
         tiny_value=tiny_value,
         logger=logger,
@@ -513,14 +511,11 @@ def run2_para(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        # mode_score_zero='real',
         out_score_decimal_digits=0,
-        # display=True,
         logger=None,
         ):
     """
     use model parameters to call stmlib2.Algorithm.get_stm_score
-
     :param df:
     :param cols:
     :param model_type:
@@ -538,24 +533,25 @@ def run2_para(
     :param mode_section_degraded:
     :param mode_section_lost:
     :param out_score_decimal_digits:
-    :return: result(df, map_table),     df contains out score field [col+'_ts'] for con in cols
+    :param logger: set logger
+    :return: result(outdf, map_table),     out_score_field[col+'_ts'] for col in cols in outdf
     """
 
     if not Checker.check_model_para(
-        model_type=model_type,
-        model_ratio=model_ratio_pdf,
-        model_section=model_section,
-        model_desc='',
-        logger=logger,
-        ):
+                                    model_type=model_type,
+                                    model_ratio=model_ratio_pdf,
+                                    model_section=model_section,
+                                    model_desc='',
+                                    logger=logger,
+                                    ):
         return None
 
     if not Checker.check_df_cols(
-        df=df,
-        cols=cols,
-        raw_score_range=(raw_score_min, raw_score_max),
-        logger=logger,
-        ):
+                                df=df,
+                                cols=cols,
+                                raw_score_range=(raw_score_min, raw_score_max),
+                                logger=logger,
+                                ):
         return None
 
     # check strategy
@@ -568,7 +564,6 @@ def run2_para(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            # mode_score_zero=mode_score_zero,
             logger=logger,
             ):
         return None
@@ -590,9 +585,7 @@ def run2_para(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        # mode_score_zero=mode_score_zero,
         out_score_decimals=out_score_decimal_digits,
-        # display=display,
         logger=logger,
         )
     # end--run2
@@ -601,7 +594,7 @@ def run2_para(
 class Checker:
 
     @staticmethod
-    def check_run_parameters(
+    def check_run(
             model_name='shandong',
             df=None,
             cols=None,
@@ -613,7 +606,6 @@ class Checker:
             mode_section_point_last='real',
             mode_section_degraded='map_to_max',
             mode_section_lost='real',
-            # mode_score_zero='real',
             raw_score_range=(0, 100),
             out_score_decimal_digits=0,
             logger=None,
@@ -647,7 +639,6 @@ class Checker:
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
                 mode_section_lost=mode_section_lost,
-                # mode_score_zero=mode_score_zero,
                 logger=logger,
         ):
             return False
@@ -711,6 +702,12 @@ class Checker:
                     logger=None,
                     ):
 
+        # set logger
+        if logger is None:
+            logger = get_logger('test')
+            logger.logging_consol = True
+            logger.logging_file = False
+
         # check type
         if model_type not in ['ppt', 'plt', 'pgt']:
             logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
@@ -762,7 +759,6 @@ class Checker:
             mode_section_point_last='real',
             mode_section_degraded='map_to_max',
             mode_section_lost='ignore',
-            # mode_score_zero='real',
             logger=None
             ):
 
@@ -799,10 +795,10 @@ class Checker:
             logger.logging_file = False
         if not isinstance(df, pd.DataFrame):
             if isinstance(df, pd.Series):
-                logger.logger.critical('warning: df is pandas.Series!')
+                logger.loginfo('warning: df is pandas.Series!')
                 return False
             else:
-                logger.loginfo(logger, 'error data: df is not pandas.DataFrame!')
+                logger.loginfo('error data: df is not pandas.DataFrame!')
                 return False
         if len(df) == 0:
             logger.loginfo('error data: df is empty!')

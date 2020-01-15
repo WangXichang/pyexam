@@ -229,7 +229,7 @@ class ModelAlgorithm:
                 # print(result)
                 # at bottom, last search for sequence
                 #   set bottom value and avoid to search again
-                if dest_ratio > 1:
+                if result.bottom:
                     _seg = [x for x in raw_score_sequence][-1]
                     _percent = 1
                     _bottom = True  # avoid to repeat search
@@ -513,13 +513,6 @@ class ModelAlgorithm:
                         raw_score_min=0,
                         grade_num=15
                         ):
-
-        # map_table = run_seg(df=df,
-        #                     cols=[col],
-        #                     segmax=raw_score_max,
-        #                     segmin=raw_score_min,
-        #                     segsort=mode_sort_order,
-        #                     ).outdf
 
         section_point_list = [df[col].max()]
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
