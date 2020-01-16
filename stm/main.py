@@ -46,19 +46,18 @@ import importlib as pb
 stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
 
 
-def run(model_name=None, df=None, cols=None, task_name=None):
+def runc(model_name=None, df=None, cols=None, logname=None):
     pb.reload(mcfg)
-    if Checker.check_merge_models():
-        print('check model error!')
-        return False, None, None
+
     if model_name is None:
         model_name = mcfg.model_name
     if (df is None) and (mcfg.df is not None):
         df = mcfg.df
     if (cols is None) and (mcfg.cols is not None):
         cols = mcfg.cols
+
     return runm(
-        task=task_name,
+        logname=logname,
         model_name=model_name,
         df=df,
         cols=cols,
@@ -80,7 +79,6 @@ def run(model_name=None, df=None, cols=None, task_name=None):
 
 
 def runm(
-        task=None,
         model_name='shandong',
         df=None,
         cols=(),
@@ -92,6 +90,7 @@ def runm(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
+        logname=None,
         logdisp=True,
         logfile=False,
         verify=False,
@@ -247,13 +246,17 @@ def runm(
     """
     result = namedtuple('Result', ['ok', 'm1', 'm2'])
 
-    stmlogger = get_logger(model_name, task=task)
+    stmlogger = get_logger(model_name, task=logname)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
         stmlogger.logging_consol = True
     if logfile:
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
+
+    if not Checker.check_merge_models(logger=stmlogger):
+        stmlogger.loginfo('error: models_sys-models_ext merge fail!')
+        return False
 
     if not Checker.check_run(
             model_name=model_name,
@@ -298,7 +301,6 @@ def runm(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            # mode_score_zero=mode_score_zero,    # not implemented in stm1
             out_score_decimals=out_score_decimals,
             tiny_value=tiny_value,
             logger=stmlogger,
@@ -319,7 +321,6 @@ def runm(
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
                 mode_section_lost=mode_section_lost,
-                # mode_score_zero=mode_score_zero,
                 out_score_decimals=out_score_decimals,
                 tiny_value=tiny_value,
                 logger=stmlogger,
@@ -355,7 +356,6 @@ def runm(
                   mode_section_point_start=mode_section_point_start,
                   mode_section_point_last=mode_section_point_last,
                   mode_section_degraded=mode_section_degraded,
-                  # mode_score_zero=mode_score_zero,
                   out_score_decimals=out_score_decimals,
                   tiny_value=tiny_value,
                   logger=stmlogger,
@@ -381,7 +381,6 @@ def run1(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        # mode_score_zero='real',       # not implemented
         raw_score_range=(0, 100),
         out_score_decimals=0,
         tiny_value=10 ** -8,
@@ -405,7 +404,6 @@ def run1(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        # mode_score_zero=mode_score_zero,
         out_decimal_digits=out_score_decimals,
         tiny_value=tiny_value,
         logger=logger,
@@ -619,10 +617,6 @@ class Checker:
             logger.logging_consol = True
             logger.logging_file = False
 
-        if not Checker.check_merge_models():
-            logger.loginfo('error: check models fail!')
-            return False
-
         # check model name
         if model_name.lower() not in mdsys.Models.keys():
             logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
@@ -668,17 +662,18 @@ class Checker:
             logger.logging_file = True
         # check model in models_in
         for mk in mdsys.Models.keys():
-            if not Checker.check_model(model_name=mk, model_lib=mdsys.Models):
-                logger.logger.info('error model: model={} in models_in.Models!'.format(mk))
+            if not Checker.check_model(model_name=mk, model_lib=mdsys.Models, logger=logger):
+                logger.loginfo('error model: model={} in models_in.Models!'.format(mk))
                 return False
         # add Models_ext to Models
         for mk in mdext.Models.keys():
-            if not Checker.check_model(model_name=mk, model_lib=mdext.Models):
+            if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
                 logger.loginfo('error model: model={} in models_ext.Models!'.format(mk))
                 return False
             mdsys.Models.update({mk: mdext.Models[mk]})
         # print(mdsys.Models.keys())
         # warning: update no effect to mdsys.Models in runm
+        logger.loginfo('check pass: model merger!')
         return True
 
     @staticmethod
@@ -892,10 +887,7 @@ class Logger(object):
             self.logger.addHandler(self.stream_handler)
         if self.logging_file:
             self.logger.addHandler(self.rotating_file_handler)
-        if level == 'info':
-            self.logger.info(ms)
-        else:
-            self.logger.error(ms)
+        self.logger.info(ms)
         self.logger.handlers = []
 
     def loginfo_start(self, ms=''):
