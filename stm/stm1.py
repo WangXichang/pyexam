@@ -458,7 +458,7 @@ class PltScore(ScoreTransformModel):
         # make report doc
         self.make_report()
 
-        self.loginfo('stm end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-'*120)
+        self.loginfo('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-'*120 )
         self.loginfo('Report\n' + '-'*120)
         self.loginfo(self.out_report_doc)
 

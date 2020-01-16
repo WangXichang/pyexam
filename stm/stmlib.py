@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import time
+from collections import namedtuple
+import scipy.stats as sts
 
 
 # call SegTable.run() return instance of SegTable
@@ -539,3 +541,77 @@ def set_ellipsis_in_digits_sequence(digit_seq):
             elif p == end_p + 1:
                 end_p, count_p = p, count_p + 1
     return str(ellipsis_list).replace('Ellipsis', '...')
+
+
+def get_norm_section_pdf(
+                    start=21,
+                    end=100,
+                    section_num=8,
+                    std_num=2.6,
+                    add_cutoff=True,
+                    model_type='plt',
+                    ratio_coeff=1,  # 1, or 100
+                    sort_order='d',
+                    ):
+    """
+    create a ratio table from norm distribution
+        with range=[start, end]
+             section = (start, start+j*step), ...
+                       j in range(start, end, step)
+                       step = (end - start)/section_num
+              cutoff = norm.cdf((mean - start)/std_num)
+    return result: pdf, cdf, cutoff_err
+    set first and end seg to tail ratio from norm table
+    can be used to test std from seg ratio table
+    for example,
+       get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508)
+       [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
+       get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065)
+       [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
+       it means that std==15.95 is fitting ratio 0.03,0.07 in the table
+
+    :param start:   start value
+    :param end:     end value
+    :param section_num: section number
+    :param std_num:     length from 0 to max equal to std_num*std, i.e. std = (end-start)/2/std_num
+    :param add_cutoff: bool, if adding cutoff cdf() at edge point
+                       i.e. cdf(-std_num), cdf(-4) = 3.167124183311986e-05, cdf(-2.5098)=0.029894254950869625
+    :param model_type: str, 'plt' or 'ppt'
+    :return: namedtuple('result', ('section':((),...), 'pdf': (), 'cdf': (), 'cutoff': float, 'add_cutoff': bool))
+    """
+    _mean, _std = (end + start) / 2, (end - start) / 2 / std_num
+    section_point_list = np.linspace(start, end, section_num + 1)
+    cutoff = sts.norm.cdf((start - _mean) / _std)
+    pdf_table = [0]
+    cdf_table = [0]
+    last_pos = (start - _mean) / _std
+    _cdf = 0
+    for i, pos in enumerate(section_point_list[1:]):
+        _zvalue = (pos - _mean) / _std
+        this_section_pdf = sts.norm.cdf(_zvalue) - sts.norm.cdf(last_pos)
+        if (i == 0) and add_cutoff:
+            this_section_pdf += cutoff
+        pdf_table.append(this_section_pdf)
+        cdf_table.append(this_section_pdf + _cdf)
+        last_pos = _zvalue
+        _cdf += this_section_pdf
+    if add_cutoff:
+        pdf_table[0] += cutoff
+        cdf_table[-1] = 1
+    if model_type == 'plt':
+        section_list = [(x, y) if i == 0 else (x + 1, y)
+                        for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
+    else:
+        section_list = [(x, x) for x in section_point_list]
+    if ratio_coeff != 1:
+        pdf_table = [x * ratio_coeff for x in pdf_table]
+    if sort_order in ['d', 'descending']:
+        section_list = sorted(section_list, key=(lambda x: -x[0]))
+    result = namedtuple('Result', ('section', 'pdf', 'cdf', 'point', 'cutoff', 'add_cutoff'))
+    r = result(tuple(section_list),
+               tuple(pdf_table),
+               tuple(cdf_table),
+               section_point_list,
+               cutoff,
+               add_cutoff)
+    return r

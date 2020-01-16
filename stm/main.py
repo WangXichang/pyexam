@@ -40,10 +40,10 @@ import pandas as pd
 import numbers
 from collections import namedtuple
 
-from stm import stm1, stm2, models_sys as mdsys, models_ext as mdext
+from stm import stmlib, stm1, stm2, models_sys as mdsys, models_ext as mdext
 from stm import main_config as mcfg
 import importlib as pb
-stm_modules = [stm1, stm2, mdsys, mdext, mcfg]
+stm_modules = [stmlib, stm1, stm2, mdsys, mdext, mcfg]
 
 
 def runc(model_name=None, df=None, cols=None, logname=None):
@@ -55,6 +55,10 @@ def runc(model_name=None, df=None, cols=None, logname=None):
         df = mcfg.df
     if (cols is None) and (mcfg.cols is not None):
         cols = mcfg.cols
+    if (logname is None):
+        if isinstance(mcfg.run_parameters['logname'], str):
+            if len(mcfg.run_parameters['logname']) > 0:
+                logname = mcfg.run_parameters['logname']
 
     return runm(
         logname=logname,
@@ -269,7 +273,6 @@ def runm(
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            # mode_score_zero=mode_score_zero,
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
@@ -649,6 +652,7 @@ class Checker:
     def reload_stm_modules(logger=None):
         try:
             for m in stm_modules:
+                # print('reload:{}'.format(m))
                 pb.reload(m)
         except:
             return False
@@ -667,13 +671,13 @@ class Checker:
                 return False
         # add Models_ext to Models
         for mk in mdext.Models.keys():
+            # if mk in mdsys.Models.keys():
+            #     logger.loginfo('error model: models_ext model name={} existed in models_sys.Models!'.format(mk))
+            #     return False
             if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
-                logger.loginfo('error model: model={} in models_ext.Models!'.format(mk))
                 return False
             mdsys.Models.update({mk: mdext.Models[mk]})
-        # print(mdsys.Models.keys())
-        # warning: update no effect to mdsys.Models in runm
-        logger.loginfo('check pass: model merger!')
+        # logger.loginfo('check pass: model merger!')
         return True
 
     @staticmethod

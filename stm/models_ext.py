@@ -24,8 +24,8 @@
     （2）参数描述
      1）name
     模型名称，应避免与 models_in.Models 中的已有名称重复, 否则会覆盖内置的模型;
-    可以通过查看modelsetin 或 使用 name in modelsetin.Models.keys() 进行检查。
-    使用main.run(..., reload=True)时会检查提示。
+    可以通过查看models_sys 或 使用 name in models_sys.Models.keys() 进行检查。
+    使用main.run(..., reload=True)时会自动进行检查。
      2）type
     'plt',    # 分段线性转换 piecewise linear transform
     'ppt'     # 逐点转换 piecewise point transform
