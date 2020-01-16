@@ -27,9 +27,9 @@ run_strategy = {
 
 # set parameters
 run_parameters = {
-    "logname": '002',
+    "logname": '',
     "logdisp": 1,
-    "logfile": 0,
+    "logfile": 1,
     "verify": 0,
     "raw_score_range": (0, 100),
     "out_score_decimals": 0,

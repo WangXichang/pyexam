@@ -55,9 +55,16 @@ def runc(model_name=None, df=None, cols=None, logname=None):
         df = mcfg.df
     if (cols is None) and (mcfg.cols is not None):
         cols = mcfg.cols
-    if (logname is None):
+    if logname is None:
         if isinstance(mcfg.run_parameters['logname'], str):
-            if len(mcfg.run_parameters['logname']) > 0:
+            _logname = mcfg.run_parameters['logname']
+            _invalid_file_char = "[/*?:<>|\"\'\\\\]"
+            if len(_logname) > 0:
+                for c in _logname:
+                    if c in _invalid_file_char:
+                        print('error logname: {} is invalid char, not allowed in: \"{}\"'.
+                              format(c, _invalid_file_char))
+                        return False, None, None
                 logname = mcfg.run_parameters['logname']
 
     return runm(
