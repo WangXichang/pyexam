@@ -244,10 +244,12 @@ def runm(
                 usage: control precision or equal
               default: 10**-8
 
-    :return: namedtuple(success: bool, result: (model) or None)
-    (1) instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
-             (2) namedtuple('Model', ('outdf', 'map_table') if 'pgt'
+    :return: namedtuple(ok, m1, m2)
+            (1) ok: bool, successful or not
+            (1) m1: result of stm1, instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
+            (2) m2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
     """
+
     result = namedtuple('Result', ['ok', 'm1', 'm2'])
 
     stmlogger = get_logger(model_name, task=logname)
