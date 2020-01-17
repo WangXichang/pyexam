@@ -747,7 +747,7 @@ class PltScore(ScoreTransformModel):
             result_dest_ratio.append(dest_ratio)
 
             # match percent by dest_ratio to get endpoint of this section from map_table
-            this_section_end_point, this_match = \
+            this_section_end_point, this_match_ratio = \
                 self.get_seg_from_map_table(field, dest_ratio)
 
             # last section at bottom
@@ -755,7 +755,7 @@ class PltScore(ScoreTransformModel):
                 this_section_end_point = -1
 
             # save to result ratio
-            result_matched_ratio.append(this_match)
+            result_matched_ratio.append(this_match_ratio)
 
             # save result endpoints (noshare, share)
             result_section_point.append(this_section_end_point)
@@ -772,7 +772,7 @@ class PltScore(ScoreTransformModel):
 
             # save last segment endpoint and percent
             last_ratio = cumu_ratio
-            last_match = this_match
+            last_match = this_match_ratio
 
         # step-2: process last same point
         for i in range(len(result_section_point)-1, 1, -1):
@@ -863,9 +863,9 @@ class PltScore(ScoreTransformModel):
             _seg = row['seg']
             dist_to_this = abs(_percent - dest_ratio)
 
-            # at table bottom or lowest score, use_current
-            # if (index == _top_index) or (_percent >= 1):
-            #     break
+            # at bottom, use_current
+            if (index == _top_index) or (_percent >= 1):
+                break
 
             # this >= dest_ratio
             if _percent >= dest_ratio:

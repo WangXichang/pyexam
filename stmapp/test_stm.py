@@ -80,13 +80,12 @@ def test_all_strategy(df=None, model_name='shandong'):
     ss = [mdin.Strategy[s] for s in mdin.Strategy.keys()]
     sn = [s for s in mdin.Strategy.keys()]
     st = list(itl.product(*ss))
-    rr = dict()
     verify = True
     log_disp = True
     log_file = 1
     for num, ti in enumerate(st):
-        # if num != 288:
-        #     continue
+        if num != 192:
+            continue
         print(num, ti)
         r = main.runm(df=df, cols=['km1'],
                       model_name=model_name,
@@ -104,9 +103,8 @@ def test_all_strategy(df=None, model_name='shandong'):
                       )
         if verify:
             if not r[0]:
-                rr.update({num: r})
-                return rr
-    return rr
+                return r
+    return
 
 
 class TestLvData():
