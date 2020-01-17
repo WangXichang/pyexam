@@ -348,7 +348,7 @@ def runm(
                 out2 = m2.outdf.sort_values(col)[[col, col+'_ts']].values
                 comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
                 if len(comp) > 0:
-                    stmlogger.loginfo('verify error: col={},  {} records different in both algorithm!'.
+                    stmlogger.loginfo('verify fail: col={},  {} records different in both algorithm!'.
                                       format(col, len(comp)))
                     for i in range(min(len(comp), 5)):
                         vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
