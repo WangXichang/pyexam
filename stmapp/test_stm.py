@@ -63,12 +63,19 @@ import itertools as itl
 #         #    <20> ratio: [def:0.9900  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 43,  43]
 #         #    <21> ratio: [def:1.0000  dest:0.6670  match:0.6570] => section_map: raw:[ 35,  36] --> out:[ 40,  40]
 #
+#   (5) if lower_max and get_bottom, should use bottom seg, donnot use last seg, to avoid deadlock
+#       data: mean=45, std=30, size=1000
+#       <06> ratio: [def:0.9000  dest:0.8710  match:0.8660] => section_map: raw:[ 28,  10] --> out:[ 50,  41]
+#       <07> ratio: [def:0.9700  dest:0.9360  match:0.9220] => section_map: raw:[  9,   1] --> out:[ 40,  31]
+#       <08> ratio: [def:1.0000  dest:0.9520  match:0.9220] => section_map: raw:[ -1,  -1] --> out:[ 30,  21]
+
+
 
 def test_all_strategy(df=None, model_name='shandong'):
     # pb.reload(stm2)
     # pb.reload(stm1)
     if df is None:
-        df = mutl.TestData(mean=45, std=12, size=1000)()
+        df = mutl.TestData(mean=45, std=30, size=1000)()
     print([k for k in mdin.Strategy.keys()])
     ss = [mdin.Strategy[s] for s in mdin.Strategy.keys()]
     sn = [s for s in mdin.Strategy.keys()]
@@ -76,7 +83,7 @@ def test_all_strategy(df=None, model_name='shandong'):
     rr = dict()
     verify = True
     log_disp = True
-    log_file = False
+    log_file = 1
     for num, ti in enumerate(st):
         # if num != 288:
         #     continue
