@@ -67,7 +67,7 @@ def runc(model_name=None, df=None, cols=None, logname=None):
                         return False, None, None
                 logname = mcfg.run_parameters['logname']
 
-    return runm(
+    result = runm(
         logname=logname,
         model_name=model_name,
         df=df,
@@ -87,6 +87,12 @@ def runc(model_name=None, df=None, cols=None, logname=None):
         out_score_decimals=mcfg.run_parameters['out_score_decimals'],
         tiny_value=mcfg.run_parameters['tiny_value'],
         )
+
+    if not result.ok:
+        print('run fail: result is None!')
+        return None
+
+    return result.m1
 
 
 def runm(
@@ -251,13 +257,13 @@ def runm(
                 usage: control precision or equal
               default: 10**-8
 
-    :return: namedtuple(ok, m1, m2)
+    :return: namedtuple(ok, r1, r2)
             (1) ok: bool, successful or not
-            (1) m1: result of stm1, instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
-            (2) m2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
+            (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
+            (3) r2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
     """
 
-    result = namedtuple('Result', ['ok', 'm1', 'm2'])
+    result = namedtuple('Result', ['ok', 'r1', 'r2'])
 
     stmlogger = get_logger(model_name, task=logname)
     stm_no = '  No.' + str(id(stmlogger))
@@ -355,8 +361,8 @@ def runm(
             r = result(verify_pass, m1, m2)
     # 'pgt' to call stmlib.Algorithm.get_stm_score
     else:
-        stmlogger.loginfo('run model by stmlib2, cols={} ... '.format(cols))
-        r2 = run2(
+        stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
+        m2 = run2(
                   model_name=model_name,
                   df=df,
                   cols=cols,
@@ -372,7 +378,7 @@ def runm(
                   tiny_value=tiny_value,
                   logger=stmlogger,
                   )
-        r = result(True, r2, None)
+        r = result(True, None, m2)
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
@@ -680,8 +686,9 @@ class Checker:
                 return False
         # add Models_ext to Models
         for mk in mdext.Models.keys():
-            if mk in mdsys.Models.keys():
-                logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
+            # dynamic merging for running
+            # if mk in mdsys.Models.keys():
+            #     logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
             if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
                 return False
             mdsys.Models.update({mk: mdext.Models[mk]})
