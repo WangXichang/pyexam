@@ -107,7 +107,7 @@ def runm(
         verify=False,
         raw_score_range=(0, 100),
         out_score_decimals=0,
-        tiny_value=10**-8,
+        tiny_value=10**-12,
         ):
 
     """
@@ -268,7 +268,7 @@ def runm(
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
     if not Checker.check_merge_models(logger=stmlogger):
-        stmlogger.loginfo('error: models_sys-models_ext merge fail!')
+        # stmlogger.loginfo('error: models_sys-models_ext merge fail!')
         return False
 
     if not Checker.check_run(
@@ -673,20 +673,18 @@ class Checker:
             logger = get_logger('check')
             logger.logging_consol = True
             logger.logging_file = True
-        # check model in models_in
+        # check model in models_sys
         for mk in mdsys.Models.keys():
             if not Checker.check_model(model_name=mk, model_lib=mdsys.Models, logger=logger):
                 logger.loginfo('error model: model={} in models_in.Models!'.format(mk))
                 return False
         # add Models_ext to Models
         for mk in mdext.Models.keys():
-            # if mk in mdsys.Models.keys():
-            #     logger.loginfo('error model: models_ext model name={} existed in models_sys.Models!'.format(mk))
-            #     return False
+            if mk in mdsys.Models.keys():
+                logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
             if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
                 return False
             mdsys.Models.update({mk: mdext.Models[mk]})
-        # logger.loginfo('check pass: model merger!')
         return True
 
     @staticmethod
