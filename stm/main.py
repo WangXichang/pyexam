@@ -44,6 +44,7 @@ from stm import stmlib, stm1, stm2, models_sys as mdsys, models_ext as mdext
 from stm import main_config as mcfg
 import importlib as pb
 stm_modules = [stmlib, stm1, stm2, mdsys, mdext, mcfg]
+model_merge = False
 
 
 def runc(model_name=None, df=None, cols=None, logname=None):
@@ -675,6 +676,7 @@ class Checker:
 
     @staticmethod
     def check_merge_models(logger=None):
+        global model_merge
         if logger is None:
             logger = get_logger('check')
             logger.logging_consol = True
@@ -687,8 +689,10 @@ class Checker:
         # add Models_ext to Models
         for mk in mdext.Models.keys():
             # dynamic merging for running
-            # if mk in mdsys.Models.keys():
-            #     logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
+            if mk in mdsys.Models.keys():
+                if not model_merge:
+                    logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
+                    model_merge = True
             if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
                 return False
             mdsys.Models.update({mk: mdext.Models[mk]})

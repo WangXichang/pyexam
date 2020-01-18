@@ -76,17 +76,17 @@ def test_all_strategy(df=None, model_name='shandong'):
     # pb.reload(stm1)
     if df is None:
         df = mutl.TestData(mean=45, std=25, size=1000)()
-    print([k for k in mdin.Strategy.keys()])
+    # print([k for k in mdin.Strategy.keys()])
     ss = [mdin.Strategy[s] for s in mdin.Strategy.keys()]
     sn = [s for s in mdin.Strategy.keys()]
     st = list(itl.product(*ss))
-    verify = True
-    log_disp = True
+    verify = 0
+    log_disp = 0
     log_file = 1
     rr = dict()
     for num, ti in enumerate(st):
-        if num != 198:
-            continue
+        # if num != 198:
+        #     continue
         print(num, ti)
         r = main.runm(df=df, cols=['km1'],
                       model_name=model_name,
