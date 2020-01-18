@@ -50,38 +50,36 @@ model_merge = False
 
 def runc(conf_name='stm.conf'):
 
-    if os.path.isfile(conf_name):
-        cfper = cfp.ConfigParser()
-        cfper.read(conf_name)
-    if 'model' in cfper.keys():
-        if 'name' in cfper['model'].keys():
-            model_name = cfper['model']['name']
-            return model_name
+    _read = stmlib.read_conf(conf_name)
+    if _read:
+        mcfg = _read
+    else:
+        return None
 
     result = runm(
-        model_name=model_name,
-        df=df,
-        cols=cols,
-        raw_score_range=mcfg.run_parameters['raw_score_range'],
-        mode_ratio_prox=mcfg.run_strategy['mode_ratio_prox'],
-        mode_ratio_cumu=mcfg.run_strategy['mode_ratio_cumu'],
-        mode_sort_order=mcfg.run_strategy['mode_sort_order'],
-        mode_section_point_first=mcfg.run_strategy['mode_section_point_first'],
-        mode_section_point_start=mcfg.run_strategy['mode_section_point_start'],
-        mode_section_point_last=mcfg.run_strategy['mode_section_point_last'],
-        mode_section_degraded=mcfg.run_strategy['mode_section_degraded'],
-        mode_section_lost=mcfg.run_strategy['mode_section_lost'],
-        logname=logname,
-        logdisp=mcfg.run_parameters['logdisp'],
-        logfile=mcfg.run_parameters['logfile'],
-        verify=mcfg.run_parameters['verify'],
-        out_score_decimals=mcfg.run_parameters['out_score_decimals'],
-        tiny_value=mcfg.run_parameters['tiny_value'],
+        model_name=mcfg['model_name'],
+        df=mcfg['df'],
+        cols=mcfg['cols'],
+        raw_score_range=mcfg['raw_score_range'],
+        mode_ratio_prox=mcfg['mode_ratio_prox'],
+        mode_ratio_cumu=mcfg['mode_ratio_cumu'],
+        mode_sort_order=mcfg['mode_sort_order'],
+        mode_section_point_first=mcfg['mode_section_point_first'],
+        mode_section_point_start=mcfg['mode_section_point_start'],
+        mode_section_point_last=mcfg['mode_section_point_last'],
+        mode_section_degraded=mcfg['mode_section_degraded'],
+        mode_section_lost=mcfg['mode_section_lost'],
+        logname=mcfg['logname'],
+        logdisp=mcfg['logdisp'],
+        logfile=mcfg['logfile'],
+        verify=mcfg['verify'],
+        out_score_decimals=mcfg['out_score_decimals'],
+        tiny_value=mcfg['tiny_value'],
         )
 
     if not result.ok:
         print('run fail: result is None!')
-        return None
+        return mcfg
 
     return result
 

@@ -4,6 +4,8 @@
 import numpy as np
 import pandas as pd
 import time
+import os
+import configparser as cfp
 from collections import namedtuple
 import scipy.stats as sts
 
@@ -628,3 +630,53 @@ def isfilestr(fstr):
                     return False
             return True
     return False
+
+def read_conf(conf_name):
+    mcfg = dict()
+    cfper = dict()
+    if os.path.isfile(conf_name):
+        cfper = cfp.ConfigParser()
+        cfper.read(conf_name)
+    if 'model' in cfper.keys():
+        if 'name' in cfper['model'].keys():
+            mcfg.update({'model_name': cfper['model']['name']})
+        if 'type' in cfper['model'].keys():
+            mcfg.update({'mode_type': cfper['model']['type']})
+        if 'ratio' in cfper['model'].keys():
+            mcfg.update({'mode_type': cfper['model']['ratio']})
+        if 'section' in cfper['model'].keys():
+            mcfg.update({'mode_type': cfper['model']['section']})
+        if 'desc' in cfper['model'].keys():
+            mcfg.update({'mode_type': cfper['model']['desc']})
+
+    if 'data' in cfper.keys():
+        if 'df' in cfper['data']:
+            dffile = cfper['data']['df']
+            if os.path.isfile(dffile):
+                try:
+                    df = pd.read_csv(dffile)
+                    mcfg.update({'df': df})
+                except:
+                    print('data read error!')
+                    mcfg.update({'df': None})
+        if 'cols' in cfper['data']:
+            mcfg.update({'cols': cfper['data']['cols'].split()})
+
+    if 'para' in cfper.keys():
+        for _para in cfper['para']:
+            mcfg.update({_para: cfper['para'][_para]})
+
+    if 'strategy' in cfper.keys():
+        for _mode in cfper['strategy']:
+            _mode_str = cfper['strategy'][_mode]
+            mcfg.update({_mode: remove_sharp(_mode_str)})
+
+    return mcfg
+
+
+def remove_sharp(s):
+    p = s.find('#')
+    rs = s
+    if p > 0:
+        rs = s[0:p].strip()
+    return rs
