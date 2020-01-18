@@ -42,7 +42,7 @@ from collections import namedtuple
 # import os
 # import configparser as cfp
 
-from stm import stmlib, stm1, stm2
+from stm import stmlib, stm1, stm2, models_sys as mdsys, models_ext as mdext
 import importlib as pb
 stm_modules = [stmlib, stm1, stm2, mdsys, mdext]
 model_merge = False
@@ -60,7 +60,8 @@ def runc(conf_name='stm.conf'):
         model_name=mcfg['model_name'],
         df=mcfg['df'],
         cols=mcfg['cols'],
-        raw_score_range=mcfg['raw_score_range'],
+        raw_score_min=float(mcfg['raw_score_min']),
+        raw_score_max=float(mcfg['raw_score_max']),
         mode_ratio_prox=mcfg['mode_ratio_prox'],
         mode_ratio_cumu=mcfg['mode_ratio_cumu'],
         mode_sort_order=mcfg['mode_sort_order'],
@@ -100,7 +101,8 @@ def runm(
         logdisp=True,
         logfile=False,
         verify=False,
-        raw_score_range=(0, 100),
+        raw_score_min=0,
+        raw_score_max=100,
         out_score_decimals=0,
         tiny_value=10**-12,
         ):
@@ -251,6 +253,7 @@ def runm(
             (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel
             (3) r2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
     """
+    raw_score_range = (raw_score_min, raw_score_max)
 
     result = namedtuple('Result', ['ok', 'r1', 'r2'])
 
