@@ -82,12 +82,11 @@ def test_all_strategy(df=None, model_name='shandong'):
     st = list(itl.product(*ss))
     verify = 0
     log_disp = 0
-    log_file = 1
+    log_file = 0
     rr = dict()
     for num, ti in enumerate(st):
         # if num != 198:
         #     continue
-        print(num, ti)
         r = main.runm(df=df, cols=['km1'],
                       model_name=model_name,
                       mode_ratio_prox=ti[0],
@@ -104,7 +103,8 @@ def test_all_strategy(df=None, model_name='shandong'):
                       )
         if verify:
             if not r[0]:
-                rr.update({num: r})
+                rr.update({num: (r, ti)})
+        print(num, r[0], ti)
     return rr
 
 

@@ -23,12 +23,12 @@ about this module:
         and other parameters(score range, strategies, out score decimal digits)
 
 How to add new model in modelext:
-    you can add a new model in modelext.Models_ext,
-    then use the new model by calling run(model_name=new_model_name,...)
+    you can add a new model in models_ext.Models_ext,
+    then use the new model by calling runc(model_name=new_model_name,...) or runm(...)
     in order to add new model in modelext.Models_ext,
-    you can open the module modelext, modify Models_ext, add key-value: name-ModelFields
+    open modeles_ext.py, modify Models_ext, add key-value: name-ModelFields
     then call run() with reload=True: result = run(model_name=new_model_name, ..., reload=True)
-    then run() will check new model and add models in models_ext.Models to models_in.Models
+    then run() will check new model and add models in models_ext.Models_ext to models_in.Models
     at last run() use new_model_name to call stm1 or stm2
 """
 
@@ -163,7 +163,7 @@ def runm(
     [function] run()
     calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
 
-    :param model_name: str, in models_in.Models.keys or models_ext.Models.keys
+    :param model_name: str, in models_in.Models.keys or models_ext.Models_ext.keys
          values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
                  'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
                  'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
@@ -274,6 +274,12 @@ def runm(
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
+    if not Checker.reload_stm_modules(stmlogger):
+        stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
+        stmlogger.loginfo_end('model:' + model_name + stm_no +
+                              '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
+        return result(False, None, None)
+
     if not Checker.check_merge_models(logger=stmlogger):
         # stmlogger.loginfo('error: models_sys-models_ext merge fail!')
         return False
@@ -297,13 +303,6 @@ def runm(
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    if not Checker.reload_stm_modules(stmlogger):
-        stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
-        stmlogger.loginfo_end('model:' + model_name + stm_no +
-                              '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
-        return result(False, None, None)
-
-    mdsys.Models.update(mdext.Models)
     model_type = mdsys.Models[model_name].type
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
@@ -676,7 +675,7 @@ class Checker:
 
     @staticmethod
     def check_merge_models(logger=None):
-        global model_merge
+        global model_merge, mdsys, mdext
         if logger is None:
             logger = get_logger('check')
             logger.logging_consol = True
@@ -687,15 +686,15 @@ class Checker:
                 logger.loginfo('error model: model={} in models_in.Models!'.format(mk))
                 return False
         # add Models_ext to Models
-        for mk in mdext.Models.keys():
+        for mk in mdext.Models_ext.keys():
             # dynamic merging for running
             if mk in mdsys.Models.keys():
                 if not model_merge:
                     logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
                     model_merge = True
-            if not Checker.check_model(model_name=mk, model_lib=mdext.Models, logger=logger):
+            if not Checker.check_model(model_name=mk, model_lib=mdext.Models_ext, logger=logger):
                 return False
-            mdsys.Models.update({mk: mdext.Models[mk]})
+            mdsys.Models.update({mk: mdext.Models_ext[mk]})
         return True
 
     @staticmethod

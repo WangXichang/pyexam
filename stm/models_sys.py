@@ -143,7 +143,7 @@ Models = {
     }
 
 
-# choices = 4 * 2**5 * 3 * 2 * 2 =    ## prox, cumu, sort, section_
+# choices = 4 * 2**5 * 3 * 2  = 768   ## prox, cumu, sort, section_
 Strategy = {
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
