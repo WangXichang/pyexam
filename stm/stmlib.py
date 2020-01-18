@@ -660,7 +660,11 @@ def read_conf(conf_name):
                     print('data read error!')
                     mcfg.update({'df': None})
         if 'cols' in cfper['data']:
-            mcfg.update({'cols': cfper['data']['cols'].split()})
+            cols_list = cfper['data']['cols'].split()
+            cols_list = [x.replace(',', '') for x in cols_list]
+            cols_list = [x.replace(';', '') for x in cols_list]
+            cols_list = [x.strip() for x in cols_list]
+            mcfg.update({'cols': cols_list})
 
     if 'para' in cfper.keys():
         for _para in cfper['para']:

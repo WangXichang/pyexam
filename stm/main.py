@@ -39,8 +39,8 @@ from logging import handlers
 import pandas as pd
 import numbers
 from collections import namedtuple
-import os
-import configparser as cfp
+# import os
+# import configparser as cfp
 
 from stm import stmlib, stm1, stm2
 import importlib as pb
@@ -49,7 +49,7 @@ model_merge = False
 
 
 def runc(conf_name='stm.conf'):
-
+    pb.reload(stmlib)
     _read = stmlib.read_conf(conf_name)
     if _read:
         mcfg = _read
