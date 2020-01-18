@@ -550,7 +550,7 @@ def get_norm_section_pdf(
                     std_num=2.6,
                     add_cutoff=True,
                     model_type='plt',
-                    ratio_coeff=1,  # 1, or 100
+                    ratio_coeff=1,      # 1, or 100
                     sort_order='d',
                     ):
     """
@@ -615,3 +615,16 @@ def get_norm_section_pdf(
                cutoff,
                add_cutoff)
     return r
+
+
+def isfilestr(fstr):
+    if isinstance(fstr, str):
+        _invalid_file_char = "[/*?:<>|\"\'\\\\]"
+        if len(fstr) > 0:
+            for c in fstr:
+                if c in _invalid_file_char:
+                    # print('error logname: {} is invalid char, not allowed in: \"{}\"'.
+                    #       format(c, _invalid_file_char))
+                    return False
+            return True
+    return False

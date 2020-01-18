@@ -12,11 +12,11 @@
     ModelFields: {
                   'type':       str, model type: 'plt'，'ppt', ‘pgt'
                   'ratio':      list or tuple:= percent value for each section,
-                                item range: 0-100
-                                order: corresponding to the position of section
+                                value range: 0-100
+                                order: high to low, descending
                                 sum(ratio) == 100
                   'section':    list or tuple:= output score section,
-                                order: descending, big to small, max score to min score
+                                order: descending, max score to min score
                                 range: section_first_point=max out score, section_last_point=min out score
                                 i.e. [(p11, p12), ...(pn1, pn2)], pi1 < pi2, and, pji < pk1 for k>j
                   'desc':       str := description for the model

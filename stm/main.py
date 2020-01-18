@@ -39,37 +39,26 @@ from logging import handlers
 import pandas as pd
 import numbers
 from collections import namedtuple
+import os
+import configparser as cfp
 
-from stm import stmlib, stm1, stm2, models_sys as mdsys, models_ext as mdext
-from stm import main_config as mcfg
+from stm import stmlib, stm1, stm2
 import importlib as pb
-stm_modules = [stmlib, stm1, stm2, mdsys, mdext, mcfg]
+stm_modules = [stmlib, stm1, stm2, mdsys, mdext]
 model_merge = False
 
 
-def runc(model_name=None, df=None, cols=None, logname=None):
-    pb.reload(mcfg)
+def runc(conf_name='stm.conf'):
 
-    if model_name is None:
-        model_name = mcfg.model_name
-    if (df is None) and (mcfg.df is not None):
-        df = mcfg.df
-    if (cols is None) and (mcfg.cols is not None):
-        cols = mcfg.cols
-    if logname is None:
-        if isinstance(mcfg.run_parameters['logname'], str):
-            _logname = mcfg.run_parameters['logname']
-            _invalid_file_char = "[/*?:<>|\"\'\\\\]"
-            if len(_logname) > 0:
-                for c in _logname:
-                    if c in _invalid_file_char:
-                        print('error logname: {} is invalid char, not allowed in: \"{}\"'.
-                              format(c, _invalid_file_char))
-                        return False, None, None
-                logname = mcfg.run_parameters['logname']
+    if os.path.isfile(conf_name):
+        cfper = cfp.ConfigParser()
+        cfper.read(conf_name)
+    if 'model' in cfper.keys():
+        if 'name' in cfper['model'].keys():
+            model_name = cfper['model']['name']
+            return model_name
 
     result = runm(
-        logname=logname,
         model_name=model_name,
         df=df,
         cols=cols,
@@ -82,6 +71,7 @@ def runc(model_name=None, df=None, cols=None, logname=None):
         mode_section_point_last=mcfg.run_strategy['mode_section_point_last'],
         mode_section_degraded=mcfg.run_strategy['mode_section_degraded'],
         mode_section_lost=mcfg.run_strategy['mode_section_lost'],
+        logname=logname,
         logdisp=mcfg.run_parameters['logdisp'],
         logfile=mcfg.run_parameters['logfile'],
         verify=mcfg.run_parameters['verify'],
@@ -93,7 +83,7 @@ def runc(model_name=None, df=None, cols=None, logname=None):
         print('run fail: result is None!')
         return None
 
-    return result.m1
+    return result
 
 
 def runm(
@@ -260,7 +250,7 @@ def runm(
 
     :return: namedtuple(ok, r1, r2)
             (1) ok: bool, successful or not
-            (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel, if 'plt' or 'ppt'
+            (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel
             (3) r2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
     """
 
