@@ -659,7 +659,8 @@ def read_conf(conf_name):
                     s = cfper['model_new'][k].split(',')
                     s = [float(x) for x in s]
                 else:
-                    s = re.findall('', cfper['model_new'][k])
+                    s = re.findall('[0-9]+', cfper['model_new'][k])
+                    s = [(float(x), float(y)) for x, y in zip(s[1:], s[:-1])]
                 mcfg.update({'model_new_' + k: s})
             else:
                 new_set = False
@@ -988,7 +989,7 @@ class Checker:
 def get_logger(model_name, task=None):
     gmt = time.localtime()
     if not isinstance(task, str):
-        task_str = ''
+        task_str = '_'
     else:
         task_str = task + '_'
     log_file = model_name + '_' + \
