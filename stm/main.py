@@ -80,9 +80,9 @@ def runc(conf_name='stm.conf'):
 
     if not result.ok:
         print('run fail: result is None!')
-        return mcfg
+        return None, mcfg
 
-    return result
+    return result, mcfg
 
 
 def runm(

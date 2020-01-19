@@ -637,17 +637,23 @@ def read_conf(conf_name):
     if os.path.isfile(conf_name):
         cfper = cfp.ConfigParser()
         cfper.read(conf_name)
+    model_list = ['name', 'type', 'ratio', 'section', 'desc']
     if 'model' in cfper.keys():
-        if 'name' in cfper['model'].keys():
-            mcfg.update({'model_name': cfper['model']['name']})
-        if 'type' in cfper['model'].keys():
-            mcfg.update({'mode_type': cfper['model']['type']})
-        if 'ratio' in cfper['model'].keys():
-            mcfg.update({'mode_type': cfper['model']['ratio']})
-        if 'section' in cfper['model'].keys():
-            mcfg.update({'mode_type': cfper['model']['section']})
-        if 'desc' in cfper['model'].keys():
-            mcfg.update({'mode_type': cfper['model']['desc']})
+        for k in model_list:
+            if k in cfper['model'].keys():
+                mcfg.update({'model_' + k: cfper['model'][k]})
+            else:
+                print('no model para: {}'.format(k))
+        # if 'name' in cfper['model'].keys():
+        #     mcfg.update({'model_name': cfper['model']['name']})
+        # if 'type' in cfper['model'].keys():
+        #     mcfg.update({'mode_type': cfper['model']['type']})
+        # if 'ratio' in cfper['model'].keys():
+        #     mcfg.update({'mode_type': cfper['model']['ratio']})
+        # if 'section' in cfper['model'].keys():
+        #     mcfg.update({'mode_type': cfper['model']['section']})
+        # if 'desc' in cfper['model'].keys():
+        #     mcfg.update({'mode_desc': cfper['model']['desc']})
 
     if 'data' in cfper.keys():
         if 'df' in cfper['data']:
@@ -659,12 +665,17 @@ def read_conf(conf_name):
                 except:
                     print('data read error!')
                     mcfg.update({'df': None})
+            else:
+                print('invalid file name: {}'.format(dffile))
+                # return None
         if 'cols' in cfper['data']:
             cols_list = cfper['data']['cols'].split()
             cols_list = [x.replace(',', '') for x in cols_list]
             cols_list = [x.replace(';', '') for x in cols_list]
             cols_list = [x.strip() for x in cols_list]
             mcfg.update({'cols': cols_list})
+        else:
+            print('no cols in config file!')
 
     if 'para' in cfper.keys():
         for _para in cfper['para']:
@@ -676,9 +687,28 @@ def read_conf(conf_name):
         if 'out_score_decimals' in mcfg.keys():
             mcfg['out_score_decimals'] = int(mcfg['out_score_decimals'])
         if 'tiny_value' in mcfg.keys():
-            x = None
-            exec('x = ' + mcfg['tiny_value'])
-            mcfg['tiny_value'] = x
+            mcfg['tiny_value'] = float(mcfg['tiny_value'])
+        else:
+            print('not found tiny_value')
+            mcfg['tiny_value'] = 10**-10
+
+        if 'logname' in mcfg.keys():
+            s = mcfg['logname']
+            s = s.replace("'", "")
+            s = s.replace('"', '')
+            mcfg['logname'] = s
+        else:
+            print('no logname in config file!')
+
+        bool_list = ['logdisp', 'logfile', 'verify']
+        for ks in bool_list:
+            if ks in mcfg.keys():
+                if mcfg[ks].lower() in ['false', '0', '']:
+                    mcfg[ks] = False
+                else:
+                    mcfg[ks] = True
+            else:
+                print('{} not in para section of config file'.format(ks))
 
     if 'strategy' in cfper.keys():
         for _mode in cfper['strategy']:
