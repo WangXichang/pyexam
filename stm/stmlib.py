@@ -634,14 +634,20 @@ def isfilestr(fstr):
 def read_conf(conf_name):
     mcfg = dict()
     cfper = dict()
+
     if os.path.isfile(conf_name):
         cfper = cfp.ConfigParser()
         cfper.read(conf_name)
+
+    if 'model_in' in cfper.keys():
+        if 'name' in cfper['model_in']:
+            mcfg.update({'model_name': cfper['model_in']['name']})
+
     model_list = ['name', 'type', 'ratio', 'section', 'desc']
-    if 'model' in cfper.keys():
+    if 'model_new' in cfper.keys():
         for k in model_list:
-            if k in cfper['model'].keys():
-                mcfg.update({'model_' + k: cfper['model'][k]})
+            if k in cfper['model_new'].keys():
+                mcfg.update({'model_new_' + k: cfper['model_new'][k]})
             else:
                 print('no model para: {}'.format(k))
         # if 'name' in cfper['model'].keys():
