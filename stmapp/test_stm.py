@@ -7,7 +7,7 @@ import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
 from stm import main, stm1, stm2, \
-     stmlib as slib, models_sys as mdin
+     stmlib as slib, models as mdin
 from stmapp import models_util as mutl
 import itertools as itl
 
@@ -87,20 +87,20 @@ def test_all_strategy(df=None, model_name='shandong'):
     for num, ti in enumerate(st):
         # if num != 198:
         #     continue
-        r = main.runm(df=df, cols=['km1'],
-                      model_name=model_name,
-                      mode_ratio_prox=ti[0],
-                      mode_ratio_cumu=ti[1],
-                      mode_sort_order=ti[2],
-                      mode_section_point_first=ti[3],
-                      mode_section_point_start=ti[4],
-                      mode_section_point_last=ti[5],
-                      mode_section_degraded=ti[6],
-                      mode_section_lost=ti[7],
-                      verify=verify,
-                      logdisp=log_disp,
-                      logfile=log_file,
-                      )
+        r = main.run(df=df, cols=['km1'],
+                     model_name=model_name,
+                     mode_ratio_prox=ti[0],
+                     mode_ratio_cumu=ti[1],
+                     mode_sort_order=ti[2],
+                     mode_section_point_first=ti[3],
+                     mode_section_point_start=ti[4],
+                     mode_section_point_last=ti[5],
+                     mode_section_degraded=ti[6],
+                     mode_section_lost=ti[7],
+                     verify=verify,
+                     logdisp=log_disp,
+                     logfile=log_file,
+                     )
         if verify:
             if not r[0]:
                 rr.update({num: (r, ti)})
@@ -208,12 +208,12 @@ class TestLvData():
     def test_stm_with_lvdata(self, name, data=None, cols=None, cumu=None):
         cols_real = [f for f in cols if f in data.columns]
         print('test {}: {} ... '.format(name, cols))
-        mr = main.runm(df=data,
-                       cols=cols_real,
-                       mode_ratio_cumu=cumu,
-                       logdisp=True,
-                       logfile=False
-                       )
+        mr = main.run(df=data,
+                      cols=cols_real,
+                      mode_ratio_cumu=cumu,
+                      logdisp=True,
+                      logfile=False
+                      )
         # mr.save_report_doc(self.path + 'report/r2_' + name + '.txt')
         result = []
         for col in cols_real:
@@ -236,8 +236,8 @@ def test_hainan(mean=60, size=60000, std=16):
     for j in range(5):
         model_name = 'hainan'+ (str(j+1) if j>0 else '')
         result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = main.runm(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = main.runm(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
+        ra = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
+        rd = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
         result[j] = ResultTuple(result_name, ra, rd)
     return result
 
@@ -288,7 +288,7 @@ class TestShandongData():
         else:
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
-            m = main.runm(
+            m = main.run(
                 model_name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
@@ -358,10 +358,10 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = main.runm(model_name=name,
-                      df=dfscore, cols=['kmx'],
-                      mode_ratio_prox=mode_ratio_prox,
-                      mode_ratio_cumu=mode_ratio_cumu
+        m = main.run(model_name=name,
+                     df=dfscore, cols=['kmx'],
+                     mode_ratio_prox=mode_ratio_prox,
+                     mode_ratio_cumu=mode_ratio_cumu
                      )
         return m
 

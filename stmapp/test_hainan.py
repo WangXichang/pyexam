@@ -22,12 +22,12 @@ def test_hainan(num=1):
         # use model100-900
         # score_order=='a', out_score_min==277, max==900, second_max=784
         #              'd', out_score_max==784, second_min==101, 110, 123
-        r1 = main.runm(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=True)
-        r2 = main.runm(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=True)
+        r1 = main.run(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=True)
+        r2 = main.run(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=True)
         # use model60-300
         # score_order=='a', out_score_min==
-        r3 = main.runm(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
-        r4 = main.runm(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
+        r3 = main.run(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
+        r4 = main.run(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
 
     if num == 2:
         # data2
@@ -35,12 +35,12 @@ def test_hainan(num=1):
         # use model100-900
         # score_order=='a', out_score_min==150(raw==0, count==12), max==900(count==11), second_max=856(count==6)
         #              'd', out_score_max==861(count==9), min=100(raw=0, count==7), second_min==132,143 ,158
-        r1 = main.runm(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
-        r2 = main.runm(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
+        r1 = main.run(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
+        r2 = main.run(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
         # use model60-300
         # score_order=='a', out_score_min==69,73    max==300(100, 9), second_max==288(99, 5)
         #              'd', out_score_max==288, second_min==60, 69, 73
-        r3 = main.runm(model_name='hn300plt2', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
-        r4 = main.runm(model_name='hn300plt2', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
+        r3 = main.run(model_name='hn300plt2', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
+        r4 = main.run(model_name='hn300plt2', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
 
     return r1, r2, r3, r4

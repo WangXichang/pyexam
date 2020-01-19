@@ -140,6 +140,34 @@ Models = {
                                 tuple((i+1, i+1) for i in range(15)),             # grade from 1 to 15
                                 'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
                                 ),
+    'hn300plt1':    ModelFields(
+                                'plt',
+                                (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
+                                tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
+                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
+                                'piecewise linear transform model'
+                                ),
+    'hn300plt2':    ModelFields(
+                                'plt',
+                                (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
+                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
+                                'piecewise linear transform model'
+                                ),
+    'hn300plt3':    ModelFields(
+                                'plt',
+                                (1, 2, 14, 33, 33, 14, 2, 1),
+                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
+                                'piecewise linear transform model with ratio-segment'
+                                ),
+    'hn300plt4':    ModelFields(
+                                'plt',
+                                (3, 14, 33, 33, 14, 3),
+                                tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
+                                # ((300, 261), (270, 221), ... , (140, 101), (100, 60)),
+                                'piecewise linear transform model with ratio-segment'
+                                ),
     }
 
 
