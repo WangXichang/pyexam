@@ -669,6 +669,16 @@ def read_conf(conf_name):
     if 'para' in cfper.keys():
         for _para in cfper['para']:
             mcfg.update({_para: cfper['para'][_para]})
+        if 'raw_score_min' in mcfg.keys():
+            mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
+        if 'raw_score_max' in mcfg.keys():
+            mcfg['raw_score_max'] = int(mcfg['raw_score_max'])
+        if 'out_score_decimals' in mcfg.keys():
+            mcfg['out_score_decimals'] = int(mcfg['out_score_decimals'])
+        if 'tiny_value' in mcfg.keys():
+            x = None
+            exec('x = ' + mcfg['tiny_value'])
+            mcfg['tiny_value'] = x
 
     if 'strategy' in cfper.keys():
         for _mode in cfper['strategy']:

@@ -60,8 +60,8 @@ def runc(conf_name='stm.conf'):
         model_name=mcfg['model_name'],
         df=mcfg['df'],
         cols=mcfg['cols'],
-        raw_score_min=float(mcfg['raw_score_min']),
-        raw_score_max=float(mcfg['raw_score_max']),
+        raw_score_min=mcfg['raw_score_min'],
+        raw_score_max=mcfg['raw_score_max'],
         mode_ratio_prox=mcfg['mode_ratio_prox'],
         mode_ratio_cumu=mcfg['mode_ratio_cumu'],
         mode_sort_order=mcfg['mode_sort_order'],
@@ -223,10 +223,14 @@ def runm(
                               'alone',  transform zero alone, move zero score records from df
                      default= 'real'
 
-    :param raw_score_range: tuple,
+    :param raw_score_min: int
                      usage: raw score value range (min, max)
                     values: max and min raw score full and least value in paper
-                   default= (0, 100)
+                   default= 0
+    :param raw_score_max: int
+                     usage: raw score value range (min, max)
+                    values: max and min raw score full and least value in paper
+                   default= 100
 
     :param verify: bool
             usage: use two algorithm to verify result
@@ -392,7 +396,7 @@ def run1(
         mode_section_lost='real',
         raw_score_range=(0, 100),
         out_score_decimals=0,
-        tiny_value=10 ** -8,
+        tiny_value=10 ** -12,
         logger=None,
         ):
 
@@ -437,7 +441,7 @@ def run2(
         raw_score_range=(0, 100),
         raw_score_step=1,
         out_score_decimals=0,
-        tiny_value=10**-8,
+        tiny_value=10**-12,
         logger=None,
         ):
     """
