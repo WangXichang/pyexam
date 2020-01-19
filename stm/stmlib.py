@@ -868,7 +868,7 @@ class Checker:
 
         # check type
         if model_type not in ['ppt', 'plt', 'pgt']:
-            logger.info('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
+            logger.loginfo('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
             return False
 
         # check ratio
