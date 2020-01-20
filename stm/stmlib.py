@@ -655,16 +655,18 @@ def read_conf(conf_name):
         new_set = True
         for k in model_list:
             if k in cfper['model_new'].keys():
-                if k == 'ratio':
+                if k.lower() == 'ratio':
                     s = cfper['model_new'][k].split(',')
                     s = [float(x) for x in s]
-                else:
+                elif k.lower() == 'section':
                     s = re.findall('[0-9]+', cfper['model_new'][k])
-                    s = [(float(x), float(y)) for x, y in zip(s[1:], s[:-1])]
+                    s = [(float(x), float(y)) for x, y in zip(s[0::2], s[1::2])]
+                else:
+                    s = cfper['model_new'][k]
                 mcfg.update({'model_new_' + k: s})
             else:
                 new_set = False
-                print('no model para: {}'.format(k))
+                print('config error: model para incomplete in model_new: {}'.format(k))
         if new_set:
             _ch = Checker.check_model_para(
                 model_type=mcfg['model_new_type'],
@@ -774,7 +776,7 @@ class Checker:
 
         # check model name
         if model_name.lower() not in models.Models.keys():
-            logger.loginfo('error name: name={} not in models_in.Models and models_ext.Models!'.format(model_name))
+            logger.loginfo('error name: name={} not in models.Models!'.format(model_name))
             return False
 
         # check input data: DataFrame

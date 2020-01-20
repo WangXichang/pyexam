@@ -60,15 +60,20 @@ def run_config(conf_name='stm.conf'):
             models.Models.update(
                 {mcfg['model_name']:
                 models.ModelFields(
-                    model_type=mcfg['model_new_type'],
-                    model_ratio=mcfg['model_new_ratio'],
-                    model_section=mcfg['model_new_section'],
-                    model_desc=mcfg['model_new_desc']
+                    mcfg['model_new_type'],
+                    mcfg['model_new_ratio'],
+                    mcfg['model_new_section'],
+                    mcfg['model_new_desc']
                 )}
             )
+            print(models.Models[mcfg['model_new_name']])
+            print('add new model {} to models.Models'.format(mcfg['model_new_name']))
         else:
             print('no model checked!')
-            return None
+            return mcfg
+    else:
+        print('add new model fail!')
+        return mcfg
 
     result = run(
         model_name=mcfg['model_name'],
@@ -283,11 +288,11 @@ def run(
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
-    if not stmlib.Checker.reload_stm_modules(stmlogger, stm_modules):
-        stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
-        stmlogger.loginfo_end('model:' + model_name + stm_no +
-                              '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
-        return result(False, None, None)
+    # if not stmlib.Checker.reload_stm_modules(stmlogger, stm_modules):
+    #     stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
+    #     stmlogger.loginfo_end('model:' + model_name + stm_no +
+    #                           '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
+    #     return result(False, None, None)
     #
     # if not stmlib.Checker.check_merge_models(logger=stmlogger,
     #                                          sys_models=mdsys.Models,
