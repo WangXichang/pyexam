@@ -717,7 +717,7 @@ def read_conf(conf_name):
         if 'tiny_value' in mcfg.keys():
             mcfg['tiny_value'] = float(mcfg['tiny_value'])
         else:
-            print('not found tiny_value')
+            print('not found tiny_value, set to 10**-10')
             mcfg['tiny_value'] = 10**-10
 
         if 'logname' in mcfg.keys():
@@ -750,7 +750,7 @@ def read_conf(conf_name):
 def remove_annotation(s):
     p = s.find('#')
     rs = s.lower()
-    if p > 0:
+    if p >= 0:
         rs = s[0:p].strip().lower()
     return rs
 
