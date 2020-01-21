@@ -646,7 +646,8 @@ def read_conf(conf_name):
 
     if 'model_in' in cfper.keys():
         if 'name' in cfper['model_in']:
-            mcfg.update({'model_name': cfper['model_in']['name']})
+            mcfg.update({'model_name': remove_annotation(cfper['model_in']['name'])})
+            mcfg.update({'model_in_check': True})
         else:
             mcfg.update({'model_in_check': False})
 
@@ -655,14 +656,15 @@ def read_conf(conf_name):
         new_set = True
         for k in model_list:
             if k in cfper['model_new'].keys():
+                _s = remove_annotation(cfper['model_new'][k])
                 if k.lower() == 'ratio':
-                    s = cfper['model_new'][k].split(',')
+                    s = _s.split(',')
                     s = [float(x) for x in s]
                 elif k.lower() == 'section':
-                    s = re.findall('[0-9]+', cfper['model_new'][k])
+                    s = re.findall('[0-9]+', _s)
                     s = [(float(x), float(y)) for x, y in zip(s[0::2], s[1::2])]
                 else:
-                    s = cfper['model_new'][k]
+                    s = _s
                 mcfg.update({'model_new_' + k: s})
             else:
                 new_set = False
@@ -677,8 +679,9 @@ def read_conf(conf_name):
             mcfg.update({'model_new_check': _ch})
 
     if 'data' in cfper.keys():
+        df = None
         if 'df' in cfper['data']:
-            dffile = cfper['data']['df']
+            dffile = remove_annotation(cfper['data']['df'])
             mcfg.update({'dffile': dffile})
             if os.path.isfile(dffile):
                 try:
@@ -686,22 +689,25 @@ def read_conf(conf_name):
                     mcfg.update({'df': df})
                 except:
                     print('data read error!')
-                    mcfg.update({'df': None})
             else:
                 print('invalid file name: {}'.format(dffile))
-                # return None
+        mcfg.update({'df': df})
+        cols = None
         if 'cols' in cfper['data']:
-            cols_list = cfper['data']['cols'].split()
-            cols_list = [x.replace(',', '') for x in cols_list]
-            cols_list = [x.replace(';', '') for x in cols_list]
-            cols_list = [x.strip() for x in cols_list]
-            mcfg.update({'cols': cols_list})
+            _cols = remove_annotation(cfper['data']['cols'])
+            _cols = _cols.split()
+            _cols = [x.replace(',', '') for x in _cols]
+            _cols = [x.replace(';', '') for x in _cols]
+            _cols = [x.strip() for x in _cols]
+            cols = _cols
         else:
             print('no cols in config file!')
+        mcfg.update({'cols': cols})
 
     if 'para' in cfper.keys():
         for _para in cfper['para']:
-            mcfg.update({_para: cfper['para'][_para]})
+            mcfg.update({_para: remove_annotation(cfper['para'][_para])})
+
         if 'raw_score_min' in mcfg.keys():
             mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
         if 'raw_score_max' in mcfg.keys():
@@ -722,6 +728,7 @@ def read_conf(conf_name):
         else:
             print('no logname in config file!')
 
+        # set bool
         bool_list = ['logdisp', 'logfile', 'verify']
         for ks in bool_list:
             if ks in mcfg.keys():
@@ -735,17 +742,73 @@ def read_conf(conf_name):
     if 'strategy' in cfper.keys():
         for _mode in cfper['strategy']:
             _mode_str = cfper['strategy'][_mode]
-            mcfg.update({_mode: remove_sharp(_mode_str)})
+            mcfg.update({_mode: remove_annotation(_mode_str)})
 
     return mcfg
 
 
-def remove_sharp(s):
+def remove_annotation(s):
     p = s.find('#')
-    rs = s
+    rs = s.lower()
     if p > 0:
-        rs = s[0:p].strip()
+        rs = s[0:p].strip().lower()
     return rs
+
+
+def make_config_file(filename):
+    template = \
+        """
+        [model_in]
+        namex = shandong                    # model name biult in models
+        
+        [model_new]
+        name = test-similar-shandong        # model name
+        type = plt                          # model type, valid value: plt, ppt, pgt
+        # section for out score, point-pair tuple separated by comma
+        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
+        # ratio for each section, sum=100
+        ratio = 3, 7, 16, 24, 24, 16, 9, 1
+        # description for model
+        desc = new model for test, similar to Shandong
+        
+        
+        [data]
+        df = df             # file name, used to read to DataFrame
+        cols = km1, km2     # score fields to transform score
+        
+        
+        [strategy]
+        mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
+        mode_ratio_cumu = no                # ('yes', 'no')
+        mode_sort_order = d                 # ('d', 'a')
+        mode_section_point_first = real     # ('real', 'defined')
+        mode_section_point_start = step     # ('step', 'share')
+        mode_section_point_last = real      # ('real', 'defined')
+        mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
+        mode_section_lost = real            # ('real', 'zip')
+        
+        
+        [para]
+        logname =                           # used to add in logfile name: [model_name]_[logname]_[year]_[month]_[day].log
+        logdisp = 1                         # output message to consol or not
+        logfile = 1                         # output message to log file or not
+        verify = 0                          # use dual algorithm to verify result or not
+        raw_score_min = 0                   # min score for raw score
+        raw_score_max = 100                 # max score for raw score
+        out_score_decimals = 0              # decimal digits for out score
+        tiny_value = 0.000000000001         # smallest value for precision in calculation process
+        """
+    if isfilestr(filename):
+        with open(filename, 'a') as fp:
+            top_line = True
+            for ss in template.split('\n'):
+                if len(ss.strip()) == 0:
+                    continue
+                if ('[' in ss) and not top_line:
+                    fp.write('\n'*3 + ss.strip() + '\n')
+                else:
+                    fp.write(ss.strip() + '\n')
+                top_line = False
 
 
 class Checker:

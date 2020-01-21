@@ -40,21 +40,20 @@ stm_modules = [stmlib, stm1, stm2, models]
 
 
 def run_config(conf_name='stm.conf'):
+
     for m in stm_modules:
         pb.reload(m)
-    _read = stmlib.read_conf(conf_name)
-    if _read:
-        mcfg = _read
+
+    config_read = stmlib.read_conf(conf_name)
+    if config_read:
+        mcfg = config_read
     else:
+        print('read config file {} fail!'.format(conf_name))
         return None
 
-    for k in mcfg.keys():
-        if k == 'df':
-            print('{:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
-        else:
-            print('{:25s}: {:10s}'.format(k, str(mcfg[k])))
-
+    # no model from built-in models
     if not mcfg['model_in_check']:
+        # new model in config-file
         if mcfg['model_new_check']:
             mcfg.update({'model_name': mcfg['model_new_name']})
             models.Models.update(
@@ -66,14 +65,26 @@ def run_config(conf_name='stm.conf'):
                     mcfg['model_new_desc']
                 )}
             )
-            print(models.Models[mcfg['model_new_name']])
-            print('add new model {} to models.Models'.format(mcfg['model_new_name']))
+            print('new model [{}] check-in!'.format(mcfg['model_new_name']))
+        # no model can be used
         else:
-            print('no model checked!')
+            print('new model check-in fail! no model can be used!')
             return mcfg
-    else:
-        print('add new model fail!')
-        return mcfg
+
+    if 'df' in mcfg.keys():
+        if mcfg['df'] is None:
+            print('data not found!')
+            return mcfg
+    if 'cols' in mcfg.keys():
+        if mcfg['cols'] is None:
+            print('cols not found!')
+            return mcfg
+
+    for k in mcfg.keys():
+        if k == 'df':
+            print('{:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
+        else:
+            print('{:25s}: {:10s}'.format(k, str(mcfg[k])))
 
     result = run(
         model_name=mcfg['model_name'],

@@ -84,55 +84,55 @@ Models = {
     'zhejiang':     ModelFields(MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1),
                                 tuple((x, x) for x in range(100, 39, -3)),
-                                'piecewise linear transform model'
+                                'Zhejiang NewGaokao transform model'
                                 ),
     'shanghai':     ModelFields(MODEL_TYPE_PLT,
                                 (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5),
                                 tuple((x, x) for x in range(70, 39, -3)),
-                                'piecewise linear transform model'
+                                'Shanghai NewGaokao transform model'
                                 ),
     'beijing':      ModelFields(MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
-                                'piecewise linear transform model'),
+                                'Beijing NewGaokao transform model'),
     'tianjin':      ModelFields(MODEL_TYPE_PLT,
                                 (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
-                                'piecewise linear transform model'
+                                'Tianjin NewGaokao transform model'
                                 ),
     'shandong':     ModelFields(MODEL_TYPE_PLT,
                                 (3, 7, 16, 24, 24, 16, 7, 3),
                                 tuple((100-i*10, 100-i*10-9) for i in range(8)),
-                                'piecewise linear transform model'
+                                'Shandong NewGaokao transform model'
                                 ),
     'guangdong':    ModelFields(MODEL_TYPE_PLT,
                                 (17, 33, 33, 15, 2),
                                 ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30)),
-                                'piecewise linear transform model'
+                                'Guangdong NewGaokao transform model'
                                 ),
-    'ss7':          ModelFields(MODEL_TYPE_PLT,
+    'p7':          ModelFields(MODEL_TYPE_PLT,
                                 (15, 35, 35, 13, 2),
                                 ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30)),
-                                'piecewise linear transform model'
+                                '7 Province/Cities(Jiangsu, Chongqing, ...) transform model'
                                 ),
-    'hn900':        ModelFields(MODEL_TYPE_PPT,
+    'h900':        ModelFields(MODEL_TYPE_PPT,
                                 hn900model.pdf,
                                 hn900model.section,
-                                'standard score model: piecewise point transform'),
-    'hn300':        ModelFields(MODEL_TYPE_PPT,
+                                'standard score model， used in Hainan now'),
+    'h300':        ModelFields(MODEL_TYPE_PPT,
                                 hn300model.pdf,
                                 hn300model.section,
-                                'standard score model: piecewise point transform'
+                                'standard score model, may used in Hainan future'
                                 ),
-    'zscore':       ModelFields(MODEL_TYPE_PPT,
+    'z':            ModelFields(MODEL_TYPE_PPT,
                                 zscoremodel.pdf,
                                 zscoremodel.section,
-                                'piecewise linear transform model with ratio-segment'
+                                'Z-score Model, std=1, score-range=(-4, 4), score-points=800'
                                 ),
-    'tscore':       ModelFields(MODEL_TYPE_PPT,
+    't':            ModelFields(MODEL_TYPE_PPT,
                                 tscoremodel.pdf,
                                 tscoremodel.section,
-                                'piecewise linear transform model with ratio-segment'
+                                'T-score, std=10, score-range=(10, 90)'
                                 ),
     'tai':          ModelFields(
                                 MODEL_TYPE_PGT,
@@ -140,33 +140,29 @@ Models = {
                                 tuple((i+1, i+1) for i in range(15)),             # grade from 1 to 15
                                 'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
                                 ),
-    'hn300plt1':    ModelFields(
+    'h300plt1':     ModelFields(
                                 'plt',
                                 (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
                                 tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
-                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
-                                'piecewise linear transform model'
+                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'hn300plt2':    ModelFields(
+    'h300plt2':     ModelFields(
                                 'plt',
                                 (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
-                                'piecewise linear transform model'
+                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'hn300plt3':    ModelFields(
+    'h300plt3':     ModelFields(
                                 'plt',
                                 (1, 2, 14, 33, 33, 14, 2, 1),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                # ((300, 271), (270, 241), ... , (120, 91), (90, 60)),
-                                'piecewise linear transform model with ratio-segment'
+                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'hn300plt4':    ModelFields(
+    'h300plt4':     ModelFields(
                                 'plt',
                                 (3, 14, 33, 33, 14, 3),
                                 tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
-                                # ((300, 261), (270, 221), ... , (140, 101), (100, 60)),
-                                'piecewise linear transform model with ratio-segment'
+                                'piecewise linear transform model, 5-sections, [(300, 261), (270, 221), ..., (100, 60)]'
                                 ),
     }
 
