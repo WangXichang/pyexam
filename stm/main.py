@@ -410,6 +410,9 @@ def run(
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
+    stmlogger.logger.handlers = []
+    del stmlogger.logging_file
+    del stmlogger
 
     return r
     # end runm
