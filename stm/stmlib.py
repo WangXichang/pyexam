@@ -710,14 +710,19 @@ def read_conf(conf_name):
 
         if 'raw_score_min' in mcfg.keys():
             mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
+        else:
+            mcfg.update({'raw_score_min': 0})
         if 'raw_score_max' in mcfg.keys():
             mcfg['raw_score_max'] = int(mcfg['raw_score_max'])
+        else:
+            mcfg.update({'raw_score_max': 0})
         if 'out_score_decimals' in mcfg.keys():
             mcfg['out_score_decimals'] = int(mcfg['out_score_decimals'])
+        else:
+            mcfg.update({'out_score_decimals': 0})
         if 'tiny_value' in mcfg.keys():
             mcfg['tiny_value'] = float(mcfg['tiny_value'])
         else:
-            print('not found tiny_value, set to 10**-10')
             mcfg['tiny_value'] = 10**-10
 
         if 'logname' in mcfg.keys():
@@ -726,10 +731,13 @@ def read_conf(conf_name):
             s = s.replace('"', '')
             mcfg['logname'] = s
         else:
-            print('no logname in config file!')
+            mcfg.update({'logname': ''})
 
         # set bool
         bool_list = ['logdisp', 'logfile', 'verify']
+        default_d = {'logdisp': True,
+                     'logfile': False,
+                     'verify': False}
         for ks in bool_list:
             if ks in mcfg.keys():
                 if mcfg[ks].lower() in ['false', '0', '']:
@@ -737,8 +745,7 @@ def read_conf(conf_name):
                 else:
                     mcfg[ks] = True
             else:
-                print('{} not in para section of config file'.format(ks))
-
+                mcfg.update({ks: default_d[ks]})
     if 'strategy' in cfper.keys():
         for _mode in cfper['strategy']:
             _mode_str = cfper['strategy'][_mode]

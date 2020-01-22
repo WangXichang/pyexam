@@ -80,11 +80,13 @@ def run_config(conf_name='stm.conf'):
             print('cols not found!')
             return mcfg
 
+    print('=' * 120)
+    print('config value from {}'.format(conf_name) + '\n' + '-'*120)
     for k in mcfg.keys():
         if k == 'df':
-            print('{:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
+            print('   {:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
         else:
-            print('{:25s}: {:10s}'.format(k, str(mcfg[k])))
+            print('   {:25s}: {:10s}'.format(k, str(mcfg[k])))
 
     result = run(
         model_name=mcfg['model_name'],
@@ -299,18 +301,6 @@ def run(
         stmlogger.logging_file = True
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
-    # if not stmlib.Checker.reload_stm_modules(stmlogger, stm_modules):
-    #     stmlogger.loginfo('reload error: can not reload modules:{}'.format(stm_modules))
-    #     stmlogger.loginfo_end('model:' + model_name + stm_no +
-    #                           '  df.colums={} score fields={}\n'.format(list(df.columns), cols))
-    #     return result(False, None, None)
-    #
-    # if not stmlib.Checker.check_merge_models(logger=stmlogger,
-    #                                          sys_models=mdsys.Models,
-    #                                          ext_models=mdext.Models_ext):
-    #     # stmlogger.loginfo('error: models_sys-models_ext merge fail!')
-    #     return False
-
     if not stmlib.Checker.check_run(
             model_name=model_name,
             df=df,
@@ -411,8 +401,10 @@ def run(
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
     stmlogger.logger.handlers = []
-    del stmlogger.logging_file
-    del stmlogger
+
+    # how to close log file ?
+    stmlogger = stmlib.get_logger('sys_record')
+    stmlogger.loginfo('---running model {} end---'.format(model_name))
 
     return r
     # end runm

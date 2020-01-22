@@ -39,7 +39,13 @@ class Bzy():
         self.dfwk.minplace = self.dfwk.minplace.apply(lambda x: int(x[1:3]) if isinstance(x, str) else int(x))
         self.dflk.minplace = self.dflk.minplace.apply(lambda x: int(x[1:3]) if isinstance(x, str) else int(x))
 
-    def find_zywc(self, zyname='经济', wcrange=(100, 1000)):
-        wkmean = self.dfwk.groupby(['yxdh', 'yxmc', 'zymc'])[['minplace', 'minscore']].mean()
-        result = wkmean[wkmean.zymc.apply()]
-        pass
+    def find_wc(self, kl='like', xx='山东', zy=('经济'), wcrange=(100, 1000)):
+        if kl == 'like':
+            result = self.dflk.groupby(['yxdh', 'yxmc', 'zymc'])[['minplace', 'minscore']].mean()
+        else:
+            result = self.dfwk.groupby(['yxdh', 'yxmc', 'zymc'])[['minplace', 'minscore']].mean()
+        print(result.head())
+        result = result[[xx in x[1] for x in result.index]]
+        for z in zy:
+            result = result[[z in x[2] for x in result.index]]
+        return result
