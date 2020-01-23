@@ -22,14 +22,6 @@ about this module:
     run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
         and other parameters(score range, strategies, out score decimal digits)
 
-How to add new model in modelext:
-    you can add a new model in models_ext.Models_ext,
-    then use the new model by calling runc(model_name=new_model_name,...) or runm(...)
-    in order to add new model in modelext.Models_ext,
-    open modeles_ext.py, modify Models_ext, add key-value: name-ModelFields
-    then call run() with reload=True: result = run(model_name=new_model_name, ..., reload=True)
-    then run() will check new model and add models in models_ext.Models_ext to models_in.Models
-    at last run() use new_model_name to call stm1 or stm2
 """
 
 from collections import namedtuple

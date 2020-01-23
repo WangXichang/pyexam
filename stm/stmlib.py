@@ -651,32 +651,33 @@ def read_conf(conf_name):
         else:
             mcfg.update({'model_in_check': False})
 
-    model_list = ['name', 'type', 'ratio', 'section', 'desc']
-    if 'model_new' in cfper.keys():
-        new_set = True
-        for k in model_list:
-            if k in cfper['model_new'].keys():
-                _s = remove_annotation(cfper['model_new'][k])
-                if k.lower() == 'ratio':
-                    s = _s.split(',')
-                    s = [float(x) for x in s]
-                elif k.lower() == 'section':
-                    s = re.findall('[0-9]+', _s)
-                    s = [(float(x), float(y)) for x, y in zip(s[0::2], s[1::2])]
+    if not mcfg['model_in_check']:
+        model_list = ['name', 'type', 'ratio', 'section', 'desc']
+        if 'model_new' in cfper.keys():
+            new_set = True
+            for k in model_list:
+                if k in cfper['model_new'].keys():
+                    _s = remove_annotation(cfper['model_new'][k])
+                    if k.lower() == 'ratio':
+                        s = _s.split(',')
+                        s = [float(x) for x in s]
+                    elif k.lower() == 'section':
+                        s = re.findall('[0-9]+', _s)
+                        s = [(float(x), float(y)) for x, y in zip(s[0::2], s[1::2])]
+                    else:
+                        s = _s
+                    mcfg.update({'model_new_' + k: s})
                 else:
-                    s = _s
-                mcfg.update({'model_new_' + k: s})
-            else:
-                new_set = False
-                print('config error: model para incomplete in model_new: {}'.format(k))
-        if new_set:
-            _ch = Checker.check_model_para(
-                model_type=mcfg['model_new_type'],
-                model_ratio=mcfg['model_new_ratio'],
-                model_section=mcfg['model_new_section'],
-                model_desc=mcfg['model_new_desc']
-                )
-            mcfg.update({'model_new_check': _ch})
+                    new_set = False
+                    print('config error: model para incomplete in model_new: {}'.format(k))
+            if new_set:
+                _ch = Checker.check_model_para(
+                    model_type=mcfg['model_new_type'],
+                    model_ratio=mcfg['model_new_ratio'],
+                    model_section=mcfg['model_new_section'],
+                    model_desc=mcfg['model_new_desc']
+                    )
+                mcfg.update({'model_new_check': _ch})
 
     if 'data' in cfper.keys():
         df = None
