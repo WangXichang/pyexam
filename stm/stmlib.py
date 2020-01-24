@@ -744,12 +744,13 @@ def read_conf(conf_name):
             mcfg.update({'logname': ''})
 
         # set bool
-        bool_list = ['logdisp', 'logfile', 'verify', 'savedf', 'savereport']
+        bool_list = ['logdisp', 'logfile', 'verify', 'savedf', 'savereport', 'savemaptable']
         default_d = {'logdisp': True,
                      'logfile': False,
                      'verify': False,
                      'savedf': True,
                      'savereport': True,
+                     'savemaptable': True,
                      }
         for ks in bool_list:
             if ks in mcfg.keys():
@@ -786,6 +787,7 @@ def make_config_file(filename):
         verify = 0                          # use dual algorithm to verify result or not
         savedf = True
         savereport = True
+        savemaptable = True
 
         
         [model_in]
