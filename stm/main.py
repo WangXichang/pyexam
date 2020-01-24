@@ -31,7 +31,7 @@ import importlib as pb
 stm_modules = [stmlib, stm1, stm2, models]
 
 
-def run_config(conf_name='stm.conf'):
+def run_conf(conf_name='stm.conf'):
 
     for m in stm_modules:
         pb.reload(m)
@@ -63,14 +63,10 @@ def run_config(conf_name='stm.conf'):
             print('new model check-in fail! no model can be used!')
             return mcfg
 
-    if 'df' in mcfg.keys():
-        if mcfg['df'] is None:
-            print('data not found!')
-            return mcfg
-    if 'cols' in mcfg.keys():
-        if mcfg['cols'] is None:
-            print('cols not found!')
-            return mcfg
+    if mcfg['df'] is None:
+        return mcfg
+    if mcfg['cols'] is None:
+        return mcfg
 
     print('=' * 120)
     print('config value from {}'.format(conf_name) + '\n' + '-'*120)

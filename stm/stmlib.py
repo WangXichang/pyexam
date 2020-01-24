@@ -692,6 +692,8 @@ def read_conf(conf_name):
                     print('data read error!')
             else:
                 print('invalid file name: {}'.format(dffile))
+        else:
+            print('no df in config file!')
         mcfg.update({'df': df})
         cols = None
         if 'cols' in cfper['data']:
