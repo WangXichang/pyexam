@@ -281,7 +281,7 @@ def run(
 
     result = namedtuple('Result', ['ok', 'r1', 'r2'])
 
-    stmlogger = stmlib.get_logger(model_name, task=logname)
+    stmlogger = stmlib.get_logger(model_name, logname=logname)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
         stmlogger.logging_consol = True
@@ -391,7 +391,7 @@ def run(
     stmlogger.logger.handlers = []
 
     # how to close log file ?
-    stmlogger = stmlib.get_logger('sys_record')
+    # stmlogger = stmlib.get_logger('sys_record')
     stmlogger.loginfo('---running model {} end---'.format(model_name))
 
     return r

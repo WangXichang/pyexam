@@ -728,6 +728,9 @@ def read_conf(conf_name):
         else:
             mcfg['tiny_value'] = 10**-10
 
+    if 'task' in cfper.keys():
+        for _para in cfper['task']:
+            mcfg.update({_para: remove_annotation(cfper['task'][_para])})
         if 'logname' in mcfg.keys():
             s = mcfg['logname']
             s = s.replace("'", "")
@@ -735,7 +738,6 @@ def read_conf(conf_name):
             mcfg['logname'] = s
         else:
             mcfg.update({'logname': ''})
-
         # set bool
         bool_list = ['logdisp', 'logfile', 'verify']
         default_d = {'logdisp': True,
@@ -749,10 +751,11 @@ def read_conf(conf_name):
                     mcfg[ks] = True
             else:
                 mcfg.update({ks: default_d[ks]})
+
     if 'strategy' in cfper.keys():
         for _mode in cfper['strategy']:
-            _mode_str = cfper['strategy'][_mode]
-            mcfg.update({_mode: remove_annotation(_mode_str)})
+            _mode_str = remove_annotation(cfper['strategy'][_mode])
+            mcfg.update({_mode: _mode_str})
 
     return mcfg
 
@@ -768,8 +771,16 @@ def remove_annotation(s):
 def make_config_file(filename):
     template = \
         """
+        [task]
+        logname =                           # used to add in logfile name: [model_name]_[logname]_[year]_[month]_[day].log
+        logdisp = 1                         # output message to consol or not
+        logfile = 1                         # output message to log file or not
+        verify = 0                          # use dual algorithm to verify result or not
+        
+        
         [model_in]
         namex = shandong                    # model name biult in models
+        
         
         [model_new]
         name = test-similar-shandong        # model name
@@ -787,6 +798,13 @@ def make_config_file(filename):
         cols = km1, km2     # score fields to transform score
         
         
+        [para]
+        raw_score_min = 0                   # min score for raw score
+        raw_score_max = 100                 # max score for raw score
+        out_score_decimals = 0              # decimal digits for out score
+        tiny_value = 0.000000000001         # smallest value for precision in calculation process
+        
+        
         [strategy]
         mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
         mode_ratio_cumu = no                # ('yes', 'no')
@@ -796,18 +814,8 @@ def make_config_file(filename):
         mode_section_point_last = real      # ('real', 'defined')
         mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
         mode_section_lost = real            # ('real', 'zip')
-        
-        
-        [para]
-        logname =                           # used to add in logfile name: [model_name]_[logname]_[year]_[month]_[day].log
-        logdisp = 1                         # output message to consol or not
-        logfile = 1                         # output message to log file or not
-        verify = 0                          # use dual algorithm to verify result or not
-        raw_score_min = 0                   # min score for raw score
-        raw_score_max = 100                 # max score for raw score
-        out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 0.000000000001         # smallest value for precision in calculation process
         """
+
     if isfilestr(filename):
         with open(filename, 'a') as fp:
             top_line = True
@@ -884,31 +892,6 @@ class Checker:
                 pb.reload(m)
         except:
             return False
-        return True
-
-    # deprecated
-    @staticmethod
-    def check_merge_models(logger=None, sys_models=None, ext_models=None):
-        global model_merge, mdsys, mdext
-        if logger is None:
-            logger = get_logger('check')
-            logger.logging_consol = True
-            logger.logging_file = True
-        # check model in models_sys
-        for mk in sys_models.keys():
-            if not Checker.check_model(model_name=mk, model_lib=sys_models, logger=logger):
-                logger.loginfo('error model: model={} in models_in.Models!'.format(mk))
-                return False
-        # add Models_ext to Models
-        for mk in ext_models.keys():
-            # dynamic merging for running
-            if mk in sys_models.keys():
-                if not model_merge:
-                    logger.loginfo('warning: models_ext model name={} existed in models_sys.Models!'.format(mk))
-                    model_merge = True
-            if not Checker.check_model(model_name=mk, model_lib=mdext.Models_ext, logger=logger):
-                return False
-            sys_models.update({mk: ext_models[mk]})
         return True
 
     @staticmethod
@@ -1013,7 +996,7 @@ class Checker:
         for sk in st.keys():
             if sk in models.Strategy.keys():
                 if not st[sk] in models.Strategy[sk]:
-                    logger.loginfo('error mode: {}={} not in {}'.format(sk, st[sk], mdsys.Strategy[sk]))
+                    logger.loginfo('error mode: {}={} not in {}'.format(sk, st[sk], models.Strategy[sk]))
                     return False
             else:
                 logger.loginfo('error mode: {} is not in Strategy-dict!'.format(sk))
@@ -1061,18 +1044,18 @@ class Checker:
         return True
 
 
-def get_logger(model_name, task=None):
+def get_logger(model_name, logname=None):
     gmt = time.localtime()
-    if not isinstance(task, str):
-        task_str = '_'
+    if not isinstance(logname, str):
+        task_str = 'log_'
     else:
-        task_str = task + '_'
-    log_file = model_name + '_' + \
-               task_str + \
-               str(gmt.tm_year) + '_' + \
-               str(gmt.tm_mon) + '_' + \
-               str(gmt.tm_mday) + \
-               '.log'
+        task_str = logname + '_'
+    log_file = \
+        task_str + model_name + '_' + \
+        str(gmt.tm_year) + '_' + \
+        str(gmt.tm_mon) + '_' + \
+        str(gmt.tm_mday) + \
+        '.log'
     stmlog = Logger(log_file, level='info')
     return stmlog
 
@@ -1087,13 +1070,13 @@ class Logger(object):
     }
 
     def __init__(self,
-                 filename='stm.log',
+                 filename='log_test.log',
                  level='info',
                  when='D',
                  back_count=3,
                  ):
 
-        # stat
+        # output
         self.logging_file = False
         self.logging_consol = False
 
@@ -1106,12 +1089,12 @@ class Logger(object):
         self.when = when
         # self.format = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
 
-        # set logger
-        self.logger = logging.getLogger(self.filename)              # file name
+        # logger
+        self.logger = logging.getLogger(self.filename)              # 设置日志文件名
         self.logger.setLevel(self.level_relations.get(self.level))  # 设置日志级别
         self.logger_format = logging.Formatter(self.format)         # 设置日志格式
 
-        # set handlers
+        # handlers
         self.stream_handler = None
         self.rotating_file_handler = None
         self.set_handlers(self.logger_format)
