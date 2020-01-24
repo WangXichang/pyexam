@@ -287,6 +287,7 @@ def run(
         stmlogger.logging_consol = True
     if logfile:
         stmlogger.logging_file = True
+    stmlogger.loginfo('*** running begin ***')
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
     if not stmlib.Checker.check_run(
@@ -392,7 +393,7 @@ def run(
 
     # how to close log file ?
     # stmlogger = stmlib.get_logger('sys_record')
-    stmlogger.loginfo('---running model {} end---'.format(model_name))
+    stmlogger.loginfo('--- running end ---')
 
     return r
     # end runm

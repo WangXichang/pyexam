@@ -715,22 +715,26 @@ def read_conf(conf_name):
             mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
         else:
             mcfg.update({'raw_score_min': 0})
+
         if 'raw_score_max' in mcfg.keys():
             mcfg['raw_score_max'] = int(mcfg['raw_score_max'])
         else:
-            mcfg.update({'raw_score_max': 0})
+            mcfg.update({'raw_score_max': 100})
+
         if 'out_score_decimals' in mcfg.keys():
             mcfg['out_score_decimals'] = int(mcfg['out_score_decimals'])
         else:
             mcfg.update({'out_score_decimals': 0})
+
         if 'tiny_value' in mcfg.keys():
-            mcfg['tiny_value'] = float(mcfg['tiny_value'])
+            mcfg['tiny_value'] = eval(mcfg['tiny_value'])
         else:
             mcfg['tiny_value'] = 10**-10
 
     if 'task' in cfper.keys():
         for _para in cfper['task']:
             mcfg.update({_para: remove_annotation(cfper['task'][_para])})
+
         if 'logname' in mcfg.keys():
             s = mcfg['logname']
             s = s.replace("'", "")
@@ -738,11 +742,15 @@ def read_conf(conf_name):
             mcfg['logname'] = s
         else:
             mcfg.update({'logname': ''})
+
         # set bool
-        bool_list = ['logdisp', 'logfile', 'verify']
+        bool_list = ['logdisp', 'logfile', 'verify', 'savedf', 'savereport']
         default_d = {'logdisp': True,
                      'logfile': False,
-                     'verify': False}
+                     'verify': False,
+                     'savedf': True,
+                     'savereport': True,
+                     }
         for ks in bool_list:
             if ks in mcfg.keys():
                 if mcfg[ks].lower() in ['false', '0', '']:
@@ -776,21 +784,12 @@ def make_config_file(filename):
         logdisp = 1                         # output message to consol or not
         logfile = 1                         # output message to log file or not
         verify = 0                          # use dual algorithm to verify result or not
-        
+        savedf = True
+        savereport = True
+
         
         [model_in]
         namex = shandong                    # model name biult in models
-        
-        
-        [model_new]
-        name = test-similar-shandong        # model name
-        type = plt                          # model type, valid value: plt, ppt, pgt
-        # section for out score, point-pair tuple separated by comma
-        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
-        # ratio for each section, sum=100
-        ratio = 3, 7, 16, 24, 24, 16, 9, 1
-        # description for model
-        desc = new model for test, similar to Shandong
         
         
         [data]
@@ -802,7 +801,7 @@ def make_config_file(filename):
         raw_score_min = 0                   # min score for raw score
         raw_score_max = 100                 # max score for raw score
         out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 0.000000000001         # smallest value for precision in calculation process
+        tiny_value = 10 ** -10              # smallest value for precision in calculation process
         
         
         [strategy]
@@ -814,6 +813,17 @@ def make_config_file(filename):
         mode_section_point_last = real      # ('real', 'defined')
         mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
         mode_section_lost = real            # ('real', 'zip')
+        
+        
+        [model_new]
+        name = test-similar-shandong        # model name
+        type = plt                          # model type, valid value: plt, ppt, pgt
+        # section for out score, point-pair tuple separated by comma
+        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
+        # ratio for each section, sum=100
+        ratio = 3, 7, 16, 24, 24, 16, 9, 1
+        # description for model
+        desc = new model for test, similar to Shandong
         """
 
     if isfilestr(filename):
