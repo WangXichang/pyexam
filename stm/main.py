@@ -94,6 +94,7 @@ def run_conf(conf_name='stm.conf'):
         logdisp=mcfg['logdisp'],
         logfile=mcfg['logfile'],
         verify=mcfg['verify'],
+        saveresult=mcfg['saveresult'],
         out_score_decimals=mcfg['out_score_decimals'],
         tiny_value=mcfg['tiny_value'],
         )
@@ -121,6 +122,7 @@ def run(
         logdisp=True,
         logfile=False,
         verify=False,
+        saveresult=True,
         raw_score_min=0,
         raw_score_max=100,
         out_score_decimals=0,
@@ -386,6 +388,9 @@ def run(
                   logger=stmlogger,
                   )
         r = result(True, None, m2)
+
+    if saveresult:
+        pass
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))

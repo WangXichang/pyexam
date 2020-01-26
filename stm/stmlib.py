@@ -744,13 +744,11 @@ def read_conf(conf_name):
             mcfg.update({'logname': ''})
 
         # set bool
-        bool_list = ['logdisp', 'logfile', 'verify', 'savedf', 'savereport', 'savemaptable']
+        bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
         default_d = {'logdisp': True,
                      'logfile': False,
                      'verify': False,
-                     'savedf': True,
-                     'savereport': True,
-                     'savemaptable': True,
+                     'saveresult': True,
                      }
         for ks in bool_list:
             if ks in mcfg.keys():
