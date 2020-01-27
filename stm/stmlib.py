@@ -789,7 +789,7 @@ def make_config_file(filename):
 
         
         [model_in]
-        namex = shandong                    # model name biult in models
+        name = shandong                    # model name biult in models
 
         
         [model_new]
