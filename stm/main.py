@@ -82,7 +82,7 @@ def run_conf(conf_name='stm.conf'):
         return mcfg
 
     print('=' * 120)
-    print('config value from {}'.format(conf_name) + '\n' + '-'*120)
+    print('stm setting in {}'.format(conf_name) + '\n' + '-'*120)
     for k in mcfg.keys():
         if k == 'df':
             print('   {:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
@@ -107,13 +107,13 @@ def run_conf(conf_name='stm.conf'):
         logname=mcfg['logname'],
         logdisp=mcfg['logdisp'],
         logfile=mcfg['logfile'],
-        verify=mcfg['verify'],
         saveresult=mcfg['saveresult'],
         out_score_decimals=mcfg['out_score_decimals'],
         tiny_value=mcfg['tiny_value'],
+        verify=mcfg['verify'],
         )
 
-    if not result.ok:
+    if not result:
         print('run fail: result is None!')
         # return mcfg
 
@@ -309,6 +309,7 @@ def run(
         stmlogger.logging_consol = True
     if logfile:
         stmlogger.logging_file = True
+
     stmlogger.loginfo('*** running begin ***')
     stmlogger.loginfo_start('model:' + model_name + stm_no)
 
@@ -428,8 +429,16 @@ def run(
     # stmlogger = stmlib.get_logger('sys_record')
     stmlogger.loginfo('--- running end ---')
 
-    return r
-    # end runm
+    # set return: verify for debug
+    if verify:
+        return r
+    elif r.ok:
+        if r.r1 is None:
+            return r.r2
+        return r.r1
+    else:
+        return None
+# end runm
 
 
 def run1(
@@ -473,6 +482,7 @@ def run1(
         )
     m.run()
     return m
+# end run1
 
 
 # get stm score by calling stmlib2.ModelAlgorithm
@@ -556,6 +566,7 @@ def run2(
         tiny_value=tiny_value,
         logger=logger,
         )
+# end run2
 
 
 # calc stm score by calling methods in stmlib2.ModelAlgorithm
@@ -654,4 +665,4 @@ def run2_para(
         out_score_decimals=out_score_decimal_digits,
         logger=logger,
         )
-    # end--run2
+# end--run2

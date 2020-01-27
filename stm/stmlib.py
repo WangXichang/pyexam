@@ -1108,7 +1108,7 @@ class Logger(object):
         self.rotating_file_handler = None
         self.set_handlers(self.logger_format)
 
-    def loginfo(self, ms='', level='info'):
+    def loginfo(self, ms=''):
         self.logger.handlers = []
         if self.logging_consol:
             self.logger.addHandler(self.stream_handler)
