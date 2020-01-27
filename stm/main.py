@@ -410,33 +410,32 @@ def run(
                   )
         r = result(True, None, m2)
 
-    if saveresult:
-        if r.ok:
-            t = time.localtime()
-            fno = str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)+str(t.tm_hour)+str(t.tm_min)+str(t.tm_sec)
-            savedfname = 'df_' + model_name + '_' + fno + '.csv'
-            savemapname = 'map_' + model_name + '_' + fno + '.csv'
-            r.r1.outdf.to_csv(savedfname, index=False)
-            r.r1.map_table.to_csv(savemapname, index=False)
+
+    if r.ok:
+        t = time.localtime()
+        fno = str(t.tm_year) + str(t.tm_mon) + str(t.tm_mday) + str(t.tm_hour) + str(t.tm_min) + str(t.tm_sec)
+        savedfname = 'df_rts_' + model_name + '_' + fno + '.csv'
+        savemapname = 'df_map_' + model_name + '_' + fno + '.csv'
+        if r.r1 is not None:
+            _outdf = r.r1.outdf
+            _maptable = r.r1.map_table
         else:
-            stmlogger.loginfo('model={} running fail!'.format(model_name))
-
-    stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
-    stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
-    stmlogger.logger.handlers = []
-
-    # how to close log file ?
-    # stmlogger = stmlib.get_logger('sys_record')
-    stmlogger.loginfo('--- running end ---')
-
-    # set return: verify for debug
-    if verify:
-        return r
-    elif r.ok:
-        if r.r1 is None:
-            return r.r2
-        return r.r1
+            _outdf = r.r2.outdf
+            _maptable = r.r2.map_table
+        if saveresult:
+            _outdf.to_csv(savedfname, index=False)
+            _maptable.to_csv(savemapname, index=False)
+        stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(_outdf.columns), cols))
+        stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
+        if verify:
+            return r
+        else:
+            if r.r1 is None:
+                return r.r2
+            else:
+                return r.r1
     else:
+        # stmlogger.loginfo('model={} running fail!'.format(model_name))
         return None
 # end runm
 

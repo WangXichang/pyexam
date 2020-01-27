@@ -707,9 +707,9 @@ def read_conf(conf_name):
             print('no cols in config file!')
         mcfg.update({'cols': cols})
 
-    if 'para' in cfper.keys():
-        for _para in cfper['para']:
-            mcfg.update({_para: remove_annotation(cfper['para'][_para])})
+    if 'value' in cfper.keys():
+        for _para in cfper['value']:
+            mcfg.update({_para: remove_annotation(cfper['value'][_para])})
 
         if 'raw_score_min' in mcfg.keys():
             mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
@@ -747,8 +747,8 @@ def read_conf(conf_name):
         bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
         default_d = {'logdisp': True,
                      'logfile': False,
-                     'verify': False,
                      'saveresult': True,
+                     'verify': False,
                      }
         for ks in bool_list:
             if ks in mcfg.keys():
@@ -759,10 +759,21 @@ def read_conf(conf_name):
             else:
                 mcfg.update({ks: default_d[ks]})
 
-    if 'strategy' in cfper.keys():
-        for _mode in cfper['strategy']:
-            _mode_str = remove_annotation(cfper['strategy'][_mode])
+    if 'mode' in cfper.keys():
+        for _mode in cfper['mode']:
+            _mode_str = remove_annotation(cfper['mode'][_mode])
             mcfg.update({_mode: _mode_str})
+    else:
+        # set defaul mode
+        mode_dict ={'mode_ratio_prox': 'upper_min',
+                    'mode_sort_order': 'd',
+                    'mode_ratio_cumu': 'no',
+                    'mode_section_point_first': 'real',
+                    'mode_section_point_start': 'step',
+                    'mode_section_point_last': 'real',
+                    'mode_section_degraded': 'to_max',
+                    'mode_section_lost': 'real'}
+        mcfg.update(mode_dict)
 
     return mcfg
 
@@ -808,14 +819,14 @@ def make_config_file(filename):
         cols = km1, km2     # score fields to transform score
         
         
-        [para]
+        [value]
         raw_score_min = 0                   # min score for raw score
         raw_score_max = 100                 # max score for raw score
         out_score_decimals = 0              # decimal digits for out score
         tiny_value = 10 ** -10              # smallest value for precision in calculation process
 
                 
-        [strategy]
+        [mode]
         mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
         mode_ratio_cumu = no                # ('yes', 'no')
         mode_sort_order = d                 # ('d', 'a')
@@ -1079,7 +1090,7 @@ class Logger(object):
     }
 
     def __init__(self,
-                 filename='log_test.log',
+                 filename='_test.log',
                  level='info',
                  when='D',
                  back_count=3,
@@ -1129,6 +1140,7 @@ class Logger(object):
             '-'*120 + '\n[%(message)s]   end at [%(asctime)s]\n' + '='*120)
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
+        # self.logger = logging.getLogger('_test.log')
         self.set_handlers(self.logger_format)
 
     def set_handlers(self, log_format):
