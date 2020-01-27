@@ -24,14 +24,27 @@ about this module:
 
 """
 
-from collections import namedtuple
 
-from stm import stmlib, stm1, stm2, models
+import time
+import os
+from collections import namedtuple
 import importlib as pb
+from stm import stmlib, stm1, stm2, models
 stm_modules = [stmlib, stm1, stm2, models]
 
 
+def new_conf(confname='test.conf'):
+    if stmlib.isfilestr(confname):
+        stmlib.make_config_file(confname)
+    else:
+        print('invalid file name!')
+
+
 def run_conf(conf_name='stm.conf'):
+
+    if not os.path.isfile(conf_name):
+        print('conf file: {} not found!'.format(conf_name))
+        return None
 
     for m in stm_modules:
         pb.reload(m)
@@ -75,6 +88,7 @@ def run_conf(conf_name='stm.conf'):
             print('   {:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
         else:
             print('   {:25s}: {:10s}'.format(k, str(mcfg[k])))
+    print('=' * 120 + '\n')
 
     result = run(
         model_name=mcfg['model_name'],
@@ -254,6 +268,11 @@ def run(
                     values: max and min raw score full and least value in paper
                    default= 100
 
+    :param saveresult: bool
+                usage: save output data to csv file, including outdf, map_table
+                       filename: [df/map]_modelname_year_month_day_hour_min_sec.csv
+              default: False
+
     :param verify: bool
             usage: use two algorithm to verify result
           default: False, do not verify
@@ -282,6 +301,7 @@ def run(
     raw_score_range = (raw_score_min, raw_score_max)
 
     result = namedtuple('Result', ['ok', 'r1', 'r2'])
+    r = result(False, None, None)
 
     stmlogger = stmlib.get_logger(model_name, logname=logname)
     stm_no = '  No.' + str(id(stmlogger))
@@ -390,7 +410,15 @@ def run(
         r = result(True, None, m2)
 
     if saveresult:
-        pass
+        if r.ok:
+            t = time.localtime()
+            fno = str(t.tm_year)+str(t.tm_mon)+str(t.tm_mday)+str(t.tm_hour)+str(t.tm_min)+str(t.tm_sec)
+            savedfname = 'df_' + model_name + '_' + fno + '.csv'
+            savemapname = 'map_' + model_name + '_' + fno + '.csv'
+            r.r1.outdf.to_csv(savedfname, index=False)
+            r.r1.map_table.to_csv(savemapname, index=False)
+        else:
+            stmlogger.loginfo('model={} running fail!'.format(model_name))
 
     stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(df.columns), cols))
     stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))

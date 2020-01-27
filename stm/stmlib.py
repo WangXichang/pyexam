@@ -776,44 +776,21 @@ def remove_annotation(s):
 
 
 def make_config_file(filename):
+
+    # verify is used to test only in task
+    # verify = 0  # use dual algorithm to verify result or not
     template = \
         """
         [task]
-        logname =                           # used to add in logfile name: [model_name]_[logname]_[year]_[month]_[day].log
-        logdisp = 1                         # output message to consol or not
-        logfile = 1                         # output message to log file or not
-        verify = 0                          # use dual algorithm to verify result or not
-        savedf = True
-        savereport = True
-        savemaptable = True
+        logname = test                      # set logfile name: logname_model_year_month_day.log
+        logdisp = 1                         # running message to consol
+        logfile = 0                         # running message to log file
+        saveresult = 0                      # save result(outdf, maptable) to csv file: df/map_modelname_time.csv
 
         
         [model_in]
         namex = shandong                    # model name biult in models
-        
-        
-        [data]
-        df = df             # file name, used to read to DataFrame
-        cols = km1, km2     # score fields to transform score
-        
-        
-        [para]
-        raw_score_min = 0                   # min score for raw score
-        raw_score_max = 100                 # max score for raw score
-        out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 10 ** -10              # smallest value for precision in calculation process
-        
-        
-        [strategy]
-        mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
-        mode_ratio_cumu = no                # ('yes', 'no')
-        mode_sort_order = d                 # ('d', 'a')
-        mode_section_point_first = real     # ('real', 'defined')
-        mode_section_point_start = step     # ('step', 'share')
-        mode_section_point_last = real      # ('real', 'defined')
-        mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
-        mode_section_lost = real            # ('real', 'zip')
-        
+
         
         [model_new]
         name = test-similar-shandong        # model name
@@ -823,20 +800,39 @@ def make_config_file(filename):
         # ratio for each section, sum=100
         ratio = 3, 7, 16, 24, 24, 16, 9, 1
         # description for model
-        desc = new model for test, similar to Shandong
-        """
+        desc = new model for test, similar to Shandong       
 
+        
+        [data]
+        df = df.csv         # file name, used to read to DataFrame
+        cols = km1, km2     # score fields to transform score
+        
+        
+        [para]
+        raw_score_min = 0                   # min score for raw score
+        raw_score_max = 100                 # max score for raw score
+        out_score_decimals = 0              # decimal digits for out score
+        tiny_value = 10 ** -10              # smallest value for precision in calculation process
+
+                
+        [strategy]
+        mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
+        mode_ratio_cumu = no                # ('yes', 'no')
+        mode_sort_order = d                 # ('d', 'a')
+        mode_section_point_first = real     # ('real', 'defined')
+        mode_section_point_start = step     # ('step', 'share')
+        mode_section_point_last = real      # ('real', 'defined')
+        mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
+        mode_section_lost = real            # ('real', 'zip')
+        """
     if isfilestr(filename):
         with open(filename, 'a') as fp:
-            top_line = True
-            for ss in template.split('\n'):
-                if len(ss.strip()) == 0:
-                    continue
-                if ('[' in ss) and not top_line:
-                    fp.write('\n'*3 + ss.strip() + '\n')
-                else:
-                    fp.write(ss.strip() + '\n')
-                top_line = False
+            ms = template.strip().split('\n')
+            for ss in ms:
+                fp.write(ss.strip() + '\n')
+        return True
+    else:
+        return False
 
 
 class Checker:
@@ -1059,7 +1055,10 @@ def get_logger(model_name, logname=None):
     if not isinstance(logname, str):
         task_str = 'log_'
     else:
-        task_str = logname + '_'
+        if len(logname) == 0:
+            task_str = 'log_'
+        else:
+            task_str = logname + '_'
     log_file = \
         task_str + model_name + '_' + \
         str(gmt.tm_year) + '_' + \
