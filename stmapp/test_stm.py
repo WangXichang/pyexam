@@ -233,13 +233,13 @@ def test_hainan(mean=60, size=60000, std=16):
     # data1
     #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
     test_data = mutl.TestData(mean=mean, std=std, size=size)
-    for j in range(5):
-        model_name = 'hainan'+ (str(j+1) if j>0 else '')
-        result_name = model_name+ ('300'+str(j+1) if j > 0 else '900')
-        ra = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='ascending')
-        rd = main.run(model_name=model_name, df=test_data.df, cols=['km1'], mode_sort_order='descending')
-        result[j] = ResultTuple(result_name, ra, rd)
-    return result
+    name_list = ['h900', 'h300', 'h300plt1', 'h300plt2', 'h300plt3', 'h300plt4']
+    for name in name_list:
+        ra = main.run(logname='hntest', logfile=1,
+                      model_name=name, df=test_data.df, cols=['km1'], mode_sort_order='a')
+        rd = main.run(logname='hntest', logfile=1,
+                      model_name=name, df=test_data.df, cols=['km1'], mode_sort_order='d')
+    return
 
 
 class TestShandongData():

@@ -26,8 +26,8 @@ def test_hainan(num=1):
         r2 = main.run(model_name='hn300', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=True)
         # use model60-300
         # score_order=='a', out_score_min==
-        r3 = main.run(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
-        r4 = main.run(model_name='hn300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
+        r3 = main.run(model_name='h300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='a', verify=1)
+        r4 = main.run(model_name='h300plt1', df=test_data1.df, cols=['km1', 'km2'], mode_sort_order='d', verify=1)
 
     if num == 2:
         # data2
