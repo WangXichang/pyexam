@@ -1120,6 +1120,26 @@ class Logger(object):
         self.rotating_file_handler = None
         self.set_handlers(self.logger_format)
 
+    def loglevel(self,ms='', level='info'):
+        self.logger.setLevel(self.level_relations.get(level))  # 设置日志级别error
+        self.logger.handlers = []
+        if self.logging_consol:
+            self.logger.addHandler(self.stream_handler)
+        if self.logging_file:
+            self.logger.addHandler(self.rotating_file_handler)
+        if level.lower().strip() == 'error':
+            self.logger.error(ms)
+        elif level.lower().strip() == 'critical':
+            self.logger.critical(ms)
+        elif level.lower().strip() == 'info':
+            self.logger.info(ms)
+        elif level.lower().strip() == 'warning':
+            self.logger.warning(ms)
+        else:
+            self.logger.debug(ms)
+        self.logger.handlers = []
+        self.logger.setLevel(self.level_relations.get(self.level))  # 恢复日志级别
+
     def loginfo(self, ms=''):
         self.logger.handlers = []
         if self.logging_consol:
@@ -1142,7 +1162,8 @@ class Logger(object):
         self.set_handlers(first_logger_format)
         self.loginfo(ms)
         # self.logger = logging.getLogger('_test.log')
-        self.set_handlers(self.logger_format)
+        # self.set_handlers(self.logger_format)
+        logging.shutdown()
 
     def set_handlers(self, log_format):
         self.stream_handler = logging.StreamHandler()

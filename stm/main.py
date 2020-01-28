@@ -441,7 +441,7 @@ def run(
             else:
                 rr = r.r1
     else:
-        stmlogger.loginfo('model={} running fail!'.format(model_name))
+        stmlogger.loginfo_end('model={} running fail!'.format(model_name))
         rr = None
 
     # stmlogger = stmlib.get_logger('stm', 'sys')
@@ -453,6 +453,7 @@ def run(
     # stmlogger.loginfo('model={} running end at {}'.
     #                    format(model_name,
     #                    list(time.localtime())))
+
 
     return rr
 # end runm
