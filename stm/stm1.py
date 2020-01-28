@@ -314,10 +314,10 @@ class PltScore(ScoreTransformModel):
                 if self.logger:
                     self.logger.loginfo('invalid field name in cols: {}'.format(cols))
         elif type(cols) not in [list, tuple]:
-            self.loginfo('col set fail!\n not a list or tuple!')
+            self.logger.loginfo('col set fail!\n not a list or tuple!')
             return False
         elif sum([1 if sf in df else 0 for sf in cols]) != len(cols):
-            self.loginfo('field of cols not in rawdf.columns!')
+            self.logger.loginfo('field of cols not in rawdf.columns!')
             return False
         else:
             self.cols = cols
@@ -385,7 +385,7 @@ class PltScore(ScoreTransformModel):
     # plt score run
     def run(self):
 
-        self.loginfo('stm start ...\n'+'-'*120)
+        self.logger.loglevel('stm start ...\n'+'-'*120, 'debug')
         stime = time.time()
 
         if self.out_score_section is not None:
@@ -393,7 +393,7 @@ class PltScore(ScoreTransformModel):
             self.out_score_real_min = min([min(x) for x in self.out_score_section])
 
         # calculate seg table
-        # self.loginfo('calculating map_table ...')
+        # self.logger.loginfo('calculating map_table ...')
         _segsort = 'a' if self.strategy_dict['mode_sort_order'] in ['ascending', 'a'] else 'd'
         seg_model = slib.run_seg(
                   df=self.df,
@@ -421,7 +421,7 @@ class PltScore(ScoreTransformModel):
         self.result_dict = dict()
         self.outdf = self.df.copy(deep=True)
         for i, col in enumerate(self.cols):
-            self.loginfo('transform score: {0} => {0}_ts'.format(col))
+            self.logger.loginfo('transform score: {0} => {0}_ts'.format(col) + '\n' + '-'*120)
 
             # there is a problem: max set to locale value to each col
             self.raw_score_real_max = self.df[col].max()
@@ -430,16 +430,17 @@ class PltScore(ScoreTransformModel):
             # get formula and save
             _get_formula = False
             if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'ppt':
-                # self.loginfo('get ppt formula ...')
+                # self.logger.loginfo('get ppt formula ...')
                 _get_formula = self.get_formula_ppt(col)
             elif self.model_type == 'plt':
-                # self.loginfo('get plt formula ...')
+                # self.logger.loginfo('get plt formula ...')
                 _get_formula = self.get_formula_plt(col)
             else:
-                self.loginfo('error model type: not supported type={}'.format(self.model_type))
+                self.logger.loglevel('error model type: not supported type={}'.format(self.model_type),
+                                     'error')
                 return None
             if not _get_formula:
-                self.loginfo('error calc: getting formula fail !')
+                self.logger.loglevel('error calc: getting formula fail !', 'error')
                 return None
 
             # get field_ts in outdf
@@ -450,7 +451,7 @@ class PltScore(ScoreTransformModel):
         # create col_ts in map_table
         df_map = self.map_table
         for col in self.cols:
-            # self.loginfo('   calculate: map_table[{0}] => [{0}_ts]'.format(col))
+            # self.logger.loginfo('   calculate: map_table[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
                 lambda x: self.get_ts_score_from_formula(col, x))
@@ -458,9 +459,11 @@ class PltScore(ScoreTransformModel):
         # make report doc
         self.make_report()
 
-        self.loginfo('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-'*120 )
-        self.loginfo('<< Report >>\n' + '-'*120)
-        self.loginfo(self.out_report_doc)
+        self.logger.loglevel('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-'*120,
+                             'debug')
+        # self.logger.loginfo('<< Report >>\n')
+        # self.logger.loginfo('-'*120)
+        self.logger.loginfo(self.out_report_doc)
 
     # run end
 
@@ -598,13 +601,14 @@ class PltScore(ScoreTransformModel):
                             else:
                                 y = _start_score + (si - 1)*_step
                     else:
-                        self.loginfo('Error Ratio Prox Mode: {}'.format(_mode_prox))
+                        self.logger.loglevel('Error Ratio Prox Mode: {}'.format(_mode_prox),
+                                             'debug')
                         raise ValueError
                     break
             if y is not None:
-                # self.loginfo('-1', row[col+'_ts'])
+                # self.logger.loginfo('-1', row[col+'_ts'])
                 row[col+'_ts'] = slib.round45r(y, self.out_decimal_digits)
-                # self.loginfo('plt', row[col+'_ts'])
+                # self.logger.loginfo('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
                 # _ts_list.append(y)
@@ -628,7 +632,7 @@ class PltScore(ScoreTransformModel):
     def get_formula_plt(self, field):
         # --step 1
         # claculate raw_score_endpoints
-        # self.loginfo('   get raw score section ...')
+        # self.logger.loginfo('   get raw score section ...')
         if not self.get_raw_section(field=field):
             return False
 
@@ -641,7 +645,7 @@ class PltScore(ScoreTransformModel):
                               self.result_ratio_dict[field]['section'],
                               self.out_score_section,
                               )):
-                self.loginfo('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                self.logger.loglevel('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                       'section_map: raw:[{4:3d}, {5:3d}] --> out:[{6:3d}, {7:3d}]'.
                       format(i + 1,
                              cumu_ratio,
@@ -651,7 +655,8 @@ class PltScore(ScoreTransformModel):
                              int(raw_sec[1]),
                              int(out_sec[0]),
                              int(out_sec[1])
-                             )
+                             ),
+                      'debug'
                       )
 
         # --step 2
@@ -699,7 +704,7 @@ class PltScore(ScoreTransformModel):
                 elif _mode_section_degraded == 'to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
                 else:
-                    self.loginfo('error mode_section_degraded value: {}'.format(_mode_section_degraded))
+                    self.logger.loginfo('error mode_section_degraded value: {}'.format(_mode_section_degraded))
                     raise ValueError
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
@@ -894,7 +899,7 @@ class PltScore(ScoreTransformModel):
                     if dist_to_last < _tiny:
                         use_last_seg = True
                 else:
-                    self.loginfo('Error ratio prox mode: {}'.format(_mode_prox))
+                    self.logger.loginfo('Error ratio prox mode: {}'.format(_mode_prox))
                     raise ValueError
                 break
             dist_to_last = dist_to_this
@@ -907,16 +912,16 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in map_table
     def make_report(self):
-        self.out_report_doc = '{}[{}]\n'.\
-            format('Transform Model: '.rjust(20), self.model_name)
-        self.out_report_doc += '{}{}\n'.\
-            format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
-        self.out_report_doc += '---'*40 + '\n'
-        self.out_report_doc += format('strategies: ', '>20') + '\n'
+        # self.out_report_doc = '{}[{}]\n'.\
+        #     format('Transform Model: '.rjust(20), self.model_name)
+        # self.out_report_doc += '{}{}\n'.\
+        #     format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
+        # self.out_report_doc += '---'*40 + '\n'
+        self.out_report_doc += 'strategies: ' + '\n'
 
-        # self.loginfo('   create report ...')
+        # self.logger.loginfo('   create report ...')
         for k in self.strategy_dict.keys():
-            self.out_report_doc += ' ' * 20 + '{0:<30s} {1}'. \
+            self.out_report_doc += ' '*15 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.strategy_dict[k]) + '\n'
         self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
@@ -1118,7 +1123,7 @@ class PltScore(ScoreTransformModel):
     def plot(self, mode='model'):
         plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'bar', 'rawbar', 'outbar']
         if mode not in plot_name:
-            self.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
+            self.logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
             return
         if mode in 'shift, model':
             # mode: model describe the differrence of input and output score.
@@ -1134,7 +1139,7 @@ class PltScore(ScoreTransformModel):
         elif mode in 'diff':
             self.plot_diff()
         elif not super(PltScore, self).plot(mode):
-            self.loginfo('error plot: [{}] is invalid!'.format(mode))
+            self.logger.loginfo('error plot: [{}] is invalid!'.format(mode))
 
     def plot_diff(self):
         x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)

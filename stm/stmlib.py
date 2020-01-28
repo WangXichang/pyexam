@@ -1121,7 +1121,7 @@ class Logger(object):
         self.set_handlers(self.logger_format)
 
     def loglevel(self,ms='', level='info'):
-        self.logger.setLevel(self.level_relations.get(level))  # 设置日志级别error
+        # self.logger.setLevel(self.level_relations.get(level))  # 设置日志级别error
         self.logger.handlers = []
         if self.logging_consol:
             self.logger.addHandler(self.stream_handler)
@@ -1138,7 +1138,7 @@ class Logger(object):
         else:
             self.logger.debug(ms)
         self.logger.handlers = []
-        self.logger.setLevel(self.level_relations.get(self.level))  # 恢复日志级别
+        # self.logger.setLevel(self.level_relations.get(self.level))  # 恢复日志级别
 
     def loginfo(self, ms=''):
         self.logger.handlers = []

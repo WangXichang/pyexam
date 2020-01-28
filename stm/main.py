@@ -316,7 +316,7 @@ def run(
     if logfile:
         stmlogger.logging_file = True
 
-    stmlogger.loginfo('*** running begin ***')
+    stmlogger.loginfo('\n\n*** running begin ***')
     stmlogger.loginfo_start('task:' + task + ' model:' + model_name + stm_no)
 
     if not stmlib.Checker.check_run(
