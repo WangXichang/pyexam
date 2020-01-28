@@ -1064,14 +1064,15 @@ class Checker:
 def get_logger(model_name, logname=None):
     gmt = time.localtime()
     if not isinstance(logname, str):
-        task_str = 'log_'
+        task_str = 'stm'
     else:
         if len(logname) == 0:
-            task_str = 'log_'
+            task_str = 'stm'
         else:
-            task_str = logname + '_'
+            task_str = logname
     log_file = \
-        task_str + model_name + '_' + \
+        task_str + '_log_' + \
+        model_name + '_' + \
         str(gmt.tm_year) + '_' + \
         str(gmt.tm_mon) + '_' + \
         str(gmt.tm_mday) + \

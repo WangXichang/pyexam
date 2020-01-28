@@ -298,12 +298,18 @@ def run(
             (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel
             (3) r2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
     """
+
     raw_score_range = (raw_score_min, raw_score_max)
+
+    if not logname:
+        task = 'stm'
+    else:
+        task = logname
 
     result = namedtuple('Result', ['ok', 'r1', 'r2'])
     r = result(False, None, None)
 
-    stmlogger = stmlib.get_logger(model_name, logname=logname)
+    stmlogger = stmlib.get_logger(model_name, logname=task)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
         stmlogger.logging_consol = True
@@ -311,7 +317,7 @@ def run(
         stmlogger.logging_file = True
 
     stmlogger.loginfo('*** running begin ***')
-    stmlogger.loginfo_start('model:' + model_name + stm_no)
+    stmlogger.loginfo_start('task:' + task + ' model:' + model_name + stm_no)
 
     if not stmlib.Checker.check_run(
             model_name=model_name,
@@ -329,7 +335,7 @@ def run(
             logger=stmlogger,
             models=models,
             ):
-        stmlogger.loginfo_end('model:' + model_name + stm_no)
+        stmlogger.loginfo_end('task:' + task + ' model:' + model_name + stm_no)
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
@@ -410,12 +416,11 @@ def run(
                   )
         r = result(True, None, m2)
 
-
     if r.ok:
         t = time.localtime()
         fno = str(t.tm_year) + str(t.tm_mon) + str(t.tm_mday) + str(t.tm_hour) + str(t.tm_min) + str(t.tm_sec)
-        savedfname = 'df_rts_' + model_name + '_' + fno + '.csv'
-        savemapname = 'df_map_' + model_name + '_' + fno + '.csv'
+        save_dfscore_name = task + '_df_outscore_' + model_name + '_' + fno + '.csv'
+        save_dfmap_name = task + '_df_maptable_' + model_name + '_' + fno + '.csv'
         if r.r1 is not None:
             _outdf = r.r1.outdf
             _maptable = r.r1.map_table
@@ -423,10 +428,10 @@ def run(
             _outdf = r.r2.outdf
             _maptable = r.r2.map_table
         if saveresult:
-            _outdf.to_csv(savedfname, index=False)
-            _maptable.to_csv(savemapname, index=False)
+            _outdf.to_csv(save_dfscore_name, index=False)
+            _maptable.to_csv(save_dfmap_name, index=False)
         stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(_outdf.columns), cols))
-        stmlogger.loginfo_end('model:{}{} '.format(model_name, stm_no))
+        stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model_name, stm_no))
         if verify:
             return r
         else:
@@ -435,7 +440,7 @@ def run(
             else:
                 return r.r1
     else:
-        # stmlogger.loginfo('model={} running fail!'.format(model_name))
+        stmlogger.loginfo('model={} running fail!'.format(model_name))
         return None
 # end runm
 
