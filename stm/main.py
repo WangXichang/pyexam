@@ -420,8 +420,8 @@ def run(
     if r.ok:
         t = time.localtime()
         fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
-        save_dfscore_name = task + '_df_score_' + model_name + '_' + fno + '.csv'
-        save_dfmap_name = task + '_df_table_' + model_name + '_' + fno + '.csv'
+        save_dfscore_name = task + '_df_outscore_' + model_name + '_' + fno + '.csv'
+        save_dfmap_name = task + '_df_maptable_' + model_name + '_' + fno + '.csv'
         if r.r1 is not None:
             _outdf = r.r1.outdf
             _maptable = r.r1.map_table
@@ -443,17 +443,6 @@ def run(
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model_name))
         rr = None
-
-    # stmlogger = stmlib.get_logger('stm', 'sys')
-    # tmo = time.localtime()
-    # stmlogger.filename = 'sys_log_stm' + str(tmo.tm_year) + str(tmo.tm_mon) + str(tmo.tm_mday)
-    # stmlogger.set_handlers(stmlogger.logger_format)
-    # stmlogger.logging_consol = True
-    # stmlogger.logging_file = True
-    # stmlogger.loginfo('model={} running end at {}'.
-    #                    format(model_name,
-    #                    list(time.localtime())))
-
 
     return rr
 # end runm
@@ -558,7 +547,7 @@ def run2(
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=logger,
-            models=models.Models,
+            models=models,
             ):
         return None
 
