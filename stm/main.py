@@ -33,14 +33,14 @@ from stm import stmlib, stm1, stm2, models
 stm_modules = [stmlib, stm1, stm2, models]
 
 
-def new_conf(confname='test.conf'):
+def new_conf(confname='stm18w.conf'):
     if stmlib.isfilestr(confname):
         stmlib.make_config_file(confname)
     else:
         print('invalid file name!')
 
 
-def run_conf(conf_name='stm.conf'):
+def run_conf(conf_name='stm18lk.conf'):
 
     if not os.path.isfile(conf_name):
         print('conf file: {} not found!'.format(conf_name))
@@ -416,33 +416,32 @@ def run(
                   )
         r = result(True, None, m2)
 
-    rr = None
     if r.ok:
         t = time.localtime()
         fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
         save_dfscore_name = task + '_df_outscore_' + model_name + '_' + fno + '.csv'
         save_dfmap_name = task + '_df_maptable_' + model_name + '_' + fno + '.csv'
         if r.r1 is not None:
-            _outdf = r.r1.outdf
-            _maptable = r.r1.map_table
+            dfscore = r.r1.outdf
+            dfmaptable = r.r1.map_table
         else:
-            _outdf = r.r2.outdf
-            _maptable = r.r2.map_table
+            dfscore = r.r2.outdf
+            dfmaptable = r.r2.map_table
         if saveresult:
-            _outdf.to_csv(save_dfscore_name, index=False)
-            _maptable.to_csv(save_dfmap_name, index=False)
-        stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(_outdf.columns), cols))
+            dfscore.to_csv(save_dfscore_name, index=False)
+            dfmaptable.to_csv(save_dfmap_name, index=False)
+        stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
         stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model_name, stm_no))
-        if verify:
-            rr = r
-        else:
-            if r.r1 is None:
-                rr = r.r2
-            else:
-                rr = r.r1
+        # if verify:
+        #     rr = r
+        # else:
+        #     if r.r1 is None:
+        #         rr = r.r2
+        #     else:
+        #         rr = r.r1
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model_name))
-        rr = None
+        # rr = None
 
     return r
 # end runm

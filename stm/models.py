@@ -64,11 +64,10 @@ MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transfor
 MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900model = slib.get_norm_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'd')
-hn300model = slib.get_norm_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'd')
-zscoremodel = slib.get_norm_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
-tscoremodel = slib.get_norm_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
-
+hn900model = slib.get_norm_point_pdf(start=100, end=900, loc=500, step=1, add_cutoff=True, mode='middle')
+hn300model = slib.get_norm_point_pdf(start=60, end=300, loc=180, step=1, add_cutoff=True, mode='middle')
+zscoremodel = slib.get_norm_point_pdf(start=-400, end=400, loc=0, step=1, add_cutoff=True, mode='middle')
+tscoremodel = slib.get_norm_point_pdf(start=10, end=90, loc=50, step=1, add_cutoff=True, mode='middle')
 
 # model parameters: type,   transform mode, in ['plt', 'ppt', 'tai']
 #                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3
@@ -116,22 +115,22 @@ Models = {
                                 '7 Province/Cities(Jiangsu, Chongqing, ...) transform model'
                                 ),
     'h900':        ModelFields(MODEL_TYPE_PPT,
-                                hn900model.pdf,
-                                hn900model.section,
-                                'standard score model， used in Hainan now'),
+                               [p*100 for p in hn900model.pdf],
+                               [(x, x) for x in reversed(hn900model.points)],
+                               'standard score model， used in Hainan now'),
     'h300':        ModelFields(MODEL_TYPE_PPT,
-                                hn300model.pdf,
-                                hn300model.section,
-                                'standard score model, may used in Hainan future'
-                                ),
+                               [p*100 for p in hn300model.pdf],
+                               [(x, x) for x in reversed(hn300model.points)],
+                               'standard score model, may used in Hainan future'
+                               ),
     'z':            ModelFields(MODEL_TYPE_PPT,
-                                zscoremodel.pdf,
-                                zscoremodel.section,
+                                [p*100 for p in zscoremodel.pdf],
+                                [(x/100, x/100) for x in zscoremodel.points],
                                 'Z-score Model, std=1, score-range=(-4, 4), score-points=800'
                                 ),
     't':            ModelFields(MODEL_TYPE_PPT,
-                                tscoremodel.pdf,
-                                tscoremodel.section,
+                                [p*100 for p in tscoremodel.pdf],
+                                [(x, x) for x in reversed(tscoremodel.points)],
                                 'T-score, std=10, score-range=(10, 90)'
                                 ),
     'tai':          ModelFields(

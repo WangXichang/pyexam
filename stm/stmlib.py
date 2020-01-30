@@ -507,82 +507,50 @@ def timer_wrapper(fun):
     return dec_fun
 
 
-def set_ellipsis_in_digits_sequence(digit_seq):
-    _digit_seq = None
-    if type(digit_seq) == str:
-        _digit_seq = tuple(int(x) for x in digit_seq)
-    elif type(digit_seq) in (list, tuple):
-        _digit_seq = digit_seq
-    else:
-        print('digit_seq error type: {}'.format(type(digit_seq)))
-        raise ValueError
-    ellipsis_list = []
-    if len(_digit_seq) > 0:
-        start_p, end_p, count_p = -1, -1, -1
-        for p in _digit_seq:
-            if p == _digit_seq[0]:
-                start_p, end_p, count_p = p, p, 1
-            if p == _digit_seq[-1]:
-                if count_p == 1:
-                    ellipsis_list += [start_p, p]
-                elif count_p == 2:
-                    ellipsis_list += [start_p, end_p, p]
-                elif count_p == 2:
-                    ellipsis_list += [start_p, end_p, p]
-                elif p == end_p + 1:
-                    ellipsis_list += [start_p, Ellipsis, p]
-                else:
-                    ellipsis_list += [start_p, Ellipsis, end_p, p]
-                break
-            if p > end_p + 1:
-                if count_p == 1:
-                    ellipsis_list += [start_p]
-                elif count_p == 2:
-                    ellipsis_list += [start_p, end_p]
-                elif count_p == 3:
-                    ellipsis_list += [start_p, end_p-1, end_p]
-                else:
-                    ellipsis_list += [start_p, Ellipsis, end_p]
-                count_p = 1
-                start_p, end_p = p, p
-            elif p == end_p + 1:
-                end_p, count_p = p, count_p + 1
-    return str(ellipsis_list).replace('Ellipsis', '...')
-
-
 def get_norm_point_pdf(start=100,
                        end=900,
-                       mean=500,
+                       loc=500,
                        std=100,
                        step=1,
                        add_cutoff=True,
                        mode='middle'
                        ):
-    result = namedtuple('R', ['pdf', 'cdf', 'points', 'cutoff'])
     point_list = list(range(start, end+1, step))
     ratio_pdf = [0 for _ in range(start, end+1, step)]
 
     i = 0
     for p in range(start, end+1, step):
-        z = (p-mean)/std
+        z = (p - loc) / std
         if mode == 'middle':
             ratio_pdf[i] = sts.norm.cdf(z + step/2/std) - sts.norm.cdf(z - step/2/std)
         elif mode == 'left':
-            ratio_pdf[i] = sts.norm.cdf(z) - sts.norm.cdf(z - step/std)
+            if i > 0:
+                ratio_pdf[i] = sts.norm.cdf(z) - sts.norm.cdf(z - step/std)
+            else:
+                ratio_pdf[i] = sts.norm.cdf(z)
         elif mode == 'right':
-            ratio_pdf[i] = sts.norm.cdf(z + step/std) - sts.norm.cdf(z)
+            if i < end:
+                ratio_pdf[i] = sts.norm.cdf(z + step/std) - sts.norm.cdf(z)
+            else:
+                ratio_pdf[i] = 1 - sts.norm.cdf(z)
         else:
             raise ValueError
         i += 1
-    cutoff = sts.norm.cdf((start-mean-step/2)/std)
+    if mode == 'middle':
+        cutoff = sts.norm.cdf((start - loc - step / 2) / std)
+    else:
+        cutoff = sts.norm.cdf((start - loc) / std)
     if add_cutoff:
-        ratio_pdf[0] = ratio_pdf[0] + cutoff
-        ratio_pdf[-1] = 1- sum(ratio_pdf[0:-1])
+        if mode in ['left', 'middle']:
+            ratio_pdf[0] = ratio_pdf[0] + cutoff
+        ratio_pdf[-1] = 1 - sum(ratio_pdf[0:-1])
     ratio_cumu = [sum(ratio_pdf[:i+1]) for i in range(len(ratio_pdf))]
-    return result({p: r for p, r in zip(point_list, ratio_pdf)},
-                  {p: r for p, r in zip(point_list, ratio_cumu)},
-                  point_list,
-                  cutoff)
+    result = namedtuple('R', ['pdf', 'cdf', 'points', 'cutoff'])
+    return result(ratio_pdf, ratio_cumu, point_list, cutoff)
+    # return result({p: r for p, r in zip(point_list, ratio_pdf)},
+    #               {p: r for p, r in zip(point_list, ratio_cumu)},
+    #               point_list,
+    #               cutoff)
 
 
 def get_norm_section_pdf(
@@ -1097,14 +1065,14 @@ class Checker:
             return False
         for col in cols:
             if type(col) is not str:
-                logger.loginfo('error col: {} is not str!'.format(col), 'error')
+                logger.loglevel('error col: {} is not str!'.format(col), 'error')
                 return False
             else:
                 if col not in df.columns:
-                    logger.loginfo('error col: {} is not in df.columns!'.format(col), 'error')
+                    logger.loglevel('error col: {} is not in df.columns!'.format(col), 'error')
                     return False
                 if not isinstance(df[col][0], numbers.Real):
-                    logger.loginfo('type error: column[{}] not Number type!'.format(col), 'error')
+                    logger.loglevel('type error: column[{}] not Number type!'.format(col), 'error')
                     return False
                 _min = df[col].min()
                 if _min < min(raw_score_range):

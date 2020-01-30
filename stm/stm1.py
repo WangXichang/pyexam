@@ -1043,7 +1043,7 @@ class PltScore(ScoreTransformModel):
         _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(slib.set_ellipsis_in_digits_sequence(_count_zero))
+                           format(set_ellipsis_in_digits_sequence(_count_zero))
 
         # out score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1067,7 +1067,7 @@ class PltScore(ScoreTransformModel):
         else:
             _count_zero = ''
         _out_report_doc += ' '*28 + 'empty_value={}\n' .\
-                           format(slib.set_ellipsis_in_digits_sequence(_count_zero))
+                           format(set_ellipsis_in_digits_sequence(_count_zero))
         _out_report_doc += 'count: '.rjust(28) + 'record={}\n' .\
                            format(self.outdf.count()[0])
 
@@ -1403,3 +1403,46 @@ class PltScore(ScoreTransformModel):
 
         plot.show()
         return
+
+
+def set_ellipsis_in_digits_sequence(digit_seq):
+    _digit_seq = None
+    if type(digit_seq) == str:
+        _digit_seq = tuple(int(x) for x in digit_seq)
+    elif type(digit_seq) in (list, tuple):
+        _digit_seq = digit_seq
+    else:
+        print('digit_seq error type: {}'.format(type(digit_seq)))
+        raise ValueError
+    ellipsis_list = []
+    if len(_digit_seq) > 0:
+        start_p, end_p, count_p = -1, -1, -1
+        for p in _digit_seq:
+            if p == _digit_seq[0]:
+                start_p, end_p, count_p = p, p, 1
+            if p == _digit_seq[-1]:
+                if count_p == 1:
+                    ellipsis_list += [start_p, p]
+                elif count_p == 2:
+                    ellipsis_list += [start_p, end_p, p]
+                elif count_p == 2:
+                    ellipsis_list += [start_p, end_p, p]
+                elif p == end_p + 1:
+                    ellipsis_list += [start_p, Ellipsis, p]
+                else:
+                    ellipsis_list += [start_p, Ellipsis, end_p, p]
+                break
+            if p > end_p + 1:
+                if count_p == 1:
+                    ellipsis_list += [start_p]
+                elif count_p == 2:
+                    ellipsis_list += [start_p, end_p]
+                elif count_p == 3:
+                    ellipsis_list += [start_p, end_p-1, end_p]
+                else:
+                    ellipsis_list += [start_p, Ellipsis, end_p]
+                count_p = 1
+                start_p, end_p = p, p
+            elif p == end_p + 1:
+                end_p, count_p = p, count_p + 1
+    return str(ellipsis_list).replace('Ellipsis', '...')
