@@ -550,6 +550,41 @@ def set_ellipsis_in_digits_sequence(digit_seq):
     return str(ellipsis_list).replace('Ellipsis', '...')
 
 
+def get_norm_point_pdf(start=100,
+                       end=900,
+                       mean=500,
+                       std=100,
+                       step=1,
+                       add_cutoff=True,
+                       mode='middle'
+                       ):
+    result = namedtuple('R', ['pdf', 'cdf', 'points', 'cutoff'])
+    point_list = list(range(start, end+1, step))
+    ratio_pdf = [0 for _ in range(start, end+1, step)]
+
+    i = 0
+    for p in range(start, end+1, step):
+        z = (p-mean)/std
+        if mode == 'middle':
+            ratio_pdf[i] = sts.norm.cdf(z + step/2/std) - sts.norm.cdf(z - step/2/std)
+        elif mode == 'left':
+            ratio_pdf[i] = sts.norm.cdf(z) - sts.norm.cdf(z - step/std)
+        elif mode == 'right':
+            ratio_pdf[i] = sts.norm.cdf(z + step/std) - sts.norm.cdf(z)
+        else:
+            raise ValueError
+        i += 1
+    cutoff = sts.norm.cdf((start-mean-step/2)/std)
+    if add_cutoff:
+        ratio_pdf[0] = ratio_pdf[0] + cutoff
+        ratio_pdf[-1] = 1- sum(ratio_pdf[0:-1])
+    ratio_cumu = [sum(ratio_pdf[:i+1]) for i in range(len(ratio_pdf))]
+    return result({p: r for p, r in zip(point_list, ratio_pdf)},
+                  {p: r for p, r in zip(point_list, ratio_cumu)},
+                  point_list,
+                  cutoff)
+
+
 def get_norm_section_pdf(
                     start=21,
                     end=100,
@@ -559,6 +594,7 @@ def get_norm_section_pdf(
                     model_type='plt',
                     ratio_coeff=1,      # 1, or 100
                     sort_order='d',
+                    mode='left',        # left, middle, right
                     ):
     """
     create a ratio table from norm distribution
@@ -572,7 +608,7 @@ def get_norm_section_pdf(
     can be used to test std from seg ratio table
     for example,
        get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.9508)
-       [0.03000, 0.07513, 0.16036, 0.234265, ..., 0.03000],
+       [0.03000, 0.07495, 0.16040, 0.23465, ..., 0.03000],
        get_section_pdf(start=21, end=100, section_num=8, std_num = 40/15.6065)
        [0.02729, 0.07272, 0.16083, 0.23916, ..., 0.02729],
        it means that std==15.95 is fitting ratio 0.03,0.07 in the table
@@ -584,10 +620,14 @@ def get_norm_section_pdf(
     :param add_cutoff: bool, if adding cutoff cdf() at edge point
                        i.e. cdf(-std_num), cdf(-4) = 3.167124183311986e-05, cdf(-2.5098)=0.029894254950869625
     :param model_type: str, 'plt' or 'ppt'
+    :param ratio_coeff: int, 1 for 0-1, 100 for 0-100, amplify ratio to ratio*ratio_coeff scale
+    :param sort_order: str, order for points
+    :param mode: str, how to calculate pdf for each discret point
     :return: namedtuple('result', ('section':((),...), 'pdf': (), 'cdf': (), 'cutoff': float, 'add_cutoff': bool))
     """
     _mean, _std = (end + start) / 2, (end - start) / 2 / std_num
     section_point_list = np.linspace(start, end, section_num + 1)
+    section_len = (end - start) / section_num
     cutoff = sts.norm.cdf((start - _mean) / _std)
     pdf_table = [0]
     cdf_table = [0]
@@ -595,25 +635,41 @@ def get_norm_section_pdf(
     _cdf = 0
     for i, pos in enumerate(section_point_list[1:]):
         _zvalue = (pos - _mean) / _std
-        this_section_pdf = sts.norm.cdf(_zvalue) - sts.norm.cdf(last_pos)
-        if (i == 0) and add_cutoff:
-            this_section_pdf += cutoff
+        if mode == 'left':
+            this_section_pdf = sts.norm.cdf(_zvalue) - sts.norm.cdf(last_pos)
+        elif mode == 'right':
+            this_section_pdf = sts.norm.cdf(_zvalue) - sts.norm.cdf(last_pos)
+        else:
+            _step = section_len / _std
+            this_section_pdf = sts.norm.cdf(_zvalue+_step/2) - sts.norm.cdf(_zvalue-_step/2)
+        # if (i == 0) and add_cutoff:
+        #     this_section_pdf += cutoff
         pdf_table.append(this_section_pdf)
         cdf_table.append(this_section_pdf + _cdf)
         last_pos = _zvalue
         _cdf += this_section_pdf
+
+    # add cutoff
     if add_cutoff:
-        pdf_table[0] += cutoff
+        pdf_table[1] += cutoff
+        pdf_table[-1] += cutoff
         cdf_table[-1] = 1
+
+    # make section
     if model_type == 'plt':
         section_list = [(x, y) if i == 0 else (x + 1, y)
                         for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:]))]
     else:
         section_list = [(x, x) for x in section_point_list]
+
+    # amplify
     if ratio_coeff != 1:
         pdf_table = [x * ratio_coeff for x in pdf_table]
+
+    # sort
     if sort_order in ['d', 'descending']:
         section_list = sorted(section_list, key=(lambda x: -x[0]))
+
     result = namedtuple('Result', ('section', 'pdf', 'cdf', 'point', 'cutoff', 'add_cutoff'))
     r = result(tuple(section_list),
                tuple(pdf_table),

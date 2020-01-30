@@ -444,7 +444,7 @@ def run(
         stmlogger.loginfo_end('model={} running fail!'.format(model_name))
         rr = None
 
-    return rr
+    return r
 # end runm
 
 

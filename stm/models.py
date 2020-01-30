@@ -64,8 +64,8 @@ MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transfor
 MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900model = slib.get_norm_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'desceding')
-hn300model = slib.get_norm_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'descending')
+hn900model = slib.get_norm_section_pdf(100, 900, 800, 4, True, 'ppt', 100, 'd')
+hn300model = slib.get_norm_section_pdf(60, 300, 240, 4, True, 'ppt', 100, 'd')
 zscoremodel = slib.get_norm_section_pdf(-4, 4, 800, 4, True, 'ppt', 100, 'd')
 tscoremodel = slib.get_norm_section_pdf(10, 90, 80, 4, True, 'ppt', 100, 'd')
 

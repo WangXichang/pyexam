@@ -9,7 +9,7 @@ import numpy as np
 import importlib as pb
 import scipy.stats as stt
 import matplotlib.pyplot as plt
-from pytools import seg as sg, df2table as ptt, pyex_lib as pl
+from pytools import seg as sg, pytable as ptt, pyex_lib as pl
 
 
 # constant data
