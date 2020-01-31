@@ -2,14 +2,15 @@
 
 
 import numpy as np
+import scipy.stats as sts
 import pandas as pd
+
 import time
 import os
 import re
 import numbers
 import configparser as cfp
 from collections import namedtuple
-import scipy.stats as sts
 import logging
 from logging import handlers
 import importlib as pb

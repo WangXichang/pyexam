@@ -22,10 +22,10 @@
 import copy
 import time
 import os
-import fractions as fr
-import bisect as bst
-import array
 import abc
+# import fractions as fr
+# import bisect as bst
+# import array
 
 
 # external import

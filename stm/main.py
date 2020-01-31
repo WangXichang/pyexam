@@ -2,7 +2,7 @@
 
 
 """
-about this module:
+about module main:
     (1) function: run
     run() is an interface to call stm1 or stm2
     return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (map_table, df))
@@ -14,11 +14,16 @@ about this module:
     then
         call stm2.get_stm_score
 
-    (2) function: run_model
-    run_model() is an interface to call stmlib2 with model_name, df, cols
+    (2) function: run_conf
+    run_conf() is an interface to call stmlib2 with model_name, df, cols
         and other parameters(score range, strategies, out score decimal digits)
 
-    (3) function: run_para
+    (3) function: run1
+
+
+    (4) function: run2
+
+    (5) function: run_para
     run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
         and other parameters(score range, strategies, out score decimal digits)
 

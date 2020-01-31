@@ -3,8 +3,9 @@
 
 from collections import namedtuple
 import numpy as np
-import pandas as pd
 import scipy.stats as sts
+# import pandas as pd
+
 from stm import stmlib as slib
 
 
