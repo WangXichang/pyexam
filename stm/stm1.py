@@ -385,7 +385,7 @@ class PltScore(ScoreTransformModel):
     # plt score run
     def run(self):
 
-        self.logger.loglevel('stm start ...\n'+'-'*120, 'debug')
+        self.logger.log('stm start ...\n' + '-' * 120, 'debug')
         stime = time.time()
 
         if self.out_score_section is not None:
@@ -436,11 +436,11 @@ class PltScore(ScoreTransformModel):
                 # self.logger.loginfo('get plt formula ...')
                 _get_formula = self.get_formula_plt(col)
             else:
-                self.logger.loglevel('error model type: not supported type={}'.format(self.model_type),
+                self.logger.log('error model type: not supported type={}'.format(self.model_type),
                                      'error')
                 return None
             if not _get_formula:
-                self.logger.loglevel('error calc: getting formula fail !', 'error')
+                self.logger.log('error calc: getting formula fail !', 'error')
                 return None
 
             # get field_ts in outdf
@@ -459,7 +459,7 @@ class PltScore(ScoreTransformModel):
         # make report doc
         self.make_report()
 
-        self.logger.loglevel('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-'*120,
+        self.logger.log('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-' * 120,
                              'debug')
         # self.logger.loginfo('<< Report >>\n')
         # self.logger.loginfo('-'*120)
@@ -601,7 +601,7 @@ class PltScore(ScoreTransformModel):
                             else:
                                 y = _start_score + (si - 1)*_step
                     else:
-                        self.logger.loglevel('Error Ratio Prox Mode: {}'.format(_mode_prox),
+                        self.logger.log('Error Ratio Prox Mode: {}'.format(_mode_prox),
                                              'debug')
                         raise ValueError
                     break
@@ -645,9 +645,9 @@ class PltScore(ScoreTransformModel):
                               self.result_ratio_dict[field]['section'],
                               self.out_score_section,
                               )):
-                self.logger.loglevel('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                self.logger.log('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                       'section_map: raw:[{4:3d}, {5:3d}] --> out:[{6:3d}, {7:3d}]'.
-                      format(i + 1,
+                                format(i + 1,
                              cumu_ratio,
                              dest_ratio,
                              match,
@@ -656,8 +656,8 @@ class PltScore(ScoreTransformModel):
                              int(out_sec[0]),
                              int(out_sec[1])
                              ),
-                      'debug'
-                      )
+                                'debug'
+                                )
 
         # --step 2
         # calculate Coefficients

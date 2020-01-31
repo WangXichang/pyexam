@@ -767,7 +767,7 @@ def read_conf(conf_name):
         else:
             mcfg.update({'logname': ''})
 
-        # set bool
+        # set bool items
         bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
         default_d = {'logdisp': True,
                      'logfile': False,
@@ -782,6 +782,18 @@ def read_conf(conf_name):
                     mcfg[ks] = True
             else:
                 mcfg.update({ks: default_d[ks]})
+
+        if 'loglevel' in mcfg.keys():
+            _set = False
+            ms = mcfg['loglevel'].lower()
+            for s in ['debug', 'info', 'warnning', 'error', 'critical']:
+                if s in ms:
+                    mcfg['loglevel'] = s
+                    _set = True
+                    break
+            if not _set:
+                print('set loglevel error, invalid value: {}!'.format(ms))
+                mcfg['loglevel'] = 'info'
 
     if 'mode' in cfper.keys():
         for _mode in cfper['mode']:
@@ -827,17 +839,6 @@ def make_config_file(filename):
         name = shandong                    # model name biult in models
 
         
-        [model_new]
-        name = test-similar-shandong        # model name
-        type = plt                          # model type, valid value: plt, ppt, pgt
-        # section for out score, point-pair tuple separated by comma
-        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
-        # ratio for each section, sum=100
-        ratio = 3, 7, 16, 24, 24, 16, 9, 1
-        # description for model
-        desc = new model for test, similar to Shandong       
-
-        
         [data]
         df = df.csv         # file name, used to read to DataFrame
         cols = km1, km2     # score fields to transform score
@@ -859,6 +860,17 @@ def make_config_file(filename):
         mode_section_point_last = real      # ('real', 'defined')
         mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
         mode_section_lost = real            # ('real', 'zip')
+
+        
+        [model_new]
+        name = test-similar-shandong        # model name
+        type = plt                          # model type, valid value: plt, ppt, pgt
+        # section for out score, point-pair tuple separated by comma
+        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
+        # ratio for each section, sum=100
+        ratio = 3, 7, 16, 24, 24, 16, 9, 1
+        # description for model
+        desc = new model for test, similar to Shandong       
         """
     if isfilestr(filename):
         with open(filename, 'a') as fp:
@@ -1065,14 +1077,14 @@ class Checker:
             return False
         for col in cols:
             if type(col) is not str:
-                logger.loglevel('error col: {} is not str!'.format(col), 'error')
+                logger.log('error col: {} is not str!'.format(col), 'error')
                 return False
             else:
                 if col not in df.columns:
-                    logger.loglevel('error col: {} is not in df.columns!'.format(col), 'error')
+                    logger.log('error col: {} is not in df.columns!'.format(col), 'error')
                     return False
                 if not isinstance(df[col][0], numbers.Real):
-                    logger.loglevel('type error: column[{}] not Number type!'.format(col), 'error')
+                    logger.log('type error: column[{}] not Number type!'.format(col), 'error')
                     return False
                 _min = df[col].min()
                 if _min < min(raw_score_range):
@@ -1144,7 +1156,11 @@ class Logger(object):
         self.rotating_file_handler = None
         self.set_handlers(self.logger_format)
 
-    def loglevel(self,ms='', level='info'):
+    def set_level(self, level):
+        self.level = level
+        self.logger.setLevel(self.level_relations.get(self.level))
+
+    def log(self, ms='', level='info'):
         # self.logger.setLevel(self.level_relations.get(level))  # 设置日志级别error
         self.logger.handlers = []
         if self.logging_consol:

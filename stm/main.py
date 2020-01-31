@@ -107,6 +107,7 @@ def run_conf(conf_name='stm18lk.conf'):
         logname=mcfg['logname'],
         logdisp=mcfg['logdisp'],
         logfile=mcfg['logfile'],
+        loglevel=mcfg['loglevel'],
         saveresult=mcfg['saveresult'],
         out_score_decimals=mcfg['out_score_decimals'],
         tiny_value=mcfg['tiny_value'],
@@ -135,6 +136,7 @@ def run(
         logname=None,
         logdisp=True,
         logfile=False,
+        loglevel='info',
         verify=False,
         saveresult=True,
         raw_score_min=0,
@@ -285,6 +287,10 @@ def run(
              usage: use logging to display messages to consol or write messages to file
            default: None
 
+    :param loglevel: str
+              usage: set logger level, in ['debug', 'info', 'warnning', 'error', 'critical']
+            default: 'info'
+
     :param out_score_decimals: int, >=0
                         usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
                       default= 0, that means out score type is int
@@ -310,6 +316,7 @@ def run(
     r = result(False, None, None)
 
     stmlogger = stmlib.get_logger(model_name, logname=task)
+    stmlogger.set_level(loglevel)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
         stmlogger.logging_consol = True
