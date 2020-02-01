@@ -156,33 +156,14 @@ def run(
         ):
 
     """
-    [functions]
-    run(model_name='shandong',          # model name in modelset
-        df=None,
-        cols=None,
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='d',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
-        mode_section_degraded='to_max',
-        mode_section_lost='ignore',
-        logname='test',
-        logdisp=True,
-        logfile=False,
-        loglevel='info',
-        saveresult=True,
-        verify=False，
-        raw_score_min=0,
-        raw_score_max=100,
-        out_score_decimals=0,
-        tiny_value=10**-8,
-        )
-
-        8个算法策略：
-        --
-        mode_ratio_prox: the mode to proxmate ratio value of raw score points
+    ---
+    基本参数：
+        model_name: str, 转换模型名称
+        df: DataFrame, 原始分数数据
+        cols: list of str, 需要转换的原始分数列（字段）
+    ---
+    算法策略参数：
+          mode_ratio_prox: the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
               'upper_min': 小于该比例值的分值中最大的值   get score with min value in bigger percentile
               'lower_max': 大于该比例值的分值中最小的值   get score with max value in less percentile
@@ -192,6 +173,10 @@ def run(
           mode_sort_order: 分数排序方式 score sort method: descending or ascending
                       'd': 降序方式排序，从高分数开始计算
                       'a': 升序方式排序，从低分数开始计算
+
+          mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
+                    'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
+                     'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
           mode_section_point_first: 区间的第一个点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
@@ -209,136 +194,44 @@ def run(
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
 
-
-          mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
-                    'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
-                     'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
-
-          ---
-          usage:调用方式
-          [1] from stm import main
-          [2] m = main.run(name='shandong', df=data, col=['ls'])
-          [3] m.report()
-          [4] m.map_table.head()
-          [5] m.outdf.head()
-          [6] m.save_outdf_to_csv(filename_outdf)
-          [7] m.save_map_table_doc(filename_maptable)
-
-    [function] run()
-    calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
-
-    :param model_name: str, in modelset.Models.keys
-         values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
-                 'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
-                 'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
-                 'hn300plt1', 'hn300plt2', 'hn300plt3'          # plt model to transform score from (0,100)-->(60, 300)
-                 'zscore', 'tscore'                             # ppt model for z, t, t-linear transform score
-                 'tai'                                          # pgt model for taiwan grade score model
-         default = 'shandong'
-
-    :param df: pandas.DataFrame,
-       values: raw score data, including score field, which type must be int or float
-      default= None
-
-    :param cols: list,
-         values: [column name, that is score field name of df]
-                 default = None
-
-    :param mode_ratio_prox: str,
-                  strategy: how to find endpoint by ratio
-                values set: 'lower_max', 'upper_min', 'near_max', 'near_min'
-                   default= 'upper_min'
-
-    :param mode_ratio_cumu: str,
-                  strategy: cumulate ratio or not
-                values set: 'yes', 'no'
-                   default= 'no'
-
-    :param mode_sort_order: string,
-                  strategy: which score order to search ratio
-                    values: 'd', 'a'
-                   default= 'd'
-
-    :param mode_section_degraded: str,
-                        strategy: how to map raw score when segment is one-point, [a, a]
-                          values: 'map_to_max', map to max value of out score section
-                                  'map_to_min', map to min value of out score section
-                                  'map_to_mean', map to mean value of out score section
-                         default= 'map_to_max'
-
-    :param mode_section_point_first: str,
-                           strategy: how to set first point of first section
-                             values: 'real', use real raw score max or min value
-                                     'defined', use test paper full score or least score
-                            default= 'real'
-
-    :param mode_section_point_start: str,
-                           strategy: how to set first point of first section
-                             values: 'real', use real raw score max or min value
-                                     'defined', use test paper full score or least score
-                            default= 'real'
-
-    :param mode_section_point_last: str,
-                           strategy: how to set first point of first section
-                             values: 'real', use real raw score max or min value
-                                     'defined', use test paper full score or least score
-                            default= 'real'
-
-    :param mode_section_lost: str,
-                    strategy: how to prosess lost section
-                      values: 'real', retain lost, use [-1, -1]
-                              'zip',  to next section, no [-1, -1] in middle
-                     default= 'real'
-
-    :param mode_score_zero：str
-                    strategy: how to prosess lost section
-                      values: 'real',   retain real zero percent to map
-                              'after',  transform zero score to min after stm with zero records
-                              'alone',  transform zero alone, move zero score records from df
-                     default= 'real'
-
-    :param raw_score_min: int
-                     usage: raw score value range (min, max)
-                    values: max and min raw score full and least value in paper
-                   default= 0
-    :param raw_score_max: int
-                     usage: raw score value range (min, max)
-                    values: max and min raw score full and least value in paper
-                   default= 100
-
-    :param saveresult: bool
-                usage: save output data to csv file, including outdf, map_table
-                       filename: [df/map]_modelname_year_month_day_hour_min_sec.csv
-              default: False
-
-    :param verify: bool
-            usage: use two algorithm to verify result
-          default: False, do not verify
-
-    :param logdisp: bool
-             usage: display messages to consol
-           default: True
-
-    :param logfile: bool
-             usage: use logging to display messages to consol or write messages to file
-           default: None
-
-    :param loglevel: str
-              usage: set logger level, in ['debug', 'info', 'warnning', 'error', 'critical']
-            default: 'info'
-
-    :param out_score_decimals: int, >=0
-                        usage: set decimal digits of output score (_ts) by round method: 4 round-off and 5 round-up
-                      default= 0, that means out score type is int
-
-    :param tiny_value: float
-                usage: control precision or equal
-              default: 10**-8
-
-    :return: namedtuple(ok, r1, r2)
-            (1) ok: bool, successful or not
-            (2) r1: result of stm1, instance of PltScore, subclass of ScoreTransformModel
-            (3) r2: result of stm2, namedtuple('Model', ('outdf', 'map_table')
+             mode_section_degraded: 区间退化处理方式
+                          'to_max': 取对应输出区间的最大值
+                          'to_min': 取对应输出区间的最小值
+                         'to_mean': 取对应输出区间的平均值
+    ---
+    任务控制参数：
+        logname: str, 任务名称， 用于日志文件、输出数据文件的前缀
+        logdisp: bool, 是否显示计算运行结果
+        logfile: bool, 是否将计算运行结果写入日志文件
+        loglevel: str, 输出结果的等级：'debug', 'info'
+        saveresult: bool, 是否将计算结果写入文件，包括转换输出分数(df_outscore)、转换映射表(df_maptable)
+        verify: bool, 是否使用算法验证，即使用两种计算算法对计算结果进行验证
+        ---
+        分值数值与计算精度：
+        raw_score_min: int, 原始分数的最小值
+        raw_score_max: int, 原始分数的最大值
+        out_score_decimals: int, 输出分数的小数位数
+        tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
+    ---
+    return: 返回值为含有三个带有名称（ok, r1, r2）的元素的元组  namedtuple(ok, r1, r2)
+      (1) ok: bool, 计算是否成功 successful or not
+      (2) r1: 主算法的计算结果，是模块stm1中类PltScore的实例
+              result of stm1, instance of PltScore, subclass of ScoreTransformModel
+      (3) r2: 辅助算法的计算结果， 模块stm2中函数ModelAlgorithm.get_stm_score()的返回结果，
+              元素名称为outdf,map_table的元组
+              如果不使用verify=True时，r2为None
+              result of stm2, namedtuple('Model', ('outdf', 'map_table')
+              r2 is None if verify != True
+    ---
+    usage:调用方式
+      [1] from stm import main
+      [2] m = main.run(model_name='shandong', df=data, col=['ls'])
+      [3] m.report()
+      [4] m.map_table.head()
+      [5] m.outdf.head()
+      [6] m.save_outdf_to_csv(filename_outdf)
+      [7] m.save_map_table_doc(filename_maptable)
+    ---
     """
 
     raw_score_range = (raw_score_min, raw_score_max)
