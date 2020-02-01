@@ -7,25 +7,29 @@ about module main:
     run() is an interface to call stm1 or stm2
     return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (map_table, df))
     if model_name_in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
-                      'shandong', 'guangdong', 'SS7', 'hn900', 'hn300',
+                      'shandong', 'guangdong', 'p7', 'h900', 'h300',
                       'hn300plt1', 'hn300plt2', 'hn300plt3'
                       ]
-        use stm1.PltScore
+        call stm1.PltScore
     then
         call stm2.get_stm_score
 
-    (2) function: run_conf
-    run_conf() is an interface to call stmlib2 with model_name, df, cols
-        and other parameters(score range, strategies, out score decimal digits)
+    (2) function: run_conf, new_conf
+    run_conf(confname) is an interface to call stm1/stm2 with model_name, df, cols
+    and other parameters(score range, strategies, out score decimal digits)
+    run_conf need to call a config file to set model parameters, the filename is confname
+    you can use new_conf(confname) to create a config file with name=confname
 
     (3) function: run1
-
+    run1 is an interface to call stm1 with model name, df, cols and other parameters
 
     (4) function: run2
+    run2 is an interface to call stm2 with model name, df, cols and other parameters
 
     (5) function: run_para
-    run_para() is an interface to call stmlib2 with df, cols, model_ratio, model_section, model_type,
-        and other parameters(score range, strategies, out score decimal digits)
+    run_para() is an interface to call stm2 with df, cols, model_ratio, model_section, model_type,
+    and other parameters(score range, strategies, out score decimal digits).
+    used to test algorithm commonly.
 
 """
 

@@ -35,7 +35,7 @@ def show_models():
 
 
 def plot_models(font_size=12):
-    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'ss7', 'hn900']
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'h900']
 
     ms_dict = dict()
     for _name in _names:
@@ -56,13 +56,13 @@ def plot_models(font_size=12):
         elif k in ['guangdong']:
             x_data = [np.mean(x) for x in mdin.Models[k].section][::-1]
             _wid = 10
-        elif k in ['ss7']:
+        elif k in ['p7']:
             x_data = [np.mean(x) for x in mdin.Models[k].section][::-1]
             _wid = 10
-        elif k in ['hn900']:
+        elif k in ['h900']:
             x_data = [x for x in range(100, 901)]
             _wid = 1
-        elif k in ['hn300']:
+        elif k in ['h300']:
             x_data = [x for x in range(60, 301)]
             _wid = 1
         else:
@@ -144,15 +144,22 @@ class TestData:
         self.__make_data()
 
     def __make_data(self):
+        import random
+        sno = [str(i).zfill(2) for i in range(1,17)]
+        qno = [str(i).zfill(2) for i in range(2,90)]
+        klno = ['1', '3', '4']
         self.df = pd.DataFrame({
-            'ksh': ['37'+str(x).zfill(7) for x in range(1, self.df_size+1)],
+            'ksh': ['37'+random.sample(sno, 1)[0] +
+                    random.sample(qno,1)[0] +
+                    random.sample(klno,1)[0] +
+                    str(x).zfill(7)
+                    for x in range(1, self.df_size+1)],
             'km1': self.get_score(),
             'km2': self.get_score(),
         })
 
     def get_score(self):
-        print('create score...')
-
+        # print('create score...')
         if self.decimals == 0:
             myround = lambda x: int(x)
         else:
