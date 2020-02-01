@@ -225,12 +225,10 @@ def run(
     ---
     usage:调用方式
       [1] from stm import main
-      [2] m = main.run(model_name='shandong', df=data, col=['ls'])
-      [3] m.report()
-      [4] m.map_table.head()
-      [5] m.outdf.head()
-      [6] m.save_outdf_to_csv(filename_outdf)
-      [7] m.save_map_table_doc(filename_maptable)
+      [2] m = main.run(df=data, col=['ls'])     # model_name is 'shandong'
+      [3] m.ok
+      [4] m.r1.map_table.head()
+      [5] m.r1.outdf.head()
     ---
     """
 
