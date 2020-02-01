@@ -43,14 +43,14 @@ from stm import stmlib, stm1, stm2, modelset
 stm_modules = [stmlib, stm1, stm2, modelset]
 
 
-def new_conf(confname='stm18w.conf'):
+def new_conf(confname='stm001.conf'):
     if stmlib.isfilestr(confname):
         stmlib.make_config_file(confname)
     else:
         print('invalid file name!')
 
 
-def run_conf(conf_name='stm18lk.conf'):
+def run_conf(conf_name='stm001.conf'):
 
     if not os.path.isfile(conf_name):
         print('conf file: {} not found!'.format(conf_name))
