@@ -7,7 +7,7 @@ import os
 from collections import namedtuple as ntp
 import scipy.stats as sts
 from stm import main, stm1, stm2, \
-     stmlib as slib, models as mdin
+     stmlib as slib, modelset as mdin
 from stmapp import models_util as mutl
 import itertools as itl
 
@@ -75,7 +75,7 @@ def test_all_strategy(df=None, model_name='shandong'):
     # pb.reload(stm2)
     # pb.reload(stm1)
     if df is None:
-        df = mutl.TestData(mean=45, std=25, size=1000)()
+        df = mutl.TestData(mu=45, std=25, size=1000)()
     # print([k for k in mdin.Strategy.keys()])
     ss = [mdin.Strategy[s] for s in mdin.Strategy.keys()]
     sn = [s for s in mdin.Strategy.keys()]
@@ -232,7 +232,7 @@ def test_hainan(mean=60, size=60000, std=16):
     ResultTuple = ntp('ResultModel', ['data_model_mode_name', 'result_ascending', 'result_descending'])
     # data1
     #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
-    test_data = mutl.TestData(mean=mean, std=std, size=size)
+    test_data = mutl.TestData(mu=mean, std=std, size=size)
     name_list = ['h900', 'h300', 'h300plt1', 'h300plt2', 'h300plt3', 'h300plt4']
     for name in name_list:
         ra = main.run(logname='hntest', logfile=1,
@@ -346,7 +346,7 @@ def test_stm_with_stat_data(
             norm_data3 += [x]*2*(score_max-x+1)
 
     # --- triangle data set
-    norm_data4 = mutl.TestData(mean=60, size=500000)
+    norm_data4 = mutl.TestData(mu=60, size=500000)
     norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: x if x > 35 else int(35+x*0.3))
     norm_data4.df.km1 = norm_data4.df.km1.apply(lambda x: {35: 0, 36: 3, 37: 5}.get(x, 0) if 35<= x < 38 else x)
 

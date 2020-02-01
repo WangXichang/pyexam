@@ -795,6 +795,8 @@ def read_conf(conf_name):
             if not _set:
                 print('set loglevel error, invalid value: {}!'.format(ms))
                 mcfg['loglevel'] = 'info'
+        else:
+            mcfg.update({'loglevel': 'info'})
 
     if 'mode' in cfper.keys():
         for _mode in cfper['mode']:
@@ -831,25 +833,25 @@ def make_config_file(filename):
         """
         [task]
         logname = test                      # set logfile name: logname_model_year_month_day.log
-        logdisp = 1                         # running message to consol
-        logfile = 0                         # running message to log file
-        saveresult = 0                      # save result(outdf, maptable) to csv file: df/map_modelname_time.csv
+        logdisp = True                      # running message to consol
+        logfile = Fals                      # running message to log file
+        saveresult = True                   # save result to file: logname_df_outscore/maptable_modelname_time.csv
 
         
         [model_in]
-        name = shandong                    # model name biult in models
+        name = shandong                     # model name biult in models
 
         
         [data]
-        df = df.csv         # file name, used to read to DataFrame
-        cols = km1, km2     # score fields to transform score
+        df = df.csv                         # file name, used to read it to DataFrame
+        cols = km1, km2                     # score fields, used to transform by model
         
         
         [value]
         raw_score_min = 0                   # min score for raw score
         raw_score_max = 100                 # max score for raw score
         out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 10 ** -10              # smallest value for precision in calculation process
+        tiny_value = 10**-10                # smallest value for precision in calculation process
 
                 
         [mode]
@@ -866,12 +868,12 @@ def make_config_file(filename):
         [model_new]
         name = test-similar-shandong        # model name
         type = plt                          # model type, valid value: plt, ppt, pgt
+        
         # section for out score, point-pair tuple separated by comma
-        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)
-        # ratio for each section, sum=100
-        ratio = 3, 7, 16, 24, 24, 16, 9, 1
-        # description for model
-        desc = new model for test, similar to Shandong       
+        section = (120, 111), (110, 101), (100, 91), \\
+                  (90, 81), (80, 71), (70, 61), \\
+                  (60, 51), (50, 41)
+        ratio = 3, 7, 16, 24, 24, 16, 9, 1  # ratio for each section, sum=100        
         """
     if isfilestr(filename):
         with open(filename, 'a') as fp:

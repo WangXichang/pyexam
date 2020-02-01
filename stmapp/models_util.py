@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import models as mdin
+from stm import modelset as mdin
 
 
 def show_models():
@@ -132,9 +132,9 @@ class TestData:
     :df
         DataFrame, columns = {'ksh', 'km1', 'km2'}
     """
-    def __init__(self, mean=60, std=18, size=100000, max=100, min=0, decimals=0, dist='norm'):
+    def __init__(self, mu=60, std=18, size=100000, max=100, min=0, decimals=0, dist='norm'):
         self.df = None
-        self.df_mean = mean
+        self.df_mean = mu
         self.df_max = max
         self.df_min = min
         self.df_std = std

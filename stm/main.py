@@ -38,8 +38,9 @@ import time
 import os
 from collections import namedtuple
 import importlib as pb
-from stm import stmlib, stm1, stm2, models
-stm_modules = [stmlib, stm1, stm2, models]
+
+from stm import stmlib, stm1, stm2, modelset
+stm_modules = [stmlib, stm1, stm2, modelset]
 
 
 def new_conf(confname='stm18w.conf'):
@@ -65,14 +66,14 @@ def run_conf(conf_name='stm18lk.conf'):
         print('read config file {} fail!'.format(conf_name))
         return None
 
-    # no model from built-in models
+    # use new model when no model defined, that is in modelset
     if not mcfg['model_in_check']:
         # new model in config-file
         if mcfg['model_new_check']:
             mcfg.update({'model_name': mcfg['model_new_name']})
-            models.Models.update(
+            modelset.Models.update(
                 {mcfg['model_name']:
-                models.ModelFields(
+                modelset.ModelFields(
                     mcfg['model_new_type'],
                     mcfg['model_new_ratio'],
                     mcfg['model_new_section'],
@@ -156,25 +157,30 @@ def run(
 
     """
     [functions]
-    runm(model_name='shandong',  # model name in models_in.Models or models_ext.Models
-         df=None,
-         cols=None,
-         raw_score_range=(0, 100),
-         mode_ratio_prox='upper_min',
-         mode_ratio_cumu='no',
-         mode_sort_order='d',
-         mode_section_point_first='real',
-         mode_section_point_start='step',
-         mode_section_point_last='real',
-         mode_section_degraded='to_max',
-         mode_section_lost='ignore',
-         verify=False，
-         logging=None,
-         out_score_decimals=0,
-         tiny_value=10**-8,
-         )
+    run(model_name='shandong',          # model name in modelset
+        df=None,
+        cols=None,
+        mode_ratio_prox='upper_min',
+        mode_ratio_cumu='no',
+        mode_sort_order='d',
+        mode_section_point_first='real',
+        mode_section_point_start='step',
+        mode_section_point_last='real',
+        mode_section_degraded='to_max',
+        mode_section_lost='ignore',
+        logname='test',
+        logdisp=True,
+        logfile=False,
+        loglevel='info',
+        saveresult=True,
+        verify=False，
+        raw_score_min=0,
+        raw_score_max=100,
+        out_score_decimals=0,
+        tiny_value=10**-8,
+        )
 
-        9个算法策略：
+        8个算法策略：
         --
         mode_ratio_prox: the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
@@ -182,6 +188,27 @@ def run(
               'lower_max': 大于该比例值的分值中最小的值   get score with max value in less percentile
                'near_min': 最接近该比例值的分值中最小的值 get score with min value in near percentile
                'near_max': 最接近该比例值的分值中最大的值 get score with max value in near percentile
+
+          mode_sort_order: 分数排序方式 score sort method: descending or ascending
+                      'd': 降序方式排序，从高分数开始计算
+                      'a': 升序方式排序，从低分数开始计算
+
+          mode_section_point_first: 区间的第一个点的取值方式
+                            'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
+                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+
+          mode_section_point_first: 区间的第一个点的取值方式
+                            'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
+                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+
+          mode_section_point_start: 区间的开始点的取值方式（第一个区间开始点使用mode_section_point_first确定）
+                            'step': 取顺延值，即上一个区间的末端点值加1（descending）或减1(ascending)
+                           'share': 取共享值，即上一个区间的末端点值
+
+          mode_section_point_last: 区间的末端点的取值方式
+                            'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
+                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+
 
           mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
                     'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
@@ -200,7 +227,7 @@ def run(
     [function] run()
     calling stmlib if model_type in 'plt, ppt' and calling stmlib2 if model_type is 'pgt'
 
-    :param model_name: str, in models_in.Models.keys or models_ext.Models_ext.keys
+    :param model_name: str, in modelset.Models.keys
          values: 'shanghai', 'zhejiang', 'beijing', 'tianjin',  # plt model for grade score
                  'shandong', 'guangdong', 'SS7',                # plt model for linear mapping score
                  'hn900', 'hn300',                              # ppt model to transform score from (0,100)-->(60, 300)
@@ -332,7 +359,7 @@ def run(
     if logfile:
         stmlogger.logging_file = True
 
-    stmlogger.loginfo('\n\n*** running begin ***')
+    stmlogger.loginfo('\n*** running begin ***')
     stmlogger.loginfo_start('task:' + task + ' model:' + model_name + stm_no)
 
     if not stmlib.Checker.check_run(
@@ -349,13 +376,13 @@ def run(
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
-            models=models,
+            models=modelset,
             ):
         stmlogger.loginfo_end('task:' + task + ' model:' + model_name + stm_no)
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = models.Models[model_name].type
+    model_type = modelset.Models[model_name].type
     # model: plt, ppt
     if model_type in ['plt', 'ppt']:
         m1 = run1(
@@ -481,13 +508,13 @@ def run1(
         logger=None,
         ):
 
-    ratio_tuple = tuple(x * 0.01 for x in models.Models[model_name].ratio)
-    model_type = models.Models[model_name].type
+    ratio_tuple = tuple(x * 0.01 for x in modelset.Models[model_name].ratio)
+    model_type = modelset.Models[model_name].type
     m = stm1.PltScore(model_name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio=ratio_tuple,
-        out_score_section=models.Models[model_name].section,
+        out_score_section=modelset.Models[model_name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -562,11 +589,11 @@ def run2(
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=logger,
-            models=models,
+            models=modelset,
             ):
         return None
 
-    model = models.Models[model_name]
+    model = modelset.Models[model_name]
     return stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -663,7 +690,7 @@ def run2_para(
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             logger=logger,
-            models=models
+            models=modelset
             ):
         return None
 

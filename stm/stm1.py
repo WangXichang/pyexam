@@ -912,14 +912,8 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in map_table
     def make_report(self):
-        # self.out_report_doc = '{}[{}]\n'.\
-        #     format('Transform Model: '.rjust(20), self.model_name)
-        # self.out_report_doc += '{}{}\n'.\
-        #     format('running-time: '.rjust(20), time.strftime('%Y.%m.%d  %H:%M:%S', time.localtime()))
-        # self.out_report_doc += '---'*40 + '\n'
-        self.out_report_doc += 'strategies: ' + '\n'
+        self.out_report_doc += 'strategies' + '\n'
 
-        # self.logger.loginfo('   create report ...')
         for k in self.strategy_dict.keys():
             self.out_report_doc += ' '*15 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.strategy_dict[k]) + '\n'
@@ -971,10 +965,12 @@ class PltScore(ScoreTransformModel):
 
         # report start
         # tiltle
-        field_title = '<< score field: [{}] >>\n' + '- -'*40 + '\n'
+        field_title = '<< score field: [{}] >>\n' + \
+                      '- -'*40 + '\n'
         _out_report_doc = field_title.format(field)
 
         # calculating for ratio and segment
+        _out_report_doc += '< running result >\n'
         plist = self.raw_score_ratio_cum
         if self.out_decimal_digits == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
@@ -1014,14 +1010,13 @@ class PltScore(ScoreTransformModel):
 
         # transforming formulas
         _out_report_doc += '- -'*40 + '\n'
+        _out_report_doc += '< transforming formulas >\n'
         for i, col in enumerate(self.result_formula_text_list):
-            if i == 0:
-                _out_report_doc += 'transforming formulas:\n'
-            _out_report_doc += '                       {}\n'.format(col)
+            _out_report_doc += ' '*18 + '{}\n'.format(col)
 
         # statistics for raw and out score
         _out_report_doc += '- -'*40 + '\n'
-        _out_report_doc += format('statistics:', '>22s')
+        _out_report_doc += '< statistics >\n'
 
         # raw score data describing
         _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
@@ -1033,16 +1028,16 @@ class PltScore(ScoreTransformModel):
             self.df[field].std(),\
             self.df[field].skew(),\
             sts.kurtosis(self.df[field], fisher=False)
-        _out_report_doc += ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
+        _out_report_doc += ' '*12 + ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                            format(_max, _min, __mean, _median, _mode)
-        _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
+        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
 
         # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
         _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
-        _out_report_doc += ' '*28 + 'empty_value={}\n' .\
+        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
                            format(set_ellipsis_in_digits_sequence(_count_zero))
 
         # out score data describing
@@ -1055,9 +1050,9 @@ class PltScore(ScoreTransformModel):
             self.outdf[field+'_ts'].std(),\
             self.outdf[field+'_ts'].skew(), \
             sts.kurtosis(self.outdf[field+'_ts'], fisher=False)
-        _out_report_doc += ' '*23 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
+        _out_report_doc += ' '*13 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
                            format(_max, _min, __mean, _median, _mode)
-        _out_report_doc += ' '*28 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
+        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
         # _count_zero = self.map_table.query(field+'_count==0')[field+'_ts'].values
         _count_non_zero = self.map_table.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
@@ -1066,23 +1061,20 @@ class PltScore(ScoreTransformModel):
                            if x not in _count_non_zero]
         else:
             _count_zero = ''
-        _out_report_doc += ' '*28 + 'empty_value={}\n' .\
+        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
                            format(set_ellipsis_in_digits_sequence(_count_zero))
-        _out_report_doc += 'count: '.rjust(28) + 'record={}\n' .\
+        _out_report_doc += 'size: '.rjust(18) + 'count={}\n' .\
                            format(self.outdf.count()[0])
 
-        # differece between raw and out score
+        # shift: differece between raw and out score
         _out_report_doc += '- -'*40 + '\n'
         _diff_raw_out = self.outdf[field+'_ts']-self.outdf[field]
-        _out_report_doc += ' score shift(out-raw):' \
-                           ' shift_max={:3.1f}' \
-                           '  shift_min={:3.1f}' \
-                           '  shift_down_percent={:.2f}%\n'.\
-                           format(
-                                  max(_diff_raw_out),
-                                  min(_diff_raw_out),
-                                  _diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100
-                              )
+        shift_str = '< score shift down>\n' + \
+                    'shift_max:'.rjust(17) + ' {:3.1f}\n'.format(max(_diff_raw_out)) + \
+                    'shift_min:'.rjust(17) + ' {:3.1f}\n'.format(min(_diff_raw_out)) + \
+                    'shift_down(%):'.rjust(17) + ' {:.2f}\n'.\
+                        format(_diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100)
+        _out_report_doc += shift_str
         _diff_list = []
         for coeff in self.result_formula_coeff.values():
             rseg = coeff[1]
@@ -1099,7 +1091,8 @@ class PltScore(ScoreTransformModel):
                 _diff_list.append((int(rseg[0]), int(slib.round45r(b / (1 - a)))))
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
                 _diff_list.append((int(slib.round45r(b / (1 - a), 0)), int(rseg[1])))
-        _out_report_doc += '   shift down segment: ' + str(_diff_list) + ' => '
+
+        _out_report_doc += 'shift-down(s):'.rjust(17) + ' ' + str(_diff_list) + ' => '
         # merge to some continuous segments
         while True:
             _diff_loop = False
@@ -1113,8 +1106,9 @@ class PltScore(ScoreTransformModel):
                 break
         _diff_list = [x for x in _diff_list if x[0] != x[1]]
         _out_report_doc += str(_diff_list) + '\n'
-        _out_report_doc += '---'*40 + '\n'
+        _out_report_doc += '---'*40
 
+        # report_doc end
         return _out_report_doc
 
     def report(self):

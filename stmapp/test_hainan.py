@@ -18,7 +18,7 @@ def test_hainan(num=1):
     if num == 1:
         # data1
         #    score point mean is bias to right(high), max==100(count==144), 0-4(count==0,0,0,1,1)
-        test_data1 = utl.TestData(mean=60, std=14, size=60000)
+        test_data1 = utl.TestData(mu=60, std=14, size=60000)
         # use model100-900
         # score_order=='a', out_score_min==277, max==900, second_max=784
         #              'd', out_score_max==784, second_min==101, 110, 123
@@ -31,7 +31,7 @@ def test_hainan(num=1):
 
     if num == 2:
         # data2
-        test_data1 = utl.TestData(mean=50, std=14, size=60000)
+        test_data1 = utl.TestData(mu=50, std=14, size=60000)
         # use model100-900
         # score_order=='a', out_score_min==150(raw==0, count==12), max==900(count==11), second_max=856(count==6)
         #              'd', out_score_max==861(count==9), min=100(raw=0, count==7), second_min==132,143 ,158
