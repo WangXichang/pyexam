@@ -213,19 +213,22 @@ def run(
         out_score_decimals: int, 输出分数的小数位数
         tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
     ---
-    return: 返回值为含有三个带有名称（ok, r1, r2）的元素的元组  namedtuple(ok, r1, r2)
+    函数返回值
+    返回值为含有三个带有名称（ok, r1, r2）的元素的元组  namedtuple(ok, r1, r2)
       (1) ok: bool, 计算是否成功 successful or not
-      (2) r1: 主算法的计算结果，是模块stm1中类PltScore的实例
-              result of stm1, instance of PltScore, subclass of ScoreTransformModel
+      (2) r1: 主算法的计算结果
+              模块stm1中类PltScore的实例
+              主要数据结果是PltScore.outdf, PltScore.map_table
+              result of stm1, instance of PltScore
       (3) r2: 辅助算法的计算结果， 模块stm2中函数ModelAlgorithm.get_stm_score()的返回结果，
               元素名称为outdf,map_table的元组
-              如果不使用verify=True时，r2为None
-              result of stm2, namedtuple('Model', ('outdf', 'map_table')
+              如果不指定verify 或 verify != True时，r2为None
+              result of stm2, namedtuple('outdf', 'map_table')
               r2 is None if verify != True
     ---
-    usage:调用方式
+    调用方式
       [1] from stm import main
-      [2] m = main.run(df=data, col=['ls'])     # model_name is 'shandong'
+      [2] m = main.run(model_name='zhejiang', df=data, col=['ls'])
       [3] m.ok
       [4] m.r1.map_table.head()
       [5] m.r1.outdf.head()
@@ -274,7 +277,7 @@ def run(
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     model_type = modelset.Models[model_name].type
-    # model: plt, ppt
+    # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
         m1 = run1(
             model_name=model_name,
@@ -329,7 +332,7 @@ def run(
             if verify_pass:
                 stmlogger.loginfo('verify passed!')
             r = result(verify_pass, m1, m2)
-    # 'pgt' to call stmlib.Algorithm.get_stm_score
+    # 'pgt': call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
         m2 = run2(
@@ -366,16 +369,8 @@ def run(
             dfmaptable.to_csv(save_dfmap_name, index=False)
         stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
         stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model_name, stm_no))
-        # if verify:
-        #     rr = r
-        # else:
-        #     if r.r1 is None:
-        #         rr = r.r2
-        #     else:
-        #         rr = r.r1
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model_name))
-        # rr = None
 
     return r
 # end runm
