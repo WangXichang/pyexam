@@ -7,7 +7,7 @@ about module main:
     run() is an interface to call stm1 or stm2
     return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (map_table, df))
     if model_name_in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
-                      'shandong', 'guangdong', 'p7', 'h900', 'h300',
+                      'shandong', 'guangdong', 'p7', 'h900', 'hainan',
                       'hn300plt1', 'hn300plt2', 'hn300plt3'
                       ]
         call stm1.PltScore
