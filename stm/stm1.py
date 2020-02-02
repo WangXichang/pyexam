@@ -917,9 +917,9 @@ class PltScore(ScoreTransformModel):
         for k in self.strategy_dict.keys():
             self.out_report_doc += ' '*15 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.strategy_dict[k]) + '\n'
-        self.out_report_doc += '---'*40 + '\n'
         for col in self.cols:
             self.out_report_doc += self.make_field_report(col)
+        self.out_report_doc += '---'*40
 
     def make_field_report(self, field=''):
         score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
@@ -965,9 +965,10 @@ class PltScore(ScoreTransformModel):
 
         # report start
         # tiltle
+        _out_report_doc = '-'*120 + '\n'
         field_title = '<< score field: [{}] >>\n' + \
                       '- -'*40 + '\n'
-        _out_report_doc = field_title.format(field)
+        _out_report_doc += field_title.format(field)
 
         # calculating for ratio and segment
         _out_report_doc += '< running result >\n'
@@ -1106,7 +1107,7 @@ class PltScore(ScoreTransformModel):
                 break
         _diff_list = [x for x in _diff_list if x[0] != x[1]]
         _out_report_doc += str(_diff_list) + '\n'
-        _out_report_doc += '---'*40
+        # _out_report_doc += '---'*40
 
         # report_doc end
         return _out_report_doc

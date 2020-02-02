@@ -768,22 +768,23 @@ def read_conf(conf_name):
         else:
             mcfg.update({'logname': ''})
 
-        # set bool items
-        bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
+        # set log para bool items
+        log_bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
         default_d = {'logdisp': True,
                      'logfile': False,
-                     'saveresult': True,
+                     'saveresult': False,
                      'verify': False,
                      }
-        for ks in bool_list:
+        for ks in log_bool_list:
             if ks in mcfg.keys():
-                if mcfg[ks].lower() in ['false', '0', '']:
-                    mcfg[ks] = False
-                else:
+                if mcfg[ks].lower() in ['true', '1']:
                     mcfg[ks] = True
+                else:
+                    mcfg[ks] = False
             else:
                 mcfg.update({ks: default_d[ks]})
 
+        # set loglevel
         if 'loglevel' in mcfg.keys():
             _set = False
             ms = mcfg['loglevel'].lower()
@@ -793,7 +794,7 @@ def read_conf(conf_name):
                     _set = True
                     break
             if not _set:
-                print('set loglevel error, invalid value: {}!'.format(ms))
+                # print('set loglevel error, invalid value: {}!'.format(ms))
                 mcfg['loglevel'] = 'info'
         else:
             mcfg.update({'loglevel': 'info'})
@@ -834,8 +835,8 @@ def make_config_file(filename):
         [task]
         logname = test                      # set logfile name: logname_model_year_month_day.log
         logdisp = True                      # running message to consol
-        logfile = Fals                      # running message to log file
-        saveresult = True                   # save result to file: logname_df_outscore/maptable_modelname_time.csv
+        logfile = False                     # running message to log file
+        saveresult = False                  # save result to file: logname_df_outscore/maptable_modelname_time.csv
 
         
         [model_in]
@@ -866,14 +867,10 @@ def make_config_file(filename):
 
         
         [model_new]
-        name = test-similar-shandong        # model name
-        type = plt                          # model type, valid value: plt, ppt, pgt
-        
-        # section for out score, point-pair tuple separated by comma
-        section = (120, 111), (110, 101), (100, 91), \\
-                  (90, 81), (80, 71), (70, 61), \\
-                  (60, 51), (50, 41)
-        ratio = 3, 7, 16, 24, 24, 16, 9, 1  # ratio for each section, sum=100        
+        name = model-similar-shandong        # model name
+        type = plt                           # valid value: plt, ppt, pgt
+        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)   # sections(descending)
+        ratio = 3, 7, 16, 24, 24, 16, 9, 1                                                              # ratios(%)        
         """
     if isfilestr(filename):
         with open(filename, 'a') as fp:
