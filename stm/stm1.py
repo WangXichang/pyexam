@@ -1077,7 +1077,7 @@ class PltScore(ScoreTransformModel):
                         format(_diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100)
         _out_report_doc += shift_str
         _diff_list = []
-        for coeff in self.result_formula_coeff.values():
+        for coeff in self.result_dict[field]['coeff'].values():           # self.result_formula_coeff.values():
             rseg = coeff[1]
             oseg = coeff[2]
             a = coeff[0][0]
