@@ -1116,7 +1116,7 @@ class PltScore(ScoreTransformModel):
         print(self.out_report_doc)
 
     def plot(self, mode='model'):
-        plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'bar', 'rawbar', 'outbar']
+        plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'rawbar', 'outbar']
         if mode not in plot_name:
             self.logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
             return
@@ -1125,12 +1125,12 @@ class PltScore(ScoreTransformModel):
             self.plot_model()
         elif mode in 'dist':
             self.plot_dist_seaborn()
-        elif mode in 'bar':
-            self.plot_bar('all')
+        # elif mode in 'bar':
+        #     self.plot_bar('all')
         elif mode == 'rawbar':
-            self.plot_bar('raw')
+            self.plot_rawscore_bar_count()
         elif mode == 'outbar':
-            self.plot_bar('out')
+            self.plot_outscore_bar_count()
         elif mode in 'diff':
             self.plot_diff()
         elif not super(PltScore, self).plot(mode):
@@ -1175,36 +1175,7 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
-    # def plot_rawbar(self):
-    #     raw_label = [str(x) for x in range(self.mode_score_paper_max+1)]
-    #     x_data = list(range(self.mode_score_paper_max+1))
-    #     seg_list = list(self.map_table.seg)
-    #     for f in self.cols:
-    #         df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
-    #                     if xv in seg_list else 0
-    #                     for xv in x_data]
-    #         fig, ax = plot.subplots()
-    #         ax.set_title(self.model_name+'['+f+']: bar graph')
-    #         ax.set_xticks(x_data)
-    #         ax.set_xticklabels(raw_label)
-    #         width = 0.8
-    #         bar_wid = [p - width/2 for p in x_data]
-    #         ax.bar(bar_wid, df, width, label=f)
-
-    def plot_outbar(self):
-        x_label = [str(x) for x in range(self.out_score_real_max + 1)]
-        x_data = list(range(self.out_score_real_max + 1))
-        for f in self.cols:
-            out_ = self.outdf.groupby(f+'_ts').count()[f]
-            outdf = [out_[int(v)] if int(v) in out_.index else 0 for v in x_label]
-            fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+'_out_score]: bar graph')
-            ax.set_xticks(x_data)
-            ax.set_xticklabels(x_label)
-            width = 0.8
-            bar_wid = [p - width/2 for p in x_data]
-            ax.bar(bar_wid, outdf, width, label=f)
-
+    # deprecated
     def plot_bar(self, display='all', hcolor='r', hwidth=6):
         raw_label = [str(x) for x in range(int(self.out_score_real_max) + 1)]
         x_data = list(range(int(self.out_score_real_max) + 1))
@@ -1270,8 +1241,10 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
 
-    def plot_rawbar(self, hcolor='r', hwidth=6):
-        raw_label = reversed([str(x) for x in self.map_table.seg])
+    def plot_rawscore_bar_count(self, hcolor='r', hwidth=6):
+        seg_list = self.map_table.seg if self.strategy_dict['mode_sort_order'] in ['a', 'ascending'] \
+                   else reversed(self.map_table.seg)
+        raw_label = [str(x) for x in seg_list]
         x_data = list(range(self.raw_score_defined_max + 1))
         for f in self.cols:
             df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
@@ -1319,8 +1292,56 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
+    def plot_outscore_bar_count(self, hcolor='r', hwidth=6):
+        for f in self.cols:
+            tsgroup = self.outdf.groupby(f+'_ts')[f].count()
+            raw_label = [str(x) for x in tsgroup.index]
+            x_data = list(tsgroup.index)
+            df = list(tsgroup)
 
-    def plot_dist(self):
+            fig, ax = plot.subplots()
+            ax.set_title(self.model_name+'['+f+']: bar graph')
+            ax.set_xticks(x_data)
+            ax.set_xticklabels(raw_label)
+            width = 0.4
+            bar_wid = [p + width/2 for p in x_data]
+
+            raw_bar = ax.bar(bar_wid, df, width, label=f)
+            disp_bar = [raw_bar]
+            ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
+                         format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
+
+            for bars in disp_bar:
+                make_color = 0
+                last_height = 0
+                for _bar in bars:
+                    height = _bar.get_height()
+                    xpos = _bar.get_x() + _bar.get_width() / 2
+                    note_str = '{}'.format(int(height))
+                    ypos = 0
+                    if (height > 100) and abs(height - last_height) < 20:
+                        if height < last_height:
+                            ypos = -10
+                        else:
+                            ypos = +10
+                    ax.annotate(note_str,
+                                xy=(xpos, height),
+                                xytext=(0, ypos),              # vertical offset
+                                textcoords="offset points",
+                                ha='center',
+                                va='bottom'
+                                )
+                    if make_color == 2:
+                        plot.plot([xpos, xpos], [0, height], hcolor, linewidth=hwidth)
+                        make_color = 0
+                    else:
+                        make_color += 1
+                    last_height = height + ypos
+            fig.tight_layout()
+            plot.show()
+
+
+    def plot_dist_hist(self):
         def plot_dist_fit(field, _label):
             x_data = self.outdf[field]
             # local var _mu, __std

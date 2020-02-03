@@ -852,7 +852,7 @@ def make_config_file(filename):
         raw_score_min = 0                   # min score for raw score
         raw_score_max = 100                 # max score for raw score
         out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 10**-10                # smallest value for precision in calculation process
+        tiny_value = 10**-12                # smallest value for precision in calculation process
 
                 
         [mode]
@@ -869,8 +869,8 @@ def make_config_file(filename):
         [model_new]
         name = model-similar-shandong        # model name
         type = plt                           # valid value: plt, ppt, pgt
-        section = (120, 111), (110, 101), (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)   # sections(descending)
-        ratio = 3, 7, 16, 24, 24, 16, 9, 1                                                              # ratios(%)        
+        section = (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)   # sections(descending)
+        ratio =   10, 16, 25, 25, 17, 6                                         # ratios(%), sum==100        
         """
     if isfilestr(filename):
         with open(filename, 'a') as fp:
