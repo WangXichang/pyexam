@@ -1252,7 +1252,7 @@ class PltScore(ScoreTransformModel):
                   for xv in x_data]
 
             fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+']: bar graph')
+            # ax.set_title(self.model_name+'  [ '+f+' ]')
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
@@ -1260,7 +1260,7 @@ class PltScore(ScoreTransformModel):
 
             raw_bar = ax.bar(bar_wid, df, width, label=f)
             disp_bar = [raw_bar]
-            ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
+            ax.set_title(self.model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
                          format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
 
             for bars in disp_bar:
@@ -1284,7 +1284,8 @@ class PltScore(ScoreTransformModel):
                                 va='bottom'
                                 )
                     if make_color == 2:
-                        plot.plot([xpos, xpos], [0, height], hcolor, linewidth=hwidth)
+                        yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
+                        plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
                         make_color = 0
                     else:
                         make_color += 1
@@ -1300,7 +1301,7 @@ class PltScore(ScoreTransformModel):
             df = list(tsgroup)
 
             fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+']: bar graph')
+            # ax.set_title(self.model_name+'  [ '+f+'_ts ]')
             ax.set_xticks(x_data)
             ax.set_xticklabels(raw_label)
             width = 0.4
@@ -1308,8 +1309,8 @@ class PltScore(ScoreTransformModel):
 
             raw_bar = ax.bar(bar_wid, df, width, label=f)
             disp_bar = [raw_bar]
-            ax.set_title(self.model_name+'[{}]  mean={:.2f}, std={:.2f}, max={:3d}'.
-                         format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
+            ax.set_title(self.model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
+                         format(f+'_ts', self.df[f].mean(), self.df[f].std(), self.df[f].max()))
 
             for bars in disp_bar:
                 make_color = 0
@@ -1332,7 +1333,8 @@ class PltScore(ScoreTransformModel):
                                 va='bottom'
                                 )
                     if make_color == 2:
-                        plot.plot([xpos, xpos], [0, height], hcolor, linewidth=hwidth)
+                        yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
+                        plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
                         make_color = 0
                     else:
                         make_color += 1
