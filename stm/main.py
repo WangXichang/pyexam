@@ -34,32 +34,32 @@ about module main:
 """
 
 
-import time
-import os
-from collections import namedtuple
-import importlib as pb
+import time as __time
+import os as __os
+from collections import namedtuple as __namedtuple
+import importlib as __pb
 
-from stm import stmlib, stm1, stm2, modelset
-stm_modules = [stmlib, stm1, stm2, modelset]
+from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, modelset as __mdset
+__stm_modules = [__slib, __stm1, __stm2, __mdset]
 
 
 def new_conf(confname='stm001.conf'):
-    if stmlib.isfilestr(confname):
-        stmlib.make_config_file(confname)
+    if __slib.isfilestr(confname):
+        __slib.make_config_file(confname)
     else:
         print('invalid file name!')
 
 
-def run_conf(conf_name='stm001.conf'):
+def runf(conf_name='stm.conf'):
 
-    if not os.path.isfile(conf_name):
+    if not __os.path.isfile(conf_name):
         print('conf file: {} not found!'.format(conf_name))
         return None
 
-    for m in stm_modules:
-        pb.reload(m)
+    for m in __stm_modules:
+        __pb.reload(m)
 
-    config_read = stmlib.read_conf(conf_name)
+    config_read = __slib.read_conf(conf_name)
     if config_read:
         mcfg = config_read
     else:
@@ -71,9 +71,9 @@ def run_conf(conf_name='stm001.conf'):
         # new model in config-file
         if mcfg['model_new_check']:
             mcfg.update({'model_name': mcfg['model_new_name']})
-            modelset.Models.update(
+            __mdset.Models.update(
                 {mcfg['model_name']:
-                modelset.ModelFields(
+                __mdset.ModelFields(
                     mcfg['model_new_type'],
                     mcfg['model_new_ratio'],
                     mcfg['model_new_section'],
@@ -242,10 +242,10 @@ def run(
     else:
         task = logname
 
-    result = namedtuple('Result', ['ok', 'r1', 'r2'])
+    result = __namedtuple('Result', ['ok', 'r1', 'r2'])
     r = result(False, None, None)
 
-    stmlogger = stmlib.get_logger(model_name, logname=task)
+    stmlogger = __slib.get_logger(model_name, logname=task)
     stmlogger.set_level(loglevel)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
@@ -256,7 +256,7 @@ def run(
     stmlogger.loginfo('\n*** running begin ***')
     stmlogger.loginfo_start('task:' + task + ' model:' + model_name + stm_no)
 
-    if not stmlib.Checker.check_run(
+    if not __slib.Checker.check_run(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -270,13 +270,13 @@ def run(
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
-            models=modelset,
+            models=__mdset,
             ):
         stmlogger.loginfo_end('task:' + task + ' model:' + model_name + stm_no)
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = modelset.Models[model_name].type
+    model_type = __mdset.Models[model_name].type
     # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
         m1 = run1(
@@ -354,7 +354,7 @@ def run(
         r = result(True, None, m2)
 
     if r.ok:
-        t = time.localtime()
+        t = __time.localtime()
         fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
         save_dfscore_name = task + '_df_outscore_' + model_name + '_' + fno + '.csv'
         save_dfmap_name = task + '_df_maptable_' + model_name + '_' + fno + '.csv'
@@ -394,13 +394,13 @@ def run1(
         logger=None,
         ):
 
-    ratio_tuple = tuple(x * 0.01 for x in modelset.Models[model_name].ratio)
-    model_type = modelset.Models[model_name].type
-    m = stm1.PltScore(model_name, model_type)
+    ratio_tuple = tuple(x * 0.01 for x in __mdset.Models[model_name].ratio)
+    model_type = __mdset.Models[model_name].type
+    m = __stm1.PltScore(model_name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio=ratio_tuple,
-        out_score_section=modelset.Models[model_name].section,
+        out_score_section=__mdset.Models[model_name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -461,7 +461,7 @@ def run2(
     :return:
     """
 
-    if not stmlib.Checker.check_run(
+    if not __slib.Checker.check_run(
             model_name=model_name,
             df=df,
             cols=cols,
@@ -475,12 +475,12 @@ def run2(
             raw_score_range=raw_score_range,
             out_score_decimal_digits=out_score_decimals,
             logger=logger,
-            models=modelset,
+            models=__mdset,
             ):
         return None
 
-    model = modelset.Models[model_name]
-    return stm2.ModelAlgorithm.get_stm_score(
+    model = __mdset.Models[model_name]
+    return __stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model.ratio,
@@ -548,7 +548,7 @@ def run2_para(
     :return: result(outdf, map_table),     out_score_field[col+'_ts'] for col in cols in outdf
     """
 
-    if not stmlib.Checker.check_model_para(
+    if not __slib.Checker.check_model_para(
                                     model_type=model_type,
                                     model_ratio=model_ratio_pdf,
                                     model_section=model_section,
@@ -557,7 +557,7 @@ def run2_para(
                                     ):
         return None
 
-    if not stmlib.Checker.check_df_cols(
+    if not __slib.Checker.check_df_cols(
                                 df=df,
                                 cols=cols,
                                 raw_score_range=(raw_score_min, raw_score_max),
@@ -566,7 +566,7 @@ def run2_para(
         return None
 
     # check strategy
-    if not stmlib.Checker.check_strategy(
+    if not __slib.Checker.check_strategy(
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_sort_order=mode_sort_order,
@@ -576,11 +576,11 @@ def run2_para(
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             logger=logger,
-            models=modelset
+            models=__mdset
             ):
         return None
 
-    return stm2.ModelAlgorithm.get_stm_score(
+    return __stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model_ratio_pdf,

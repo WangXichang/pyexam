@@ -58,20 +58,20 @@
 """
 
 
-from collections import namedtuple
-from stm import stmlib as slib
+from collections import namedtuple as __ndp
+from stm import stmlib as __slib
 
 
 # model type
-MODEL_TYPE_PLT = 'plt'      # piece-section linear transform
-MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transform
-MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
+__MODEL_TYPE_PLT = 'plt'      # piece-section linear transform
+__MODEL_TYPE_PPT = 'ppt'      # piece-point transform,     standard score transform
+__MODEL_TYPE_PGT = 'pgt'      # piece-grade transform,     standard score transform
 
 
-hn900pdf = slib.get_norm_point_pdf(start=100, end=900, loc=500, std=100, step=1, add_cutoff=True, mode='middle')
-hn300pdf = slib.get_norm_point_pdf(start=60, end=300, loc=180, std=30, step=1, add_cutoff=True, mode='middle')
-zpdf = slib.get_norm_point_pdf(start=-400, end=400, loc=0, std=100, step=1, add_cutoff=True, mode='middle')
-tpdf = slib.get_norm_point_pdf(start=10, end=90, loc=50, std=10, step=1, add_cutoff=True, mode='middle')
+__hn900pdf = __slib.get_norm_point_pdf(start=100, end=900, loc=500, std=100, step=1, add_cutoff=True, mode='middle')
+__hn300pdf = __slib.get_norm_point_pdf(start=60, end=300, loc=180, std=30, step=1, add_cutoff=True, mode='middle')
+__zpdf = __slib.get_norm_point_pdf(start=-400, end=400, loc=0, std=100, step=1, add_cutoff=True, mode='middle')
+__tpdf = __slib.get_norm_point_pdf(start=10, end=90, loc=50, std=10, step=1, add_cutoff=True, mode='middle')
 
 
 # model parameters: type,   transform mode, in ['plt', 'ppt', 'tai']
@@ -83,63 +83,63 @@ tpdf = slib.get_norm_point_pdf(start=10, end=90, loc=50, std=10, step=1, add_cut
 #                  section, tuple or list of tuple or list     # out score section
 #                           len(section) == len(ratio);  p1>=p2 for each (p1, p2) in section
 #                  desc,    describing model
-ModelFields = namedtuple('ModelFields', ['type', 'ratio', 'section', 'desc'])
+ModelFields = __ndp('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models = {
-    'zhejiang':     ModelFields(MODEL_TYPE_PLT,
+    'zhejiang':     ModelFields(__MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1),
                                 tuple((x, x) for x in range(100, 39, -3)),
                                 'Zhejiang NewGaokao transform model'
                                 ),
-    'shanghai':     ModelFields(MODEL_TYPE_PLT,
+    'shanghai':     ModelFields(__MODEL_TYPE_PLT,
                                 (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5),
                                 tuple((x, x) for x in range(70, 39, -3)),
                                 'Shanghai NewGaokao transform model'
                                 ),
-    'beijing':      ModelFields(MODEL_TYPE_PLT,
+    'beijing':      ModelFields(__MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
                                 'Beijing NewGaokao transform model'),
-    'tianjin':      ModelFields(MODEL_TYPE_PLT,
+    'tianjin':      ModelFields(__MODEL_TYPE_PLT,
                                 (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
                                 'Tianjin NewGaokao transform model'
                                 ),
-    'shandong':     ModelFields(MODEL_TYPE_PLT,
+    'shandong':     ModelFields(__MODEL_TYPE_PLT,
                                 (3, 7, 16, 24, 24, 16, 7, 3),
                                 tuple((100-i*10, 100-i*10-9) for i in range(8)),
                                 'Shandong NewGaokao transform model'
                                 ),
-    'guangdong':    ModelFields(MODEL_TYPE_PLT,
+    'guangdong':    ModelFields(__MODEL_TYPE_PLT,
                                 (17, 33, 33, 15, 2),
                                 ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30)),
                                 'Guangdong NewGaokao transform model'
                                 ),
-    'p7':          ModelFields(MODEL_TYPE_PLT,
-                                (15, 35, 35, 13, 2),
-                                ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30)),
+    'p7':          ModelFields(__MODEL_TYPE_PLT,
+                               (15, 35, 35, 13, 2),
+                               ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30)),
                                 '7 Province/Cities(Jiangsu, Chongqing, ...) transform model'
-                                ),
-    'h900':        ModelFields(MODEL_TYPE_PPT,
-                               [p * 100 for p in hn900pdf.pdf],
-                               [(x, x) for x in reversed(hn900pdf.points)],
+                               ),
+    'h900':        ModelFields(__MODEL_TYPE_PPT,
+                               [p * 100 for p in __hn900pdf.pdf],
+                               [(x, x) for x in reversed(__hn900pdf.points)],
                                'standard score model， used in Hainan now'),
-    'h300':        ModelFields(MODEL_TYPE_PPT,
-                               [p * 100 for p in hn300pdf.pdf],
-                               [(x, x) for x in reversed(hn300pdf.points)],
+    'h300':        ModelFields(__MODEL_TYPE_PPT,
+                               [p * 100 for p in __hn300pdf.pdf],
+                               [(x, x) for x in reversed(__hn300pdf.points)],
                                'standard score model, may used in Hainan future'
                                ),
-    'z':            ModelFields(MODEL_TYPE_PPT,
-                                [p * 100 for p in zpdf.pdf],
-                                [(x/100, x/100) for x in reversed(zpdf.points)],
+    'z':            ModelFields(__MODEL_TYPE_PPT,
+                                [p * 100 for p in __zpdf.pdf],
+                                [(x/100, x/100) for x in reversed(__zpdf.points)],
                                 'Z-score Model, std=1, score-range=(-4, 4), score-points=800'
                                 ),
-    't':            ModelFields(MODEL_TYPE_PPT,
-                                [p * 100 for p in tpdf.pdf],
-                                [(x, x) for x in reversed(tpdf.points)],
+    't':            ModelFields(__MODEL_TYPE_PPT,
+                                [p * 100 for p in __tpdf.pdf],
+                                [(x, x) for x in reversed(__tpdf.points)],
                                 'T-score, std=10, score-range=(10, 90)'
                                 ),
     'tai':          ModelFields(
-                                MODEL_TYPE_PGT,
+                                __MODEL_TYPE_PGT,
                                 [1, 99],                # only ratio[0]==1 is useful for set top score group
                                 tuple((i+1, i+1) for i in range(15)),             # grade from 1 to 15
                                 'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
