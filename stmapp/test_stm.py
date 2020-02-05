@@ -88,7 +88,7 @@ def test_all_strategy(df=None, model_name='shandong'):
         # if num != 198:
         #     continue
         r = main.run(df=df, cols=['km1'],
-                     model_name=model_name,
+                     name=model_name,
                      mode_ratio_prox=ti[0],
                      mode_ratio_cumu=ti[1],
                      mode_sort_order=ti[2],
@@ -236,9 +236,9 @@ def test_hainan(mean=60, size=60000, std=16):
     name_list = ['h900', 'h300', 'h300plt1', 'h300plt2', 'h300plt3', 'h300plt4']
     for name in name_list:
         ra = main.run(logname='hntest', logfile=1,
-                      model_name=name, df=test_data.df, cols=['km1'], mode_sort_order='a')
+                      name=name, df=test_data.df, cols=['km1'], mode_sort_order='a')
         rd = main.run(logname='hntest', logfile=1,
-                      model_name=name, df=test_data.df, cols=['km1'], mode_sort_order='d')
+                      name=name, df=test_data.df, cols=['km1'], mode_sort_order='d')
     return
 
 
@@ -289,7 +289,7 @@ class TestShandongData():
             _all = [(s[:2], s[2:]) for s in dfs.keys()]
         for _run in _all:
             m = main.run(
-                model_name=name,
+                name=name,
                 df=dfs[_run[0] + _run[1]],
                 cols=list(dfs[_run[0]+_run[1]]),
                 mode_ratio_prox=mode_ratio_prox,
@@ -358,7 +358,7 @@ def test_stm_with_stat_data(
         print('plt model={}'.format(name))
         print('data set size={}, score range from {} to {}'.
               format(data_size, score_min, score_max))
-        m = main.run(model_name=name,
+        m = main.run(name=name,
                      df=dfscore, cols=['kmx'],
                      mode_ratio_prox=mode_ratio_prox,
                      mode_ratio_cumu=mode_ratio_cumu

@@ -14,11 +14,10 @@ about module main:
     then
         call stm2.get_stm_score
 
-    (2) function: run_conf, new_conf
-    run_conf(confname) is an interface to call stm1/stm2 with model_name, df, cols
+    (2) function: runf
+    runf(confname) is an interface to call stm1/stm2 with model_name, df, cols
     and other parameters(score range, strategies, out score decimal digits)
-    run_conf need to call a config file to set model parameters, the filename is confname
-    you can use new_conf(confname) to create a config file with name=confname
+    runf need to call a config file to set model parameters, the filename is confname
 
     (3) function: run1
     run1 is an interface to call stm1 with model name, df, cols and other parameters
@@ -26,11 +25,16 @@ about module main:
     (4) function: run2
     run2 is an interface to call stm2 with model name, df, cols and other parameters
 
-    (5) function: run_para
+    (5) function: run2p
     run_para() is an interface to call stm2 with df, cols, model_ratio, model_section, model_type,
     and other parameters(score range, strategies, out score decimal digits).
     used to test algorithm commonly.
 
+    (6) function: newconfig
+    use newconfig(confname) to create a config file with name=confname
+
+    (7) function: testdata
+    create test score data: DataFrame
 """
 
 
@@ -43,27 +47,20 @@ from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, modelset as __
 __stm_modules = [__slib, __stm1, __stm2, __mdset]
 
 
-def new_conf(confname='stm001.conf'):
-    if __slib.isfilestr(confname):
-        __slib.make_config_file(confname)
-    else:
-        print('invalid file name!')
+def runf(filename='stm.conf'):
 
-
-def runf(conf_name='stm.conf'):
-
-    if not __os.path.isfile(conf_name):
-        print('conf file: {} not found!'.format(conf_name))
+    if not __os.path.isfile(filename):
+        print('conf file: {} not found!'.format(filename))
         return None
 
     for m in __stm_modules:
         __pb.reload(m)
 
-    config_read = __slib.read_conf(conf_name)
+    config_read = __slib.read_conf(filename)
     if config_read:
         mcfg = config_read
     else:
-        print('read config file {} fail!'.format(conf_name))
+        print('read config file {} fail!'.format(filename))
         return None
 
     # use new model when no model defined, that is in modelset
@@ -92,7 +89,7 @@ def runf(conf_name='stm.conf'):
         return mcfg
 
     print('=' * 120)
-    print('stm setting in {}'.format(conf_name) + '\n' + '-'*120)
+    print('stm setting in {}'.format(filename) + '\n' + '-' * 120)
     for k in mcfg.keys():
         if k == 'df':
             print('   {:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
@@ -101,7 +98,7 @@ def runf(conf_name='stm.conf'):
     print('=' * 120 + '\n')
 
     result = run(
-        model_name=mcfg['model_name'],
+        name=mcfg['model_name'],
         df=mcfg['df'],
         cols=mcfg['cols'],
         raw_score_min=mcfg['raw_score_min'],
@@ -132,7 +129,7 @@ def runf(conf_name='stm.conf'):
 
 
 def run(
-        model_name='shandong',
+        name='shandong',
         df=None,
         cols=(),
         mode_ratio_prox='upper_min',
@@ -245,7 +242,7 @@ def run(
     result = __namedtuple('Result', ['ok', 'r1', 'r2'])
     r = result(False, None, None)
 
-    stmlogger = __slib.get_logger(model_name, logname=task)
+    stmlogger = __slib.get_logger(name, logname=task)
     stmlogger.set_level(loglevel)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
@@ -254,10 +251,10 @@ def run(
         stmlogger.logging_file = True
 
     stmlogger.loginfo('\n*** running begin ***')
-    stmlogger.loginfo_start('task:' + task + ' model:' + model_name + stm_no)
+    stmlogger.loginfo_start('task:' + task + ' model:' + name + stm_no)
 
     if not __slib.Checker.check_run(
-            model_name=model_name,
+            model_name=name,
             df=df,
             cols=cols,
             mode_ratio_prox=mode_ratio_prox,
@@ -272,15 +269,15 @@ def run(
             logger=stmlogger,
             models=__mdset,
             ):
-        stmlogger.loginfo_end('task:' + task + ' model:' + model_name + stm_no)
+        stmlogger.loginfo_end('task:' + task + ' model:' + name + stm_no)
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = __mdset.Models[model_name].type
+    model_type = __mdset.Models[name].type
     # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
         m1 = run1(
-            model_name=model_name,
+            name=name,
             df=df,
             cols=cols,
             raw_score_range=raw_score_range,
@@ -300,7 +297,7 @@ def run(
         if verify:
             verify_pass = True
             m2 = run2(
-                model_name=model_name,
+                name=name,
                 df=df,
                 cols=cols,
                 raw_score_range=raw_score_range,
@@ -336,7 +333,7 @@ def run(
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
         m2 = run2(
-                  model_name=model_name,
+                  name=name,
                   df=df,
                   cols=cols,
                   raw_score_range=raw_score_range,
@@ -356,8 +353,8 @@ def run(
     if r.ok:
         t = __time.localtime()
         fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
-        save_dfscore_name = task + '_df_outscore_' + model_name + '_' + fno + '.csv'
-        save_dfmap_name = task + '_df_maptable_' + model_name + '_' + fno + '.csv'
+        save_dfscore_name = task + '_df_outscore_' + name + '_' + fno + '.csv'
+        save_dfmap_name = task + '_df_maptable_' + name + '_' + fno + '.csv'
         if r.r1 is not None:
             dfscore = r.r1.outdf
             dfmaptable = r.r1.map_table
@@ -368,16 +365,16 @@ def run(
             dfscore.to_csv(save_dfscore_name, index=False)
             dfmaptable.to_csv(save_dfmap_name, index=False)
         stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
-        stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model_name, stm_no))
+        stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(name, stm_no))
     else:
-        stmlogger.loginfo_end('model={} running fail!'.format(model_name))
+        stmlogger.loginfo_end('model={} running fail!'.format(name))
 
     return r
 # end runm
 
 
 def run1(
-        model_name='shandong',
+        name='shandong',
         df=None,
         cols=(),
         mode_ratio_prox='upper_min',
@@ -394,13 +391,13 @@ def run1(
         logger=None,
         ):
 
-    ratio_tuple = tuple(x * 0.01 for x in __mdset.Models[model_name].ratio)
-    model_type = __mdset.Models[model_name].type
-    m = __stm1.PltScore(model_name, model_type)
+    ratio_tuple = tuple(x * 0.01 for x in __mdset.Models[name].ratio)
+    model_type = __mdset.Models[name].type
+    m = __stm1.PltScore(name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio=ratio_tuple,
-        out_score_section=__mdset.Models[model_name].section,
+        out_score_section=__mdset.Models[name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -422,7 +419,7 @@ def run1(
 
 # get stm score by calling stmlib2.ModelAlgorithm
 def run2(
-        model_name='shandong',
+        name='shandong',
         df=None,
         cols=(),
         mode_ratio_cumu='no',
@@ -443,7 +440,7 @@ def run2(
     to calculate out score by calling stmlib2.Algorithm.get_stm_score
     model_name in models_in.Models or models_ext.Models
 
-    :param model_name:
+    :param name:
     :param df:
     :param cols:
     :param raw_score_max:
@@ -462,7 +459,7 @@ def run2(
     """
 
     if not __slib.Checker.check_run(
-            model_name=model_name,
+            model_name=name,
             df=df,
             cols=cols,
             mode_ratio_prox=mode_ratio_prox,
@@ -479,7 +476,7 @@ def run2(
             ):
         return None
 
-    model = __mdset.Models[model_name]
+    model = __mdset.Models[name]
     return __stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
@@ -505,7 +502,7 @@ def run2(
 
 
 # calc stm score by calling methods in stmlib2.ModelAlgorithm
-def run2_para(
+def run2p(
         df,
         cols,
         model_type=None,
@@ -600,4 +597,15 @@ def run2_para(
         out_score_decimals=out_score_decimal_digits,
         logger=logger,
         )
-# end--run2
+# end--run2p
+
+
+def newconfig(confname='stm_test.cf'):
+    if __slib.isfilestr(confname):
+        __slib.make_config_file(confname)
+    else:
+        print('invalid file name!')
+
+
+def testdata(mu=50, std=15, size=60000, max=100, min=0, decimals=0):
+    return __slib.TestData(mu, std, size, max=max, min=min, decimals=0)()

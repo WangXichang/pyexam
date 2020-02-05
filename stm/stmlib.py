@@ -1215,3 +1215,60 @@ class Logger(object):
                     encoding='utf-8'
                 )
         self.rotating_file_handler.setFormatter(log_format)
+
+
+# test dataset
+class TestData:
+    """
+    生成具有正态分布的数据，类型为 pandas.DataFrame, 列名为 sv
+    create a score dataframe with fields 'score', used to test some application
+    :__init__:parameter
+        mean: 均值， std:标准差， max:最大值， min:最小值， size:行数
+    :df
+        DataFrame, columns = {'ksh', 'km1', 'km2'}
+    """
+    def __init__(self, mu=60, std=18, size=60000, max=100, min=0, decimals=0):
+        self.df = None
+        self.df_mean = mu
+        self.df_max = max
+        self.df_min = min
+        self.df_std = std
+        self.df_size = size
+        self.decimals=decimals
+        # only implement norm distribution
+        self.dist = 'norm'
+        self.__make_data()
+
+    def __make_data(self):
+        import random
+        ssno = [str(i).zfill(2) for i in range(1,17)]
+        xqno = [str(i).zfill(2) for i in range(2,90)]
+        klno = ['1', '3', '4']     # 1: regular,  3: art,   4: physical educatio
+        self.df = pd.DataFrame({
+            'ksh': ['37'+random.sample(ssno, 1)[0] +
+                    random.sample(xqno,1)[0] +
+                    random.sample(klno,1)[0] +
+                    str(x).zfill(7)
+                    for x in range(1, self.df_size+1)],
+            'km1': self.get_score(),
+            'km2': self.get_score(),
+        })
+
+    def get_score(self):
+        if self.decimals == 0:
+            myround = lambda x: int(x)
+        else:
+            myround = lambda x: round(x, ndigits=self.decimals)
+        norm_list = None
+        if self.dist == 'norm':
+            norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
+            norm_list = np.array([myround(x) for x in norm_list])
+            norm_list[np.where(norm_list > self.df_max)] = self.df_max
+            norm_list[np.where(norm_list < self.df_min)] = self.df_min
+            norm_list = norm_list.astype(np.int)
+        else:
+            raise ValueError
+        return norm_list
+
+    def __call__(self):
+        return self.df
