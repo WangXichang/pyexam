@@ -370,7 +370,7 @@ def run(
         stmlogger.loginfo_end('model={} running fail!'.format(name))
 
     return r
-# end runm
+# end run
 
 
 def run1(
