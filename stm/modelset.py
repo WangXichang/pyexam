@@ -122,21 +122,21 @@ Models = {
     'h900':        ModelFields(__MODEL_TYPE_PPT,
                                [p * 100 for p in __hn900pdf.pdf],
                                [(x, x) for x in reversed(__hn900pdf.points)],
-                               'standard score model， used in Hainan now'),
+                               'standard score model， 100-900'),
     'h300':        ModelFields(__MODEL_TYPE_PPT,
                                [p * 100 for p in __hn300pdf.pdf],
                                [(x, x) for x in reversed(__hn300pdf.points)],
-                               'standard score model, may used in Hainan future'
+                               'standard score model, 60-300'
                                ),
     'z':            ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __zpdf.pdf],
                                 [(x/100, x/100) for x in reversed(__zpdf.points)],
-                                'Z-score Model, std=1, score-range=(-4, 4), score-points=800'
+                                'Z-score Model, std=1, (-4, 4), 800-points'
                                 ),
     't':            ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __tpdf.pdf],
                                 [(x, x) for x in reversed(__tpdf.points)],
-                                'T-score, std=10, score-range=(10, 90)'
+                                'T-score, std=10, 10-90'
                                 ),
     'tai':          ModelFields(
                                 __MODEL_TYPE_PGT,
