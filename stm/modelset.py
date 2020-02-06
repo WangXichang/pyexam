@@ -148,25 +148,25 @@ Models = {
                                 'plt',
                                 (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
                                 tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
-                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
+                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
     'h300plt2':     ModelFields(
                                 'plt',
                                 (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
+                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
     'h300plt3':     ModelFields(
                                 'plt',
                                 (1, 2, 14, 33, 33, 14, 2, 1),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'piecewise linear transform model, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
+                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
     'h300plt4':     ModelFields(
                                 'plt',
                                 (3, 14, 33, 33, 14, 3),
                                 tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
-                                'piecewise linear transform model, 5-sections, [(300, 261), (270, 221), ..., (100, 60)]'
+                                'plt for 60-300, 5-sections, [(300, 261), (270, 221), ..., (100, 60)]'
                                 ),
     }
 
