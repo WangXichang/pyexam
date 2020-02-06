@@ -42,6 +42,7 @@ import time as __time
 import os as __os
 from collections import namedtuple as __namedtuple
 import importlib as __pb
+import numpy as __np
 
 from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, modelset as __mdset
 __stm_modules = [__slib, __stm1, __stm2, __mdset]
@@ -609,3 +610,64 @@ def newconfig(confname='stm_test.cf'):
 
 def testdata(mu=50, std=15, size=60000, max=100, min=0, decimals=0):
     return __slib.TestData(mu, std, size, max=max, min=min, decimals=0)()
+
+
+def showmodels():
+    for k in __mdset.Models:
+        v = __mdset.Models[k]
+        print('{:<20s} {},  {} '.format(k, v.type, v.desc))
+        print('{:<20s} {}'.format(' ', v.ratio))
+        print('{:<20s} {}'.format('', v.section))
+
+
+def plotmodels(font_size=12):
+    import matplotlib.pyplot as plot
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'h900']
+
+    ms_dict = dict()
+    for _name in _names:
+        ms_dict.update({_name: __model_describe(name=_name)})
+
+    plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
+    plot.rcParams.update({'font.size': font_size})
+    for i, k in enumerate(_names):
+        plot.subplot(240+i+1)
+        _wid = 2
+        if k in ['shanghai']:
+            x_data = range(40, 71, 3)
+        elif k in ['zhejiang', 'beijing', 'tianjin']:
+            x_data = range(40, 101, 3)
+        elif k in ['shandong']:
+            x_data = [x for x in range(26, 100, 10)]
+            _wid = 8
+        elif k in ['guangdong']:
+            x_data = [__np.mean(x) for x in __mdset.Models[k].section][::-1]
+            _wid = 10
+        elif k in ['p7']:
+            x_data = [__np.mean(x) for x in __mdset.Models[k].section][::-1]
+            _wid = 10
+        elif k in ['h900']:
+            x_data = [x for x in range(100, 901)]
+            _wid = 1
+        elif k in ['h300']:
+            x_data = [x for x in range(60, 301)]
+            _wid = 1
+        else:
+            raise ValueError(k)
+        plot.bar(x_data, __mdset.Models[k].ratio[::-1], width=_wid)
+        plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
+
+
+def __model_describe(name='shandong'):
+    import scipy.stats as sts
+    __ratio = __mdset.Models[name].ratio
+    __section = __mdset.Models[name].section
+    if name == 'h900':
+        __mean, __std, __skewness = 500, 100, 0
+    elif name == 'h300':
+        __mean, __std, __skewness = 180, 30, 0
+    else:
+        samples = []
+        [samples.extend([__np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__section)]
+        __mean, __std, __skewness = __np.mean(samples), __np.std(samples), sts.skew(__np.array(samples))
+    return __mean, __std, __skewness
