@@ -612,12 +612,20 @@ def testdata(mu=50, std=15, size=60000, max=100, min=0, decimals=0):
     return __slib.TestData(mu, std, size, max=max, min=min, decimals=0)()
 
 
-def showmodels():
+def showmodels(name=None):
+    if isinstance(name, str):
+        if name in __mdset.Models:
+            v = __mdset.Models[name]
+            print('{:<15s} {},  {} '.format(name, v.type, v.desc))
+            print('{:<15s} {}'.format(' ', v.ratio))
+            print('{:<15s} {}'.format('', v.section))
+        return
+
     for k in __mdset.Models:
         v = __mdset.Models[k]
-        print('{:<20s} {},  {} '.format(k, v.type, v.desc))
-        print('{:<20s} {}'.format(' ', v.ratio))
-        print('{:<20s} {}'.format('', v.section))
+        print('{:<15s} {},  {} '.format(k, v.type, v.desc))
+        print('{:<15s} {}'.format(' ', v.ratio))
+        print('{:<15s} {}'.format('', v.section))
 
 
 def plotmodels(font_size=12):
