@@ -856,14 +856,14 @@ def make_config_file(filename):
 
                 
         [mode]
-        mode_ratio_prox = upper_min         # ('upper_min', 'lower_max', 'near_max', 'near_min')
-        mode_ratio_cumu = no                # ('yes', 'no')
-        mode_sort_order = d                 # ('d', 'a')
-        mode_section_point_first = real     # ('real', 'defined')
-        mode_section_point_start = step     # ('step', 'share')
-        mode_section_point_last = real      # ('real', 'defined')
-        mode_section_degraded = to_max      # ('to_max', 'to_min', 'to_mean')
-        mode_section_lost = real            # ('real', 'zip')
+        mode_ratio_prox = upper_min         # upper_min, lower_max, near_max, near_min
+        mode_ratio_cumu = no                # yes, no
+        mode_sort_order = d                 # d, a
+        mode_section_point_first = real     # real, defined
+        mode_section_point_start = step     # step, share
+        mode_section_point_last = real      # real, defined
+        mode_section_degraded = to_max      # to_max, to_min, to_mean
+        mode_section_lost = real            # real, zip
 
         
         [model_new]
