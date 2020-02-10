@@ -667,7 +667,7 @@ def read_conf(conf_name):
 
     if os.path.isfile(conf_name):
         cfper = cfp.ConfigParser()
-        cfper.read(conf_name)
+        cfper.read(conf_name, encoding='utf-8')
 
     if 'model_in' in cfper.keys():
         if 'name' in cfper['model_in']:
