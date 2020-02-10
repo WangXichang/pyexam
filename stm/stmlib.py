@@ -833,47 +833,49 @@ def make_config_file(filename):
     template = \
         """
         [task]
-        logname = test                      # set logfile name: logname_model_year_month_day.log
-        logdisp = True                      # running message to consol
-        logfile = False                     # running message to log file
-        saveresult = False                  # save result to file: logname_df_outscore/maptable_modelname_time.csv
+        logname = test                      # 任务名称，用于生成日志: logname_model_year_month_day.log
+        logdisp = True                      # 是否显示计算过程信息 message to consol
+        logfile = False                     # 是否将计算过程信息写入日志 message to log file
+        saveresult = False                  # 是否保存计算结果 save result to file: logname_df_outscore/maptable_modelname_time.csv
 
         
         [model_in]
-        name = shandong                     # model name biult in models
+        name = shandong                     # 用于计算的模型名称：zhejiang, shanghai,... 可使用main.showmodels查看
+                                            # 不设置该名称，则转向使用model_new的模型设置
 
         
         [data]
-        df = df.csv                         # file name, used to read it to DataFrame
-        cols = km1, km2                     # score fields, used to transform by model
+        df = rawscore.csv                   # 原始分数文件名, csv文件格式，第一行表示列名
+        cols = km1, km2                     # 分数列名, 以逗号分隔，数值类型（整数或浮点数）
         
         
         [value]
-        raw_score_min = 0                   # min score for raw score
-        raw_score_max = 100                 # max score for raw score
-        out_score_decimals = 0              # decimal digits for out score
-        tiny_value = 10**-12                # smallest value for precision in calculation process
+        raw_score_min = 0                   # 原始分数卷面最小值 min score for raw score
+        raw_score_max = 100                 # 原始分数卷面最大值 max score for raw score
+        out_score_decimals = 0              # 转换分数保留小数位 decimal digits for out score
+        tiny_value = 10**-12                # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
-        mode_ratio_prox = upper_min         # upper_min, lower_max, near_max, near_min
-        mode_ratio_cumu = no                # yes, no
-        mode_sort_order = d                 # d, a
-        mode_section_point_first = real     # real, defined
-        mode_section_point_start = step     # step, share
-        mode_section_point_last = real      # real, defined
-        mode_section_degraded = to_max      # to_max, to_min, to_mean
-        mode_section_lost = real            # real, zip
+        mode_ratio_prox = upper_min         # 逼近策略，取值：upper_min, lower_max, near_max, near_min
+        mode_ratio_cumu = no                # 累计策略，取值：yes, no
+        mode_sort_order = d                 # 排序策略，取值：d, a
+        mode_section_point_first = real     # 第一端点策略，取值：real, defined
+        mode_section_point_start = step     # 开始端点策略，取值：step, share
+        mode_section_point_last = real      # 最后端点策略，取值：real, defined
+        mode_section_degraded = to_max      # 区间退化策略，取值：to_max, to_min, to_mean
+        mode_section_lost = real            # 区间消失策略，取值：real, zip
 
         
         [model_new]
-        name = model-similar-shandong        # model name
-        type = plt                           # valid value: plt, ppt, pgt
-        section = (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)   # sections(descending)
-        ratio =   10, 16, 25, 25, 17, 6                                         # ratios(%), sum==100        
+        name = model-new001                  # 自定义模型名称，使用合法文件名字符 model name
+        type = plt                           # 自定义模型类型， 取值: plt, ppt, pgt
+        section = (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)       # 区间（降序） section(descending)
+        ratio =   10, 16, 25, 25, 17, 6      # 比例（百分数），和等于100 ratios(%), sum==100        
         """
+
     if isfilestr(filename):
-        with open(filename, 'a') as fp:
+        with open(filename, 'a', encoding='utf8') as fp:
             ms = template.strip().split('\n')
             for ss in ms:
                 fp.write(ss.strip() + '\n')
