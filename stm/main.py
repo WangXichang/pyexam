@@ -44,7 +44,7 @@ from collections import namedtuple as __namedtuple
 import importlib as __pb
 import numpy as __np
 
-from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, modelset as __mdset
+from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __mdset
 __stm_modules = [__slib, __stm1, __stm2, __mdset]
 
 
