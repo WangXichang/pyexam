@@ -511,8 +511,6 @@ class ModelAlgorithm:
                         mode_section_point_ratio_prox='upper_min',
                         mode_score_sort_order='d',
                         model_section=None,
-                        mode_ratio_prox='upper_min',
-                        mode_sort_order='d',
                         raw_score_max=100,
                         raw_score_min=0,
                         # grade_num=15
@@ -726,13 +724,10 @@ class ModelAlgorithm:
                     map_table=map_table,
                     percent_first=model_ratio_pdf[0]/100,
                     model_section=model_section,
-                    mode_ratio_prox=mode_ratio_prox,
-                    mode_sort_order=mode_sort_order,
-                    mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                     mode_score_sort_order=mode_score_sort_order,
+                    mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
-                    # grade_num=len(model_section)
                     )
                 if logger:
                     logger.loginfo('tai score section: {}'.format(result.section))
