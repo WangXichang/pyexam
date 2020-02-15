@@ -510,9 +510,12 @@ class ModelAlgorithm:
                         percent_first=0.01,
                         mode_section_point_ratio_prox='upper_min',
                         mode_score_sort_order='d',
+                        model_section=None,
+                        mode_ratio_prox='upper_min',
+                        mode_sort_order='d',
                         raw_score_max=100,
                         raw_score_min=0,
-                        grade_num=15
+                        # grade_num=15
                         ):
 
         section_point_list = [df[col].max()]
@@ -521,6 +524,11 @@ class ModelAlgorithm:
             seg_seq=map_table.seg,
             ratio_seq=map_table[col+'_percent']
         )
+
+        if isinstance(model_section, list) or isinstance(model_section, tuple):
+            grade_num = len(model_section)
+        else:
+            raise ValueError
 
         top_level_score = None
         if mode_section_point_ratio_prox == 'upper_min' or r.bottom or r.top:
@@ -554,10 +562,10 @@ class ModelAlgorithm:
         for si, sp in enumerate(section_point_list[1:]):  # grade_level == si+1
             if si == 0:
                 for ss in range(section_point_list[si], sp+_step, _step):
-                    map_dict.update({ss: si+1})
+                    map_dict.update({ss: max(model_section[si])})
             else:
                 for ss in range(section_point_list[si]+_step, sp+_step, _step):
-                    map_dict.update({ss: si+1})
+                    map_dict.update({ss: max(model_section[si])})
         
         def formula(x):
             if x in map_dict.keys():
@@ -618,7 +626,10 @@ class ModelAlgorithm:
         else:
             _ratio_list = model_ratio_pdf[::-1]
             cumu_ratio = [sum(_ratio_list[0:i + 1]) / 100 for i in range(section_num)]
-            model_section = [tuple(reversed(x)) for x in reversed(model_section)]
+            if model_type != 'pgt':
+                model_section = [tuple(reversed(x)) for x in reversed(model_section)]
+
+        # print(model_section)
 
         # start transform
         result = None
@@ -714,11 +725,14 @@ class ModelAlgorithm:
                     col=col,
                     map_table=map_table,
                     percent_first=model_ratio_pdf[0]/100,
+                    model_section=model_section,
+                    mode_ratio_prox=mode_ratio_prox,
+                    mode_sort_order=mode_sort_order,
                     mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                     mode_score_sort_order=mode_score_sort_order,
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
-                    grade_num=len(model_section)
+                    # grade_num=len(model_section)
                     )
                 if logger:
                     logger.loginfo('tai score section: {}'.format(result.section))
