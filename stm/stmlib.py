@@ -805,9 +805,9 @@ def read_conf(conf_name):
             mcfg.update({_mode: _mode_str})
     else:
         # set defaul mode
-        mode_dict ={'mode_ratio_prox': 'upper_min',
-                    'mode_sort_order': 'd',
-                    'mode_ratio_cumu': 'no',
+        mode_dict ={'mode_section_point_ratio_prox': 'upper_min',
+                    'mode_score_sort_order': 'd',
+                    'mode_section_point_ratio_cumu': 'no',
                     'mode_section_point_first': 'real',
                     'mode_section_point_start': 'step',
                     'mode_section_point_last': 'real',
@@ -836,12 +836,11 @@ def make_config_file(filename):
         logname = test                      # 任务名称，用于生成日志: logname_model_year_month_day.log
         logdisp = True                      # 是否显示计算过程信息 message to consol
         logfile = False                     # 是否将计算过程信息写入日志 message to log file
-        saveresult = False                  # 是否保存计算结果 save result to file: logname_df_outscore/maptable_modelname_time.csv
+        saveresult = False                  # 是否保存结果数据：[logname]_df_outscore/maptable_[modelname]_[time].csv
 
         
         [model_in]
-        name = shandong                     # 用于计算的模型名称：zhejiang, shanghai,... 可使用main.showmodels查看
-                                            # 不设置该名称，则转向使用model_new的模型设置
+        name = shandong                     # 模型名称,不设置该名称，则使用 model_new 的模型设置
 
         
         [data]
@@ -857,14 +856,14 @@ def make_config_file(filename):
 
                 
         [mode]
-        mode_ratio_prox = upper_min         # 逼近策略，取值：upper_min, lower_max, near_max, near_min
-        mode_ratio_cumu = no                # 累计策略，取值：yes, no
-        mode_sort_order = d                 # 排序策略，取值：d, a
-        mode_section_point_first = real     # 第一端点策略，取值：real, defined
-        mode_section_point_start = step     # 开始端点策略，取值：step, share
-        mode_section_point_last = real      # 最后端点策略，取值：real, defined
-        mode_section_degraded = to_max      # 区间退化策略，取值：to_max, to_min, to_mean
-        mode_section_lost = real            # 区间消失策略，取值：real, zip
+        mode_score_sort_order = d                           # 排序策略，取值：d, a
+        mode_section_point_ratio_prox = upper_min           # 逼近策略，取值：upper_min, lower_max, near_max, near_min
+        mode_section_point_ratio_cumu = no                  # 累计策略，取值：yes, no
+        mode_section_point_first = real                     # 第一端点策略，取值：real, defined
+        mode_section_point_start = step                     # 开始端点策略，取值：step, share
+        mode_section_point_last = real                      # 最后端点策略，取值：real, defined
+        mode_section_degraded = to_max                      # 区间退化策略，取值：to_max, to_min, to_mean
+        mode_section_lost = real                            # 区间消失策略，取值：real, zip
 
         
         [model_new]
@@ -891,9 +890,9 @@ class Checker:
             model_name='shandong',
             df=None,
             cols=None,
-            mode_ratio_prox='upper_min',
-            mode_ratio_cumu='no',
-            mode_sort_order='d',
+            mode_section_point_ratio_prox='upper_min',
+            mode_section_point_ratio_cumu='no',
+            mode_score_sort_order='d',
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
@@ -921,9 +920,9 @@ class Checker:
 
         # check strategy
         if not Checker.check_strategy(
-                mode_ratio_prox=mode_ratio_prox,
-                mode_ratio_cumu=mode_ratio_cumu,
-                mode_sort_order=mode_sort_order,
+                mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+                mode_score_sort_order=mode_score_sort_order,
                 mode_section_point_first=mode_section_point_first,
                 mode_section_point_start=mode_section_point_start,
                 mode_section_point_last=mode_section_point_last,
@@ -990,7 +989,8 @@ class Checker:
                 logger.loginfo('error ratio: length == 0 in model={}!'.format(model_type))
                 return False
             if model_ratio[0] < 0 or model_ratio[0] > 100:
-                logger.loginfo('error ratio: in type=tai, ratrio[0]={} must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
+                logger.loginfo('error ratio: in type=tai, ratrio[0]={} '
+                               'must be range(0, 101) as the percent of top score ratio!'.format(model_ratio[0]))
                 return False
         else:
             if len(model_ratio) != len(model_section):
@@ -1022,9 +1022,9 @@ class Checker:
 
     @staticmethod
     def check_strategy(
-            mode_ratio_prox='upper_min',
-            mode_ratio_cumu='no',
-            mode_sort_order='descending',
+            mode_section_point_ratio_prox='upper_min',
+            mode_section_point_ratio_cumu='no',
+            mode_score_sort_order='descending',
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
@@ -1039,9 +1039,9 @@ class Checker:
             logger.logging_consol = True
             logger.logging_file = False
 
-        st = {'mode_ratio_prox': mode_ratio_prox,
-              'mode_ratio_cumu':mode_ratio_cumu,
-              'mode_sort_order': mode_sort_order,
+        st = {'mode_section_point_ratio_prox': mode_section_point_ratio_prox,
+              'mode_section_point_ratio_cumu':mode_section_point_ratio_cumu,
+              'mode_score_sort_order': mode_score_sort_order,
               'mode_section_point_first': mode_section_point_first,
               'mode_section_point_start': mode_section_point_start,
               'mode_section_point_last': mode_section_point_last,

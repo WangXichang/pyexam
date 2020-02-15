@@ -152,9 +152,9 @@ class ModelAlgorithm:
             section_ratio_cumu_sequence,
             raw_score_sequence,
             raw_score_percent_sequence,
-            mode_ratio_prox='upper_min',
-            mode_ratio_cumu='no',
-            mode_sort_order='d',
+            mode_section_point_ratio_prox='upper_min',
+            mode_section_point_ratio_cumu='no',
+            mode_score_sort_order='d',
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
@@ -169,17 +169,17 @@ class ModelAlgorithm:
         :param section_ratio_cumu_sequence: ratio for each section
         :param raw_score_sequence:   score point corresponding to ratio_sequence
         :param raw_score_percent_sequence: real score cumulative percent
-        :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
-        :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
+        :param mode_section_point_ratio_prox: 'upper_min, lower_max, near_max, near_min'
+        :param mode_section_point_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
         :param mode_section_point_first: how to choose first point on section
         :param tiny_value: if difference between ratio and percent, regard as equating
         :return: section_list, section_point_list, section_real_ratio_list
         """
         # step-0: check seg_sequence order
-        _order = [(x > y) if mode_sort_order in ['d', 'descending'] else (x < y)
+        _order = [(x > y) if mode_score_sort_order in ['d', 'descending'] else (x < y)
                   for x, y in zip(raw_score_sequence[:-1], raw_score_sequence[1:])]
         if not all(_order):
-            print('seg sequence is not correct order:{}'.format(mode_sort_order))
+            print('seg sequence is not correct order:{}'.format(mode_score_sort_order))
             raise ValueError
         if len(raw_score_sequence) != len(raw_score_percent_sequence):
             print('seg_sequence and ratio_sequence are not same length!')
@@ -213,7 +213,7 @@ class ModelAlgorithm:
             if dest_ratio is None:
                 dest_ratio = ratio
             else:
-                if mode_ratio_cumu == 'yes':
+                if mode_section_point_ratio_cumu == 'yes':
                     dest_ratio = real_percent + ratio - last_ratio
                 else:
                     dest_ratio = ratio
@@ -237,22 +237,22 @@ class ModelAlgorithm:
                 # at top, single point for first section
                 elif result.top:
                     _seg, _percent = result.this_seg, result.this_percent
-                # strategy: mode_ratio_prox:
+                # strategy: mode_section_point_ratio_prox:
                 # equal to this, prori to mode
                 elif result.dist_to_this < tiny_value:
                     _seg, _percent = result.this_seg, result.this_percent
                 # equal to last, prior to mode
                 elif result.dist_to_last < tiny_value:
                     _seg, _percent = result.last_seg, result.last_percent
-                elif mode_ratio_prox == 'lower_max':
+                elif mode_section_point_ratio_prox == 'lower_max':
                     _seg, _percent = result.last_seg, result.last_percent
-                elif mode_ratio_prox == 'upper_min':
+                elif mode_section_point_ratio_prox == 'upper_min':
                     _seg, _percent = result.this_seg, result.this_percent
                 # near or 'near_max' or 'near_min'
-                elif 'near' in mode_ratio_prox:
+                elif 'near' in mode_section_point_ratio_prox:
                     # same dist
                     if abs(result.dist_to_this - result.dist_to_last) < tiny_value:
-                        if mode_ratio_prox == 'near_max':
+                        if mode_section_point_ratio_prox == 'near_max':
                             _seg, _percent = result.this_seg, result.this_percent
                         else:
                             _seg, _percent = result.last_seg, result.last_percent
@@ -262,7 +262,7 @@ class ModelAlgorithm:
                     else:
                         _seg, _percent = result.last_seg, result.last_percent
                 else:
-                    # print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
+                    # print('mode_section_point_ratio_prox error: {}'.format(mode_section_point_ratio_prox))
                     raise ValueError
             section_point_list.append(_seg)
             section_percent_list.append(_percent)
@@ -273,7 +273,7 @@ class ModelAlgorithm:
         # print(section_point_list)
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
-            _last_value = raw_score_min if mode_sort_order in ['d', 'descending'] else \
+            _last_value = raw_score_min if mode_score_sort_order in ['d', 'descending'] else \
                           raw_score_max
             i = 0
             while i < len(section_point_list)-1:
@@ -290,7 +290,7 @@ class ModelAlgorithm:
         lost = False
         for i, (x, y) in enumerate(zip(section_point_list[0:-1], section_point_list[1:])):
             _x, _y = None, None
-            _step = 1 if mode_sort_order in ['a', 'ascending'] else -1
+            _step = 1 if mode_score_sort_order in ['a', 'ascending'] else -1
             if x == y:
                 if i > 0:
                     # middle or last lost
@@ -323,7 +323,7 @@ class ModelAlgorithm:
                     else:
                         if (x >= 0) and (y >= 0):
                             forward_ok = (x + _step >= y) \
-                                         if mode_sort_order in ['d', 'desceding'] \
+                                         if mode_score_sort_order in ['d', 'desceding'] \
                                          else (x + _step <= y)
                             if not forward_ok:
                                 _x, _y = -1, -1
@@ -353,7 +353,7 @@ class ModelAlgorithm:
             raw_section,
             out_section,
             mode_section_degraded='to_max',
-            mode_sort_order='d',
+            mode_score_sort_order='d',
             out_score_decimal=0
             ):
         plt_formula = dict()
@@ -373,7 +373,7 @@ class ModelAlgorithm:
                 y0 = b
                 x0 = osec[0]
             elif abs(rsec[0]-rsec[1]) > 0:
-                if mode_sort_order in ['d', 'descending']:
+                if mode_score_sort_order in ['d', 'descending']:
                     y2, y1 = osec[0], osec[1]
                     x2, x1 = rsec[0], rsec[1]
                     a = (y2 - y1) / (x2 - x1)
@@ -414,9 +414,9 @@ class ModelAlgorithm:
                         raw_score_percent,
                         out_score_points,
                         out_score_ratio_cumu,
-                        mode_ratio_prox='upper_min',
-                        mode_ratio_cumu='no',
-                        mode_sort_order='d',
+                        mode_section_point_ratio_prox='upper_min',
+                        mode_section_point_ratio_cumu='no',
+                        mode_score_sort_order='d',
                         mode_raw_score_max='real',  # map by real ratio
                         mode_raw_score_min='real',  # map by real ratio
                         out_score_decimal=0,
@@ -424,9 +424,9 @@ class ModelAlgorithm:
                         ):
         map_score = dict()
         _rmax, _rmin = max(raw_score_points), min(raw_score_points)
-        if mode_sort_order in ['d', 'descending']:
+        if mode_score_sort_order in ['d', 'descending']:
             if any([x <= y for x, y in zip(raw_score_points[:-1], raw_score_points[1:])]):
-                print('raw score sequence is not correct order: {}'.format(mode_sort_order))
+                print('raw score sequence is not correct order: {}'.format(mode_score_sort_order))
                 return
 
         # lcoate out-score to raw-ratio in out-score-ratio-sequence
@@ -439,7 +439,7 @@ class ModelAlgorithm:
             if dest_ratio is None:
                 dest_ratio = raw_ratio
             else:
-                if mode_ratio_cumu == 'yes':
+                if mode_section_point_ratio_cumu == 'yes':
                     dest_ratio = real_percent + raw_ratio - last_ratio
                 else:
                     dest_ratio = raw_ratio
@@ -463,28 +463,28 @@ class ModelAlgorithm:
                 out_score_ratio_cumu,
                 tiny_value)
 
-            # strategy: mode_ratio_prox:
+            # strategy: mode_section_point_ratio_prox:
             # choose this_seg if near equal to this or upper_min
-            if (result.dist_to_this < tiny_value) or (mode_ratio_prox == 'upper_min'):
+            if (result.dist_to_this < tiny_value) or (mode_section_point_ratio_prox == 'upper_min'):
                 _seg, _percent = result.this_seg, result.this_percent
             # choose last_seg if last is near or equal
-            elif (mode_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
+            elif (mode_section_point_ratio_prox == 'lower_max') or (result.dist_to_last < tiny_value):
                 if not result.top:
                     _seg, _percent = result.last_seg, result.last_percent
                 else:
                     _seg, _percent = result.this_seg, result.this_percent
-            elif 'near' in mode_ratio_prox:
+            elif 'near' in mode_section_point_ratio_prox:
                 if result.dist_to_this < result.dist_to_last:
                     _seg, _percent = result.this_seg, result.this_percent
                 elif result.dist_to_this > result.dist_to_last:
                     _seg, _percent = result.last_seg, result.last_percent
                 else:
-                    if mode_ratio_prox == 'near_max':
+                    if mode_section_point_ratio_prox == 'near_max':
                         _seg, _percent = result.this_seg, result.this_percent
                     else:
                         _seg, _percent = result.last_seg, result.last_percent
             else:
-                print('mode_ratio_prox error: {}'.format(mode_ratio_prox))
+                print('mode_section_point_ratio_prox error: {}'.format(mode_section_point_ratio_prox))
                 raise ValueError
             map_score.update({rscore: _seg})
             real_ratio_list.append(_percent)
@@ -508,8 +508,8 @@ class ModelAlgorithm:
                         col=None,
                         map_table=None,
                         percent_first=0.01,
-                        mode_ratio_prox='upper_min',
-                        mode_sort_order='d',
+                        mode_section_point_ratio_prox='upper_min',
+                        mode_score_sort_order='d',
                         raw_score_max=100,
                         raw_score_min=0,
                         grade_num=15
@@ -523,11 +523,11 @@ class ModelAlgorithm:
         )
 
         top_level_score = None
-        if mode_ratio_prox == 'upper_min' or r.bottom or r.top:
+        if mode_section_point_ratio_prox == 'upper_min' or r.bottom or r.top:
             top_level_score=r.this_seg
-        elif mode_ratio_prox == 'lower_max':
+        elif mode_section_point_ratio_prox == 'lower_max':
             top_level_score=r.last_seg
-        elif 'near' in mode_ratio_prox:
+        elif 'near' in mode_section_point_ratio_prox:
             if r.this_seg_near:
                 top_level_score=r.this_seg
             else:
@@ -535,7 +535,7 @@ class ModelAlgorithm:
         top_level_score = slib.round45r(df.query(col+'>='+str(top_level_score))[col].mean(), 0)
         section_point_list.append(top_level_score)
 
-        _step = -1 if mode_sort_order in ['d', 'descending'] else 1
+        _step = -1 if mode_score_sort_order in ['d', 'descending'] else 1
 
         # use float value for grade step
         # to avoid to increase much cumulative error in last section
@@ -579,9 +579,9 @@ class ModelAlgorithm:
                       raw_score_max=100,
                       raw_score_min=0,
                       raw_score_step=1,
-                      mode_ratio_cumu='no',
-                      mode_ratio_prox='upper_min',
-                      mode_sort_order='d',
+                      mode_section_point_ratio_cumu='no',
+                      mode_section_point_ratio_prox='upper_min',
+                      mode_score_sort_order='d',
                       mode_section_point_first='real',
                       mode_section_point_start='step',
                       mode_section_point_last='real',
@@ -607,13 +607,13 @@ class ModelAlgorithm:
               cols=cols,
               segmax=raw_score_max,
               segmin=raw_score_min,
-              segsort=mode_sort_order,
+              segsort=mode_score_sort_order,
               segstep=raw_score_step,
               display=False,
               )
         map_table = seg.outdf
         section_num = len(model_ratio_pdf)
-        if mode_sort_order in ['d', 'descending']:
+        if mode_score_sort_order in ['d', 'descending']:
             cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(section_num)]
         else:
             _ratio_list = model_ratio_pdf[::-1]
@@ -630,9 +630,9 @@ class ModelAlgorithm:
                     section_ratio_cumu_sequence=cumu_ratio,
                     raw_score_sequence=map_table.seg,
                     raw_score_percent_sequence=map_table[col + '_percent'],
-                    mode_ratio_cumu=mode_ratio_cumu,
-                    mode_ratio_prox=mode_ratio_prox,
-                    mode_sort_order=mode_sort_order,
+                    mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+                    mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                    mode_score_sort_order=mode_score_sort_order,
                     mode_section_point_first=mode_section_point_first,
                     mode_section_point_start=mode_section_point_start,
                     mode_section_point_last=mode_section_point_last,
@@ -645,7 +645,7 @@ class ModelAlgorithm:
                     raw_section=raw_section.section,
                     out_section=model_section,
                     mode_section_degraded=mode_section_degraded,
-                    mode_sort_order=mode_sort_order,
+                    mode_score_sort_order=mode_score_sort_order,
                     out_score_decimal=out_score_decimals
                     )
                 formula = result.formula
@@ -682,9 +682,9 @@ class ModelAlgorithm:
                     raw_score_percent=map_table[col+'_percent'],
                     out_score_points=[x[0] for x in model_section],
                     out_score_ratio_cumu=cumu_ratio,
-                    mode_ratio_prox=mode_ratio_prox,
-                    mode_ratio_cumu=mode_ratio_cumu,
-                    mode_sort_order=mode_sort_order,
+                    mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                    mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+                    mode_score_sort_order=mode_score_sort_order,
                     mode_raw_score_max=mode_section_point_first,
                     mode_raw_score_min=mode_section_point_last,
                     out_score_decimal=out_score_decimals
@@ -714,8 +714,8 @@ class ModelAlgorithm:
                     col=col,
                     map_table=map_table,
                     percent_first=model_ratio_pdf[0]/100,
-                    mode_ratio_prox=mode_ratio_prox,
-                    mode_sort_order=mode_sort_order,
+                    mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                    mode_score_sort_order=mode_score_sort_order,
                     raw_score_max=raw_score_max,
                     raw_score_min=raw_score_min,
                     grade_num=len(model_section)

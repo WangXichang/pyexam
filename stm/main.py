@@ -70,8 +70,7 @@ def runf(filename='stm.conf'):
         if mcfg['model_new_check']:
             mcfg.update({'model_name': mcfg['model_new_name']})
             __mdset.Models.update(
-                {mcfg['model_name']:
-                __mdset.ModelFields(
+                {mcfg['model_name']: __mdset.ModelFields(
                     mcfg['model_new_type'],
                     mcfg['model_new_ratio'],
                     mcfg['model_new_section'],
@@ -104,9 +103,9 @@ def runf(filename='stm.conf'):
         cols=mcfg['cols'],
         raw_score_min=mcfg['raw_score_min'],
         raw_score_max=mcfg['raw_score_max'],
-        mode_ratio_prox=mcfg['mode_ratio_prox'],
-        mode_ratio_cumu=mcfg['mode_ratio_cumu'],
-        mode_sort_order=mcfg['mode_sort_order'],
+        mode_section_point_ratio_prox=mcfg['mode_section_point_ratio_prox'],
+        mode_section_point_ratio_cumu=mcfg['mode_section_point_ratio_cumu'],
+        mode_score_sort_order=mcfg['mode_score_sort_order'],
         mode_section_point_first=mcfg['mode_section_point_first'],
         mode_section_point_start=mcfg['mode_section_point_start'],
         mode_section_point_last=mcfg['mode_section_point_last'],
@@ -133,9 +132,9 @@ def run(
         name='shandong',
         df=None,
         cols=(),
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='d',
+        mode_section_point_ratio_prox='upper_min',
+        mode_section_point_ratio_cumu='no',
+        mode_score_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -161,18 +160,18 @@ def run(
         cols: list of str, 需要转换的原始分数列（字段）
     ---
     算法策略参数：
-          mode_ratio_prox: the mode to proxmate ratio value of raw score points
+          mode_section_point_ratio_prox: the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
               'upper_min': 小于该比例值的分值中最大的值   get score with min value in bigger percentile
               'lower_max': 大于该比例值的分值中最小的值   get score with max value in less percentile
                'near_min': 最接近该比例值的分值中最小的值 get score with min value in near percentile
                'near_max': 最接近该比例值的分值中最大的值 get score with max value in near percentile
 
-          mode_sort_order: 分数排序方式 score sort method: descending or ascending
+          mode_score_sort_order: 分数排序方式 score sort method: descending or ascending
                       'd': 降序方式排序，从高分数开始计算
                       'a': 升序方式排序，从低分数开始计算
 
-          mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
+          mode_section_point_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
                     'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
                      'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
@@ -233,7 +232,7 @@ def run(
     ---
     """
 
-    raw_score_range = (raw_score_min, raw_score_max)
+    # raw_score_range = (raw_score_min, raw_score_max)
 
     if not logname:
         task = 'stm'
@@ -241,7 +240,6 @@ def run(
         task = logname
 
     result = __namedtuple('Result', ['ok', 'r1', 'r2'])
-    r = result(False, None, None)
 
     stmlogger = __slib.get_logger(name, logname=task)
     stmlogger.set_level(loglevel)
@@ -258,14 +256,14 @@ def run(
             model_name=name,
             df=df,
             cols=cols,
-            mode_ratio_prox=mode_ratio_prox,
-            mode_ratio_cumu=mode_ratio_cumu,
-            mode_sort_order=mode_sort_order,
+            mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+            mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+            mode_score_sort_order=mode_score_sort_order,
             mode_section_point_first=mode_section_point_first,
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            raw_score_range=raw_score_range,
+            raw_score_range=(raw_score_min, raw_score_max),
             out_score_decimal_digits=out_score_decimals,
             logger=stmlogger,
             models=__mdset,
@@ -281,10 +279,10 @@ def run(
             name=name,
             df=df,
             cols=cols,
-            raw_score_range=raw_score_range,
-            mode_ratio_prox=mode_ratio_prox,
-            mode_ratio_cumu=mode_ratio_cumu,
-            mode_sort_order=mode_sort_order,
+            raw_score_range=(raw_score_min, raw_score_max),
+            mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+            mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+            mode_score_sort_order=mode_score_sort_order,
             mode_section_point_first=mode_section_point_first,
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
@@ -301,10 +299,11 @@ def run(
                 name=name,
                 df=df,
                 cols=cols,
-                raw_score_range=raw_score_range,
-                mode_ratio_prox=mode_ratio_prox,
-                mode_ratio_cumu=mode_ratio_cumu,
-                mode_sort_order=mode_sort_order,
+                raw_score_min=raw_score_min,
+                raw_score_max=raw_score_max,
+                mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+                mode_score_sort_order=mode_score_sort_order,
                 mode_section_point_first=mode_section_point_first,
                 mode_section_point_start=mode_section_point_start,
                 mode_section_point_last=mode_section_point_last,
@@ -337,10 +336,11 @@ def run(
                   name=name,
                   df=df,
                   cols=cols,
-                  raw_score_range=raw_score_range,
-                  mode_ratio_prox=mode_ratio_prox,
-                  mode_ratio_cumu=mode_ratio_cumu,
-                  mode_sort_order=mode_sort_order,
+                  raw_score_min=raw_score_min,
+                  raw_score_max=raw_score_max,
+                  mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+                  mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+                  mode_score_sort_order=mode_score_sort_order,
                   mode_section_point_first=mode_section_point_first,
                   mode_section_point_start=mode_section_point_start,
                   mode_section_point_last=mode_section_point_last,
@@ -378,9 +378,9 @@ def run1(
         name='shandong',
         df=None,
         cols=(),
-        mode_ratio_prox='upper_min',
-        mode_ratio_cumu='no',
-        mode_sort_order='d',
+        mode_section_point_ratio_prox='upper_min',
+        mode_section_point_ratio_cumu='no',
+        mode_score_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -401,9 +401,9 @@ def run1(
         out_score_section=__mdset.Models[name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
-        mode_ratio_prox=mode_ratio_prox,
-        mode_ratio_cumu=mode_ratio_cumu,
-        mode_sort_order=mode_sort_order,
+        mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+        mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+        mode_score_sort_order=mode_score_sort_order,
         mode_section_point_first=mode_section_point_first,
         mode_section_point_start=mode_section_point_start,
         mode_section_point_last=mode_section_point_last,
@@ -423,15 +423,16 @@ def run2(
         name='shandong',
         df=None,
         cols=(),
-        mode_ratio_cumu='no',
-        mode_ratio_prox='upper_min',
-        mode_sort_order='d',
+        mode_section_point_ratio_cumu='no',
+        mode_section_point_ratio_prox='upper_min',
+        mode_score_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        raw_score_range=(0, 100),
+        raw_score_min=0,
+        raw_score_max=100,
         raw_score_step=1,
         out_score_decimals=0,
         tiny_value=10**-12,
@@ -440,37 +441,20 @@ def run2(
     """
     to calculate out score by calling stmlib2.Algorithm.get_stm_score
     model_name in models_in.Models or models_ext.Models
-
-    :param name:
-    :param df:
-    :param cols:
-    :param raw_score_max:
-    :param raw_score_min:
-    :param raw_score_step:
-    :param mode_ratio_cumu:
-    :param mode_ratio_prox:
-    :param mode_sort_order:
-    :param mode_section_point_first:
-    :param mode_section_point_start:
-    :param mode_section_point_last:
-    :param mode_section_degraded:
-    :param mode_section_lost:
-    :param out_score_decimals:
-    :return:
     """
 
     if not __slib.Checker.check_run(
             model_name=name,
             df=df,
             cols=cols,
-            mode_ratio_prox=mode_ratio_prox,
-            mode_ratio_cumu=mode_ratio_cumu,
-            mode_sort_order=mode_sort_order,
+            mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+            mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+            mode_score_sort_order=mode_score_sort_order,
             mode_section_point_first=mode_section_point_first,
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            raw_score_range=raw_score_range,
+            raw_score_range=(raw_score_min, raw_score_max),
             out_score_decimal_digits=out_score_decimals,
             logger=logger,
             models=__mdset,
@@ -484,12 +468,12 @@ def run2(
         model_ratio_pdf=model.ratio,
         model_section=model.section,
         model_type=model.type.lower(),
-        raw_score_max=max(raw_score_range),
-        raw_score_min=min(raw_score_range),
+        raw_score_max=raw_score_max,
+        raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,
-        mode_ratio_cumu=mode_ratio_cumu,
-        mode_ratio_prox=mode_ratio_prox,
-        mode_sort_order=mode_sort_order,
+        mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+        mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+        mode_score_sort_order=mode_score_sort_order,
         mode_section_point_first=mode_section_point_first,
         mode_section_point_start=mode_section_point_start,
         mode_section_point_last=mode_section_point_last,
@@ -512,9 +496,9 @@ def run2p(
         raw_score_max=100,
         raw_score_min=0,
         raw_score_step=1,
-        mode_ratio_cumu='no',
-        mode_ratio_prox='upper_min',
-        mode_sort_order='d',
+        mode_section_point_ratio_cumu='no',
+        mode_section_point_ratio_prox='upper_min',
+        mode_score_sort_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -533,9 +517,9 @@ def run2p(
     :param raw_score_max:
     :param raw_score_min:
     :param raw_score_step:
-    :param mode_ratio_cumu:
-    :param mode_ratio_prox:
-    :param mode_sort_order:
+    :param mode_section_point_ratio_cumu:
+    :param mode_section_point_ratio_prox:
+    :param mode_score_sort_order:
     :param mode_section_point_first:
     :param mode_section_point_start:
     :param mode_section_point_last:
@@ -565,9 +549,9 @@ def run2p(
 
     # check strategy
     if not __slib.Checker.check_strategy(
-            mode_ratio_prox=mode_ratio_prox,
-            mode_ratio_cumu=mode_ratio_cumu,
-            mode_sort_order=mode_sort_order,
+            mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+            mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+            mode_score_sort_order=mode_score_sort_order,
             mode_section_point_first=mode_section_point_first,
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
@@ -587,9 +571,9 @@ def run2p(
         raw_score_max=raw_score_max,
         raw_score_min=raw_score_min,
         raw_score_step=raw_score_step,
-        mode_ratio_cumu=mode_ratio_cumu,
-        mode_ratio_prox=mode_ratio_prox,
-        mode_sort_order=mode_sort_order,
+        mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
+        mode_section_point_ratio_prox=mode_section_point_ratio_prox,
+        mode_score_sort_order=mode_score_sort_order,
         mode_section_point_first=mode_section_point_first,
         mode_section_point_start=mode_section_point_start,
         mode_section_point_last=mode_section_point_last,
@@ -608,8 +592,8 @@ def newconfig(confname='stm_test.cf'):
         print('invalid file name!')
 
 
-def testdata(mu=50, std=15, size=60000, max=100, min=0, decimals=0):
-    return __slib.TestData(mu, std, size, max=max, min=min, decimals=0)()
+def testdata(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
+    return __slib.TestData(mu, std, size, max=maxvalue, min=minvalue, decimals=decimals)()
 
 
 def showmodels(name=None):

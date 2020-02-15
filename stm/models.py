@@ -27,20 +27,20 @@
         ZHEJIANG_SECTION =  tuple((x, x) for x in range(100, 39, -3)),
         SHANDONG_RATIO =    [3, 7, 16, 24, 24, 16, 7, 3]
         SHANDONG_SECTION =  [(21, 30), (31, 40), (41, 50), (51, 60), (61, 70), (71, 80), (81, 90), (91, 100)]
-        SS7_RATIO =         [2, 13, 35, 35, 15]
-        SS7_SECTION =       [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
+        p7_RATIO =         [2, 13, 35, 35, 15]
+        p7_SECTION =       [(30, 40), (41, 55), (56, 70), (71, 85), (86, 100)]
 
     转换算法策略
     STRATEGY = {strategy_name: value_str}
 
         目前分析实现的算法策略及选择值：
 
-        比例逼近策略
-         'mode_ratio_prox':               ('upper_min', 'lower_max', 'near_max', 'near_min'),
-        比例累计策略
-         'mode_ratio_cumu':               ('yes', 'no'),
         搜索比例值的分数顺序
          'model_score_sort':              ('descending', 'ascending'),
+        使用比例确定区间端点的逼近策略
+         'mode_section_point_ratio_prox':               ('upper_min', 'lower_max', 'near_max', 'near_min'),
+        使用比例确定区间端点的累计策略
+         'mode_section_point_ratio_cumu':               ('yes', 'no'),
         第一端点确定：区间第一个端点映射到转换分数最高(低)值(real)、卷面最高（低）值(defined)
           'mode_section_point_first':     ('real', 'defined')
         开始端点确定：区间开始端点映射到上一个区间的下一个值(step)、使用上一个区间端点（share）
@@ -173,9 +173,9 @@ Models = {
 
 # choices = 4 * 2**5 * 3 * 2  = 768   ## prox, cumu, sort, section_
 Strategy = {
-    'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_ratio_cumu':              ('yes', 'no'),
-    'mode_sort_order':              ('d', 'a'),                # d: descending, a: ascending
+    'mode_score_sort_order':              ('d', 'a'),                # d: descending, a: ascending
+    'mode_section_point_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_section_point_ratio_cumu':              ('yes', 'no'),
     'mode_section_point_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
     'mode_section_point_start':     ('step', 'share'),         # first point except first section
     'mode_section_point_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
