@@ -498,7 +498,7 @@ class ModelAlgorithm:
                 return -2000
 
         # print(dest_ratio, '\n', real_ratio_list)
-        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'map_table'))
+        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'maptable'))
         return Result(formula, map_score, dest_ratio_list, real_ratio_list,
                       list(zip(out_score_points, out_score_ratio_cumu)))
 
@@ -506,7 +506,7 @@ class ModelAlgorithm:
     def get_pgt_formula(cls,
                         df=None,
                         col=None,
-                        map_table=None,
+                        maptable=None,
                         percent_first=0.01,
                         mode_section_point_ratio_prox='upper_min',
                         mode_score_sort_order='d',
@@ -519,8 +519,8 @@ class ModelAlgorithm:
         section_point_list = [df[col].max()]
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
             dest_ratio=percent_first,
-            seg_seq=map_table.seg,
-            ratio_seq=map_table[col+'_percent']
+            seg_seq=maptable.seg,
+            ratio_seq=maptable[col+'_percent']
         )
 
         if isinstance(model_section, list) or isinstance(model_section, tuple):
@@ -617,7 +617,7 @@ class ModelAlgorithm:
               segstep=raw_score_step,
               display=False,
               )
-        map_table = seg.outdf
+        maptable = seg.outdf
         section_num = len(model_ratio_pdf)
         if mode_score_sort_order in ['d', 'descending']:
             cumu_ratio = [sum(model_ratio_pdf[0:i+1])/100 for i in range(section_num)]
@@ -637,8 +637,8 @@ class ModelAlgorithm:
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     section_ratio_cumu_sequence=cumu_ratio,
-                    raw_score_sequence=map_table.seg,
-                    raw_score_percent_sequence=map_table[col + '_percent'],
+                    raw_score_sequence=maptable.seg,
+                    raw_score_percent_sequence=maptable[col + '_percent'],
                     mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
                     mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                     mode_score_sort_order=mode_score_sort_order,
@@ -687,8 +687,8 @@ class ModelAlgorithm:
                     # logger.loginfo('='*100)
             elif model_type.lower() == 'ppt':
                 result = ModelAlgorithm.get_ppt_formula(
-                    raw_score_points=map_table.seg,
-                    raw_score_percent=map_table[col+'_percent'],
+                    raw_score_points=maptable.seg,
+                    raw_score_percent=maptable[col+'_percent'],
                     out_score_points=[x[0] for x in model_section],
                     out_score_ratio_cumu=cumu_ratio,
                     mode_section_point_ratio_prox=mode_section_point_ratio_prox,
@@ -712,16 +712,16 @@ class ModelAlgorithm:
                                   if x in result.map_dict.values()]),
                         ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
                         ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                        ', '.join([format(x, '>12d') for x in map_table.seg]),
+                        ', '.join([format(x, '>12d') for x in maptable.seg]),
                         ', '.join([format(slib.round45r(result.formula(x), out_score_decimals), '>' +
                                    ('12d' if out_score_decimals == 0 else '12.' + str(out_score_decimals) + 'f'))
-                                   for x in map_table.seg]),
+                                   for x in maptable.seg]),
                         ))
             elif model_type.lower() == 'pgt':
                 result = ModelAlgorithm.get_pgt_formula(
                     df=df,
                     col=col,
-                    map_table=map_table,
+                    maptable=maptable,
                     percent_first=model_ratio_pdf[0]/100,
                     model_section=model_section,
                     mode_score_sort_order=mode_score_sort_order,
@@ -736,7 +736,7 @@ class ModelAlgorithm:
                 formula = result.formula
             else:
                 raise ValueError
-            map_table.loc[:, col+'_ts'] = map_table.seg.apply(formula)
+            maptable.loc[:, col+'_ts'] = maptable.seg.apply(formula)
             df[col+'_ts'] = df[col].apply(formula)
 
             if out_score_decimals == 0:
@@ -744,5 +744,5 @@ class ModelAlgorithm:
 
         if logger:
             logger.loginfo('stm2 running end \n' + '-'*100)
-        r = namedtuple('r', ['outdf', 'map_table', 'result'])
-        return r(df, map_table, result)
+        r = namedtuple('r', ['outdf', 'maptable', 'result'])
+        return r(df, maptable, result)

@@ -5,7 +5,7 @@
 about module main:
     (1) function: run
     run() is an interface to call stm1 or stm2
-    return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (map_table, df))
+    return model(stmlib.ScoreTransform) or result(stm2.get_stm_score.Result: (maptable, df))
     if model_name_in ['zhejiang', 'shanghai', , 'beijing', 'tianjin',
                       'shandong', 'guangdong', 'p7', 'h900', 'hainan',
                       'hn300plt1', 'hn300plt2', 'hn300plt3'
@@ -215,19 +215,19 @@ def run(
       (1) ok: bool, 计算是否成功 successful or not
       (2) r1: 主算法的计算结果
               模块stm1中类PltScore的实例
-              主要数据结果是PltScore.outdf, PltScore.map_table
+              主要数据结果是PltScore.outdf, PltScore.maptable
               result of stm1, instance of PltScore
       (3) r2: 辅助算法的计算结果， 模块stm2中函数ModelAlgorithm.get_stm_score()的返回结果，
-              元素名称为outdf,map_table的元组
+              元素名称为outdf,maptable的元组
               如果不指定verify 或 verify != True时，r2为None
-              result of stm2, namedtuple('outdf', 'map_table')
+              result of stm2, namedtuple('outdf', 'maptable')
               r2 is None if verify != True
     ---
     调用方式
       [1] from stm import main
       [2] m = main.run(model_name='zhejiang', df=data, col=['ls'])
       [3] m.ok
-      [4] m.r1.map_table.head()
+      [4] m.r1.maptable.head()
       [5] m.r1.outdf.head()
     ---
     """
@@ -358,10 +358,10 @@ def run(
         save_dfmap_name = task + '_df_maptable_' + name + '_' + fno + '.csv'
         if r.r1 is not None:
             dfscore = r.r1.outdf
-            dfmaptable = r.r1.map_table
+            dfmaptable = r.r1.maptable
         else:
             dfscore = r.r2.outdf
-            dfmaptable = r.r2.map_table
+            dfmaptable = r.r2.maptable
         if saveresult:
             dfscore.to_csv(save_dfscore_name, index=False)
             dfmaptable.to_csv(save_dfmap_name, index=False)
@@ -527,7 +527,7 @@ def run2p(
     :param mode_section_lost:
     :param out_score_decimal_digits:
     :param logger: set logger
-    :return: result(outdf, map_table),     out_score_field[col+'_ts'] for col in cols in outdf
+    :return: result(outdf, maptable),     out_score_field[col+'_ts'] for col in cols in outdf
     """
 
     if not __slib.Checker.check_model_para(

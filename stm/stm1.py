@@ -64,7 +64,7 @@ class ScoreTransformModel(abc.ABC):
 
         self.df = pd.DataFrame()
         self.cols = []
-        self.map_table = pd.DataFrame()
+        self.maptable = pd.DataFrame()
         self.outdf = pd.DataFrame()
 
         self.raw_score_defined_min = None
@@ -95,7 +95,7 @@ class ScoreTransformModel(abc.ABC):
 
     def run(self):
         """
-        run to get map_table, formula, outdf...
+        run to get maptable, formula, outdf...
         """
 
     def read_df_from_csv(self, filename=''):
@@ -111,21 +111,21 @@ class ScoreTransformModel(abc.ABC):
         with open(filename, mode='w', encoding='utf-8') as f:
             f.write(self.out_report_doc)
 
-    def save_map_table_doc(self, filename, col_width=20):
+    def save_maptable_doc(self, filename, col_width=20):
         """
         保存分数转换映射表为文档文件
         save map talbe to text doc file
         # deprecated: use module ptt to create griding and  paging text doc
         # with open(filename, mode='w', encoding='utf-8') as f:
-        #     f.write(ptt.make_mpage(self.map_table, page_line_num=50))
+        #     f.write(ptt.make_mpage(self.maptable, page_line_num=50))
         """
         with open(filename, mode='w', encoding='utf-8') as f:
             t = ' '
-            for cname in self.map_table.columns:
+            for cname in self.maptable.columns:
                 t += ('{}'.format(cname)).rjust(col_width)
             t += '\n'
             start = False
-            for row_no, row in self.map_table.iterrows():
+            for row_no, row in self.maptable.iterrows():
                 s = '|'
                 for col in row:
                     if isinstance(col, float):
@@ -287,7 +287,7 @@ class PltScore(ScoreTransformModel):
         self.tiny_value = 10**-8
 
         # result
-        self.map_table = pd.DataFrame()
+        self.maptable = pd.DataFrame()
         self.result_raw_endpoints = []
         self.result_ratio_dict = dict()
         self.result_formula_coeff = dict()
@@ -393,7 +393,7 @@ class PltScore(ScoreTransformModel):
             self.out_score_real_min = min([min(x) for x in self.out_score_section])
 
         # calculate seg table
-        # self.logger.loginfo('calculating map_table ...')
+        # self.logger.loginfo('calculating maptable ...')
         _segsort = 'a' if self.strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 'd'
         seg_model = slib.run_seg(
                   df=self.df,
@@ -405,17 +405,17 @@ class PltScore(ScoreTransformModel):
                   display=False,
                   usealldata=False
                   )
-        self.map_table = seg_model.outdf   # .copy(deep=True)
+        self.maptable = seg_model.outdf   # .copy(deep=True)
 
-        # create field_fr in map_table
+        # create field_fr in maptable
         #   strange error!!: some seg percent to zero
-        #   self.map_table[f+'_percent'] = self.map_table[f+'_fr'].apply(lambda x: float(x))
+        #   self.maptable[f+'_percent'] = self.maptable[f+'_fr'].apply(lambda x: float(x))
         # for f in self.cols:
-        #     max_sum = max(self.map_table[f+'_sum'])
+        #     max_sum = max(self.maptable[f+'_sum'])
         #     max_sum = 1 if max_sum == 0 else max_sum
-        #     self.map_table[f+'_fr'] = \
-        #         self.map_table[f+'_sum'].apply(lambda x: fr.Fraction(x, max_sum))
-            # self.map_table.astype({f+'_fr': fr.Fraction})     # encounter error in python 3.7.4
+        #     self.maptable[f+'_fr'] = \
+        #         self.maptable[f+'_sum'].apply(lambda x: fr.Fraction(x, max_sum))
+            # self.maptable.astype({f+'_fr': fr.Fraction})     # encounter error in python 3.7.4
 
         # transform score on each field
         self.result_dict = dict()
@@ -448,10 +448,10 @@ class PltScore(ScoreTransformModel):
                 self.outdf[col].apply(
                     lambda x: self.get_ts_score_from_formula(col, x))
 
-        # create col_ts in map_table
-        df_map = self.map_table
+        # create col_ts in maptable
+        df_map = self.maptable
         for col in self.cols:
-            # self.logger.loginfo('   calculate: map_table[{0}] => [{0}_ts]'.format(col))
+            # self.logger.loginfo('   calculate: maptable[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
                 lambda x: self.get_ts_score_from_formula(col, x))
@@ -533,10 +533,10 @@ class PltScore(ScoreTransformModel):
     # formula hainan, each segment is a single point
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
-    # len(ratio_list) = len(map_table['seg'])
+    # len(ratio_list) = len(maptable['seg'])
     def get_formula_ppt(self, col):
-        self.result_raw_endpoints = [x for x in self.map_table['seg']]
-        self.map_table.loc[:, col+'_ts'] = -1
+        self.result_raw_endpoints = [x for x in self.maptable['seg']]
+        self.maptable.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
         tiny_value = self.tiny_value     # used to judge zero(s==0) or equality(s1==s2)
@@ -557,10 +557,10 @@ class PltScore(ScoreTransformModel):
         _step = _step * (self.out_score_real_max - self.out_score_real_min)/(len(self.raw_score_ratio_cum)-1)
 
         # _ts_list = []
-        map_table = self.map_table
-        real_min = map_table.query(col+'_count>0')['seg'].min()
-        real_max = map_table.query(col+'_count>0')['seg'].max()
-        for ri, row in map_table.iterrows():
+        maptable = self.maptable
+        real_min = maptable.query(col+'_count>0')['seg'].min()
+        real_max = maptable.query(col+'_count>0')['seg'].max()
+        for ri, row in maptable.iterrows():
             _seg = row['seg']
             _p = row[col + '_percent']
             y = None  # init out_score y = a * x + b
@@ -613,7 +613,7 @@ class PltScore(ScoreTransformModel):
                 result_ratio.append(format(_p, '.6f'))
                 # _ts_list.append(y)
             # end scanning raw_score_ratio_list
-        # end scanning map_table
+        # end scanning maptable
 
         self.result_formula_coeff = coeff_dict
         formula_dict = {k: '{cf[0][0]:.8f} * (x - {cf[1][1]:.0f}) + {cf[0][1]:.0f}'.format(cf=coeff_dict[k])
@@ -714,7 +714,7 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    # extract section points(first end point of first section and second point of all section) from map_table
+    # extract section points(first end point of first section and second point of all section) from maptable
     #   according ratios in preset ratio_list: raw_score_ratio_cum (cumulative ratio list)
     def get_raw_section(self, field):
         result_matched_ratio = []
@@ -739,7 +739,7 @@ class PltScore(ScoreTransformModel):
 
         result_section_point = [section_start_point]
 
-        # ratio: preset,  percent: computed from data in map_table
+        # ratio: preset,  percent: computed from data in maptable
         last_ratio = 0
         last_match = 0
         if self.strategy_dict['mode_section_point_start'] == 'share':
@@ -751,9 +751,9 @@ class PltScore(ScoreTransformModel):
             dest_ratio = cumu_ratio if _mode_cumu == 'no' else this_seg_ratio + last_match
             result_dest_ratio.append(dest_ratio)
 
-            # match percent by dest_ratio to get endpoint of this section from map_table
+            # match percent by dest_ratio to get endpoint of this section from maptable
             this_section_end_point, this_match_ratio = \
-                self.get_seg_from_map_table(field, dest_ratio)
+                self.get_seg_from_maptable(field, dest_ratio)
 
             # last section at bottom
             if last_match >= 1:
@@ -851,10 +851,10 @@ class PltScore(ScoreTransformModel):
         return True
 
     # new at 2019-09-09
-    def get_seg_from_map_table(self, field, dest_ratio):
+    def get_seg_from_maptable(self, field, dest_ratio):
 
         _mode_prox = self.strategy_dict['mode_section_point_ratio_prox']
-        _top_index = self.map_table.index.max()
+        _top_index = self.maptable.index.max()
         _tiny = self.tiny_value
 
         _seg = -1
@@ -863,7 +863,7 @@ class PltScore(ScoreTransformModel):
         last_seg = None
         dist_to_last = 1000
         use_last_seg = False
-        for index, row in self.map_table.iterrows():
+        for index, row in self.maptable.iterrows():
             _percent = row[field+'_percent']
             _seg = row['seg']
             dist_to_this = abs(_percent - dest_ratio)
@@ -910,7 +910,7 @@ class PltScore(ScoreTransformModel):
             return last_seg, last_percent
         return _seg, _percent
 
-    # create report and col_ts in map_table
+    # create report and col_ts in maptable
     def make_report(self):
         self.out_report_doc += 'strategies' + '\n'
 
@@ -922,7 +922,7 @@ class PltScore(ScoreTransformModel):
         self.out_report_doc += '---'*40
 
     def make_field_report(self, field=''):
-        score_dict = {x: y for x, y in zip(self.map_table['seg'], self.map_table[field+'_count'])}
+        score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
         p = 0 if self.strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
         self.result_formula_text_list = []
         _fi = 1
@@ -1034,8 +1034,8 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
 
-        # _count_zero = self.map_table.query(field+'_count==0')['seg'].values
-        _count_non_zero = self.map_table.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
+        # _count_zero = self.maptable.query(field+'_count==0')['seg'].values
+        _count_non_zero = self.maptable.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
         _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*18 + 'empty_value={}\n' .\
@@ -1055,8 +1055,8 @@ class PltScore(ScoreTransformModel):
                            format(_max, _min, __mean, _median, _mode)
         _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
                            format(__std, __std/__mean, _max-_min, _skew, _kurt)
-        # _count_zero = self.map_table.query(field+'_count==0')[field+'_ts'].values
-        _count_non_zero = self.map_table.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
+        # _count_zero = self.maptable.query(field+'_count==0')[field+'_ts'].values
+        _count_non_zero = self.maptable.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
         if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'plt':
             _count_zero = [x for x in range(int(self.out_score_real_min), int(self.out_score_real_max) + 1)
                            if x not in _count_non_zero]
@@ -1120,7 +1120,7 @@ class PltScore(ScoreTransformModel):
         if mode not in plot_name:
             self.logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
             return
-        if mode in 'shift, model':
+        if mode in 'model':
             # mode: model describe the differrence of input and output score.
             self.plot_model()
         elif mode in 'dist':
@@ -1131,17 +1131,17 @@ class PltScore(ScoreTransformModel):
             self.plot_rawscore_bar_count()
         elif mode == 'outbar':
             self.plot_outscore_bar_count()
-        elif mode in 'diff':
+        elif mode in 'diff, shift':
             self.plot_diff()
         elif not super(PltScore, self).plot(mode):
             self.logger.loginfo('error plot: [{}] is invalid!'.format(mode))
 
     def plot_diff(self):
-        x = [int(x) for x in self.map_table['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
-        raw_label = [str(x) for x in self.map_table['seg']][::-1]
+        x = [int(x) for x in self.maptable['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
+        raw_label = [str(x) for x in self.maptable['seg']][::-1]
         for f in self.cols:
-            df = [v if self.map_table.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
-            outdf = list(self.map_table[f + '_ts'])[::-1]
+            df = [v if self.maptable.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
+            outdf = list(self.maptable[f + '_ts'])[::-1]
             outdf = [out if raw > 0 else 0 for raw, out in zip(df, outdf)]
             # fig1 = plot.figure('subject: '+f)
             fig, ax = plot.subplots()
@@ -1179,9 +1179,9 @@ class PltScore(ScoreTransformModel):
     def plot_bar(self, display='all', hcolor='r', hwidth=6):
         raw_label = [str(x) for x in range(int(self.out_score_real_max) + 1)]
         x_data = list(range(int(self.out_score_real_max) + 1))
-        seg_list = list(self.map_table.seg)
+        seg_list = list(self.maptable.seg)
         for f in self.cols:
-            df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
+            df = [self.maptable.query('seg=='+str(xv))[f+'_count'].values[0]
                         if xv in seg_list else 0
                         for xv in x_data]
             out_ = self.outdf.groupby(f+'_ts').count()[f]
@@ -1242,13 +1242,13 @@ class PltScore(ScoreTransformModel):
 
 
     def plot_rawscore_bar_count(self, hcolor='r', hwidth=6):
-        seg_list = self.map_table.seg if self.strategy_dict['mode_score_sort_order'] in ['a', 'ascending'] \
-                   else reversed(self.map_table.seg)
+        seg_list = self.maptable.seg if self.strategy_dict['mode_score_sort_order'] in ['a', 'ascending'] \
+                   else reversed(self.maptable.seg)
         raw_label = [str(x) for x in seg_list]
         x_data = list(range(self.raw_score_defined_max + 1))
         for f in self.cols:
-            df = [self.map_table.query('seg=='+str(xv))[f+'_count'].values[0]
-                  if xv in self.map_table.seg else 0
+            df = [self.maptable.query('seg=='+str(xv))[f+'_count'].values[0]
+                  if xv in self.maptable.seg else 0
                   for xv in x_data]
 
             fig, ax = plot.subplots()
@@ -1384,7 +1384,7 @@ class PltScore(ScoreTransformModel):
             out_min = min([min(p) for p in self.out_score_section])
             out_max = max([max(p) for p in self.out_score_section])
 
-            plot.figure(col+'_ts')
+            plot.figure(col)
             plot.rcParams.update({'font.size': 10})
             plot.title(u'转换模型({})'.format(col))
             plot.xlim(in_min, in_max)
