@@ -109,7 +109,7 @@ Models = {
                                 tuple((100-i*10, 100-i*10-9) for i in range(8)),
                                 'Shandong NewGaokao transform model'
                                 ),
-    'ppt300':       ModelFields(__MODEL_TYPE_PPT,
+    'h300':         ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __hn300pdf.pdf],
                                 [(x, x) for x in reversed(__hn300pdf.points)],
                                 'standard score model, 60-300'
@@ -124,7 +124,7 @@ Models = {
                                 ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30)),
                                 '7 Province/Cities(Jiangsu, Chongqing, ...) transform model'
                                 ),
-    'ppt900':       ModelFields(__MODEL_TYPE_PPT,
+    'b900':         ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __hn900pdf.pdf],
                                 [(x, x) for x in reversed(__hn900pdf.points)],
                                 'standard score model， 100-900'),
