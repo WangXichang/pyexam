@@ -109,7 +109,7 @@ Models = {
                                 tuple((100-i*10, 100-i*10-9) for i in range(8)),
                                 'Shandong NewGaokao transform model'
                                 ),
-    'h300':         ModelFields(__MODEL_TYPE_PPT,
+    'b300':         ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __hn300pdf.pdf],
                                 [(x, x) for x in reversed(__hn300pdf.points)],
                                 'standard score model, 60-300'
@@ -144,25 +144,25 @@ Models = {
                                 tuple((i, i) for i in range(15, 0, -1)),             # grade from 1 to 15
                                 'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
                                 ),
-    'h300plt1':     ModelFields(
+    'b300plt1':     ModelFields(
                                 'plt',
                                 (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
                                 tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
                                 'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'h300plt2':     ModelFields(
+    'b300plt2':     ModelFields(
                                 'plt',
                                 (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
                                 'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'h300plt3':     ModelFields(
+    'b300plt3':     ModelFields(
                                 'plt',
                                 (1, 2, 14, 33, 33, 14, 2, 1),
                                 tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
                                 'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
                                 ),
-    'h300plt4':     ModelFields(
+    'b300plt4':     ModelFields(
                                 'plt',
                                 (3, 14, 33, 33, 14, 3),
                                 tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
