@@ -1085,7 +1085,7 @@ class Checker:
                 if col not in df.columns:
                     logger.log('error col: {} is not in df.columns!'.format(col), 'error')
                     return False
-                if not isinstance(df[col][0], numbers.Real):
+                if not isinstance(df.iloc[0][col], numbers.Real):
                     logger.log('type error: column[{}] not Number type!'.format(col), 'error')
                     return False
                 _min = df[col].min()
