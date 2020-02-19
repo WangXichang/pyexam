@@ -44,91 +44,12 @@ from collections import namedtuple as __namedtuple
 import importlib as __pb
 import numpy as __np
 
-from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __mdset
-__stm_modules = [__slib, __stm1, __stm2, __mdset]
-
-
-def runf(filename='stm.conf'):
-
-    if not __os.path.isfile(filename):
-        print('conf file: {} not found!'.format(filename))
-        return None
-
-    for m in __stm_modules:
-        __pb.reload(m)
-
-    config_read = __slib.read_conf(filename)
-    if config_read:
-        mcfg = config_read
-    else:
-        print('read config file {} fail!'.format(filename))
-        return None
-
-    # use new model when no model defined, that is in modelset
-    if not mcfg['model_in_check']:
-        # new model in config-file
-        if mcfg['model_new_check']:
-            mcfg.update({'model_name': mcfg['model_new_name']})
-            __mdset.Models.update(
-                {mcfg['model_name']: __mdset.ModelFields(
-                    mcfg['model_new_type'],
-                    mcfg['model_new_ratio'],
-                    mcfg['model_new_section'],
-                    mcfg['model_new_desc']
-                )}
-            )
-            print('new model [{}] check-in!'.format(mcfg['model_new_name']))
-        # no model can be used
-        else:
-            print('new model check-in fail! no model can be used!')
-            return mcfg
-
-    if mcfg['df'] is None:
-        return mcfg
-    if mcfg['cols'] is None:
-        return mcfg
-
-    print('=' * 120)
-    print('stm setting in {}'.format(filename) + '\n' + '-' * 120)
-    for k in mcfg.keys():
-        if k == 'df':
-            print('   {:25s}: {:10s}'.format(k, str(mcfg[k].columns)))
-        else:
-            print('   {:25s}: {:10s}'.format(k, str(mcfg[k])))
-    print('=' * 120 + '\n')
-
-    result = run(
-        name=mcfg['model_name'],
-        df=mcfg['df'],
-        cols=mcfg['cols'],
-        raw_score_min=mcfg['raw_score_min'],
-        raw_score_max=mcfg['raw_score_max'],
-        mode_section_point_ratio_prox=mcfg['mode_section_point_ratio_prox'],
-        mode_section_point_ratio_cumu=mcfg['mode_section_point_ratio_cumu'],
-        mode_score_sort_order=mcfg['mode_score_sort_order'],
-        mode_section_point_first=mcfg['mode_section_point_first'],
-        mode_section_point_start=mcfg['mode_section_point_start'],
-        mode_section_point_last=mcfg['mode_section_point_last'],
-        mode_section_degraded=mcfg['mode_section_degraded'],
-        mode_section_lost=mcfg['mode_section_lost'],
-        logname=mcfg['logname'],
-        logdisp=mcfg['logdisp'],
-        logfile=mcfg['logfile'],
-        loglevel=mcfg['loglevel'],
-        saveresult=mcfg['saveresult'],
-        out_score_decimals=mcfg['out_score_decimals'],
-        tiny_value=mcfg['tiny_value'],
-        verify=mcfg['verify'],
-        )
-
-    if not result:
-        print('run fail: result is None!')
-        # return mcfg
-
-    return result
+from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __models
+__stm_modules = [__slib, __stm1, __stm2, __models]
 
 
 def run(
+        configfile=None,
         name='shandong',
         df=None,
         cols=(),
@@ -144,22 +65,28 @@ def run(
         logdisp=True,
         logfile=False,
         loglevel='info',
-        saveresult=True,
+        logdata=True,
         verify=False,
-        raw_score_min=0,
-        raw_score_max=100,
-        out_score_decimals=0,
-        tiny_value=10**-12,
+        value_raw_score_min=0,
+        value_raw_score_max=100,
+        value_out_score_decimals=0,
+        value_tiny_value=10**-12,
         ):
 
     """
     ---
     基本参数：
-        model_name: str, 转换模型名称
+        configfile: str, 配置文件名称
+        name: str, 转换模型名称
         df: DataFrame, 原始分数数据
         cols: list of str, 需要转换的原始分数列（字段）
+        注： 如果配置了configfile，则优先使用配置文件的选项进行计算，否则使用其他参数的设置进行计算
     ---
     算法策略参数：
+          mode_score_sort_order: 分数排序方式 score sort method: descending or ascending
+                      'd': 降序方式排序，从高分数开始计算
+                      'a': 升序方式排序，从低分数开始计算
+
           mode_section_point_ratio_prox: the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
               'upper_min': 小于该比例值的分值中最大的值   get score with min value in bigger percentile
@@ -167,21 +94,17 @@ def run(
                'near_min': 最接近该比例值的分值中最小的值 get score with min value in near percentile
                'near_max': 最接近该比例值的分值中最大的值 get score with max value in near percentile
 
-          mode_score_sort_order: 分数排序方式 score sort method: descending or ascending
-                      'd': 降序方式排序，从高分数开始计算
-                      'a': 升序方式排序，从低分数开始计算
-
           mode_section_point_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
                     'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
                      'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
           mode_section_point_first: 区间的第一个点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
-                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+                         'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
           mode_section_point_first: 区间的第一个点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
-                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+                         'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
           mode_section_point_start: 区间的开始点的取值方式（第一个区间开始点使用mode_section_point_first确定）
                             'step': 取顺延值，即上一个区间的末端点值加1（descending）或减1(ascending)
@@ -189,26 +112,30 @@ def run(
 
           mode_section_point_last: 区间的末端点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
-                         'defined': 取定义值，即卷面定义的最高分raw_score_min（descending）或最低分数raw_score_max(ascending)
+                         'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
              mode_section_degraded: 区间退化处理方式
                           'to_max': 取对应输出区间的最大值
                           'to_min': 取对应输出区间的最小值
                          'to_mean': 取对应输出区间的平均值
+
+                 mode_section_lost: 区间消失处理方式
+                            'real': 按照实际出现的情况保留消失区间的位置
+                             'zip': 将消失区间推压，即移动到最后，使其他区间上移
     ---
     任务控制参数：
         logname: str, 任务名称， 用于日志文件、输出数据文件的前缀
         logdisp: bool, 是否显示计算运行结果
         logfile: bool, 是否将计算运行结果写入日志文件
         loglevel: str, 输出结果的等级：'debug', 'info'
-        saveresult: bool, 是否将计算结果写入文件，包括转换输出分数(df_outscore)、转换映射表(df_maptable)
+        logdata: bool, 是否将计算结果写入文件，包括转换输出分数(df_outscore)、转换映射表(df_maptable)
         verify: bool, 是否使用算法验证，即使用两种计算算法对计算结果进行验证
         ---
         分值数值与计算精度：
-        raw_score_min: int, 原始分数的最小值
-        raw_score_max: int, 原始分数的最大值
-        out_score_decimals: int, 输出分数的小数位数
-        tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
+        value_raw_score_min: int, 原始分数的最小值
+        value_raw_score_max: int, 原始分数的最大值
+        value_out_score_decimals: int, 输出分数的小数位数
+        value_tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
     ---
     函数返回值
     返回值为含有三个带有名称（ok, r1, r2）的元素的元组  namedtuple(ok, r1, r2)
@@ -232,14 +159,43 @@ def run(
     ---
     """
 
-    # raw_score_range = (raw_score_min, raw_score_max)
+    result = __namedtuple('Result', ['ok', 'r1', 'r2'])
 
-    if not logname:
+    for m in __stm_modules:
+        __pb.reload(m)
+
+    mcfg = dict()
+    if isinstance(configfile, str):
+        if __os.path.isfile(configfile):
+            mcfg = readconfig(configfile)
+        if len(mcfg) > 0:
+            name=mcfg['model_name']
+            df=mcfg['df']
+            cols=mcfg['cols']
+            value_raw_score_min=mcfg['value_raw_score_min']
+            value_raw_score_max=mcfg['value_raw_score_max']
+            mode_section_point_ratio_prox=mcfg['mode_section_point_ratio_prox']
+            mode_section_point_ratio_cumu=mcfg['mode_section_point_ratio_cumu']
+            mode_score_sort_order=mcfg['mode_score_sort_order']
+            mode_section_point_first=mcfg['mode_section_point_first']
+            mode_section_point_start=mcfg['mode_section_point_start']
+            mode_section_point_last=mcfg['mode_section_point_last']
+            mode_section_degraded=mcfg['mode_section_degraded']
+            mode_section_lost=mcfg['mode_section_lost']
+            logname=mcfg['logname']
+            logdisp=mcfg['logdisp']
+            logfile=mcfg['logfile']
+            loglevel=mcfg['loglevel']
+            logdata=mcfg['logdata']
+            value_out_score_decimals=mcfg['value_out_score_decimals']
+            value_tiny_value=mcfg['value_tiny_value']
+            verify=mcfg['verify']
+
+    if not isinstance(logname, str):
         task = 'stm'
     else:
         task = logname
-
-    result = __namedtuple('Result', ['ok', 'r1', 'r2'])
+    print(task)
 
     stmlogger = __slib.get_logger(name, logname=task)
     stmlogger.set_level(loglevel)
@@ -252,6 +208,18 @@ def run(
     stmlogger.loginfo('\n*** running begin ***')
     stmlogger.loginfo_start('task:' + task + ' model:' + name + stm_no)
 
+    # log mcfg reading messages
+    stmlogger.loginfo('read config in {}'.format(configfile) + '\n' + '-' * 120)
+    key_list = list(mcfg.keys())
+    for i, k in enumerate(key_list):
+        if k == 'df':
+            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k].columns))
+        else:
+            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
+        if i == len(key_list)-1:
+                logstr += '\n' + '-' * 120
+        stmlogger.loginfo(logstr)
+
     if not __slib.Checker.check_run(
             model_name=name,
             df=df,
@@ -263,23 +231,23 @@ def run(
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            raw_score_range=(raw_score_min, raw_score_max),
-            out_score_decimal_digits=out_score_decimals,
+            raw_score_range=(value_raw_score_min, value_raw_score_max),
+            out_score_decimal_digits=value_out_score_decimals,
             logger=stmlogger,
-            models=__mdset,
+            models=__models,
             ):
         stmlogger.loginfo_end('task:' + task + ' model:' + name + stm_no)
         return result(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = __mdset.Models[name].type
+    model_type = __models.Models[name].type
     # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
         m1 = run1(
             name=name,
             df=df,
             cols=cols,
-            raw_score_range=(raw_score_min, raw_score_max),
+            raw_score_range=(value_raw_score_min, value_raw_score_max),
             mode_section_point_ratio_prox=mode_section_point_ratio_prox,
             mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
             mode_score_sort_order=mode_score_sort_order,
@@ -288,8 +256,8 @@ def run(
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
-            out_score_decimals=out_score_decimals,
-            tiny_value=tiny_value,
+            value_out_score_decimals=value_out_score_decimals,
+            value_tiny_value=value_tiny_value,
             logger=stmlogger,
             )
         r = result(True, m1, None)
@@ -299,8 +267,8 @@ def run(
                 name=name,
                 df=df,
                 cols=cols,
-                raw_score_min=raw_score_min,
-                raw_score_max=raw_score_max,
+                value_raw_score_min=value_raw_score_min,
+                value_raw_score_max=value_raw_score_max,
                 mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                 mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
                 mode_score_sort_order=mode_score_sort_order,
@@ -309,8 +277,8 @@ def run(
                 mode_section_point_last=mode_section_point_last,
                 mode_section_degraded=mode_section_degraded,
                 mode_section_lost=mode_section_lost,
-                out_score_decimals=out_score_decimals,
-                tiny_value=tiny_value,
+                value_out_score_decimals=value_out_score_decimals,
+                value_tiny_value=value_tiny_value,
                 logger=stmlogger,
                 )
             for col in cols:
@@ -336,8 +304,8 @@ def run(
                   name=name,
                   df=df,
                   cols=cols,
-                  raw_score_min=raw_score_min,
-                  raw_score_max=raw_score_max,
+                  value_raw_score_min=value_raw_score_min,
+                  value_raw_score_max=value_raw_score_max,
                   mode_section_point_ratio_prox=mode_section_point_ratio_prox,
                   mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
                   mode_score_sort_order=mode_score_sort_order,
@@ -345,8 +313,8 @@ def run(
                   mode_section_point_start=mode_section_point_start,
                   mode_section_point_last=mode_section_point_last,
                   mode_section_degraded=mode_section_degraded,
-                  out_score_decimals=out_score_decimals,
-                  tiny_value=tiny_value,
+                  value_out_score_decimals=value_out_score_decimals,
+                  value_tiny_value=value_tiny_value,
                   logger=stmlogger,
                   )
         r = result(True, None, m2)
@@ -362,7 +330,7 @@ def run(
         else:
             dfscore = r.r2.outdf
             dfmaptable = r.r2.maptable
-        if saveresult:
+        if logdata:
             dfscore.to_csv(save_dfscore_name, index=False)
             dfmaptable.to_csv(save_dfmap_name, index=False)
         stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
@@ -387,18 +355,18 @@ def run1(
         mode_section_degraded='to_max',
         mode_section_lost='real',
         raw_score_range=(0, 100),
-        out_score_decimals=0,
-        tiny_value=10 ** -12,
+        value_out_score_decimals=0,
+        value_tiny_value=10 ** -12,
         logger=None,
         ):
 
-    ratio_tuple = tuple(x * 0.01 for x in __mdset.Models[name].ratio)
-    model_type = __mdset.Models[name].type
+    ratio_tuple = tuple(x * 0.01 for x in __models.Models[name].ratio)
+    model_type = __models.Models[name].type
     m = __stm1.PltScore(name, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio=ratio_tuple,
-        out_score_section=__mdset.Models[name].section,
+        out_score_section=__models.Models[name].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_section_point_ratio_prox=mode_section_point_ratio_prox,
@@ -409,8 +377,8 @@ def run1(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_decimal_digits=out_score_decimals,
-        tiny_value=tiny_value,
+        value_out_score_decimals=value_out_score_decimals,
+        value_tiny_value=value_tiny_value,
         logger=logger,
         )
     m.run()
@@ -431,11 +399,11 @@ def run2(
         mode_section_point_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
-        raw_score_min=0,
-        raw_score_max=100,
+        value_raw_score_min=0,
+        value_raw_score_max=100,
         raw_score_step=1,
-        out_score_decimals=0,
-        tiny_value=10**-12,
+        value_out_score_decimals=0,
+        value_tiny_value=10**-12,
         logger=None,
         ):
     """
@@ -454,22 +422,22 @@ def run2(
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
-            raw_score_range=(raw_score_min, raw_score_max),
-            out_score_decimal_digits=out_score_decimals,
+            raw_score_range=(value_raw_score_min, value_raw_score_max),
+            out_score_decimal_digits=value_out_score_decimals,
             logger=logger,
-            models=__mdset,
+            models=__models,
             ):
         return None
 
-    model = __mdset.Models[name]
+    model = __models.Models[name]
     return __stm2.ModelAlgorithm.get_stm_score(
         df=df,
         cols=cols,
         model_ratio_pdf=model.ratio,
         model_section=model.section,
         model_type=model.type.lower(),
-        raw_score_max=raw_score_max,
-        raw_score_min=raw_score_min,
+        value_raw_score_max=value_raw_score_max,
+        value_raw_score_min=value_raw_score_min,
         raw_score_step=raw_score_step,
         mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
         mode_section_point_ratio_prox=mode_section_point_ratio_prox,
@@ -479,8 +447,8 @@ def run2(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimals=out_score_decimals,
-        tiny_value=tiny_value,
+        value_out_score_decimals=value_out_score_decimals,
+        value_tiny_value=value_tiny_value,
         logger=logger,
         )
 # end run2
@@ -493,8 +461,8 @@ def run2p(
         model_type=None,
         model_ratio_pdf=None,
         model_section=None,
-        raw_score_max=100,
-        raw_score_min=0,
+        value_raw_score_max=100,
+        value_raw_score_min=0,
         raw_score_step=1,
         mode_section_point_ratio_cumu='no',
         mode_section_point_ratio_prox='upper_min',
@@ -514,8 +482,8 @@ def run2p(
     :param model_type:
     :param model_ratio_pdf:
     :param model_section:
-    :param raw_score_max:
-    :param raw_score_min:
+    :param value_raw_score_max:
+    :param value_raw_score_min:
     :param raw_score_step:
     :param mode_section_point_ratio_cumu:
     :param mode_section_point_ratio_prox:
@@ -542,7 +510,7 @@ def run2p(
     if not __slib.Checker.check_df_cols(
                                 df=df,
                                 cols=cols,
-                                raw_score_range=(raw_score_min, raw_score_max),
+                                raw_score_range=(value_raw_score_min, value_raw_score_max),
                                 logger=logger,
                                 ):
         return None
@@ -558,7 +526,7 @@ def run2p(
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             logger=logger,
-            models=__mdset
+            models=__models
             ):
         return None
 
@@ -568,8 +536,8 @@ def run2p(
         model_ratio_pdf=model_ratio_pdf,
         model_section=model_section,
         model_type=model_type,
-        raw_score_max=raw_score_max,
-        raw_score_min=raw_score_min,
+        value_raw_score_max=value_raw_score_max,
+        value_raw_score_min=value_raw_score_min,
         raw_score_step=raw_score_step,
         mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
         mode_section_point_ratio_prox=mode_section_point_ratio_prox,
@@ -579,7 +547,7 @@ def run2p(
         mode_section_point_last=mode_section_point_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
-        out_score_decimals=out_score_decimal_digits,
+        value_out_score_decimals=out_score_decimal_digits,
         logger=logger,
         )
 # end--run2p
@@ -598,15 +566,15 @@ def testdata(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
 
 def showmodels(name=None):
     if isinstance(name, str):
-        if name in __mdset.Models:
-            v = __mdset.Models[name]
+        if name in __models.Models:
+            v = __models.Models[name]
             print('{:<15s} {},  {} '.format(name, v.type, v.desc))
             print('{:<15s} {}'.format(' ', v.ratio))
             print('{:<15s} {}'.format('', v.section))
         return
 
-    for k in __mdset.Models:
-        v = __mdset.Models[k]
+    for k in __models.Models:
+        v = __models.Models[k]
         print('{:<15s} {},  {} '.format(k, v.type, v.desc))
         print('{:<15s} {}'.format(' ', v.ratio))
         print('{:<15s} {}'.format('', v.section))
@@ -633,10 +601,10 @@ def plotmodels(font_size=12):
             x_data = [x for x in range(26, 100, 10)]
             _wid = 8
         elif k in ['guangdong']:
-            x_data = [__np.mean(x) for x in __mdset.Models[k].section][::-1]
+            x_data = [__np.mean(x) for x in __models.Models[k].section][::-1]
             _wid = 10
         elif k in ['p7']:
-            x_data = [__np.mean(x) for x in __mdset.Models[k].section][::-1]
+            x_data = [__np.mean(x) for x in __models.Models[k].section][::-1]
             _wid = 10
         elif k in ['h900']:
             x_data = [x for x in range(100, 901)]
@@ -646,14 +614,14 @@ def plotmodels(font_size=12):
             _wid = 1
         else:
             raise ValueError(k)
-        plot.bar(x_data, __mdset.Models[k].ratio[::-1], width=_wid)
+        plot.bar(x_data, __models.Models[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
 
 
 def __model_describe(name='shandong'):
     import scipy.stats as sts
-    __ratio = __mdset.Models[name].ratio
-    __section = __mdset.Models[name].section
+    __ratio = __models.Models[name].ratio
+    __section = __models.Models[name].section
     if name == 'h900':
         __mean, __std, __skewness = 500, 100, 0
     elif name == 'h300':
@@ -663,3 +631,74 @@ def __model_describe(name='shandong'):
         [samples.extend([__np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__section)]
         __mean, __std, __skewness = __np.mean(samples), __np.std(samples), sts.skew(__np.array(samples))
     return __mean, __std, __skewness
+
+
+def readconfig(filename='stm.conf'):
+
+    if not __os.path.isfile(filename):
+        print('conf file: {} not found!'.format(filename))
+        return False
+
+    config_read = __slib.read_config_file(filename)
+    if config_read:
+        mcfg = config_read
+    else:
+        print('read config file {} fail!'.format(filename))
+        return False
+
+    # use new model when no model defined, that is in modelset
+    if not mcfg['model_in_check']:
+        # new model in config-file
+        if mcfg['model_new_check']:
+            mcfg.update({'model_name': mcfg['model_new_name']})
+            __models.Models.update(
+                {mcfg['model_name']: __models.ModelFields(
+                    mcfg['model_new_type'],
+                    mcfg['model_new_ratio'],
+                    mcfg['model_new_section'],
+                    mcfg['model_new_desc']
+                )}
+            )
+            print('new model [{}] check-in!'.format(mcfg['model_new_name']))
+        # no model can be used
+        else:
+            print('new model check-in fail! no model can be used!')
+            return False
+
+    if mcfg['df'] is None:
+        print('no data file assigned!')
+        return False
+    if mcfg['cols'] is None:
+        print('no data columns assigned!')
+        return False
+
+    return mcfg
+    # result = run(
+    #     name=mcfg['model_name'],
+    #     df=mcfg['df'],
+    #     cols=mcfg['cols'],
+    #     value_raw_score_min=mcfg['value_raw_score_min'],
+    #     value_raw_score_max=mcfg['value_raw_score_max'],
+    #     mode_section_point_ratio_prox=mcfg['mode_section_point_ratio_prox'],
+    #     mode_section_point_ratio_cumu=mcfg['mode_section_point_ratio_cumu'],
+    #     mode_score_sort_order=mcfg['mode_score_sort_order'],
+    #     mode_section_point_first=mcfg['mode_section_point_first'],
+    #     mode_section_point_start=mcfg['mode_section_point_start'],
+    #     mode_section_point_last=mcfg['mode_section_point_last'],
+    #     mode_section_degraded=mcfg['mode_section_degraded'],
+    #     mode_section_lost=mcfg['mode_section_lost'],
+    #     logname=mcfg['logname'],
+    #     logdisp=mcfg['logdisp'],
+    #     logfile=mcfg['logfile'],
+    #     loglevel=mcfg['loglevel'],
+    #     logdata=mcfg['logdata'],
+    #     value_out_score_decimals=mcfg['value_out_score_decimals'],
+    #     value_tiny_value=mcfg['value_tiny_value'],
+    #     verify=mcfg['verify'],
+    #     )
+    #
+    # if not result:
+    #     print('run fail: result is None!')
+    #     # return mcfg
+    #
+    # return result

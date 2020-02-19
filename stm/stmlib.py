@@ -661,7 +661,7 @@ def isfilestr(fstr):
             return True
     return False
 
-def read_conf(conf_name):
+def read_config_file(conf_name):
     mcfg = dict()
     cfper = dict()
 
@@ -708,7 +708,7 @@ def read_conf(conf_name):
         df = None
         if 'df' in cfper['data']:
             dffile = remove_annotation(cfper['data']['df'])
-            mcfg.update({'dffile': dffile})
+            mcfg.update({'datafile': dffile})
             if os.path.isfile(dffile):
                 try:
                     df = pd.read_csv(dffile)
@@ -716,7 +716,7 @@ def read_conf(conf_name):
                 except:
                     print('data read error!')
             else:
-                print('invalid file name: {}'.format(dffile))
+                print('invalid data file name: df = {}'.format(dffile))
         else:
             print('no df in config file!')
         mcfg.update({'df': df})
@@ -736,25 +736,25 @@ def read_conf(conf_name):
         for _para in cfper['value']:
             mcfg.update({_para: remove_annotation(cfper['value'][_para])})
 
-        if 'raw_score_min' in mcfg.keys():
-            mcfg['raw_score_min'] = int(mcfg['raw_score_min'])
+        if 'value_raw_score_min' in mcfg.keys():
+            mcfg['value_raw_score_min'] = int(mcfg['value_raw_score_min'])
         else:
-            mcfg.update({'raw_score_min': 0})
+            mcfg.update({'value_raw_score_min': 0})
 
-        if 'raw_score_max' in mcfg.keys():
-            mcfg['raw_score_max'] = int(mcfg['raw_score_max'])
+        if 'value_raw_score_max' in mcfg.keys():
+            mcfg['value_raw_score_max'] = int(mcfg['value_raw_score_max'])
         else:
-            mcfg.update({'raw_score_max': 100})
+            mcfg.update({'value_raw_score_max': 100})
 
-        if 'out_score_decimals' in mcfg.keys():
-            mcfg['out_score_decimals'] = int(mcfg['out_score_decimals'])
+        if 'value_out_score_decimals' in mcfg.keys():
+            mcfg['value_out_score_decimals'] = int(mcfg['value_out_score_decimals'])
         else:
-            mcfg.update({'out_score_decimals': 0})
+            mcfg.update({'value_out_score_decimals': 0})
 
-        if 'tiny_value' in mcfg.keys():
-            mcfg['tiny_value'] = eval(mcfg['tiny_value'])
+        if 'value_tiny_value' in mcfg.keys():
+            mcfg['value_tiny_value'] = eval(mcfg['value_tiny_value'])
         else:
-            mcfg['tiny_value'] = 10**-10
+            mcfg['value_tiny_value'] = 10**-10
 
     if 'task' in cfper.keys():
         for _para in cfper['task']:
@@ -769,10 +769,10 @@ def read_conf(conf_name):
             mcfg.update({'logname': ''})
 
         # set log para bool items
-        log_bool_list = ['logdisp', 'logfile', 'verify', 'saveresult']
+        log_bool_list = ['logdisp', 'logfile', 'verify', 'logdata']
         default_d = {'logdisp': True,
                      'logfile': False,
-                     'saveresult': False,
+                     'logdata': False,
                      'verify': False,
                      }
         for ks in log_bool_list:
@@ -836,23 +836,23 @@ def make_config_file(filename):
         logname = test                      # 任务名称，用于生成日志: logname_model_year_month_day.log
         logdisp = True                      # 是否显示计算过程信息 message to consol
         logfile = False                     # 是否将计算过程信息写入日志 message to log file
-        saveresult = False                  # 是否保存结果数据：[logname]_df_outscore/maptable_[modelname]_[time].csv
-
-        
-        [model_in]
-        name = shandong                     # 模型名称,不设置该名称，则使用 model_new 的模型设置
+        logdata = False                  # 是否保存结果数据：[logname]_df_outscore/maptable_[modelname]_[time].csv
 
         
         [data]
         df = rawscore.csv                   # 原始分数文件名, csv文件格式，第一行表示列名
         cols = km1, km2                     # 分数列名, 以逗号分隔，数值类型（整数或浮点数）
+
+        
+        [model_in]
+        name = shandong                     # 模型名称,不设置该名称，则使用 model_new 的模型设置
         
         
         [value]
-        raw_score_min = 0                   # 原始分数卷面最小值 min score for raw score
-        raw_score_max = 100                 # 原始分数卷面最大值 max score for raw score
-        out_score_decimals = 0              # 转换分数保留小数位 decimal digits for out score
-        tiny_value = 10**-12                # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_raw_score_min = 0                   # 原始分数卷面最小值 min score for raw score
+        value_raw_score_max = 100                 # 原始分数卷面最大值 max score for raw score
+        value_out_score_decimals = 0              # 转换分数保留小数位 decimal digits for out score
+        value_tiny_value = 10**-12                # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]

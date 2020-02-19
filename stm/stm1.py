@@ -70,7 +70,7 @@ class ScoreTransformModel(abc.ABC):
         self.raw_score_defined_min = None
         self.raw_score_defined_max = None
 
-        self.out_decimal_digits = 0
+        self.value_out_score_decimals = 0
         self.out_report_doc = ''
 
     @abc.abstractmethod
@@ -268,7 +268,7 @@ class PltScore(ScoreTransformModel):
         # new properties
         self.raw_score_ratio_cum = []
         self.out_score_section = []
-        self.out_decimal_digits = 0
+        self.value_out_score_decimals = 0
         self.out_score_max = None
         self.out_score_min = None
         self.raw_score_real_max = None
@@ -284,7 +284,7 @@ class PltScore(ScoreTransformModel):
         self.logger=None
 
         # calc precision
-        self.tiny_value = 10**-8
+        self.value_tiny_value = 10**-8
 
         # result
         self.maptable = pd.DataFrame()
@@ -339,15 +339,15 @@ class PltScore(ScoreTransformModel):
                  mode_section_lost='real',
                  mode_score_zero='real',
                  # mode_seg_end_share='no',
-                 out_decimal_digits=None,
+                 value_out_score_decimals=None,
                  display=True,
-                 tiny_value=10**-8,
+                 value_tiny_value=10**-8,
                  logger=None
                  ):
         if isinstance(display, bool):
             self.display=display
 
-        self.out_decimal_digits = out_decimal_digits
+        self.value_out_score_decimals = value_out_score_decimals
 
         if mode_score_sort_order in ['descending', 'd']:
             raw_p = raw_score_ratio
@@ -370,7 +370,7 @@ class PltScore(ScoreTransformModel):
         self.strategy_dict['mode_section_lost'] = mode_section_lost
         # self.strategy_dict['mode_score_zero'] = mode_score_zero
 
-        self.tiny_value = tiny_value
+        self.value_tiny_value = value_tiny_value
         self.logger = logger
 
     def loginfo(self, ms):
@@ -518,15 +518,15 @@ class PltScore(ScoreTransformModel):
                 # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
                 if c == 0:
                     if self.strategy_dict['mode_section_degraded'] == 'to_max':
-                        return slib.round45r(max(cf[2]), self.out_decimal_digits)
+                        return slib.round45r(max(cf[2]), self.value_out_score_decimals)
                     elif self.strategy_dict['mode_section_degraded'] == 'to_min':
-                        return slib.round45r(min(cf[2]), self.out_decimal_digits)
+                        return slib.round45r(min(cf[2]), self.value_out_score_decimals)
                     elif self.strategy_dict['mode_section_degraded'] == 'to_mean':
                         return slib.round45r(np.mean(cf[2]))
                     else:
                         # invalid mode
                         return None
-                return slib.round45r((a * x + b) / c, self.out_decimal_digits)
+                return slib.round45r((a * x + b) / c, self.value_out_score_decimals)
         # raw score not in coeff[1]
         return -1000
 
@@ -539,7 +539,7 @@ class PltScore(ScoreTransformModel):
         self.maptable.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
-        tiny_value = self.tiny_value     # used to judge zero(s==0) or equality(s1==s2)
+        value_tiny_value = self.value_tiny_value     # used to judge zero(s==0) or equality(s1==s2)
 
         _mode_sort = self.strategy_dict['mode_score_sort_order']
 
@@ -572,7 +572,7 @@ class PltScore(ScoreTransformModel):
                 if _mode_ppt_score_max == 'defined':
                     y = self.out_score_real_max
             if y is not None:
-                row[col + '_ts'] = slib.round45r(y, self.out_decimal_digits)
+                row[col + '_ts'] = slib.round45r(y, self.value_out_score_decimals)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
                 continue
@@ -580,8 +580,8 @@ class PltScore(ScoreTransformModel):
             # loop: seeking ratio by percent to set out score
             for si, sr in enumerate(self.raw_score_ratio_cum):
                 # sr == _p or sr > _p
-                if (abs(sr - _p) < tiny_value) or (sr > _p):
-                    if (abs(_p - sr) < tiny_value) or (si == 0):
+                if (abs(sr - _p) < value_tiny_value) or (sr > _p):
+                    if (abs(_p - sr) < value_tiny_value) or (si == 0):
                         y = _start_score + si*_step
                     elif _mode_prox == 'upper_min':
                         y = _start_score + si*_step
@@ -607,7 +607,7 @@ class PltScore(ScoreTransformModel):
                     break
             if y is not None:
                 # self.logger.loginfo('-1', row[col+'_ts'])
-                row[col+'_ts'] = slib.round45r(y, self.out_decimal_digits)
+                row[col+'_ts'] = slib.round45r(y, self.value_out_score_decimals)
                 # self.logger.loginfo('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
@@ -855,7 +855,7 @@ class PltScore(ScoreTransformModel):
 
         _mode_prox = self.strategy_dict['mode_section_point_ratio_prox']
         _top_index = self.maptable.index.max()
-        _tiny = self.tiny_value
+        _tiny = self.value_tiny_value
 
         _seg = -1
         _percent = -1
@@ -973,7 +973,7 @@ class PltScore(ScoreTransformModel):
         # calculating for ratio and segment
         _out_report_doc += '< running result >\n'
         plist = self.raw_score_ratio_cum
-        if self.out_decimal_digits == 0:
+        if self.value_out_score_decimals == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
                 format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
             _out_report_doc += '           dest ratio: [{}]\n'.\
@@ -993,7 +993,7 @@ class PltScore(ScoreTransformModel):
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
-        if self.out_decimal_digits == 0:
+        if self.value_out_score_decimals == 0:
             _out_report_doc += '              section: [{}]\n'.\
                 format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
         else:
@@ -1002,7 +1002,7 @@ class PltScore(ScoreTransformModel):
 
         # get out segment from result_dict[]['coeff']
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
-        if self.out_decimal_digits > 0:
+        if self.value_out_score_decimals > 0:
             _out_report_doc += '  out  score  section: [{}]\n'.\
                 format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
         else:
