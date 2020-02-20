@@ -50,6 +50,7 @@ __stm_modules = [__slib, __stm1, __stm2, __models]
 
 def run(
         configfile=None,
+        newconfigfile=None,
         name='shandong',
         df=None,
         cols=(),
@@ -159,6 +160,15 @@ def run(
     ---
     """
 
+    # create new config file
+    if isinstance(newconfigfile, str):
+        if not ('{' in newconfigfile):
+            make_config_file(newconfigfile)
+            return True
+        else:
+            return False
+
+    # calculation for converting score
     result = __namedtuple('Result', ['ok', 'r1', 'r2'])
 
     for m in __stm_modules:
@@ -167,7 +177,7 @@ def run(
     mcfg = dict()
     if isinstance(configfile, str):
         if __os.path.isfile(configfile):
-            mcfg = readconfig(configfile)
+            mcfg = __read_config(configfile)
         if len(mcfg) > 0:
             name = mcfg['model_name']
             df = mcfg['df']
@@ -217,7 +227,7 @@ def run(
         else:
             logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
         if i == len(key_list)-1:
-                logstr += '\n' + '-' * 120
+            logstr += '\n' + '-' * 120
         stmlogger.loginfo(logstr)
 
     if not __slib.Checker.check_run(
@@ -243,7 +253,7 @@ def run(
     model_type = __models.Models[name].type
     # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
-        m1 = run1(
+        m1 = __run1(
             name=name,
             df=df,
             cols=cols,
@@ -263,7 +273,7 @@ def run(
         r = result(True, m1, None)
         if verify:
             verify_pass = True
-            m2 = run2(
+            m2 = __run2(
                 name=name,
                 df=df,
                 cols=cols,
@@ -300,7 +310,7 @@ def run(
     # 'pgt': call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
-        m2 = run2(
+        m2 = __run2(
                   name=name,
                   df=df,
                   cols=cols,
@@ -342,7 +352,7 @@ def run(
 # end run
 
 
-def run1(
+def __run1(
         name='shandong',
         df=None,
         cols=(),
@@ -387,7 +397,7 @@ def run1(
 
 
 # get stm score by calling stmlib2.ModelAlgorithm
-def run2(
+def __run2(
         name='shandong',
         df=None,
         cols=(),
@@ -455,7 +465,7 @@ def run2(
 
 
 # calc stm score by calling methods in stmlib2.ModelAlgorithm
-def run2p(
+def __run2p(
         df,
         cols,
         model_type=None,
@@ -553,18 +563,18 @@ def run2p(
 # end--run2p
 
 
-def newconfig(confname='stm_test.cf'):
+def make_config_file(confname='stm_test.cf'):
     if __slib.isfilestr(confname):
         __slib.make_config_file(confname)
     else:
         print('invalid file name!')
 
 
-def testdata(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
+def test_data(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
     return __slib.TestData(mu, std, size, max=maxvalue, min=minvalue, decimals=decimals)()
 
 
-def showmodels(name=None):
+def models_show(name=None):
     if isinstance(name, str):
         if name in __models.Models:
             v = __models.Models[name]
@@ -580,9 +590,9 @@ def showmodels(name=None):
         print('{:<15s} {}'.format('', v.section))
 
 
-def plotmodels(font_size=12):
+def models_hist(font_size=12):
     import matplotlib.pyplot as plot
-    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'h900']
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'b900']
 
     ms_dict = dict()
     for _name in _names:
@@ -606,10 +616,10 @@ def plotmodels(font_size=12):
         elif k in ['p7']:
             x_data = [__np.mean(x) for x in __models.Models[k].section][::-1]
             _wid = 10
-        elif k in ['h900']:
+        elif k in ['b900']:
             x_data = [x for x in range(100, 901)]
             _wid = 1
-        elif k in ['h300']:
+        elif k in ['b300']:
             x_data = [x for x in range(60, 301)]
             _wid = 1
         else:
@@ -622,9 +632,9 @@ def __model_describe(name='shandong'):
     import scipy.stats as sts
     __ratio = __models.Models[name].ratio
     __section = __models.Models[name].section
-    if name == 'h900':
+    if name == 'b900':
         __mean, __std, __skewness = 500, 100, 0
-    elif name == 'h300':
+    elif name == 'b300':
         __mean, __std, __skewness = 180, 30, 0
     else:
         samples = []
@@ -633,7 +643,7 @@ def __model_describe(name='shandong'):
     return __mean, __std, __skewness
 
 
-def readconfig(filename='stm.conf'):
+def __read_config(filename='stm.conf'):
 
     if not __os.path.isfile(filename):
         print('conf file: {} not found!'.format(filename))
@@ -673,32 +683,3 @@ def readconfig(filename='stm.conf'):
         return False
 
     return mcfg
-    # result = run(
-    #     name=mcfg['model_name'],
-    #     df=mcfg['df'],
-    #     cols=mcfg['cols'],
-    #     value_raw_score_min=mcfg['value_raw_score_min'],
-    #     value_raw_score_max=mcfg['value_raw_score_max'],
-    #     mode_section_point_ratio_prox=mcfg['mode_section_point_ratio_prox'],
-    #     mode_section_point_ratio_cumu=mcfg['mode_section_point_ratio_cumu'],
-    #     mode_score_sort_order=mcfg['mode_score_sort_order'],
-    #     mode_section_point_first=mcfg['mode_section_point_first'],
-    #     mode_section_point_start=mcfg['mode_section_point_start'],
-    #     mode_section_point_last=mcfg['mode_section_point_last'],
-    #     mode_section_degraded=mcfg['mode_section_degraded'],
-    #     mode_section_lost=mcfg['mode_section_lost'],
-    #     logname=mcfg['logname'],
-    #     logdisp=mcfg['logdisp'],
-    #     logfile=mcfg['logfile'],
-    #     loglevel=mcfg['loglevel'],
-    #     logdata=mcfg['logdata'],
-    #     value_out_score_decimals=mcfg['value_out_score_decimals'],
-    #     value_tiny_value=mcfg['value_tiny_value'],
-    #     verify=mcfg['verify'],
-    #     )
-    #
-    # if not result:
-    #     print('run fail: result is None!')
-    #     # return mcfg
-    #
-    # return result
