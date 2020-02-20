@@ -247,7 +247,7 @@ def run(
             models=__models,
             ):
         stmlogger.loginfo_end('task:' + task + ' model:' + model + stm_no)
-        return result_namedtuple(False, None, None)
+        return None
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     model_type = __models.Models[model].type
@@ -402,8 +402,8 @@ def __run1(
     if debug:
         return m
     else:
-        result = __namedtuple('Result', ['outdf', 'maptable', 'plot'])
-        return result(m.outdf, m.maptable, m.plot)
+        result = __namedtuple('Result', ['outdf', 'maptable', 'plot', 'formula'])
+        return result(m.outdf, m.maptable, m.plot, m.result_dict)
 # end run1
 
 

@@ -1317,9 +1317,9 @@ def plot_diff(maptable, cols, model_name=''):
         plot.show()
 
 
-def plot_rawscore_bar_count(df,
-                            maptable,
+def plot_rawscore_bar_count(
                             cols,
+                            maptable,
                             mode_order='d',
                             model_name='',
                             raw_score_max=100,
@@ -1377,3 +1377,80 @@ def plot_rawscore_bar_count(df,
         fig.tight_layout()
         plot.show()
 
+
+def plot_model(
+               cols,
+               raw_section=(),
+               out_section=(),
+               mode_order='d',
+               down_line=True,
+               ):
+    """
+    显示分段线性转换模型
+    """
+
+    plot.rcParams['font.sans-serif'] = ['SimHei']
+    plot.rcParams.update({'font.size': 8})
+
+    # calculate formula
+    formula_list = []
+    for x, y in zip(raw_section, out_section):
+        print(x, y)
+        d = x[1] - x[0]
+        if d != 0:
+            a = (y[1] - y[0]) / d                   # (y2 - y1) / (x2 - x1)
+            b = (y[0] * x[1] - y[1] * x[0]) / d     # (y1x2 - y2x1) / (x2 - x1)
+        else:
+            a = 0
+            b = max(y)                              # mode_section_degraded == 'to_max'
+        formula_list.append([(a, b), x, y])
+
+    for i, col in enumerate(cols):
+        in_min, in_max = min(min(raw_section, key=min)), max(max(raw_section, key=max))
+        out_min, out_max = min(min(out_section, key=max)), max(max(out_section, key=max))
+
+        plot.figure(col)
+        plot.rcParams.update({'font.size': 10})
+        plot.title(u'转换模型({})'.format(col))
+        plot.xlim(in_min, in_max)
+        plot.ylim(out_min, out_max)
+        plot.xlabel(u'\n\n原始分数')
+        plot.ylabel(u'转换分数')
+        plot.xticks([])
+        plot.yticks([])
+
+        # formula = result_dict[col]['coeff']
+        # segment map function graph
+        for cfi, cf in enumerate(formula_list):
+            # cf: (a, b), (x1, x2), (y1, y2)
+            _score_order = mode_order
+            x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
+            y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
+            plot.plot(x, y, linewidth=2)
+
+            # line from endpoint to axis
+            for j in [0, 1]:
+                # h-line: (x[j], 0) -- (x[j], y[j])
+                plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=1)
+                # v-line: (0, y[j]) -- (x[j], y[j])
+                plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
+
+           # label x: raw_score
+            for j, xx in enumerate(x):
+                # move left if at end point
+                plot.text(xx-2 if j == 1 else xx, out_min-2, '{}'.format(int(xx)))
+                if x[0] == x[1]:
+                    break
+
+            # label y: out_score
+            for j, yy in enumerate(y):
+                plot.text(in_min+1, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
+                if y[0] == y[1]:
+                    break
+
+        # darw y = x for showing score shift
+        if down_line:
+            plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
+
+    plot.show()
+    return
