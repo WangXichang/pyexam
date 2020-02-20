@@ -1382,20 +1382,19 @@ def plot_model(
                cols,
                raw_section=(),
                out_section=(),
-               mode_order='d',
                down_line=True,
+               fontsize=8,
                ):
     """
     显示分段线性转换模型
     """
 
     plot.rcParams['font.sans-serif'] = ['SimHei']
-    plot.rcParams.update({'font.size': 8})
+    plot.rcParams.update({'font.size': fontsize})
 
     # calculate formula
     formula_list = []
-    for x, y in zip(raw_section, out_section):
-        print(x, y)
+    for x, y in zip(sorted(raw_section, key=max), sorted(out_section,key=max)):
         d = x[1] - x[0]
         if d != 0:
             a = (y[1] - y[0]) / d                   # (y2 - y1) / (x2 - x1)
@@ -1403,12 +1402,11 @@ def plot_model(
         else:
             a = 0
             b = max(y)                              # mode_section_degraded == 'to_max'
-        formula_list.append([(a, b), x, y])
+        formula_list.append([(a, b), sorted(x), sorted(y)])
 
+    in_min, in_max = min(min(raw_section, key=min)), max(max(raw_section, key=max))
+    out_min, out_max = min(min(out_section, key=max)), max(max(out_section, key=max))
     for i, col in enumerate(cols):
-        in_min, in_max = min(min(raw_section, key=min)), max(max(raw_section, key=max))
-        out_min, out_max = min(min(out_section, key=max)), max(max(out_section, key=max))
-
         plot.figure(col)
         plot.rcParams.update({'font.size': 10})
         plot.title(u'转换模型({})'.format(col))
@@ -1423,9 +1421,8 @@ def plot_model(
         # segment map function graph
         for cfi, cf in enumerate(formula_list):
             # cf: (a, b), (x1, x2), (y1, y2)
-            _score_order = mode_order
-            x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
-            y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
+            x = cf[1] # if _score_order in ['ascending', 'a'] else cf[1][::-1]
+            y = cf[2] # if _score_order in ['ascending', 'a'] else cf[2][::-1]
             plot.plot(x, y, linewidth=2)
 
             # line from endpoint to axis
@@ -1435,16 +1432,19 @@ def plot_model(
                 # v-line: (0, y[j]) -- (x[j], y[j])
                 plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
 
-           # label x: raw_score
+            plot.xlim([in_min, in_max])
+            plot.ylim([out_min, out_max])
+
+            # label x: raw_score
             for j, xx in enumerate(x):
                 # move left if at end point
-                plot.text(xx-2 if j == 1 else xx, out_min-2, '{}'.format(int(xx)))
-                if x[0] == x[1]:
-                    break
+                plot.text(xx-2 if j == 1 else xx, out_min, '{}'.format(int(xx)))
+                # if xx[0] == xx[1]:
+                #     break
 
             # label y: out_score
             for j, yy in enumerate(y):
-                plot.text(in_min+1, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
+                plot.text(in_min, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
                 if y[0] == y[1]:
                     break
 
