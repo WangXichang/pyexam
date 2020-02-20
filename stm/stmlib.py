@@ -14,6 +14,7 @@ from collections import namedtuple
 import logging
 from logging import handlers
 import importlib as pb
+import matplotlib.pyplot as plot
 
 
 # call SegTable.run() return instance of SegTable
@@ -1274,3 +1275,105 @@ class TestData:
 
     def __call__(self):
         return self.df
+
+
+def plot_diff(maptable, cols, model_name=''):
+    x = [int(x) for x in maptable['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
+    raw_label = [str(x) for x in maptable['seg']][::-1]
+    for f in cols:
+        df = [v if maptable.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
+        outdf = list(maptable[f + '_ts'])[::-1]
+        outdf = [out if raw > 0 else 0 for raw, out in zip(df, outdf)]
+        # fig1 = plot.figure('subject: '+f)
+        fig, ax = plot.subplots()
+        # ax.set_figure(fig1)
+        ax.set_title(model_name+'['+f+']: diffrence between raw and out')
+        ax.set_xticks(x)
+        ax.set_xticklabels(raw_label)
+        width = 0.4
+        bar_wid = [p - width/2 for p in x]
+        rects1 = ax.bar(bar_wid, df, width, label=f)
+        bar_wid = [p + width/2 for p in x]
+        rects2 = ax.bar(bar_wid, outdf, width, label=f+'_ts')
+
+        """Attach a text label above each bar in *rects*, displaying its height."""
+        for i, rects in enumerate([rects1, rects2]):
+            for rect in rects:
+                if i == 0:
+                    notes = rect.get_height()
+                else:
+                    if rect.get_height() > 0:
+                        notes = rect.get_height() - rect.get_x()
+                    else:
+                        notes = 0
+                height = rect.get_height()
+                ax.annotate('{}'.format(int(notes)),
+                            xy=(rect.get_x() + rect.get_width() / 2, height),
+                            xytext=(0, 3),  # 3 points vertical offset
+                            textcoords="offset points",
+                            ha='center', va='bottom')
+        ax.legend(loc='upper left', shadow=True, fontsize='x-large')
+        fig.tight_layout()
+        plot.show()
+
+
+def plot_rawscore_bar_count(df,
+                            maptable,
+                            cols,
+                            mode_order='d',
+                            model_name='',
+                            raw_score_max=100,
+                            hcolor='r',
+                            hwidth=6,
+                            ):
+    seg_list = maptable.seg if mode_order in ['a', 'ascending'] \
+               else reversed(maptable.seg)
+    raw_label = [str(x) for x in seg_list]
+    x_data = list(range(raw_score_max + 1))
+    for f in cols:
+        df = [maptable.query('seg=='+str(xv))[f+'_count'].values[0]
+              if xv in maptable.seg else 0
+              for xv in x_data]
+
+        fig, ax = plot.subplots()
+        # ax.set_title(self.model_name+'  [ '+f+' ]')
+        ax.set_xticks(x_data)
+        ax.set_xticklabels(raw_label)
+        width = 0.4
+        bar_wid = [p + width/2 for p in x_data]
+
+        raw_bar = ax.bar(bar_wid, df, width, label=f)
+        disp_bar = [raw_bar]
+        ax.set_title(model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
+                     format(f, df[f].mean(), df[f].std(), df[f].max()))
+
+        for bars in disp_bar:
+            make_color = 0
+            last_height = 0
+            for _bar in bars:
+                height = _bar.get_height()
+                xpos = _bar.get_x() + _bar.get_width() / 2
+                note_str = '{}'.format(int(height))
+                ypos = 0
+                if (height > 100) and abs(height - last_height) < 20:
+                    if height < last_height:
+                        ypos = -10
+                    else:
+                        ypos = +10
+                ax.annotate(note_str,
+                            xy=(xpos, height),
+                            xytext=(0, ypos),              # vertical offset
+                            textcoords="offset points",
+                            ha='center',
+                            va='bottom'
+                            )
+                if make_color == 2:
+                    yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
+                    plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
+                    make_color = 0
+                else:
+                    make_color += 1
+                last_height = height + ypos
+        fig.tight_layout()
+        plot.show()
+

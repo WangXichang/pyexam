@@ -51,7 +51,7 @@ __stm_modules = [__slib, __stm1, __stm2, __models]
 def run(
         configfile=None,
         newconfigfile=None,
-        name='shandong',
+        model='shandong',
         df=None,
         cols=(),
         mode_section_point_ratio_prox='upper_min',
@@ -77,8 +77,9 @@ def run(
     """
     ---
     基本参数：
-        configfile: str, 配置文件名称
-        name: str, 转换模型名称
+        cfg: str, 配置文件名称
+        newcfg: str, 生成新的配置文件名
+        model: str, 转换模型名称
         df: DataFrame, 原始分数数据
         cols: list of str, 需要转换的原始分数列（字段）
         注： 如果配置了configfile，则优先使用配置文件的选项进行计算，否则使用其他参数的设置进行计算
@@ -131,16 +132,16 @@ def run(
         loglevel: str, 输出结果的等级：'debug', 'info'
         logdata: bool, 是否将计算结果写入文件，包括转换输出分数(df_outscore)、转换映射表(df_maptable)
         verify: bool, 是否使用算法验证，即使用两种计算算法对计算结果进行验证
-        ---
-        分值数值与计算精度：
+    ---
+    分值数值与计算精度：
         value_raw_score_min: int, 原始分数的最小值
         value_raw_score_max: int, 原始分数的最大值
         value_out_score_decimals: int, 输出分数的小数位数
         value_tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
     ---
-    函数返回值
-    返回值为含有三个带有名称（ok, r1, r2）的元素的元组  namedtuple(ok, r1, r2)
-      (1) ok: bool, 计算是否成功 successful or not
+    返回值
+    返回结果为名称元组：（ok, r1, r2）
+      (1) ok: bool, 计算是（True）否（False）成功， successful（True） or not(False)
       (2) r1: 主算法的计算结果
               模块stm1中类PltScore的实例
               主要数据结果是PltScore.outdf, PltScore.maptable
@@ -169,7 +170,7 @@ def run(
             return False
 
     # calculation for converting score
-    result = __namedtuple('Result', ['ok', 'r1', 'r2'])
+    result_namedtuple = __namedtuple('Result', ['ok', 'r1', 'r2'])
 
     for m in __stm_modules:
         __pb.reload(m)
@@ -179,7 +180,7 @@ def run(
         if __os.path.isfile(configfile):
             mcfg = __read_config(configfile)
         if len(mcfg) > 0:
-            name = mcfg['model_name']
+            model = mcfg['model_name']
             df = mcfg['df']
             cols = mcfg['cols']
             value_raw_score_min = mcfg['value_raw_score_min']
@@ -205,9 +206,8 @@ def run(
         task = 'stm'
     else:
         task = logname
-    print(task)
 
-    stmlogger = __slib.get_logger(name, logname=task)
+    stmlogger = __slib.get_logger(model, logname=task)
     stmlogger.set_level(loglevel)
     stm_no = '  No.' + str(id(stmlogger))
     if logdisp:
@@ -216,9 +216,9 @@ def run(
         stmlogger.logging_file = True
 
     stmlogger.loginfo('\n*** running begin ***')
-    stmlogger.loginfo_start('task:' + task + ' model:' + name + stm_no)
+    stmlogger.loginfo_start('task:' + task + ' model:' + model + stm_no)
 
-    # log mcfg reading messages
+    # log--disp--file: config messages form mcfg by reading cfg file
     stmlogger.loginfo('read config in {}'.format(configfile) + '\n' + '-' * 120)
     key_list = list(mcfg.keys())
     for i, k in enumerate(key_list):
@@ -231,7 +231,7 @@ def run(
         stmlogger.loginfo(logstr)
 
     if not __slib.Checker.check_run(
-            model_name=name,
+            model_name=model,
             df=df,
             cols=cols,
             mode_section_point_ratio_prox=mode_section_point_ratio_prox,
@@ -246,15 +246,15 @@ def run(
             logger=stmlogger,
             models=__models,
             ):
-        stmlogger.loginfo_end('task:' + task + ' model:' + name + stm_no)
-        return result(False, None, None)
+        stmlogger.loginfo_end('task:' + task + ' model:' + model + stm_no)
+        return result_namedtuple(False, None, None)
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = __models.Models[name].type
+    model_type = __models.Models[model].type
     # plt, ppt : call stm1.PltScore
     if model_type in ['plt', 'ppt']:
         m1 = __run1(
-            name=name,
+            name=model,
             df=df,
             cols=cols,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
@@ -270,11 +270,11 @@ def run(
             value_tiny_value=value_tiny_value,
             logger=stmlogger,
             )
-        r = result(True, m1, None)
+        r = result_namedtuple(True, m1, None)
         if verify:
             verify_pass = True
             m2 = __run2(
-                name=name,
+                name=model,
                 df=df,
                 cols=cols,
                 value_raw_score_min=value_raw_score_min,
@@ -297,7 +297,7 @@ def run(
                 comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
                 if len(comp) > 0:
                     stmlogger.loginfo('verify fail: col={},  {} records different in both algorithm!'.
-                                      format(col, len(comp)))
+                                        format(col, len(comp)))
                     for i in range(min(len(comp), 5)):
                         vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
                         stmlogger.loginfo(vs)
@@ -306,12 +306,12 @@ def run(
                     verify_pass = False
             if verify_pass:
                 stmlogger.loginfo('verify passed!')
-            r = result(verify_pass, m1, m2)
+            r = result_namedtuple(verify_pass, m1, m2)
     # 'pgt': call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
         m2 = __run2(
-                  name=name,
+                  name=model,
                   df=df,
                   cols=cols,
                   value_raw_score_min=value_raw_score_min,
@@ -327,13 +327,13 @@ def run(
                   value_tiny_value=value_tiny_value,
                   logger=stmlogger,
                   )
-        r = result(True, None, m2)
+        r = result_namedtuple(True, None, m2)
 
     if r.ok:
         t = __time.localtime()
         fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
-        save_dfscore_name = task + '_df_outscore_' + name + '_' + fno + '.csv'
-        save_dfmap_name = task + '_df_maptable_' + name + '_' + fno + '.csv'
+        save_dfscore_name = task + '_df_outscore_' + model + '_' + fno + '.csv'
+        save_dfmap_name = task + '_df_maptable_' + model + '_' + fno + '.csv'
         if r.r1 is not None:
             dfscore = r.r1.outdf
             dfmaptable = r.r1.maptable
@@ -344,11 +344,17 @@ def run(
             dfscore.to_csv(save_dfscore_name, index=False)
             dfmaptable.to_csv(save_dfmap_name, index=False)
         stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
-        stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(name, stm_no))
+        stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model, stm_no))
     else:
-        stmlogger.loginfo_end('model={} running fail!'.format(name))
+        stmlogger.loginfo_end('model={} running fail!'.format(model))
 
-    return r
+    if not r.ok:
+        return None
+    else:
+        if r.r1:
+            return r.r1
+        else:
+            return r.r2
 # end run
 
 
@@ -368,6 +374,7 @@ def __run1(
         value_out_score_decimals=0,
         value_tiny_value=10 ** -12,
         logger=None,
+        debug=False,
         ):
 
     ratio_tuple = tuple(x * 0.01 for x in __models.Models[name].ratio)
@@ -392,7 +399,11 @@ def __run1(
         logger=logger,
         )
     m.run()
-    return m
+    if debug:
+        return m
+    else:
+        result = __namedtuple('Result', ['outdf', 'maptable', 'plot'])
+        return result(m.outdf, m.maptable, m.plot)
 # end run1
 
 

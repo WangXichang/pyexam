@@ -58,20 +58,7 @@ class ScoreTransformModel(abc.ABC):
         param outdf:      type==DataFrame, transform score data,
     """
 
-    def __init__(self, model_name='', model_type=''):
-        self.model_name = model_name
-        self.model_type = model_type
-
-        self.df = pd.DataFrame()
-        self.cols = []
-        self.maptable = pd.DataFrame()
-        self.outdf = pd.DataFrame()
-
-        self.raw_score_defined_min = None
-        self.raw_score_defined_max = None
-
-        self.value_out_score_decimals = 0
-        self.out_report_doc = ''
+    # def __init__(self, model_name='', model_type=''):
 
     @abc.abstractmethod
     def set_data(self, df=None, cols=None):
@@ -86,6 +73,12 @@ class ScoreTransformModel(abc.ABC):
         set parameters used to transform score
         """
 
+    def run(self):
+        """
+        运行转换处理过程
+        run to get maptable, formula, outdf...
+        """
+
     @abc.abstractmethod
     def report(self):
         """
@@ -93,19 +86,21 @@ class ScoreTransformModel(abc.ABC):
         return score transforming report created by model running
         """
 
-    def run(self):
+    @abc.abstractmethod
+    def plot(self, mode='raw'):
         """
-        run to get maptable, formula, outdf...
+        显示原始分数、转换模型、转换结果的可视化图形
+        plot graphs for raw score，model and result score
         """
-
-    def read_df_from_csv(self, filename=''):
-        if not os.path.isfile(filename):
-            print('filename:{} is not a valid file name or the file not exists!'.format(filename))
-            return
-        self.df = pd.read_csv(filename)
+    #
+    # def read_df_from_csv(self, filename=''):
+    #     if not os.path.isfile(filename):
+    #         print('filename:{} is not a valid file name or the file not exists!'.format(filename))
+    #         return
+    #     self.df = pd.read_csv(filename)
 
     def save_outdf_to_csv(self, filename):
-        self.outdf.to_csv(filename, index=False)
+        self.outdf.to_csv(filename, index=False, encoding='utf-8')
 
     def save_report_doc(self, filename):
         with open(filename, mode='w', encoding='utf-8') as f:
@@ -139,46 +134,24 @@ class ScoreTransformModel(abc.ABC):
                     start = True
                 f.write(s + '\n' + '-'*len(s) + '\n')
 
-    def plot(self, mode='raw'):
-        # implemented plot_out, plot_raw score figure
-        if mode.lower() == 'out':
-            self.plot_out_score()
-        elif mode.lower() == 'raw':
-            self.plot_raw_score()
-        # return False so that implementing other plotting in subclass
-        else:
-            return False
-        # do not need to implement in subclass
-        return True
+    # def plot_out_score(self):
+    #     if not self.cols:
+    #         print('no field assigned in {}!'.format(self.df))
+    #         return
+    #     fig_title = 'Out Score '
+    #     for fs in self.cols:
+    #         plot.figure(fs)
+    #         if fs + '_ts' in self.outdf.columns:  # find sf_out_score field
+    #             sbn.distplot(self.outdf[fs + '_ts'])
+    #             plot.title(fig_title + fs)
+    #         elif fs + '_grade' in self.outdf.columns:  # find sf_out_score field
+    #             sbn.distplot(self.outdf[fs + '_grade'])
+    #             plot.title(fig_title + fs)
+    #         else:
+    #             print('no out score fields found in outdf columns:{}!'.
+    #                   format(list(self.outdf.columns)))
+    #     return
 
-    def plot_out_score(self):
-        if not self.cols:
-            print('no field assigned in {}!'.format(self.df))
-            return
-        fig_title = 'Out Score '
-        for fs in self.cols:
-            plot.figure(fs)
-            if fs + '_ts' in self.outdf.columns:  # find sf_out_score field
-                sbn.distplot(self.outdf[fs + '_ts'])
-                plot.title(fig_title + fs)
-            elif fs + '_grade' in self.outdf.columns:  # find sf_out_score field
-                sbn.distplot(self.outdf[fs + '_grade'])
-                plot.title(fig_title + fs)
-            else:
-                print('no out score fields found in outdf columns:{}!'.
-                      format(list(self.outdf.columns)))
-        return
-
-    def plot_raw_score(self):
-        if not self.cols:
-            print('no field assign in rawdf!')
-            return
-        labelstr = 'Raw Score '
-        for sf in self.cols:
-            plot.figure(sf)
-            sbn.distplot(self.df[sf])
-            plot.title(labelstr + sf)
-        return
 
 
 # piecewise linear transform model
@@ -263,36 +236,51 @@ class PltScore(ScoreTransformModel):
 
     def __init__(self, model_name='', model_type=''):
         # intit df, outdf, model_name, model_type
-        super(PltScore, self).__init__(model_name, model_type)
+        # super(PltScore, self).__init__(model_name, model_type)
+
+        # model
+        self.model_name = model_name
+        self.model_type = model_type
+
+        # raw data
+        self.df = pd.DataFrame()
+        self.cols = []
+
+        # self.__raw_score_defined_min = None
+        # self.__raw_score_defined_max = None
+        # self.__value_out_score_decimals = 0
+        self.__out_report_doc = ''
 
         # new properties
-        self.raw_score_ratio_cum = []
-        self.out_score_section = []
-        self.value_out_score_decimals = 0
-        self.out_score_max = None
-        self.out_score_min = None
-        self.raw_score_real_max = None
-        self.raw_score_real_min = None
-        self.raw_score_defined_max = None
-        self.raw_score_defined_min = None
+        self.__raw_score_ratio_cum = []
+        self.__out_score_section = []
+        self.__out_score_max = None
+        self.__out_score_min = None
+        self.__raw_score_real_max = None
+        self.__raw_score_real_min = None
+        self.__raw_score_defined_max = None
+        self.__raw_score_defined_min = None
 
         # strategy
-        self.strategy_dict = dict()
+        self.__strategy_dict = dict()
 
         # run control
-        self.display=True
-        self.logger=None
+        self.__display=True
+        self.__logger=None
 
         # calc precision
-        self.value_tiny_value = 10**-8
+        self.__value_tiny_value = 10 ** -12
+        self.__value_out_score_decimals = 0
 
         # result
+        # self.maptable = pd.DataFrame()
         self.maptable = pd.DataFrame()
-        self.result_raw_endpoints = []
-        self.result_ratio_dict = dict()
-        self.result_formula_coeff = dict()
-        self.result_formula_text_list = ''
+        self.outdf = pd.DataFrame()
         self.result_dict = dict()
+        self.__result_raw_endpoints = []
+        self.__result_ratio_dict = dict()
+        self.__result_formula_coeff = dict()
+        self.__result_formula_text_list = ''
 
     # plt
     def set_data(self, df=None, cols=None):
@@ -303,21 +291,21 @@ class PltScore(ScoreTransformModel):
         elif type(df) == pd.DataFrame:
             self.df = df
         else:
-            if self.logger:
-                self.logger.loginfo('rawdf set fail!\n not correct data set(DataFrame or Series)!')
+            if self.__logger:
+                self.__logger.loginfo('rawdf set fail!\n not correct data set(DataFrame or Series)!')
         # check and set outdf
         if type(cols) is str:
             if cols in self.df.columns:
                 self.cols = [cols]
                 return True
             else:
-                if self.logger:
-                    self.logger.loginfo('invalid field name in cols: {}'.format(cols))
+                if self.__logger:
+                    self.__logger.loginfo('invalid field name in cols: {}'.format(cols))
         elif type(cols) not in [list, tuple]:
-            self.logger.loginfo('col set fail!\n not a list or tuple!')
+            self.__logger.loginfo('col set fail!\n not a list or tuple!')
             return False
         elif sum([1 if sf in df else 0 for sf in cols]) != len(cols):
-            self.logger.loginfo('field of cols not in rawdf.columns!')
+            self.__logger.loginfo('field of cols not in rawdf.columns!')
             return False
         else:
             self.cols = cols
@@ -338,68 +326,65 @@ class PltScore(ScoreTransformModel):
                  mode_section_degraded='to_max',
                  mode_section_lost='real',
                  mode_score_zero='real',
-                 # mode_seg_end_share='no',
                  value_out_score_decimals=None,
-                 display=True,
                  value_tiny_value=10**-8,
-                 logger=None
+                 logger=None,
+                 display=True,
                  ):
         if isinstance(display, bool):
-            self.display=display
+            self.__display=display
 
-        self.value_out_score_decimals = value_out_score_decimals
+        self.__value_out_score_decimals = value_out_score_decimals
 
         if mode_score_sort_order in ['descending', 'd']:
             raw_p = raw_score_ratio
-            self.out_score_section = out_score_section
+            self.__out_score_section = out_score_section
         else:
             raw_p = raw_score_ratio[::-1]
-            self.out_score_section = tuple(x[::-1] for x in out_score_section[::-1])
+            self.__out_score_section = tuple(x[::-1] for x in out_score_section[::-1])
         ratio_sum = sum(raw_p)
-        self.raw_score_ratio_cum = [sum(raw_p[0:x + 1])/ratio_sum for x in range(len(raw_p))]
+        self.__raw_score_ratio_cum = [sum(raw_p[0:x + 1]) / ratio_sum for x in range(len(raw_p))]
 
-        self.raw_score_defined_min, self.raw_score_defined_max = raw_score_defined_min, raw_score_defined_max
+        self.__raw_score_defined_min, self.__raw_score_defined_max = raw_score_defined_min, raw_score_defined_max
 
-        self.strategy_dict['mode_section_point_ratio_prox'] = mode_section_point_ratio_prox
-        self.strategy_dict['mode_section_point_ratio_cumu'] = mode_section_point_ratio_cumu
-        self.strategy_dict['mode_score_sort_order'] = mode_score_sort_order
-        self.strategy_dict['mode_section_point_first'] = mode_section_point_first
-        self.strategy_dict['mode_section_point_start'] = mode_section_point_start
-        self.strategy_dict['mode_section_point_last'] = mode_section_point_last
-        self.strategy_dict['mode_section_degraded'] = mode_section_degraded
-        self.strategy_dict['mode_section_lost'] = mode_section_lost
-        # self.strategy_dict['mode_score_zero'] = mode_score_zero
+        self.__strategy_dict['mode_section_point_ratio_prox'] = mode_section_point_ratio_prox
+        self.__strategy_dict['mode_section_point_ratio_cumu'] = mode_section_point_ratio_cumu
+        self.__strategy_dict['mode_score_sort_order'] = mode_score_sort_order
+        self.__strategy_dict['mode_section_point_first'] = mode_section_point_first
+        self.__strategy_dict['mode_section_point_start'] = mode_section_point_start
+        self.__strategy_dict['mode_section_point_last'] = mode_section_point_last
+        self.__strategy_dict['mode_section_degraded'] = mode_section_degraded
+        self.__strategy_dict['mode_section_lost'] = mode_section_lost
 
-        self.value_tiny_value = value_tiny_value
-        self.logger = logger
+        self.__value_tiny_value = value_tiny_value
+        self.__logger = logger
 
-    def loginfo(self, ms):
-        if self.logger:
-            self.logger.loginfo(ms)
+    def __loginfo(self, ms):
+        if self.__logger:
+            self.__logger.loginfo(ms)
         else:
-            if self.display:
+            if self.__display:
                 print(ms)
-
     # --------------data and para setting end
 
     # plt score run
     def run(self):
 
-        self.logger.log('stm start ...\n' + '-' * 120, 'debug')
+        self.__logger.log('stm start ...\n' + '-' * 120, 'debug')
         stime = time.time()
 
-        if self.out_score_section is not None:
-            self.out_score_real_max = max([max(x) for x in self.out_score_section])
-            self.out_score_real_min = min([min(x) for x in self.out_score_section])
+        if self.__out_score_section is not None:
+            self.__out_score_real_max = max([max(x) for x in self.__out_score_section])
+            self.__out_score_real_min = min([min(x) for x in self.__out_score_section])
 
         # calculate seg table
         # self.logger.loginfo('calculating maptable ...')
-        _segsort = 'a' if self.strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 'd'
+        _segsort = 'a' if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 'd'
         seg_model = slib.run_seg(
                   df=self.df,
                   cols=self.cols,
-                  segmax=self.raw_score_defined_max,
-                  segmin=self.raw_score_defined_min,
+                  segmax=self.__raw_score_defined_max,
+                  segmin=self.__raw_score_defined_min,
                   segsort=_segsort,
                   segstep=1,
                   display=False,
@@ -421,32 +406,32 @@ class PltScore(ScoreTransformModel):
         self.result_dict = dict()
         self.outdf = self.df.copy(deep=True)
         for i, col in enumerate(self.cols):
-            self.logger.loginfo('transform score: {0} => {0}_ts'.format(col) + '\n' + '-'*120)
+            self.__logger.loginfo('transform score: {0} => {0}_ts'.format(col) + '\n' + '-' * 120)
 
             # there is a problem: max set to locale value to each col
-            self.raw_score_real_max = self.df[col].max()
-            self.raw_score_real_min = self.df[col].min()
+            self.__raw_score_real_max = self.df[col].max()
+            self.__raw_score_real_min = self.df[col].min()
 
             # get formula and save
             _get_formula = False
             if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'ppt':
                 # self.logger.loginfo('get ppt formula ...')
-                _get_formula = self.get_formula_ppt(col)
+                _get_formula = self.__get_formula_ppt(col)
             elif self.model_type == 'plt':
                 # self.logger.loginfo('get plt formula ...')
-                _get_formula = self.get_formula_plt(col)
+                _get_formula = self.__get_formula_plt(col)
             else:
-                self.logger.log('error model type: not supported type={}'.format(self.model_type),
+                self.__logger.log('error model type: not supported type={}'.format(self.model_type),
                                      'error')
                 return None
             if not _get_formula:
-                self.logger.log('error calc: getting formula fail !', 'error')
+                self.__logger.log('error calc: getting formula fail !', 'error')
                 return None
 
             # get field_ts in outdf
             self.outdf.loc[:, (col + '_ts')] = \
                 self.outdf[col].apply(
-                    lambda x: self.get_ts_score_from_formula(col, x))
+                    lambda x: self.__get_ts_score_from_formula(col, x))
 
         # create col_ts in maptable
         df_map = self.maptable
@@ -454,16 +439,16 @@ class PltScore(ScoreTransformModel):
             # self.logger.loginfo('   calculate: maptable[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.get_ts_score_from_formula(col, x))
+                lambda x: self.__get_ts_score_from_formula(col, x))
 
         # make report doc
-        self.make_report()
+        self.__make_report()
 
-        self.logger.log('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-' * 120,
+        self.__logger.log('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-' * 120,
                              'debug')
         # self.logger.loginfo('<< Report >>\n')
         # self.logger.loginfo('-'*120)
-        self.logger.loginfo(self.out_report_doc)
+        self.__logger.loginfo(self.__out_report_doc)
 
     # run end
 
@@ -472,7 +457,7 @@ class PltScore(ScoreTransformModel):
     # y = a*x + b
     # a = (y2-y1)/(x2-x1)
     # b = -x1/(x2-x1) + y1
-    def get_ts_score_from_formula_ax_b(self, field, x):
+    def __get_ts_score_from_formula_ax_b(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 return slib.round45r(cf[0][0] * x + cf[0][1])
@@ -484,7 +469,7 @@ class PltScore(ScoreTransformModel):
     # a = (y2-y1)/(x2-x1)
     # b = x1
     # c = y1
-    def get_ts_score_from_formula_ax_b_c(self, field, x):
+    def __get_ts_score_from_formula_ax_b_c(self, field, x):
         for cf in self.result_dict[field]['coeff'].values():
             if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
                 v = (cf[1][1]-cf[1][0])
@@ -503,13 +488,13 @@ class PltScore(ScoreTransformModel):
     #           a=(y2-y1)
     #           b=y1x2-y2x1
     #           c=(x2-x1)
-    def get_ts_score_from_formula(self, field, x):
-        if x > self.raw_score_defined_max:
+    def __get_ts_score_from_formula(self, field, x):
+        if x > self.__raw_score_defined_max:
             # raise ValueError
-            return self.out_score_real_max
-        if x < self.raw_score_defined_min:
+            return self.__out_score_real_max
+        if x < self.__raw_score_defined_min:
             # raise ValueError
-            return self.out_score_real_min
+            return self.__out_score_real_min
         for cf in self.result_dict[field]['coeff'].values():
             if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
                 a = (cf[2][1]-cf[2][0])
@@ -517,16 +502,16 @@ class PltScore(ScoreTransformModel):
                 c = (cf[1][1]-cf[1][0])
                 # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
                 if c == 0:
-                    if self.strategy_dict['mode_section_degraded'] == 'to_max':
-                        return slib.round45r(max(cf[2]), self.value_out_score_decimals)
-                    elif self.strategy_dict['mode_section_degraded'] == 'to_min':
-                        return slib.round45r(min(cf[2]), self.value_out_score_decimals)
-                    elif self.strategy_dict['mode_section_degraded'] == 'to_mean':
+                    if self.__strategy_dict['mode_section_degraded'] == 'to_max':
+                        return slib.round45r(max(cf[2]), self.__value_out_score_decimals)
+                    elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
+                        return slib.round45r(min(cf[2]), self.__value_out_score_decimals)
+                    elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
                         return slib.round45r(np.mean(cf[2]))
                     else:
                         # invalid mode
                         return None
-                return slib.round45r((a * x + b) / c, self.value_out_score_decimals)
+                return slib.round45r((a * x + b) / c, self.__value_out_score_decimals)
         # raw score not in coeff[1]
         return -1000
 
@@ -534,27 +519,27 @@ class PltScore(ScoreTransformModel):
     # y = x for x in [x, x]
     # coeff: (a=0, b=x), (x, x), (y, y))
     # len(ratio_list) = len(maptable['seg'])
-    def get_formula_ppt(self, col):
-        self.result_raw_endpoints = [x for x in self.maptable['seg']]
+    def __get_formula_ppt(self, col):
+        self.__result_raw_endpoints = [x for x in self.maptable['seg']]
         self.maptable.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
         result_ratio = []
-        value_tiny_value = self.value_tiny_value     # used to judge zero(s==0) or equality(s1==s2)
+        value_tiny_value = self.__value_tiny_value     # used to judge zero(s==0) or equality(s1==s2)
 
-        _mode_sort = self.strategy_dict['mode_score_sort_order']
+        _mode_sort = self.__strategy_dict['mode_score_sort_order']
 
         if _mode_sort in ['d', 'descending']:
-            _mode_ppt_score_min = self.strategy_dict['mode_section_point_last']  # real_min or paper_min
-            _mode_ppt_score_max = self.strategy_dict['mode_section_point_first']  # real_max or paper_max
+            _mode_ppt_score_min = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
+            _mode_ppt_score_max = self.__strategy_dict['mode_section_point_first']  # real_max or paper_max
         else:
-            _mode_ppt_score_max = self.strategy_dict['mode_section_point_last']  # real_min or paper_min
-            _mode_ppt_score_min = self.strategy_dict['mode_section_point_first']  # real_max or paper_max
+            _mode_ppt_score_max = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
+            _mode_ppt_score_min = self.__strategy_dict['mode_section_point_first']  # real_max or paper_max
 
-        _mode_prox = self.strategy_dict['mode_section_point_ratio_prox']
+        _mode_prox = self.__strategy_dict['mode_section_point_ratio_prox']
 
-        _start_score = self.out_score_real_max if _mode_sort in ['descending', 'd'] else self.out_score_real_min
+        _start_score = self.__out_score_real_max if _mode_sort in ['descending', 'd'] else self.__out_score_real_min
         _step = -1 if _mode_sort in ['descending', 'd'] else 1
-        _step = _step * (self.out_score_real_max - self.out_score_real_min)/(len(self.raw_score_ratio_cum)-1)
+        _step = _step * (self.__out_score_real_max - self.__out_score_real_min) / (len(self.__raw_score_ratio_cum) - 1)
 
         # _ts_list = []
         maptable = self.maptable
@@ -567,18 +552,18 @@ class PltScore(ScoreTransformModel):
 
             if _seg == real_min:
                 if _mode_ppt_score_min == 'defined':
-                    y = self.out_score_real_min
+                    y = self.__out_score_real_min
             if _seg == real_max:
                 if _mode_ppt_score_max == 'defined':
-                    y = self.out_score_real_max
+                    y = self.__out_score_real_max
             if y is not None:
-                row[col + '_ts'] = slib.round45r(y, self.value_out_score_decimals)
+                row[col + '_ts'] = slib.round45r(y, self.__value_out_score_decimals)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
                 continue
 
             # loop: seeking ratio by percent to set out score
-            for si, sr in enumerate(self.raw_score_ratio_cum):
+            for si, sr in enumerate(self.__raw_score_ratio_cum):
                 # sr == _p or sr > _p
                 if (abs(sr - _p) < value_tiny_value) or (sr > _p):
                     if (abs(_p - sr) < value_tiny_value) or (si == 0):
@@ -591,9 +576,9 @@ class PltScore(ScoreTransformModel):
                         else:
                             y = _start_score + si*_step
                     elif 'near' in _mode_prox:
-                        if abs(_p-sr) < abs(_p-self.raw_score_ratio_cum[si-1]):
+                        if abs(_p-sr) < abs(_p-self.__raw_score_ratio_cum[si - 1]):
                             y = _start_score - si
-                        elif abs(_p-sr) > abs(_p-self.raw_score_ratio_cum[si-1]):
+                        elif abs(_p-sr) > abs(_p-self.__raw_score_ratio_cum[si - 1]):
                             y = _start_score + (si - 1)*_step
                         else:
                             if 'near_max' in _mode_prox:
@@ -601,13 +586,13 @@ class PltScore(ScoreTransformModel):
                             else:
                                 y = _start_score + (si - 1)*_step
                     else:
-                        self.logger.log('Error Ratio Prox Mode: {}'.format(_mode_prox),
+                        self.__logger.log('Error Ratio Prox Mode: {}'.format(_mode_prox),
                                              'debug')
                         raise ValueError
                     break
             if y is not None:
                 # self.logger.loginfo('-1', row[col+'_ts'])
-                row[col+'_ts'] = slib.round45r(y, self.value_out_score_decimals)
+                row[col+'_ts'] = slib.round45r(y, self.__value_out_score_decimals)
                 # self.logger.loginfo('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
@@ -615,39 +600,39 @@ class PltScore(ScoreTransformModel):
             # end scanning raw_score_ratio_list
         # end scanning maptable
 
-        self.result_formula_coeff = coeff_dict
+        self.__result_formula_coeff = coeff_dict
         formula_dict = {k: '{cf[0][0]:.8f} * (x - {cf[1][1]:.0f}) + {cf[0][1]:.0f}'.format(cf=coeff_dict[k])
                         for k in coeff_dict}
         self.result_dict[col] = {
                                  'coeff': coeff_dict,
                                  'formula': formula_dict
                                  }
-        self.result_ratio_dict[col] = dict()
-        self.result_ratio_dict[col]['def'] = self.raw_score_ratio_cum
-        self.result_ratio_dict[col]['dest'] = self.raw_score_ratio_cum
-        self.result_ratio_dict[col]['match'] = result_ratio
-        self.result_ratio_dict[col]['section'] = [coeff_dict[k][1] for k in coeff_dict.keys()]
+        self.__result_ratio_dict[col] = dict()
+        self.__result_ratio_dict[col]['def'] = self.__raw_score_ratio_cum
+        self.__result_ratio_dict[col]['dest'] = self.__raw_score_ratio_cum
+        self.__result_ratio_dict[col]['match'] = result_ratio
+        self.__result_ratio_dict[col]['section'] = [coeff_dict[k][1] for k in coeff_dict.keys()]
         return True
 
-    def get_formula_plt(self, field):
+    def __get_formula_plt(self, field):
         # --step 1
         # claculate raw_score_endpoints
         # self.logger.loginfo('   get raw score section ...')
-        if not self.get_raw_section(field=field):
+        if not self.__get_raw_section(field=field):
             return False
 
         # display ratio searching result at section i
-        if self.logger:
+        if self.__logger:
             for i, (cumu_ratio, dest_ratio, match, raw_sec, out_sec) in \
-                enumerate(zip(self.result_ratio_dict[field]['def'],
-                              self.result_ratio_dict[field]['dest'],
-                              self.result_ratio_dict[field]['match'],
-                              self.result_ratio_dict[field]['section'],
-                              self.out_score_section,
+                enumerate(zip(self.__result_ratio_dict[field]['def'],
+                              self.__result_ratio_dict[field]['dest'],
+                              self.__result_ratio_dict[field]['match'],
+                              self.__result_ratio_dict[field]['section'],
+                              self.__out_score_section,
                               )):
-                self.logger.log('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
+                self.__logger.log('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                       'section_map: raw:[{4:3d}, {5:3d}] --> out:[{6:3d}, {7:3d}]'.
-                                format(i + 1,
+                                  format(i + 1,
                              cumu_ratio,
                              dest_ratio,
                              match,
@@ -656,20 +641,20 @@ class PltScore(ScoreTransformModel):
                              int(out_sec[0]),
                              int(out_sec[1])
                              ),
-                                'debug'
-                                )
+                                  'debug'
+                                  )
 
         # --step 2
         # calculate Coefficients
-        self.get_formula_coeff(field)
-        self.result_dict[field] = {'coeff': copy.deepcopy(self.result_formula_coeff)}
+        self.__get_formula_coeff(field)
+        self.result_dict[field] = {'coeff': copy.deepcopy(self.__result_formula_coeff)}
         return True
 
     # -----------------------------------------------------------------------------------
     # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
     #        -2:   = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
     #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
-    def get_formula_coeff(self, field=None):
+    def __get_formula_coeff(self, field=None):
 
         # create raw score segments list
         # x_points = self.result_raw_endpoints
@@ -687,16 +672,16 @@ class PltScore(ScoreTransformModel):
         #           else p
         #           for p in x_list]
 
-        x_list = self.result_ratio_dict[field]['section']
+        x_list = self.__result_ratio_dict[field]['section']
 
         # calculate coefficient
-        y_list = self.out_score_section
+        y_list = self.__out_score_section
         for i, (x, y) in enumerate(zip(x_list, y_list)):
             v = x[1] - x[0]
             if v == 0:
                 a = 0
                 # mode_section_degraded
-                _mode_section_degraded = self.strategy_dict['mode_section_degraded']
+                _mode_section_degraded = self.__strategy_dict['mode_section_degraded']
                 if _mode_section_degraded == 'to_max':         # x1 == x2 : y = max(y1, y2)
                     b = max(y)
                 elif _mode_section_degraded == 'to_min':       # x1 == x2 : y = min(y1, y2)
@@ -704,33 +689,33 @@ class PltScore(ScoreTransformModel):
                 elif _mode_section_degraded == 'to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
                 else:
-                    self.logger.loginfo('error mode_section_degraded value: {}'.format(_mode_section_degraded))
+                    self.__logger.loginfo('error mode_section_degraded value: {}'.format(_mode_section_degraded))
                     raise ValueError
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
                 b = (y[0]*x[1]-y[1]*x[0])/v         # (y1x2 - y2x1) / (x2 - x1)
-            self.result_formula_coeff.\
+            self.__result_formula_coeff.\
                 update({i: [(a, b), (int(x[0]), int(x[1])), (int(y[0]), int(y[1]))]})
         return True
 
     # new at 2019-09-09
     # extract section points(first end point of first section and second point of all section) from maptable
     #   according ratios in preset ratio_list: raw_score_ratio_cum (cumulative ratio list)
-    def get_raw_section(self, field):
+    def __get_raw_section(self, field):
         result_matched_ratio = []
         result_dest_ratio = []
-        _ratio_cum_list = self.raw_score_ratio_cum
+        _ratio_cum_list = self.__raw_score_ratio_cum
 
         section_real_min = self.df[field].min()
         section_real_max = self.df[field].max()
-        section_defined_min = self.raw_score_defined_min
-        section_defined_max = self.raw_score_defined_max
+        section_defined_min = self.__raw_score_defined_min
+        section_defined_max = self.__raw_score_defined_max
 
-        _mode_cumu = self.strategy_dict['mode_section_point_ratio_cumu']
-        _mode_order = self.strategy_dict['mode_score_sort_order']
+        _mode_cumu = self.__strategy_dict['mode_section_point_ratio_cumu']
+        _mode_order = self.__strategy_dict['mode_score_sort_order']
 
         # first points of first section in raw score
-        if self.strategy_dict['mode_section_point_first'] == 'real':
+        if self.__strategy_dict['mode_section_point_first'] == 'real':
             section_start_point = section_real_min \
                 if _mode_order in ['a', 'ascending'] else section_real_max
         else:
@@ -742,7 +727,7 @@ class PltScore(ScoreTransformModel):
         # ratio: preset,  percent: computed from data in maptable
         last_ratio = 0
         last_match = 0
-        if self.strategy_dict['mode_section_point_start'] == 'share':
+        if self.__strategy_dict['mode_section_point_start'] == 'share':
             _step = 0
         else:
             _step = 1 if _mode_order in ['a', 'ascending'] else -1
@@ -753,7 +738,7 @@ class PltScore(ScoreTransformModel):
 
             # match percent by dest_ratio to get endpoint of this section from maptable
             this_section_end_point, this_match_ratio = \
-                self.get_seg_from_maptable(field, dest_ratio)
+                self.__get_seg_from_maptable(field, dest_ratio)
 
             # last section at bottom
             if last_match >= 1:
@@ -769,8 +754,8 @@ class PltScore(ScoreTransformModel):
             if i > 1:
                 # current point: item[i+1] == -1
                 if (result_section_point[i+1] < 0) and (result_section_point[i] >= 0):
-                    if self.strategy_dict['mode_section_point_last'] == 'defined':
-                        if self.strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
+                    if self.__strategy_dict['mode_section_point_last'] == 'defined':
+                        if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
                             result_section_point[i] = section_defined_min
                         else:
                             result_section_point[i] = section_defined_max
@@ -788,13 +773,12 @@ class PltScore(ScoreTransformModel):
                 if result_section_point[i+1] < 0:
                     if result_section_point[i] == result_section_point[i - 1]:
                         result_section_point[i] = -1
-        # print(result_section_point)
 
         # set last point again if [-1] >= 0 else alread set in loop
-        if self.strategy_dict['mode_section_point_last'] == 'defined':
+        if self.__strategy_dict['mode_section_point_last'] == 'defined':
             for i in range(len(result_section_point)-1, 0, -1):
                 if result_section_point[i] >= 0:
-                    if self.strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
+                    if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
                         result_section_point[i] = section_defined_min
                     else:
                         result_section_point[i] = section_defined_max
@@ -806,11 +790,11 @@ class PltScore(ScoreTransformModel):
         sectio_lost = False
         for x, y in zip(result_section_point[:-1],
                         result_section_point[1:]):
-            _step = -1 if self.strategy_dict['mode_score_sort_order'] in ['d', 'descending'] else 1
+            _step = -1 if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending'] else 1
             _y = y
             _x = None
             if x != y:
-                if self.strategy_dict['mode_section_point_start'] == 'share':
+                if self.__strategy_dict['mode_section_point_start'] == 'share':
                     if not sectio_lost:
                         _x = x
                     else:
@@ -828,34 +812,34 @@ class PltScore(ScoreTransformModel):
                     _x = x
                 sectio_lost = True
             _x, _y = (_x, _y) if (_x >= 0) and (_y >= 0) else (-1, -1)
-            if self.strategy_dict['mode_section_lost'] == 'zip':
+            if self.__strategy_dict['mode_section_lost'] == 'zip':
                 if (_x < 0) or (_y < 0):
                     continue
             make_section.append((_x, _y))
             i += 1
         # print(make_section)
         # add [-1, -1] to tail, fill up that removed in make_section because 'zip'
-        len_less = len(self.raw_score_ratio_cum) - len(make_section)
+        len_less = len(self.__raw_score_ratio_cum) - len(make_section)
         if len_less > 0:
             make_section += [[-1, -1] for _ in range(len_less)]
 
-        self.result_ratio_dict[field] = {
-            'def': self.raw_score_ratio_cum,
+        self.__result_ratio_dict[field] = {
+            'def': self.__raw_score_ratio_cum,
             'dest': result_dest_ratio,
             'match': result_matched_ratio,
             'section': make_section
             }
 
-        self.result_raw_endpoints = result_section_point
+        self.__result_raw_endpoints = result_section_point
 
         return True
 
     # new at 2019-09-09
-    def get_seg_from_maptable(self, field, dest_ratio):
+    def __get_seg_from_maptable(self, field, dest_ratio):
 
-        _mode_prox = self.strategy_dict['mode_section_point_ratio_prox']
+        _mode_prox = self.__strategy_dict['mode_section_point_ratio_prox']
         _top_index = self.maptable.index.max()
-        _tiny = self.value_tiny_value
+        _tiny = self.__value_tiny_value
 
         _seg = -1
         _percent = -1
@@ -899,7 +883,7 @@ class PltScore(ScoreTransformModel):
                     if dist_to_last < _tiny:
                         use_last_seg = True
                 else:
-                    self.logger.loginfo('Error ratio prox mode: {}'.format(_mode_prox))
+                    self.__logger.loginfo('Error ratio prox mode: {}'.format(_mode_prox))
                     raise ValueError
                 break
             dist_to_last = dist_to_this
@@ -911,20 +895,22 @@ class PltScore(ScoreTransformModel):
         return _seg, _percent
 
     # create report and col_ts in maptable
-    def make_report(self):
-        self.out_report_doc += 'strategies' + '\n'
-
-        for k in self.strategy_dict.keys():
-            self.out_report_doc += ' '*15 + '{0:<30s} {1}'. \
-                format(k + ' = ', self.strategy_dict[k]) + '\n'
+    def __make_report(self):
+        if len(self.__out_report_doc) == 0:
+            self.__out_report_doc += 'strategies' + '\n'
+        else:
+            self.__out_report_doc += '\n strategies' + '\n'
+        for k in self.__strategy_dict.keys():
+            self.__out_report_doc += ' ' * 15 + '{0:<30s} {1}'. \
+                format(k + ' = ', self.__strategy_dict[k]) + '\n'
         for col in self.cols:
-            self.out_report_doc += self.make_field_report(col)
-        self.out_report_doc += '---'*40
+            self.__out_report_doc += self.__make_field_report(col)
+        self.__out_report_doc += '---' * 40
 
-    def make_field_report(self, field=''):
+    def __make_field_report(self, field=''):
         score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
-        p = 0 if self.strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
-        self.result_formula_text_list = []
+        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
+        self.__result_formula_text_list = []
         _fi = 1
         for k in self.result_dict[field]['coeff']:
             formula = self.result_dict[field]['coeff'][k]
@@ -940,21 +926,21 @@ class PltScore(ScoreTransformModel):
                 continue
 
             if formula[0][0] != 0:
-                self.result_formula_text_list += \
+                self.__result_formula_text_list += \
                     ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
                      format(int(_fi), formula[0][0], int(formula[1][p]), int(formula[2][p]))]
             else:
                 if formula[2][0] != formula[2][1]:
-                    self.result_formula_text_list += \
+                    self.__result_formula_text_list += \
                         ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
                          format(int(_fi),
                                 formula[0][0], formula[1][p],
-                                self.strategy_dict['mode_section_degraded'],
+                                self.__strategy_dict['mode_section_degraded'],
                                 formula[2][0], formula[2][1])
                          ]
                 # y2 == y1
                 else:
-                    self.result_formula_text_list += \
+                    self.__result_formula_text_list += \
                         ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
                          format(_fi,
                                 formula[0][0],
@@ -972,28 +958,28 @@ class PltScore(ScoreTransformModel):
 
         # calculating for ratio and segment
         _out_report_doc += '< running result >\n'
-        plist = self.raw_score_ratio_cum
-        if self.value_out_score_decimals == 0:
+        plist = self.__raw_score_ratio_cum
+        if self.__value_out_score_decimals == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
-                format(', '.join([format(x, '10.6f') for x in self.raw_score_ratio_cum]))
+                format(', '.join([format(x, '10.6f') for x in self.__raw_score_ratio_cum]))
             _out_report_doc += '           dest ratio: [{}]\n'.\
                 format(', '.join([format(float(x), '10.6f')
-                                  for x in self.result_ratio_dict[field]['dest']]))
+                                  for x in self.__result_ratio_dict[field]['dest']]))
             _out_report_doc += '          match ratio: [{}]\n'. \
                 format(', '.join([format(float(x), '10.6f')
-                                  for x in self.result_ratio_dict[field]['match']]))
+                                  for x in self.__result_ratio_dict[field]['match']]))
         else:
             _out_report_doc += '  raw score sec ratio: [{}]\n'.\
                 format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
                         for j in range(len(plist))]))
             _out_report_doc += '           cumu ratio: [{}]\n'.\
-                format(', '.join([format(x, '16.6f') for x in self.raw_score_ratio_cum]))
+                format(', '.join([format(x, '16.6f') for x in self.__raw_score_ratio_cum]))
             _out_report_doc += '          match ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '16.6f') for x in self.result_ratio_dict[field]['match']]))
+                format(', '.join([format(float(x), '16.6f') for x in self.__result_ratio_dict[field]['match']]))
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
-        if self.value_out_score_decimals == 0:
+        if self.__value_out_score_decimals == 0:
             _out_report_doc += '              section: [{}]\n'.\
                 format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
         else:
@@ -1002,7 +988,7 @@ class PltScore(ScoreTransformModel):
 
         # get out segment from result_dict[]['coeff']
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
-        if self.value_out_score_decimals > 0:
+        if self.__value_out_score_decimals > 0:
             _out_report_doc += '  out  score  section: [{}]\n'.\
                 format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
         else:
@@ -1012,7 +998,7 @@ class PltScore(ScoreTransformModel):
         # transforming formulas
         _out_report_doc += '- -'*40 + '\n'
         _out_report_doc += '< transforming formulas >\n'
-        for i, col in enumerate(self.result_formula_text_list):
+        for i, col in enumerate(self.__result_formula_text_list):
             _out_report_doc += ' '*18 + '{}\n'.format(col)
 
         # statistics for raw and out score
@@ -1036,7 +1022,7 @@ class PltScore(ScoreTransformModel):
 
         # _count_zero = self.maptable.query(field+'_count==0')['seg'].values
         _count_non_zero = self.maptable.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
-        _count_zero = [x for x in range(self.raw_score_defined_min, self.raw_score_defined_max+1)
+        _count_zero = [x for x in range(self.__raw_score_defined_min, self.__raw_score_defined_max + 1)
                        if x not in _count_non_zero]
         _out_report_doc += ' '*18 + 'empty_value={}\n' .\
                            format(set_ellipsis_in_digits_sequence(_count_zero))
@@ -1058,7 +1044,7 @@ class PltScore(ScoreTransformModel):
         # _count_zero = self.maptable.query(field+'_count==0')[field+'_ts'].values
         _count_non_zero = self.maptable.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
         if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'plt':
-            _count_zero = [x for x in range(int(self.out_score_real_min), int(self.out_score_real_max) + 1)
+            _count_zero = [x for x in range(int(self.__out_score_real_min), int(self.__out_score_real_max) + 1)
                            if x not in _count_non_zero]
         else:
             _count_zero = ''
@@ -1113,30 +1099,30 @@ class PltScore(ScoreTransformModel):
         return _out_report_doc
 
     def report(self):
-        print(self.out_report_doc)
+        print(self.__out_report_doc)
 
     def plot(self, mode='model'):
         plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'rawbar', 'outbar']
         if mode not in plot_name:
-            self.logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
+            self.__logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
             return
         if mode in 'model':
             # mode: model describe the differrence of input and output score.
-            self.plot_model()
+            self.__plot_model()
         elif mode in 'dist':
-            self.plot_dist_seaborn()
+            self.__plot_dist_seaborn()
         # elif mode in 'bar':
         #     self.plot_bar('all')
         elif mode == 'rawbar':
-            self.plot_rawscore_bar_count()
+            self.__plot_rawscore_bar_count()
         elif mode == 'outbar':
-            self.plot_outscore_bar_count()
+            self.__plot_outscore_bar_count()
         elif mode in 'diff, shift':
-            self.plot_diff()
+            self.__plot_diff()
         elif not super(PltScore, self).plot(mode):
-            self.logger.loginfo('error plot: [{}] is invalid!'.format(mode))
+            self.__logger.loginfo('error plot: [{}] is invalid!'.format(mode))
 
-    def plot_diff(self):
+    def __plot_diff(self):
         x = [int(x) for x in self.maptable['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
         raw_label = [str(x) for x in self.maptable['seg']][::-1]
         for f in self.cols:
@@ -1176,9 +1162,9 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
     # deprecated
-    def plot_bar(self, display='all', hcolor='r', hwidth=6):
-        raw_label = [str(x) for x in range(int(self.out_score_real_max) + 1)]
-        x_data = list(range(int(self.out_score_real_max) + 1))
+    def __plot_bar(self, display='all', hcolor='r', hwidth=6):
+        raw_label = [str(x) for x in range(int(self.__out_score_real_max) + 1)]
+        x_data = list(range(int(self.__out_score_real_max) + 1))
         seg_list = list(self.maptable.seg)
         for f in self.cols:
             df = [self.maptable.query('seg=='+str(xv))[f+'_count'].values[0]
@@ -1241,11 +1227,11 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
 
-    def plot_rawscore_bar_count(self, hcolor='r', hwidth=6):
-        seg_list = self.maptable.seg if self.strategy_dict['mode_score_sort_order'] in ['a', 'ascending'] \
+    def __plot_rawscore_bar_count(self, hcolor='r', hwidth=6):
+        seg_list = self.maptable.seg if self.__strategy_dict['mode_score_sort_order'] in ['a', 'ascending'] \
                    else reversed(self.maptable.seg)
         raw_label = [str(x) for x in seg_list]
-        x_data = list(range(self.raw_score_defined_max + 1))
+        x_data = list(range(self.__raw_score_defined_max + 1))
         for f in self.cols:
             df = [self.maptable.query('seg=='+str(xv))[f+'_count'].values[0]
                   if xv in self.maptable.seg else 0
@@ -1293,7 +1279,7 @@ class PltScore(ScoreTransformModel):
             fig.tight_layout()
             plot.show()
 
-    def plot_outscore_bar_count(self, hcolor='r', hwidth=6):
+    def __plot_outscore_bar_count(self, hcolor='r', hwidth=6):
         for f in self.cols:
             tsgroup = self.outdf.groupby(f+'_ts')[f].count()
             raw_label = [str(x) for x in tsgroup.index]
@@ -1343,7 +1329,7 @@ class PltScore(ScoreTransformModel):
             plot.show()
 
 
-    def plot_dist_hist(self):
+    def __plot_dist_hist(self):
         def plot_dist_fit(field, _label):
             x_data = self.outdf[field]
             # local var _mu, __std
@@ -1365,24 +1351,24 @@ class PltScore(ScoreTransformModel):
             plot_dist_fit(f+'_ts', 'out score')
         plot.show()
 
-    def plot_dist_seaborn(self):
+    def __plot_dist_seaborn(self):
         for f in self.cols:
             fig, ax = plot.subplots()
             ax.set_title(self.model_name+'['+f+']: distribution garph')
             sbn.kdeplot(self.outdf[f], shade=True)
             sbn.kdeplot(self.outdf[f+'_ts'], shade=True)
 
-    def plot_model(self, down_line=True):
+    def __plot_model(self, down_line=True):
         # 分段线性转换模型
         plot.rcParams['font.sans-serif'] = ['SimHei']
         plot.rcParams.update({'font.size': 8})
         for i, col in enumerate(self.cols):
             # result = self.result_dict[col]['coeff']
             # raw_points = [result[x][1][0] for x in result] + [result[max(result.keys())][1][1]]
-            in_max = max(self.result_raw_endpoints)
-            in_min = min(self.result_raw_endpoints)
-            out_min = min([min(p) for p in self.out_score_section])
-            out_max = max([max(p) for p in self.out_score_section])
+            in_max = max(self.__result_raw_endpoints)
+            in_min = min(self.__result_raw_endpoints)
+            out_min = min([min(p) for p in self.__out_score_section])
+            out_max = max([max(p) for p in self.__out_score_section])
 
             plot.figure(col)
             plot.rcParams.update({'font.size': 10})
@@ -1397,7 +1383,7 @@ class PltScore(ScoreTransformModel):
             formula = self.result_dict[col]['coeff']
             for cfi, cf in enumerate(formula.values()):
                 # segment map function graph
-                _score_order = self.strategy_dict['mode_score_sort_order']
+                _score_order = self.__strategy_dict['mode_score_sort_order']
                 x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
                 y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
                 plot.plot(x, y, linewidth=2)

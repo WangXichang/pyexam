@@ -605,7 +605,7 @@ class ModelAlgorithm:
             cols = [cols]
 
         if logger:
-            logger.loginfo('stm2 start ...')
+            logger.__loginfo('stm2 start ...')
 
         # create seg_table
         seg = slib.run_seg(
@@ -633,7 +633,7 @@ class ModelAlgorithm:
         result = None
         for col in cols:
             if logger:
-                logger.loginfo('transform {} of {}'.format(col, cols))
+                logger.__loginfo('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     section_ratio_cumu_sequence=cumu_ratio,
@@ -669,7 +669,7 @@ class ModelAlgorithm:
                                             raw_section.real_ratio,
                                             model_section
                                             )):
-                        logger.loginfo(
+                        logger.__loginfo(
                             '   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                             'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
                             format(i + 1,
@@ -683,7 +683,7 @@ class ModelAlgorithm:
                                   )
                               )
                     for k in result.formula_dict.keys():
-                        logger.loginfo('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
+                        logger.__loginfo('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
                     # logger.loginfo('='*100)
             elif model_type.lower() == 'ppt':
                 result = ModelAlgorithm.get_ppt_formula(
@@ -700,7 +700,7 @@ class ModelAlgorithm:
                     )
                 formula = result.formula
                 if logger:
-                    logger.loginfo(
+                    logger.__loginfo(
                         ' model table: [{0}]\n'
                         'real percent: [{1}]\n'
                         '   get ratio: [{2}]\n'
@@ -730,9 +730,9 @@ class ModelAlgorithm:
                     value_raw_score_min=value_raw_score_min,
                     )
                 if logger:
-                    logger.loginfo('tai score section: {}'.format(result.section))
-                    logger.loginfo('       grade step: {}'.format(result.grade_step))
-                    logger.loginfo('        top level: {}'.format(result.top_level))
+                    logger.__loginfo('tai score section: {}'.format(result.section))
+                    logger.__loginfo('       grade step: {}'.format(result.grade_step))
+                    logger.__loginfo('        top level: {}'.format(result.top_level))
                 formula = result.formula
             else:
                 raise ValueError
@@ -743,6 +743,6 @@ class ModelAlgorithm:
                 df = df.astype({col+'_ts': int})
 
         if logger:
-            logger.loginfo('stm2 running end \n' + '-'*100)
+            logger.__loginfo('stm2 running end \n' + '-' * 100)
         r = namedtuple('r', ['outdf', 'maptable', 'result'])
         return r(df, maptable, result)
