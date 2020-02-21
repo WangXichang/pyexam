@@ -1408,6 +1408,8 @@ def plot_model(
     # calculate formula
     formula_list = []
     for x, y in zip(sorted(raw_section, key=max), sorted(out_section,key=max)):
+        if x[0] < -900:
+            continue
         d = x[1] - x[0]
         if d != 0:
             a = (y[1] - y[0]) / d                   # (y2 - y1) / (x2 - x1)
