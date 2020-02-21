@@ -1041,7 +1041,7 @@ class Checker:
             logger.logging_file = False
 
         st = {'mode_section_point_ratio_prox': mode_section_point_ratio_prox,
-              'mode_section_point_ratio_cumu':mode_section_point_ratio_cumu,
+              'mode_section_point_ratio_cumu': mode_section_point_ratio_cumu,
               'mode_score_sort_order': mode_score_sort_order,
               'mode_section_point_first': mode_section_point_first,
               'mode_section_point_start': mode_section_point_start,
