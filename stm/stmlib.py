@@ -1421,31 +1421,32 @@ def plot_model(
     # formula = result_dict[col]['coeff']
     # segment map function graph
     for cfi, cf in enumerate(formula_list):
+        # line: from x to y
         # cf: (a, b), (x1, x2), (y1, y2)
         x = cf[1] # if _score_order in ['ascending', 'a'] else cf[1][::-1]
         y = cf[2] # if _score_order in ['ascending', 'a'] else cf[2][::-1]
         plot.plot(x, y, linewidth=2)
 
-        # line from endpoint to axis
+        # line: from endpoint to axis
         for j in [0, 1]:
             # h-line: (x[j], 0) -- (x[j], y[j])
             plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=1)
             # v-line: (0, y[j]) -- (x[j], y[j])
             plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
 
-        plot.xlim([in_min, in_max])
-        plot.ylim([out_min, out_max])
+        # plot.xlim([in_min, in_max])
+        # plot.ylim([out_min, out_max])
 
         # label x: raw_score
         for j, xx in enumerate(x):
             # move left if at end point
-            plot.text(xx-2 if j == 1 else xx, out_min, '{}'.format(int(xx)))
-            # if xx[0] == xx[1]:
-            #     break
+            plot.text(xx-2 if j == 1 else xx, out_min-2, '{}'.format(int(xx)))
+            if x[0] == x[1]:
+                break
 
         # label y: out_score
         for j, yy in enumerate(y):
-            plot.text(in_min, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
+            plot.text(in_min-2, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
             if y[0] == y[1]:
                 break
 
