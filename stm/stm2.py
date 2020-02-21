@@ -601,9 +601,8 @@ class ModelAlgorithm:
                       mode_section_point_last='real',
                       mode_section_degraded='to_max',
                       mode_section_lost='real',
-                      mode_score_zero='real',
                       value_out_score_decimals=0,
-                      value_tiny_value=10**-8,
+                      value_tiny_value=10**-12,
                       logger=None,
                       ):
         # start stm
