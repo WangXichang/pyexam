@@ -511,18 +511,18 @@ class ModelAlgorithm:
                       # list(zip(out_score_points, out_score_ratio_cumu)))
 
     @classmethod
-    def get_pgt_formula(cls,
-                        df=None,
-                        col=None,
-                        maptable=None,
-                        percent_first=0.01,
-                        mode_section_point_ratio_prox='upper_min',
-                        mode_score_sort_order='d',
-                        model_section=None,
-                        value_raw_score_max=100,
-                        value_raw_score_min=0,
-                        # grade_num=15
-                        ):
+    def get_pgt_tai_formula(cls,
+                            df=None,
+                            col=None,
+                            maptable=None,
+                            percent_first=0.01,
+                            mode_section_point_ratio_prox='upper_min',
+                            mode_score_sort_order='d',
+                            model_section=None,
+                            # value_raw_score_max=100,
+                            value_raw_score_min=0,
+                            # grade_num=15
+                            ):
 
         section_point_list = [df[col].max()]
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
@@ -723,7 +723,7 @@ class ModelAlgorithm:
                                    for x in maptable.seg]),
                         ))
             elif model_type.lower() == 'pgt':
-                result = ModelAlgorithm.get_pgt_formula(
+                result = ModelAlgorithm.get_pgt_tai_formula(
                     df=df,
                     col=col,
                     maptable=maptable,
@@ -731,7 +731,7 @@ class ModelAlgorithm:
                     model_section=model_section,
                     mode_score_sort_order=mode_score_sort_order,
                     mode_section_point_ratio_prox=mode_section_point_ratio_prox,
-                    value_raw_score_max=value_raw_score_max,
+                    # value_raw_score_max=value_raw_score_max,
                     value_raw_score_min=value_raw_score_min,
                     )
                 if logger:
@@ -749,5 +749,5 @@ class ModelAlgorithm:
 
         if logger:
             logger.loginfo('stm2 running end \n' + '-' * 100)
-        r = namedtuple('r', ['outdf', 'maptable', 'result', 'section'])
-        return r(df, maptable, result, result.section)
+        r = namedtuple('r', ['outdf', 'maptable', 'section', 'formula'])
+        return r(df, maptable, result.section, result.formula)
