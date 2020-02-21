@@ -1277,44 +1277,42 @@ class TestData:
         return self.df
 
 
-def plot_diff(maptable, cols, model_name=''):
-    x = [int(x) for x in maptable['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
-    raw_label = [str(x) for x in maptable['seg']][::-1]
+def plot_diff(cols, maptable, model_name=''):
+    _order = 'd' if maptable.seg[0] > maptable.seg[1] else 'a'
+    rawscore = sorted(maptable.seg) if _order == 'd' else list(maptable.seg)
+    raw_label = [str(v) for v in rawscore]
     for f in cols:
-        df = [v if maptable.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
-        outdf = list(maptable[f + '_ts'])[::-1]
-        outdf = [out if raw > 0 else 0 for raw, out in zip(df, outdf)]
-        # fig1 = plot.figure('subject: '+f)
+        outscore = list(maptable[f+'_ts'])[::-1] if _order == 'd' else list(maptable[f+'_ts'])
         fig, ax = plot.subplots()
-        # ax.set_figure(fig1)
         ax.set_title(model_name+'['+f+']: diffrence between raw and out')
-        ax.set_xticks(x)
+        ax.set_xticks(rawscore)
         ax.set_xticklabels(raw_label)
-        width = 0.4
-        bar_wid = [p - width/2 for p in x]
-        rects1 = ax.bar(bar_wid, df, width, label=f)
-        bar_wid = [p + width/2 for p in x]
-        rects2 = ax.bar(bar_wid, outdf, width, label=f+'_ts')
-
-        """Attach a text label above each bar in *rects*, displaying its height."""
-        for i, rects in enumerate([rects1, rects2]):
-            for rect in rects:
+        width = 0.35
+        bar_wid = [p - width/2 for p in rawscore]
+        bars1 = ax.bar(bar_wid, rawscore, width, label=f)
+        bar_wid = [p + width/2 for p in rawscore]
+        bars2 = ax.bar(bar_wid, outscore, width, label=f+'_ts')
+        #
+        for i, bars in enumerate([bars1, bars2]):
+            for bar in bars:
                 if i == 0:
-                    notes = rect.get_height()
+                    notestr = '{}'.format(bar.get_height())
                 else:
-                    if rect.get_height() > 0:
-                        notes = rect.get_height() - rect.get_x()
+                    if bar.get_height() > 0:
+                        notestr = '{}'.format(int(bar.get_height() - bar.get_x()))
                     else:
-                        notes = 0
-                height = rect.get_height()
-                ax.annotate('{}'.format(int(notes)),
-                            xy=(rect.get_x() + rect.get_width() / 2, height),
+                        notestr = '0'
+                height = bar.get_height()
+                ax.annotate(notestr,
+                            xy=(bar.get_x() + bar.get_width() / 2, height),
                             xytext=(0, 3),  # 3 points vertical offset
                             textcoords="offset points",
-                            ha='center', va='bottom')
+                            ha='center',
+                            va='bottom')
         ax.legend(loc='upper left', shadow=True, fontsize='x-large')
         fig.tight_layout()
         plot.show()
+        return
 
 
 def plot_score_bar_count(
@@ -1333,24 +1331,20 @@ def plot_score_bar_count(
             df_bin = [maptable.query('seg==' + str(xv))[f + '_count'].values[0]
                       if xv in maptable.seg else 0
                       for xv in x_data]
-        elif scoretype == 'out':
+        else:   # out score
             score_scope = range(min(maptable[f + '_ts']), max(maptable[f+'_ts']+1))
             raw_label = [str(x) for x in score_scope]
             x_data = list(score_scope)
             out_count = maptable.groupby(f+'_ts')[f+'_count'].sum()
             df_bin = [out_count[x] if x in out_count else 0 for x in x_data]
-        else:
-            raise ValueError
 
+        # create figure and ticks
         fig, ax = plot.subplots()
         ax.set_xticks(x_data)
         ax.set_xticklabels(raw_label)
-        width = 0.4
-        bar_wid = [p + width/2 for p in x_data]
 
-        raw_bar = ax.bar(bar_wid, df_bin, width, label=f)
-        disp_bar = [raw_bar]
-        data = pd.Series()
+        # set title
+        data = pd.Series()  # create score Series
         for x, y in zip(x_data, df_bin):
             if y > 0:
                 data = data.append(pd.Series([x]*int(y)))
@@ -1358,33 +1352,40 @@ def plot_score_bar_count(
                      format(f, data.mean(), data.std(), data.max(), data.min())
                      )
 
-        for bars in disp_bar:
-            make_color = 0
-            last_height = 0
-            for _bar in bars:
-                height = _bar.get_height()
-                xpos = _bar.get_x() + _bar.get_width() / 2
-                note_str = '{}'.format(int(height))
-                ypos = 0
-                if (height > 100) and abs(height - last_height) < 20:
-                    if height < last_height:
-                        ypos = -10
-                    else:
-                        ypos = +10
-                ax.annotate(note_str,
-                            xy=(xpos, height),
-                            xytext=(0, ypos),              # vertical offset
-                            textcoords="offset points",
-                            ha='center',
-                            va='bottom'
-                            )
-                if make_color == 2:
-                    yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
-                    plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
-                    make_color = 0
+        # set count bars
+        width = 0.4
+        bar_wid = [p + width/2 for p in x_data]
+        count_bars = ax.bar(bar_wid, df_bin, width, label=f)
+
+        # set number text above bars
+        make_color = 0      # display different color cross bars
+        last_height = 0     # adjust height to avoid overlapped number text above bars
+        for _bar in count_bars:
+            height = _bar.get_height()
+            xpos = _bar.get_x() + _bar.get_width() / 2
+            note_str = '{}'.format(int(height))
+            ypos = 0
+            if (height > 100) and abs(height - last_height) < 20:
+                if height < last_height:
+                    ypos = -10
                 else:
-                    make_color += 1
-                last_height = height + ypos
+                    ypos = +10
+            # set count number above bar
+            ax.annotate(note_str,
+                        xy=(xpos, height),
+                        xytext=(0, ypos),              # vertical offset
+                        textcoords="offset points",
+                        ha='center',
+                        va='bottom'
+                        )
+            # draw red bar inside count-bar
+            if make_color == 2:
+                yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
+                plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
+                make_color = 0
+            else:
+                make_color += 1
+            last_height = height + ypos
         fig.tight_layout()
         plot.show()
         return

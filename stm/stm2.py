@@ -356,7 +356,7 @@ class ModelAlgorithm:
             mode_score_sort_order='d',
             out_score_decimal=0
             ):
-        plt_formula = dict()
+        result_dict = dict()
         i = 0
         for rsec, osec in zip(raw_section, out_section):
             # rsec is degraded
@@ -392,20 +392,20 @@ class ModelAlgorithm:
             formula_str1 = '***' if rsec[0] < 0 else 'y = {:.6f} * x {:+10.6f}'.format(a, b)
             formula_str2 = '***' if rsec[0] < 0 else \
                            'y = {0:8.6f} * (x - {1:10.6f}) + {2:10.6f}'.format(a, x0, y0)
-            plt_formula.update({i+1: ((a, b), rsec, osec, formula_str1, formula_str2)})
+            result_dict.update({i+1: ((a, b), rsec, osec, formula_str1, formula_str2)})
             i += 1
 
         # function of formula
         def formula(x):
-            for k in plt_formula.keys():
-                if (plt_formula[k][1][0] <= x <= plt_formula[k][1][1]) or \
-                        (plt_formula[k][1][0] >= x >= plt_formula[k][1][1]):
-                    return slib.round45r(plt_formula[k][0][0] * x + plt_formula[k][0][1],
+            for k in result_dict.keys():
+                if (result_dict[k][1][0] <= x <= result_dict[k][1][1]) or \
+                        (result_dict[k][1][0] >= x >= result_dict[k][1][1]):
+                    return slib.round45r(result_dict[k][0][0] * x + result_dict[k][0][1],
                                          out_score_decimal)
             return -1000
 
-        Result = namedtuple('Result', ('formula', 'formula_dict'))
-        return Result(formula, plt_formula)
+        Result = namedtuple('Result', ('formula', 'result_dict', 'section'))
+        return Result(formula, result_dict, raw_section)
 
     @classmethod
     # @slib.timer_wrapper
@@ -422,7 +422,7 @@ class ModelAlgorithm:
                         out_score_decimal=0,
                         value_tiny_value=10**-12
                         ):
-        map_score = dict()
+        map_dict = dict()
         _rmax, _rmin = max(raw_score_points), min(raw_score_points)
         if mode_score_sort_order in ['d', 'descending']:
             if any([x <= y for x, y in zip(raw_score_points[:-1], raw_score_points[1:])]):
@@ -446,12 +446,12 @@ class ModelAlgorithm:
             dest_ratio_list.append(dest_ratio)
             if rscore == _rmax:
                 if mode_value_raw_score_max == 'defined':
-                    map_score.update({rscore: max(out_score_points)})
+                    map_dict.update({rscore: max(out_score_points)})
                     real_ratio_list.append(0)
                     continue
             if rscore == _rmin:
                 if mode_value_raw_score_min == 'defined':
-                    map_score.update({rscore: min(out_score_points)})
+                    map_dict.update({rscore: min(out_score_points)})
                     real_ratio_list.append(1)
                     continue
 
@@ -486,21 +486,29 @@ class ModelAlgorithm:
             else:
                 print('mode_section_point_ratio_prox error: {}'.format(mode_section_point_ratio_prox))
                 raise ValueError
-            map_score.update({rscore: _seg})
+            map_dict.update({rscore: _seg})
             real_ratio_list.append(_percent)
+
+        map_raw = {map_dict[rawscore]: rawscore for rawscore in map_dict.keys()}
+        raw_section = []
+        for sc in out_score_points:
+            if sc in map_raw.keys():
+                raw_section.append((map_raw[sc], map_raw[sc]))
+            else:
+                raw_section.append((-999, -999))
 
         # function of formula
         def formula(x):
-            if x in map_score:
-                return slib.round45r(map_score[x], out_score_decimal)
+            if x in map_dict:
+                return slib.round45r(map_dict[x], out_score_decimal)
             else:
                 # set None to raise ValueError in score calculating to avoid create misunderstand
                 return -2000
 
         # print(dest_ratio, '\n', real_ratio_list)
-        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'maptable'))
-        return Result(formula, map_score, dest_ratio_list, real_ratio_list,
-                      list(zip(out_score_points, out_score_ratio_cumu)))
+        Result = namedtuple('Result', ('formula', 'map_dict', 'dest_ratio', 'real_ratio', 'section'))
+        return Result(formula, map_dict, dest_ratio_list, real_ratio_list, raw_section)
+                      # list(zip(out_score_points, out_score_ratio_cumu)))
 
     @classmethod
     def get_pgt_formula(cls,
@@ -605,7 +613,7 @@ class ModelAlgorithm:
             cols = [cols]
 
         if logger:
-            logger.__loginfo('stm2 start ...')
+            logger.loginfo('stm2 start ...')
 
         # create seg_table
         seg = slib.run_seg(
@@ -627,13 +635,11 @@ class ModelAlgorithm:
             if model_type != 'pgt':
                 model_section = [tuple(reversed(x)) for x in reversed(model_section)]
 
-        # print(model_section)
-
         # start transform
         result = None
         for col in cols:
             if logger:
-                logger.__loginfo('transform {} of {}'.format(col, cols))
+                logger.loginfo('transform {} of {}'.format(col, cols))
             if model_type.lower() == 'plt':
                 raw_section = ModelAlgorithm.get_raw_section(
                     section_ratio_cumu_sequence=cumu_ratio,
@@ -669,7 +675,7 @@ class ModelAlgorithm:
                                             raw_section.real_ratio,
                                             model_section
                                             )):
-                        logger.__loginfo(
+                        logger.loginfo(
                             '   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                             'section_map: raw:[{4:3d}, {5:3d}] --> out: [{6:3d}, {7:3d}]'.
                             format(i + 1,
@@ -682,8 +688,8 @@ class ModelAlgorithm:
                                   int(out_sec[1]),
                                   )
                               )
-                    for k in result.formula_dict.keys():
-                        logger.__loginfo('   [{0:02d}]: {1}'.format(k, result.formula_dict[k][4]))
+                    for k in result.result_dict.keys():
+                        logger.loginfo('   [{0:02d}]: {1}'.format(k, result.result_dict[k][4]))
                     # logger.loginfo('='*100)
             elif model_type.lower() == 'ppt':
                 result = ModelAlgorithm.get_ppt_formula(
@@ -700,7 +706,7 @@ class ModelAlgorithm:
                     )
                 formula = result.formula
                 if logger:
-                    logger.__loginfo(
+                    logger.loginfo(
                         ' model table: [{0}]\n'
                         'real percent: [{1}]\n'
                         '   get ratio: [{2}]\n'
@@ -730,9 +736,9 @@ class ModelAlgorithm:
                     value_raw_score_min=value_raw_score_min,
                     )
                 if logger:
-                    logger.__loginfo('tai score section: {}'.format(result.section))
-                    logger.__loginfo('       grade step: {}'.format(result.grade_step))
-                    logger.__loginfo('        top level: {}'.format(result.top_level))
+                    logger.loginfo('tai score section: {}'.format(result.section))
+                    logger.loginfo('       grade step: {}'.format(result.grade_step))
+                    logger.loginfo('        top level: {}'.format(result.top_level))
                 formula = result.formula
             else:
                 raise ValueError
@@ -743,6 +749,6 @@ class ModelAlgorithm:
                 df = df.astype({col+'_ts': int})
 
         if logger:
-            logger.__loginfo('stm2 running end \n' + '-' * 100)
-        r = namedtuple('r', ['outdf', 'maptable', 'result'])
-        return r(df, maptable, result)
+            logger.loginfo('stm2 running end \n' + '-' * 100)
+        r = namedtuple('r', ['outdf', 'maptable', 'result', 'section'])
+        return r(df, maptable, result, result.section)
