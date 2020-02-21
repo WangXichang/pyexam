@@ -1317,35 +1317,46 @@ def plot_diff(maptable, cols, model_name=''):
         plot.show()
 
 
-def plot_rawscore_bar_count(
-                            cols,
-                            maptable,
-                            mode_order='d',
-                            model_name='',
-                            raw_score_max=100,
-                            hcolor='r',
-                            hwidth=6,
-                            ):
-    seg_list = maptable.seg if mode_order in ['a', 'ascending'] \
-               else reversed(maptable.seg)
-    raw_label = [str(x) for x in seg_list]
-    x_data = list(range(raw_score_max + 1))
+def plot_score_bar_count(
+                         scoretype='raw',
+                         cols=None,
+                         maptable=None,
+                         model_name='',
+                         hcolor='r',
+                         hwidth=6,
+                        ):
+
     for f in cols:
-        df = [maptable.query('seg=='+str(xv))[f+'_count'].values[0]
-              if xv in maptable.seg else 0
-              for xv in x_data]
+        if scoretype == 'raw':
+            raw_label = [str(x) for x in sorted(maptable.seg)]
+            x_data = list(range(max(maptable.seg) + 1))
+            df_bin = [maptable.query('seg==' + str(xv))[f + '_count'].values[0]
+                      if xv in maptable.seg else 0
+                      for xv in x_data]
+        elif scoretype == 'out':
+            score_scope = range(min(maptable[f + '_ts']), max(maptable[f+'_ts']+1))
+            raw_label = [str(x) for x in score_scope]
+            x_data = list(score_scope)
+            out_count = maptable.groupby(f+'_ts')[f+'_count'].sum()
+            df_bin = [out_count[x] if x in out_count else 0 for x in x_data]
+        else:
+            raise ValueError
 
         fig, ax = plot.subplots()
-        # ax.set_title(self.model_name+'  [ '+f+' ]')
         ax.set_xticks(x_data)
         ax.set_xticklabels(raw_label)
         width = 0.4
         bar_wid = [p + width/2 for p in x_data]
 
-        raw_bar = ax.bar(bar_wid, df, width, label=f)
+        raw_bar = ax.bar(bar_wid, df_bin, width, label=f)
         disp_bar = [raw_bar]
-        ax.set_title(model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
-                     format(f, df[f].mean(), df[f].std(), df[f].max()))
+        data = pd.Series()
+        for x, y in zip(x_data, df_bin):
+            if y > 0:
+                data = data.append(pd.Series([x]*int(y)))
+        ax.set_title(model_name+' subject:{0}  mean:{1:.2f}, std:{2:.2f}, max:{3:5.1f}, min:{4:5.1f}'.
+                     format(f, data.mean(), data.std(), data.max(), data.min())
+                     )
 
         for bars in disp_bar:
             make_color = 0
@@ -1376,6 +1387,7 @@ def plot_rawscore_bar_count(
                 last_height = height + ypos
         fig.tight_layout()
         plot.show()
+        return
 
 
 def plot_model(
@@ -1433,9 +1445,6 @@ def plot_model(
             plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=1)
             # v-line: (0, y[j]) -- (x[j], y[j])
             plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
-
-        # plot.xlim([in_min, in_max])
-        # plot.ylim([out_min, out_max])
 
         # label x: raw_score
         for j, xx in enumerate(x):
