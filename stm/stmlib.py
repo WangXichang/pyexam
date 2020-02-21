@@ -939,15 +939,14 @@ class Checker:
 
         return True
 
-    @staticmethod
-    def reload_stm_modules(logger=None, modules=None):
-        try:
-            for m in modules:
-                # print('reload:{}'.format(m))
-                pb.reload(m)
-        except:
-            return False
-        return True
+    # @staticmethod
+    # def reload_stm_modules(modules=None):
+    #     try:
+    #         for m in modules:
+    #             pb.reload(m)
+    #     except IOError:
+    #         return False
+    #     return True
 
     @staticmethod
     def check_model(model_name, model_lib=None, logger=None):
@@ -1008,7 +1007,7 @@ class Checker:
                 return False
             if s[0] < s[1]:
                 logger.loginfo('error order: section endpoint order must be from large to small, '
-                      'there: p1({}) < p2({})'.format(s[0], s[1]))
+                               'there: p1({}) < p2({})'.format(s[0], s[1]))
                 return False
         if model_type in ['ppt', 'pgt']:
             if not all([x == y for x, y in model_section]):
@@ -1230,27 +1229,27 @@ class TestData:
     :df
         DataFrame, columns = {'ksh', 'km1', 'km2'}
     """
-    def __init__(self, mu=60, std=18, size=60000, max=100, min=0, decimals=0):
+    def __init__(self, mu=60, std=18, size=60000, maxscore=100, minscore=0, decimals=0):
         self.df = None
         self.df_mean = mu
-        self.df_max = max
-        self.df_min = min
+        self.df_max = maxscore
+        self.df_min = minscore
         self.df_std = std
         self.df_size = size
-        self.decimals=decimals
+        self.decimals = decimals
         # only implement norm distribution
         self.dist = 'norm'
         self.__make_data()
 
     def __make_data(self):
         import random
-        ssno = [str(i).zfill(2) for i in range(1,17)]
-        xqno = [str(i).zfill(2) for i in range(2,90)]
+        ssno = [str(i).zfill(2) for i in range(1, 17)]
+        xqno = [str(i).zfill(2) for i in range(2, 90)]
         klno = ['1', '3', '4']     # 1: regular,  3: art,   4: physical educatio
         self.df = pd.DataFrame({
             'ksh': ['37'+random.sample(ssno, 1)[0] +
-                    random.sample(xqno,1)[0] +
-                    random.sample(klno,1)[0] +
+                    random.sample(xqno, 1)[0] +
+                    random.sample(klno, 1)[0] +
                     str(x).zfill(7)
                     for x in range(1, self.df_size+1)],
             'km1': self.get_score(),
@@ -1258,11 +1257,13 @@ class TestData:
         })
 
     def get_score(self):
-        if self.decimals == 0:
-            myround = lambda x: int(x)
-        else:
-            myround = lambda x: round(x, ndigits=self.decimals)
-        norm_list = None
+
+        def myround(x):
+            if self.decimals == 0:
+                return int(x)
+            else:
+                return round(x, ndigits=self.decimals)
+
         if self.dist == 'norm':
             norm_list = sts.norm.rvs(loc=self.df_mean, scale=self.df_std, size=self.df_size)
             norm_list = np.array([myround(x) for x in norm_list])
@@ -1414,7 +1415,7 @@ def plot_model(
 
     # calculate formula
     formula_list = []
-    for x, y in zip(sorted(_raw_section, key=max), sorted(_out_section,key=max)):
+    for x, y in zip(sorted(_raw_section, key=max), sorted(_out_section, key=max)):
         d = x[1] - x[0]
         if d != 0:
             a = (y[1] - y[0]) / d                   # (y2 - y1) / (x2 - x1)
@@ -1443,8 +1444,8 @@ def plot_model(
     for cfi, cf in enumerate(formula_list):
         # line: from x to y
         # cf: (a, b), (x1, x2), (y1, y2)
-        x = cf[1] # if _score_order in ['ascending', 'a'] else cf[1][::-1]
-        y = cf[2] # if _score_order in ['ascending', 'a'] else cf[2][::-1]
+        x = cf[1]   # if _score_order in ['ascending', 'a'] else cf[1][::-1]
+        y = cf[2]   # if _score_order in ['ascending', 'a'] else cf[2][::-1]
         plot.plot(x, y, linewidth=2)
 
         # line: from endpoint to axis
@@ -1473,3 +1474,46 @@ def plot_model(
 
     plot.show()
     return
+
+
+class StmPlot:
+    def __init__(self, cols=None, maptable=None, raw_section=None, out_setion=None):
+        # self.model_type = None
+        # self.outdf = None
+        self.model_name = 'stm'
+
+        self.cols = cols
+        self.maptable = maptable
+        self.raw_section = raw_section
+        self.out_section = out_setion
+
+    def plot(self, mode='model'):
+        if mode == 'model':
+            for col in self.cols:
+                plot_model(col=col,
+                           raw_section=self.raw_section,
+                           out_section=self.out_section,
+                           down_line=True)
+        elif mode == 'rawbar':
+            plot_score_bar_count(
+                scoretype='raw',
+                cols=self.cols,
+                maptable=self.maptable,
+                model_name=self.model_name
+            )
+        elif mode == 'outbar':
+            plot_score_bar_count(
+                scoretype='out',
+                cols=self.cols,
+                maptable=self.maptable,
+                model_name=self.model_name
+            )
+        elif mode == 'diff':
+            plot_diff(
+                model_name=self.model_name,
+                cols=self.cols,
+                maptable=self.maptable
+            )
+        else:
+            plot.figure('not valid mode!')
+            return False

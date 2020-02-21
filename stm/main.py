@@ -582,7 +582,7 @@ def make_config_file(confname='stm_test.cf'):
 
 
 def test_data(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
-    return __slib.TestData(mu, std, size, max=maxvalue, min=minvalue, decimals=decimals)()
+    return __slib.TestData(mu, std, size, maxscore=maxvalue, minscore=minvalue, decimals=decimals)()
 
 
 def models_show(name=None):
