@@ -1405,11 +1405,16 @@ def plot_model(
     plot.rcParams['font.sans-serif'] = ['SimHei']
     plot.rcParams.update({'font.size': fontsize})
 
+    _raw_section = []
+    _out_section = []
+    for x, y in zip(raw_section, out_section):
+        if x[0] > -100:
+            _raw_section.append(x)
+            _out_section.append(y)
+
     # calculate formula
     formula_list = []
-    for x, y in zip(sorted(raw_section, key=max), sorted(out_section,key=max)):
-        if x[0] < -900:
-            continue
+    for x, y in zip(sorted(_raw_section, key=max), sorted(_out_section,key=max)):
         d = x[1] - x[0]
         if d != 0:
             a = (y[1] - y[0]) / d                   # (y2 - y1) / (x2 - x1)
@@ -1419,8 +1424,8 @@ def plot_model(
             b = max(y)                              # mode_section_degraded == 'to_max'
         formula_list.append([(a, b), sorted(x), sorted(y)])
 
-    in_min, in_max = min(min(raw_section, key=min)), max(max(raw_section, key=max))
-    out_min, out_max = min(min(out_section, key=max)), max(max(out_section, key=max))
+    in_min, in_max = min(min(_raw_section, key=min)), max(max(_raw_section, key=max))
+    out_min, out_max = min(min(_out_section, key=max)), max(max(_out_section, key=max))
     # for i, col in enumerate(cols):
 
     plot.figure(col)
