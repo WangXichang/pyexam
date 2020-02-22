@@ -49,8 +49,8 @@ __stm_modules = [__slib, __stm1, __stm2, __models]
 
 
 def run(
-        configfile=None,
-        newconfigfile=None,
+        use_cfg=None,
+        new_cfg=None,
         model='shandong',
         df=None,
         cols=(),
@@ -162,9 +162,9 @@ def run(
     """
 
     # create new config file
-    if isinstance(newconfigfile, str):
-        if not ('{' in newconfigfile):
-            make_config_file(newconfigfile)
+    if isinstance(new_cfg, str):
+        if not ('{' in new_cfg):
+            make_config_file(new_cfg)
             return True
         else:
             return False
@@ -176,9 +176,9 @@ def run(
         __pb.reload(m)
 
     mcfg = dict()
-    if isinstance(configfile, str):
-        if __os.path.isfile(configfile):
-            mcfg = __read_config(configfile)
+    if isinstance(use_cfg, str):
+        if __os.path.isfile(use_cfg):
+            mcfg = __read_config(use_cfg)
         if len(mcfg) > 0:
             model = mcfg['model_name']
             df = mcfg['df']
@@ -219,7 +219,7 @@ def run(
     stmlogger.loginfo_start('task:' + task + ' model:' + model + stm_no)
 
     # log--disp--file: config messages form mcfg by reading cfg file
-    stmlogger.loginfo('read config in {}'.format(configfile) + '\n' + '-' * 120)
+    stmlogger.loginfo('read config in {}'.format(use_cfg) + '\n' + '-' * 120)
     key_list = list(mcfg.keys())
     for i, k in enumerate(key_list):
         if k == 'df':

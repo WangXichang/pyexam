@@ -511,8 +511,10 @@ class PltScore(ScoreTransformModel):
                 continue
 
             # loop: seeking ratio by percent to set out score
+            y_pos = None
             for si, sr in enumerate(self.__raw_score_ratio_cum):
                 # sr == _p or sr > _p
+                y_pos = si
                 if (abs(sr - _p) < value_tiny_value) or (sr > _p):
                     if (abs(_p - sr) < value_tiny_value) or (si == 0):
                         y = _start_score + si*_step
@@ -521,18 +523,22 @@ class PltScore(ScoreTransformModel):
                     elif _mode_prox == 'lower_max':
                         if si > 0:
                             y = _start_score + (si - 1)*_step
+                            y_pos = si - 1
                         else:
                             y = _start_score + si*_step
                     elif 'near' in _mode_prox:
                         if abs(_p-sr) < abs(_p-self.__raw_score_ratio_cum[si - 1]):
-                            y = _start_score - si
+                            y = _start_score + (si - 1)*_step
+                            y_pos = si - 1
                         elif abs(_p-sr) > abs(_p-self.__raw_score_ratio_cum[si - 1]):
                             y = _start_score + (si - 1)*_step
+                            y_pos = si - 1
                         else:
                             if 'near_max' in _mode_prox:
                                 y = _start_score + si*_step
                             else:
                                 y = _start_score + (si - 1)*_step
+                                y_pos = si - 1
                     else:
                         self.__logger.log('Error Ratio Prox Mode: {}'.format(_mode_prox),
                                              'debug')
@@ -541,7 +547,7 @@ class PltScore(ScoreTransformModel):
             if y is not None:
                 row[col+'_ts'] = slib.round45r(y, self.__value_out_score_decimals)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
-                section_index_dict.update({(_seg, _seg): si})
+                section_index_dict.update({(_seg, _seg): y_pos})
                 result_ratio.append(_p if row[col+'_count'] > 0 else -1)
             # end scanning raw_score_ratio_list
         # end scanning maptable
