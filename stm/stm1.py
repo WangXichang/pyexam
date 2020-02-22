@@ -134,24 +134,6 @@ class ScoreTransformModel(abc.ABC):
                     start = True
                 f.write(s + '\n' + '-'*len(s) + '\n')
 
-    # def plot_out_score(self):
-    #     if not self.cols:
-    #         print('no field assigned in {}!'.format(self.df))
-    #         return
-    #     fig_title = 'Out Score '
-    #     for fs in self.cols:
-    #         plot.figure(fs)
-    #         if fs + '_ts' in self.outdf.columns:  # find sf_out_score field
-    #             sbn.distplot(self.outdf[fs + '_ts'])
-    #             plot.title(fig_title + fs)
-    #         elif fs + '_grade' in self.outdf.columns:  # find sf_out_score field
-    #             sbn.distplot(self.outdf[fs + '_grade'])
-    #             plot.title(fig_title + fs)
-    #         else:
-    #             print('no out score fields found in outdf columns:{}!'.
-    #                   format(list(self.outdf.columns)))
-    #     return
-
 
 
 # piecewise linear transform model
@@ -246,20 +228,15 @@ class PltScore(ScoreTransformModel):
         self.df = pd.DataFrame()
         self.cols = []
 
-        # self.__raw_score_defined_min = None
-        # self.__raw_score_defined_max = None
-        # self.__value_out_score_decimals = 0
-        self.__out_report_doc = ''
-
         # new properties
         self.__raw_score_ratio_cum = []
-        self.__out_score_section = []
-        self.__out_score_max = None
-        self.__out_score_min = None
         self.__raw_score_real_max = None
         self.__raw_score_real_min = None
         self.__raw_score_defined_max = None
         self.__raw_score_defined_min = None
+        self.__out_score_section = []
+        self.__out_score_max = None
+        self.__out_score_min = None
 
         # strategy
         self.__strategy_dict = dict()
@@ -273,10 +250,11 @@ class PltScore(ScoreTransformModel):
         self.__value_out_score_decimals = 0
 
         # result
-        # self.maptable = pd.DataFrame()
         self.maptable = pd.DataFrame()
         self.outdf = pd.DataFrame()
+        self.raw_section = []
         self.result_dict = dict()
+        self.__report_doc = ''
         self.__result_raw_endpoints = []
         self.__result_ratio_dict = dict()
         self.__result_formula_coeff = dict()
@@ -311,7 +289,6 @@ class PltScore(ScoreTransformModel):
             self.cols = cols
             return True
 
-    # plt
     def set_para(self,
                  raw_score_ratio=None,
                  out_score_section=None,
@@ -448,43 +425,14 @@ class PltScore(ScoreTransformModel):
                              'debug')
         # self.logger.loginfo('<< Report >>\n')
         # self.logger.loginfo('-'*120)
-        self.__logger.loginfo(self.__out_report_doc)
+        self.__logger.loginfo(self.__report_doc)
 
     # run end
 
     # -----------------------------------------------------------------------------------
-    # formula-1
-    # y = a*x + b
-    # a = (y2-y1)/(x2-x1)
-    # b = -x1/(x2-x1) + y1
-    def __get_ts_score_from_formula_ax_b(self, field, x):
-        for cf in self.result_dict[field]['coeff'].values():
-            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                return slib.round45r(cf[0][0] * x + cf[0][1])
-        return -1
-
-    # -----------------------------------------------------------------------------------
-    # formula-2
-    # y = a*(x - b) + c
-    # a = (y2-y1)/(x2-x1)
-    # b = x1
-    # c = y1
-    def __get_ts_score_from_formula_ax_b_c(self, field, x):
-        for cf in self.result_dict[field]['coeff'].values():
-            if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-                v = (cf[1][1]-cf[1][0])
-                if v == 0:
-                    return slib.round45r(cf[0][1])
-                a = (cf[2][1]-cf[2][0])/v
-                b = cf[1][0]
-                c = cf[2][0]
-                return slib.round45r(a * (x - b) + c)
-        return -1
-
-    # -----------------------------------------------------------------------------------
-    # formula-3 new, recommend to use,  int/int to float
+    # formula for higher precise, int/int to float
     # original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
-    # variant:  y = (a*x + b) / c
+    # used to : y = (a*x + b) / c
     #           a=(y2-y1)
     #           b=y1x2-y2x1
     #           c=(x2-x1)
@@ -497,9 +445,9 @@ class PltScore(ScoreTransformModel):
             return self.__out_score_real_min
         for cf in self.result_dict[field]['coeff'].values():
             if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
-                a = (cf[2][1]-cf[2][0])
-                b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
-                c = (cf[1][1]-cf[1][0])
+                a = (cf[2][1] - cf[2][0])
+                b = cf[2][0] * cf[1][1] - cf[2][1] * cf[1][0]
+                c = (cf[1][1] - cf[1][0])
                 # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
                 if c == 0:
                     if self.__strategy_dict['mode_section_degraded'] == 'to_max':
@@ -515,14 +463,14 @@ class PltScore(ScoreTransformModel):
         # raw score not in coeff[1]
         return -1000
 
-    # formula hainan, each segment is a single point
-    # y = x for x in [x, x]
-    # coeff: (a=0, b=x), (x, x), (y, y))
-    # len(ratio_list) = len(maptable['seg'])
+    # formula for b900, b300
+    # coeff:   (a=0, b=x), (x, x), (y, y))
+    # formula: y = 0*x + y for [x, x] --> [y, y]
     def __get_formula_ppt(self, col):
         self.__result_raw_endpoints = [x for x in self.maptable['seg']]
         self.maptable.loc[:, col+'_ts'] = -1
         coeff_dict = dict()
+        section_index_dict = dict()
         result_ratio = []
         value_tiny_value = self.__value_tiny_value     # used to judge zero(s==0) or equality(s1==s2)
 
@@ -591,12 +539,10 @@ class PltScore(ScoreTransformModel):
                         raise ValueError
                     break
             if y is not None:
-                # self.logger.loginfo('-1', row[col+'_ts'])
                 row[col+'_ts'] = slib.round45r(y, self.__value_out_score_decimals)
-                # self.logger.loginfo('plt', row[col+'_ts'])
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
-                result_ratio.append(format(_p, '.6f'))
-                # _ts_list.append(y)
+                section_index_dict.update({(_seg, _seg): si})
+                result_ratio.append(_p if row[col+'_count'] > 0 else -1)
             # end scanning raw_score_ratio_list
         # end scanning maptable
 
@@ -607,11 +553,15 @@ class PltScore(ScoreTransformModel):
                                  'coeff': coeff_dict,
                                  'formula': formula_dict
                                  }
+
+        result_section = [coeff_dict[k][1] for k in coeff_dict.keys()]
+        result_def_ratio = [self.__raw_score_ratio_cum[section_index_dict[x]]
+                            for x in result_section]
         self.__result_ratio_dict[col] = dict()
-        self.__result_ratio_dict[col]['def'] = self.__raw_score_ratio_cum
-        self.__result_ratio_dict[col]['dest'] = self.__raw_score_ratio_cum
+        self.__result_ratio_dict[col]['def'] = result_def_ratio
+        self.__result_ratio_dict[col]['dest'] = result_def_ratio
         self.__result_ratio_dict[col]['match'] = result_ratio
-        self.__result_ratio_dict[col]['section'] = [coeff_dict[k][1] for k in coeff_dict.keys()]
+        self.__result_ratio_dict[col]['section'] = result_section
         return True
 
     def __get_formula_plt(self, field):
@@ -633,14 +583,14 @@ class PltScore(ScoreTransformModel):
                 self.__logger.log('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
                       'section_map: raw:[{4:3d}, {5:3d}] --> out:[{6:3d}, {7:3d}]'.
                                   format(i + 1,
-                             cumu_ratio,
-                             dest_ratio,
-                             match,
-                             int(raw_sec[0]),
-                             int(raw_sec[1]),
-                             int(out_sec[0]),
-                             int(out_sec[1])
-                             ),
+                                         cumu_ratio,
+                                         dest_ratio,
+                                         match,
+                                         int(raw_sec[0]),
+                                         int(raw_sec[1]),
+                                         int(out_sec[0]),
+                                         int(out_sec[1])
+                                         ),
                                   'debug'
                                   )
 
@@ -650,27 +600,11 @@ class PltScore(ScoreTransformModel):
         self.result_dict[field] = {'coeff': copy.deepcopy(self.__result_formula_coeff)}
         return True
 
-    # -----------------------------------------------------------------------------------
-    # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
-    #        -2:   = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
-    #        -3:   = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
     def __get_formula_coeff(self, field=None):
-
-        # create raw score segments list
-        # x_points = self.result_raw_endpoints
-        # if self.strategy_dict['mode_section_point_start'] == 'share':
-        #     step = 0
-        # else:
-        #     step = 1 if self.strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else -1
-        # x_list = [(int(p[0])+(step if i > 0 else 0), int(p[1]))
-        #           for i, p in enumerate(zip(x_points[:-1], x_points[1:]))]
-        # # 3-problems: minus score,
-        # #             less than min,
-        # #             no ratio interval(not found because of last too large ratio!)
-        # x_list = [(-1, -1)
-        #           if p[0] < 0 or min(p) < self.raw_score_defined_min or (p[0]-p[1])*step > 0
-        #           else p
-        #           for p in x_list]
+        # coeff: (a, b), (x1, x2), (y1, y2)
+        # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
+        #        -2: y = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
+        #        -3: y = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
 
         x_list = self.__result_ratio_dict[field]['section']
 
@@ -817,7 +751,6 @@ class PltScore(ScoreTransformModel):
                     continue
             make_section.append((_x, _y))
             i += 1
-        # print(make_section)
         # add [-1, -1] to tail, fill up that removed in make_section because 'zip'
         len_less = len(self.__raw_score_ratio_cum) - len(make_section)
         if len_less > 0:
@@ -896,16 +829,16 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in maptable
     def __make_report(self):
-        if len(self.__out_report_doc) == 0:
-            self.__out_report_doc += 'strategies' + '\n'
+        if len(self.__report_doc) == 0:
+            self.__report_doc += 'strategies' + '\n'
         else:
-            self.__out_report_doc += '\n strategies' + '\n'
+            self.__report_doc += '\n strategies' + '\n'
         for k in self.__strategy_dict.keys():
-            self.__out_report_doc += ' ' * 15 + '{0:<30s} {1}'. \
+            self.__report_doc += ' ' * 15 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.__strategy_dict[k]) + '\n'
         for col in self.cols:
-            self.__out_report_doc += self.__make_field_report(col)
-        self.__out_report_doc += '---' * 40
+            self.__report_doc += self.__make_field_report(col)
+        self.__report_doc += '---' * 40
 
     def __make_field_report(self, field=''):
         score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
@@ -961,12 +894,12 @@ class PltScore(ScoreTransformModel):
         plist = self.__raw_score_ratio_cum
         if self.__value_out_score_decimals == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
-                format(', '.join([format(x, '10.6f') for x in self.__raw_score_ratio_cum]))
+                format(', '.join([format(x, '10.6f') for x in self.__result_ratio_dict[field]['def']]))
             _out_report_doc += '           dest ratio: [{}]\n'.\
                 format(', '.join([format(float(x), '10.6f')
                                   for x in self.__result_ratio_dict[field]['dest']]))
             _out_report_doc += '          match ratio: [{}]\n'. \
-                format(', '.join([format(float(x), '10.6f')
+                format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
                                   for x in self.__result_ratio_dict[field]['match']]))
         else:
             _out_report_doc += '  raw score sec ratio: [{}]\n'.\
@@ -1099,7 +1032,7 @@ class PltScore(ScoreTransformModel):
         return _out_report_doc
 
     def report(self):
-        print(self.__out_report_doc)
+        print(self.__report_doc)
 
     def plot(self, mode='model'):
         plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'rawbar', 'outbar']
