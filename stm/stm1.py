@@ -357,7 +357,7 @@ class PltScore(ScoreTransformModel):
         # calculate seg table
         # self.logger.loginfo('calculating maptable ...')
         _segsort = 'a' if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 'd'
-        seg_model = slib.run_seg(
+        seg_model = slib.get_segtable(
                   df=self.df,
                   cols=self.cols,
                   segmax=self.__raw_score_defined_max,
@@ -451,15 +451,15 @@ class PltScore(ScoreTransformModel):
                 # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
                 if c == 0:
                     if self.__strategy_dict['mode_section_degraded'] == 'to_max':
-                        return slib.round45r(max(cf[2]), self.__value_out_score_decimals)
+                        return slib.round45(max(cf[2]), self.__value_out_score_decimals)
                     elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
-                        return slib.round45r(min(cf[2]), self.__value_out_score_decimals)
+                        return slib.round45(min(cf[2]), self.__value_out_score_decimals)
                     elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
-                        return slib.round45r(np.mean(cf[2]))
+                        return slib.round45(np.mean(cf[2]))
                     else:
                         # invalid mode
                         return None
-                return slib.round45r((a * x + b) / c, self.__value_out_score_decimals)
+                return slib.round45((a * x + b) / c, self.__value_out_score_decimals)
         # raw score not in coeff[1]
         return -1000
 
@@ -505,7 +505,7 @@ class PltScore(ScoreTransformModel):
                 if _mode_ppt_score_max == 'defined':
                     y = self.__out_score_real_max
             if y is not None:
-                row[col + '_ts'] = slib.round45r(y, self.__value_out_score_decimals)
+                row[col + '_ts'] = slib.round45(y, self.__value_out_score_decimals)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 result_ratio.append(format(_p, '.6f'))
                 continue
@@ -545,7 +545,7 @@ class PltScore(ScoreTransformModel):
                         raise ValueError
                     break
             if y is not None:
-                row[col+'_ts'] = slib.round45r(y, self.__value_out_score_decimals)
+                row[col+'_ts'] = slib.round45(y, self.__value_out_score_decimals)
                 coeff_dict.update({ri: [(0, y), (_seg, _seg), (y, y)]})
                 section_index_dict.update({(_seg, _seg): y_pos})
                 result_ratio.append(_p if row[col+'_count'] > 0 else -1)
@@ -1014,9 +1014,9 @@ class PltScore(ScoreTransformModel):
                 if rseg[1] > oseg[1]:
                     _diff_list.append(rseg)
             if (rseg[0] > oseg[0]) and (rseg[1] <= oseg[1]):
-                _diff_list.append((int(rseg[0]), int(slib.round45r(b / (1 - a)))))
+                _diff_list.append((int(rseg[0]), int(slib.round45(b / (1 - a)))))
             if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
-                _diff_list.append((int(slib.round45r(b / (1 - a), 0)), int(rseg[1])))
+                _diff_list.append((int(slib.round45(b / (1 - a), 0)), int(rseg[1])))
 
         _out_report_doc += 'shift-down(s):'.rjust(17) + ' ' + str(_diff_list) + ' => '
         # merge to some continuous segments

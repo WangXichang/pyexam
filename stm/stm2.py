@@ -400,8 +400,8 @@ class ModelAlgorithm:
             for k in result_dict.keys():
                 if (result_dict[k][1][0] <= x <= result_dict[k][1][1]) or \
                         (result_dict[k][1][0] >= x >= result_dict[k][1][1]):
-                    return slib.round45r(result_dict[k][0][0] * x + result_dict[k][0][1],
-                                         out_score_decimal)
+                    return slib.round45(result_dict[k][0][0] * x + result_dict[k][0][1],
+                                        out_score_decimal)
             return -1000
 
         Result = namedtuple('Result', ('formula', 'result_dict', 'section'))
@@ -500,7 +500,7 @@ class ModelAlgorithm:
         # function of formula
         def formula(x):
             if x in map_dict:
-                return slib.round45r(map_dict[x], out_score_decimal)
+                return slib.round45(map_dict[x], out_score_decimal)
             else:
                 # set None to raise ValueError in score calculating to avoid create misunderstand
                 return -2000
@@ -546,7 +546,7 @@ class ModelAlgorithm:
                 top_level_score=r.this_seg
             else:
                 top_level_score=r.last_seg
-        top_level_score = slib.round45r(df.query(col+'>='+str(top_level_score))[col].mean(), 0)
+        top_level_score = slib.round45(df.query(col + '>=' + str(top_level_score))[col].mean(), 0)
         section_point_list.append(top_level_score)
 
         _step = -1 if mode_score_sort_order in ['d', 'descending'] else 1
@@ -555,7 +555,7 @@ class ModelAlgorithm:
         # to avoid to increase much cumulative error in last section
         grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
         for j in range(grade_num-1):
-            section_point_list.append(slib.round45r(top_level_score+grade_step*_step*(j+1), 0))
+            section_point_list.append(slib.round45(top_level_score + grade_step * _step * (j + 1), 0))
         section_list = []
         for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:])):
             if i == 0:
@@ -615,7 +615,7 @@ class ModelAlgorithm:
             logger.loginfo('stm2 start ...')
 
         # create seg_table
-        seg = slib.run_seg(
+        seg = slib.get_segtable(
               df=df,
               cols=cols,
               segmax=value_raw_score_max,
@@ -718,8 +718,8 @@ class ModelAlgorithm:
                         ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
                         ', '.join([format(x, '12.8f') for x in result.real_ratio]),
                         ', '.join([format(x, '>12d') for x in maptable.seg]),
-                        ', '.join([format(slib.round45r(result.formula(x), value_out_score_decimals), '>' +
-                                   ('12d' if value_out_score_decimals == 0 else '12.' + str(value_out_score_decimals) + 'f'))
+                        ', '.join([format(slib.round45(result.formula(x), value_out_score_decimals), '>' +
+                                          ('12d' if value_out_score_decimals == 0 else '12.' + str(value_out_score_decimals) + 'f'))
                                    for x in maptable.seg]),
                         ))
             elif model_type.lower() == 'pgt':

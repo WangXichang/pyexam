@@ -13,12 +13,11 @@ import configparser as cfp
 from collections import namedtuple
 import logging
 from logging import handlers
-import importlib as pb
 import matplotlib.pyplot as plot
 
 
 # call SegTable.run() return instance of SegTable
-def run_seg(
+def get_segtable(
             df: pd.DataFrame,
             cols: list,
             segmax=100,
@@ -360,7 +359,7 @@ class SegTable(object):
         for f in self.__cols:
             # calculate preliminary group count
             tempdf = self.df
-            tempdf.loc[:, f] = tempdf[f].apply(round45r)
+            tempdf.loc[:, f] = tempdf[f].apply(round45)
 
             # count seg_count in [segmin, segmax]
             r = tempdf.groupby(f)[f].count()
@@ -384,7 +383,7 @@ class SegTable(object):
             # calculate percent field
             maxsum = max(max(outdf[f + '_sum']), 1)     # avoid divided by 0 in percent computing
             outdf[f + '_percent'] = \
-                outdf[f + '_sum'].apply(lambda x: round45r(x/maxsum, self.__percent_decimal))
+                outdf[f + '_sum'].apply(lambda x: round45(x / maxsum, self.__percent_decimal))
             if self.__display:
                 print('segments count finished[' + f, '], used time:{}'.format(time.clock() - sttime))
 
@@ -485,7 +484,7 @@ class SegTable(object):
 # SegTable class end
 
 
-def round45r(number, digits=0):
+def round45(number, digits=0):
     int_len = len(str(int(abs(number))))
     if int_len + abs(digits) <= 16:
         err_ = (1 if number >= 0 else -1)*10**-(16-int_len)
@@ -650,7 +649,7 @@ def get_norm_section_pdf(
     return r
 
 
-def isfilestr(fstr):
+def isfilename(fstr):
     if isinstance(fstr, str):
         _invalid_file_char = "[/*?:<>|\"\'\\\\]"
         if len(fstr) > 0:
@@ -874,7 +873,7 @@ def make_config_file(filename):
         ratio =   10, 16, 25, 25, 17, 6      # 比例（百分数），和等于100 ratios(%), sum==100        
         """
 
-    if isfilestr(filename):
+    if isfilename(filename):
         with open(filename, 'a', encoding='utf8') as fp:
             ms = template.strip().split('\n')
             for ss in ms:
@@ -1219,6 +1218,10 @@ class Logger(object):
         self.rotating_file_handler.setFormatter(log_format)
 
 
+def get_norm_data(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
+    return TestData(mu, std, size, maxscore=maxvalue, minscore=minvalue, decimals=decimals)()
+
+
 # test dataset
 class TestData:
     """
@@ -1518,66 +1521,53 @@ class StmPlot:
             plot.figure('not valid mode!')
             return False
 
+class Formula:
+    # used to caculate transformed score
 
-# -----------------------------------------------------------------------------------
-# formula-1
-# y = a*x + b
-# a = (y2-y1)/(x2-x1)
-# b = -x1/(x2-x1) + y1
-# def get_ts_score_from_formula_ax_b(field, x):
-#     for cf in self.result_dict[field]['coeff'].values():
-#         if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-#             return slib.round45r(cf[0][0] * x + cf[0][1])
-#     return -1
+    # Constant Number
+    Tiny_Value = 10 ** -8
+    Invalid_Score = -1000
 
-# -----------------------------------------------------------------------------------
-# formula-2
-# y = a*(x - b) + c
-# a = (y2-y1)/(x2-x1)
-# b = x1
-# c = y1
-# def get_ts_score_from_formula_ax_b_c(field, x):
-#     for cf in result_dict[field]['coeff'].values():
-#         if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-#             v = (cf[1][1]-cf[1][0])
-#             if v == 0:
-#                 return round45r(cf[0][1])
-#             a = (cf[2][1]-cf[2][0])/v
-#             b = cf[1][0]
-#             c = cf[2][0]
-#             return round45r(a * (x - b) + c)
-#     return -1
+    @classmethod
+    def formula1(cls, raw, x, y, decimals):
+        """
+        formula-1
+        y = a*x + b
+        a = (y2-y1)/(x2-x1)
+        b = -x1/(x2-x1) + y1
+        """
+        denom = x[1]-x[0]
+        if abs(denom) > cls.Tiny_Value:
+            return round45((y[1]-y[0])/denom * raw - x[0]/denom + y[0], decimals)
+        else:
+            return cls.Invalid_Score
 
-# -----------------------------------------------------------------------------------
-# formula-3 new, recommend to use,  int/int to float
-# original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
-# variant:  y = (a*x + b) / c
-#           a=(y2-y1)
-#           b=y1x2-y2x1
-#           c=(x2-x1)
-# def get_ts_score_from_formula(field, x):
-#     if x > self.__raw_score_defined_max:
-#         # raise ValueError
-#         return self.__out_score_real_max
-#     if x < self.__raw_score_defined_min:
-#         # raise ValueError
-#         return self.__out_score_real_min
-#     for cf in self.result_dict[field]['coeff'].values():
-#         if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
-#             a = (cf[2][1]-cf[2][0])
-#             b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
-#             c = (cf[1][1]-cf[1][0])
-#             # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
-#             if c == 0:
-#                 if self.__strategy_dict['mode_section_degraded'] == 'to_max':
-#                     return round45r(max(cf[2]), self.__value_out_score_decimals)
-#                 elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
-#                     return round45r(min(cf[2]), self.__value_out_score_decimals)
-#                 elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
-#                     return round45r(np.mean(cf[2]))
-#                 else:
-#                     # invalid mode
-#                     return None
-#             return round45r((a * x + b) / c, self.__value_out_score_decimals)
-#     # raw score not in coeff[1]
-#     return -1000
+    @classmethod
+    def formula2(cls, raw, x, y, decimals):
+        """
+        original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
+        formula2: y = a*(x - b) + c
+                  a = (y2-y1)/(x2-x1)
+                  b = x1
+                  c = y1
+        """
+
+        denom = x[1]-x[0]
+        if abs(denom) > cls.Tiny_Value:
+            return round45((y[1] - y[0]) / denom * (x - x[0]) + y[0], decimals)
+        return cls.Invalid_Score
+
+    @classmethod
+    def formula3(cls, raw, x, y, decimals):
+        """
+        recommend to use,  int/int to float
+        original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
+        formula3: y = (a*x + b) / c
+                  a=(y2-y1)
+                  b=y1x2-y2x1
+                  c=(x2-x1)
+        """
+        denom = x[1] - x[0]
+        if abs(denom) > cls.Tiny_Value:
+            return round45(((y[1]-y[0]) * x + y[0]*x[1] - y[1]*x[0]) / denom, decimals)
+        return cls.Invalid_Score

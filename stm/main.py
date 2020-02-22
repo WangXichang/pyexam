@@ -575,83 +575,10 @@ def __run2p(
 
 
 def make_config_file(confname='stm_test.cf'):
-    if __slib.isfilestr(confname):
+    if __slib.isfilename(confname):
         __slib.make_config_file(confname)
     else:
         print('invalid file name!')
-
-
-def test_data(mu=50, std=15, size=60000, maxvalue=100, minvalue=0, decimals=0):
-    return __slib.TestData(mu, std, size, maxscore=maxvalue, minscore=minvalue, decimals=decimals)()
-
-
-def models_show(name=None):
-    if isinstance(name, str):
-        if name in __models.Models:
-            v = __models.Models[name]
-            print('{:<15s} {},  {} '.format(name, v.type, v.desc))
-            print('{:<15s} {}'.format(' ', v.ratio))
-            print('{:<15s} {}'.format('', v.section))
-        return
-
-    for k in __models.Models:
-        v = __models.Models[k]
-        print('{:<15s} {},  {} '.format(k, v.type, v.desc))
-        print('{:<15s} {}'.format(' ', v.ratio))
-        print('{:<15s} {}'.format('', v.section))
-
-
-def models_hist(font_size=12):
-    import matplotlib.pyplot as plot
-    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'b900']
-
-    ms_dict = dict()
-    for _name in _names:
-        ms_dict.update({_name: __model_describe(name=_name)})
-
-    plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
-    plot.rcParams.update({'font.size': font_size})
-    for i, k in enumerate(_names):
-        plot.subplot(240+i+1)
-        _wid = 2
-        if k in ['shanghai']:
-            x_data = range(40, 71, 3)
-        elif k in ['zhejiang', 'beijing', 'tianjin']:
-            x_data = range(40, 101, 3)
-        elif k in ['shandong']:
-            x_data = [x for x in range(26, 100, 10)]
-            _wid = 8
-        elif k in ['guangdong']:
-            x_data = [__np.mean(x) for x in __models.Models[k].section][::-1]
-            _wid = 10
-        elif k in ['p7']:
-            x_data = [__np.mean(x) for x in __models.Models[k].section][::-1]
-            _wid = 10
-        elif k in ['b900']:
-            x_data = [x for x in range(100, 901)]
-            _wid = 1
-        elif k in ['b300']:
-            x_data = [x for x in range(60, 301)]
-            _wid = 1
-        else:
-            raise ValueError(k)
-        plot.bar(x_data, __models.Models[k].ratio[::-1], width=_wid)
-        plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
-
-
-def __model_describe(name='shandong'):
-    import scipy.stats as sts
-    __ratio = __models.Models[name].ratio
-    __section = __models.Models[name].section
-    if name == 'b900':
-        __mean, __std, __skewness = 500, 100, 0
-    elif name == 'b300':
-        __mean, __std, __skewness = 180, 30, 0
-    else:
-        samples = []
-        [samples.extend([__np.mean(s)]*int(__ratio[i])) for i, s in enumerate(__section)]
-        __mean, __std, __skewness = __np.mean(samples), __np.std(samples), sts.skew(__np.array(samples))
-    return __mean, __std, __skewness
 
 
 def __read_config(filename='stm.conf'):
