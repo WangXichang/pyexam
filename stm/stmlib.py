@@ -853,7 +853,7 @@ def make_config_file(filename):
         value_raw_score_min = 0                   # 原始分数卷面最小值 min score for raw score
         value_raw_score_max = 100                 # 原始分数卷面最大值 max score for raw score
         value_out_score_decimals = 0              # 转换分数保留小数位 decimal digits for out score
-        value_tiny_value = 10**-12                # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_tiny_value = 10**-8                 # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
@@ -1524,11 +1524,11 @@ class StmPlot:
 # y = a*x + b
 # a = (y2-y1)/(x2-x1)
 # b = -x1/(x2-x1) + y1
-def get_ts_score_from_formula_ax_b(field, x):
-    for cf in self.result_dict[field]['coeff'].values():
-        if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-            return slib.round45r(cf[0][0] * x + cf[0][1])
-    return -1
+# def get_ts_score_from_formula_ax_b(field, x):
+#     for cf in self.result_dict[field]['coeff'].values():
+#         if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+#             return slib.round45r(cf[0][0] * x + cf[0][1])
+#     return -1
 
 # -----------------------------------------------------------------------------------
 # formula-2
@@ -1536,17 +1536,17 @@ def get_ts_score_from_formula_ax_b(field, x):
 # a = (y2-y1)/(x2-x1)
 # b = x1
 # c = y1
-def get_ts_score_from_formula_ax_b_c(field, x):
-    for cf in self.result_dict[field]['coeff'].values():
-        if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
-            v = (cf[1][1]-cf[1][0])
-            if v == 0:
-                return slib.round45r(cf[0][1])
-            a = (cf[2][1]-cf[2][0])/v
-            b = cf[1][0]
-            c = cf[2][0]
-            return slib.round45r(a * (x - b) + c)
-    return -1
+# def get_ts_score_from_formula_ax_b_c(field, x):
+#     for cf in result_dict[field]['coeff'].values():
+#         if cf[1][0] <= x <= cf[1][1] or cf[1][0] >= x >= cf[1][1]:
+#             v = (cf[1][1]-cf[1][0])
+#             if v == 0:
+#                 return round45r(cf[0][1])
+#             a = (cf[2][1]-cf[2][0])/v
+#             b = cf[1][0]
+#             c = cf[2][0]
+#             return round45r(a * (x - b) + c)
+#     return -1
 
 # -----------------------------------------------------------------------------------
 # formula-3 new, recommend to use,  int/int to float
@@ -1555,29 +1555,29 @@ def get_ts_score_from_formula_ax_b_c(field, x):
 #           a=(y2-y1)
 #           b=y1x2-y2x1
 #           c=(x2-x1)
-def get_ts_score_from_formula(field, x):
-    if x > self.__raw_score_defined_max:
-        # raise ValueError
-        return self.__out_score_real_max
-    if x < self.__raw_score_defined_min:
-        # raise ValueError
-        return self.__out_score_real_min
-    for cf in self.result_dict[field]['coeff'].values():
-        if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
-            a = (cf[2][1]-cf[2][0])
-            b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
-            c = (cf[1][1]-cf[1][0])
-            # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
-            if c == 0:
-                if self.__strategy_dict['mode_section_degraded'] == 'to_max':
-                    return round45r(max(cf[2]), self.__value_out_score_decimals)
-                elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
-                    return round45r(min(cf[2]), self.__value_out_score_decimals)
-                elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
-                    return round45r(np.mean(cf[2]))
-                else:
-                    # invalid mode
-                    return None
-            return round45r((a * x + b) / c, self.__value_out_score_decimals)
-    # raw score not in coeff[1]
-    return -1000
+# def get_ts_score_from_formula(field, x):
+#     if x > self.__raw_score_defined_max:
+#         # raise ValueError
+#         return self.__out_score_real_max
+#     if x < self.__raw_score_defined_min:
+#         # raise ValueError
+#         return self.__out_score_real_min
+#     for cf in self.result_dict[field]['coeff'].values():
+#         if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
+#             a = (cf[2][1]-cf[2][0])
+#             b = cf[2][0]*cf[1][1] - cf[2][1]*cf[1][0]
+#             c = (cf[1][1]-cf[1][0])
+#             # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
+#             if c == 0:
+#                 if self.__strategy_dict['mode_section_degraded'] == 'to_max':
+#                     return round45r(max(cf[2]), self.__value_out_score_decimals)
+#                 elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
+#                     return round45r(min(cf[2]), self.__value_out_score_decimals)
+#                 elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
+#                     return round45r(np.mean(cf[2]))
+#                 else:
+#                     # invalid mode
+#                     return None
+#             return round45r((a * x + b) / c, self.__value_out_score_decimals)
+#     # raw score not in coeff[1]
+#     return -1000
