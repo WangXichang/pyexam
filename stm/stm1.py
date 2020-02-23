@@ -558,6 +558,9 @@ class PltScore(ScoreTransformModel):
         self.__result_ratio_dict[col]['dest'] = result_def_ratio
         self.__result_ratio_dict[col]['match'] = result_ratio
         self.__result_ratio_dict[col]['section'] = result_section
+        self.raw_section = result_section
+        self.__out_score_section = [coeff_dict[k][2] for k in coeff_dict]
+
         return True
 
     def __get_formula_plt(self, field):
@@ -840,7 +843,7 @@ class PltScore(ScoreTransformModel):
     def __make_field_report(self, field=''):
         # report start
         if self.model_type == 'plt':
-            self.__report_formula_text(field)
+            self.__report_create_formula_text(field)
         # tiltle
         _out_report_doc = '-'*120 + '\n'
         field_title = '<< score field: [{}] >>\n' + \
@@ -855,105 +858,20 @@ class PltScore(ScoreTransformModel):
 
         # formula
         if self.model_type == 'plt':
-            _out_report_doc += '- -'*40 + '\n'
-            _out_report_doc += '< transforming formulas >\n'
-            for i, col in enumerate(self.__result_formula_text_list):
-                _out_report_doc += ' '*18 + '{}\n'.format(col)
-
+            _out_report_doc += self.__report_formula(field)
         # statistics
         _out_report_doc += self.__report_statistics(field)
 
         # shift
-        _out_report_doc += '- -'*40 + '\n'
-        _diff_raw_out = self.outdf[field+'_ts']-self.outdf[field]
-        shift_str = '< score shift>\n' + \
-                    'shift_max:'.rjust(17) + ' {:3.1f}\n'.format(max(_diff_raw_out)) + \
-                    'shift_min:'.rjust(17) + ' {:3.1f}\n'.format(min(_diff_raw_out)) + \
-                    'shift_down(%):'.rjust(17) + ' {:.2f}\n'.\
-                        format(_diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100)
-        _out_report_doc += shift_str
-        _diff_list = []
-        for coeff in self.result_dict[field]['coeff'].values():           # self.result_formula_coeff.values():
-            rseg = coeff[1]
-            oseg = coeff[2]
-            a = coeff[0][0]
-            b = coeff[0][1]
-            if rseg[0] < 0:
-                continue
-            # print(rseg, oseg)
-            if rseg[0] >= oseg[0]:
-                if rseg[1] > oseg[1]:
-                    _diff_list.append(rseg)
-            if (rseg[0] > oseg[0]) and (rseg[1] <= oseg[1]):
-                _diff_list.append((int(rseg[0]), int(slib.round45(b / (1 - a)))))
-            if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
-                _diff_list.append((int(slib.round45(b / (1 - a), 0)), int(rseg[1])))
-
-        _out_report_doc += 'shift-down(s):'.rjust(17) + ' ' + str(_diff_list) + ' => '
-        # merge to some continuous segments
-        while True:
-            _diff_loop = False
-            for i in range(len(_diff_list)-1):
-                if abs(_diff_list[i][1]-_diff_list[i+1][0]) == 1:
-                    _diff_list[i] = (_diff_list[i][0], _diff_list[i+1][1])
-                    _diff_list.pop(i+1)
-                    _diff_loop = True
-                    break
-            if not _diff_loop:
-                break
-        _diff_list = [x for x in _diff_list if x[0] != x[1]]
-        _out_report_doc += str(_diff_list) + '\n'
-        # _out_report_doc += '---'*40
+        _out_report_doc += self.__report_score_shift(field)
 
         # report_doc end
         return _out_report_doc
 
-    def __report_formula_text(self, field):
-        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
-        score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
-        self.__result_formula_text_list = []
-        _fi = 1
-        for k in self.result_dict[field]['coeff']:
-            formula = self.result_dict[field]['coeff'][k]
-
-            _break = True
-            _step = 1 if formula[1][0] < formula[1][1] else -1
-            for _score in range(int(formula[1][0]), int(formula[1][1])+_step, _step):
-                if score_dict.get(_score, -1) > 0:
-                    _break = False
-                    break
-
-            if _break:
-                continue
-
-            if formula[0][0] != 0:
-                self.__result_formula_text_list += \
-                    ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
-                     format(int(_fi), formula[0][0], int(formula[1][p]), int(formula[2][p]))]
-            else:
-                if formula[2][0] != formula[2][1]:
-                    self.__result_formula_text_list += \
-                        ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
-                         format(int(_fi),
-                                formula[0][0], formula[1][p],
-                                self.__strategy_dict['mode_section_degraded'],
-                                formula[2][0], formula[2][1])
-                         ]
-                # y2 == y1
-                else:
-                    self.__result_formula_text_list += \
-                        ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
-                         format(_fi,
-                                formula[0][0],
-                                formula[1][p],
-                                formula[2][0])
-                         ]
-            _fi += 1
-
     def __report_running_result_plt(self, field):
         # def_ratio, dest_ratio, match_ratio, raw_sec, out_sec
         _out_report_doc = ''
-        _out_report_doc += '< running result >\n'
+        _out_report_doc += '< match result >\n'
         plist = self.__raw_score_ratio_cum
         if self.__value_out_score_decimals == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
@@ -998,7 +916,7 @@ class PltScore(ScoreTransformModel):
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
 
         column_width = 15
-        _out_report_doc = '< running result >\n' + '-'*column_width*5 + '\n'
+        _out_report_doc = '< match result >\n' + '-'*column_width*5 + '\n'
         _fstr = '{:' + f'{column_width}.8f' + '}'
         _dstr = '{:' + f'{column_width}d' + '}'
         _out_report_doc += 'def_ratio'.rjust(column_width) + 'dest_ratio'.rjust(column_width) + \
@@ -1016,8 +934,54 @@ class PltScore(ScoreTransformModel):
                                 format(_def, _dest, _match, int(_raw[0]), int(_out[0]))
         return _out_report_doc
 
+    def __report_create_formula_text(self, field):
+        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
+        score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
+        self.__result_formula_text_list = []
+        _fi = 1
+        for k in self.result_dict[field]['coeff']:
+            formula = self.result_dict[field]['coeff'][k]
+
+            _break = True
+            _step = 1 if formula[1][0] < formula[1][1] else -1
+            for _score in range(int(formula[1][0]), int(formula[1][1])+_step, _step):
+                if score_dict.get(_score, -1) > 0:
+                    _break = False
+                    break
+
+            if _break:
+                continue
+
+            if formula[0][0] != 0:
+                self.__result_formula_text_list += \
+                    ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
+                     format(int(_fi), formula[0][0], int(formula[1][p]), int(formula[2][p]))]
+            else:
+                if formula[2][0] != formula[2][1]:
+                    self.__result_formula_text_list += \
+                        ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
+                         format(int(_fi),
+                                formula[0][0], formula[1][p],
+                                self.__strategy_dict['mode_section_degraded'],
+                                formula[2][0], formula[2][1])
+                         ]
+                # y2 == y1
+                else:
+                    self.__result_formula_text_list += \
+                        ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
+                         format(_fi,
+                                formula[0][0],
+                                formula[1][p],
+                                formula[2][0])
+                         ]
+            _fi += 1
+
     def __report_formula(self, field):
-        pass
+        _out_report_doc = '- -' * 40 + '\n'
+        _out_report_doc += '< formula >\n'
+        for i, col in enumerate(self.__result_formula_text_list):
+            _out_report_doc += ' ' * 18 + '{}\n'.format(col)
+        return _out_report_doc
 
     def __report_statistics(self, field):
         _out_report_doc = '- -'*40 + '\n'
@@ -1067,14 +1031,65 @@ class PltScore(ScoreTransformModel):
                            if x not in _count_non_zero]
         else:
             _count_zero = ''
+        _empty = set_ellipsis_in_digits_sequence(_count_zero)
+        _charnum = 0
+        _newempty = ''
+        for c in _empty:
+            _newempty += c
+            _charnum += 1
+            if (c == ',') and _charnum > 80:
+                _newempty += '\n' + ' '*30
+                _charnum = 0
+
         _out_report_doc += ' '*18 + 'empty_value={}\n' .\
-                           format(set_ellipsis_in_digits_sequence(_count_zero))
-        _out_report_doc += 'size: '.rjust(18) + 'count={}\n' .\
+                           format(_newempty)
+
+        _out_report_doc += 'size: '.rjust(18) + '{}\n' .\
                            format(self.outdf.count()[0])
         return _out_report_doc
 
     def __report_score_shift(self, field):
-        pass
+        _out_report_doc = '- -'*40 + '\n'
+        _diff_raw_out = self.outdf[field+'_ts']-self.outdf[field]
+        shift_str = '< score shift>\n' + \
+                    'shift_max:'.rjust(17) + ' {:3.1f}\n'.format(max(_diff_raw_out)) + \
+                    'shift_min:'.rjust(17) + ' {:3.1f}\n'.format(min(_diff_raw_out)) + \
+                    'shift_down(%):'.rjust(17) + ' {:.2f}\n'.\
+                        format(_diff_raw_out[_diff_raw_out < 0].count()/_diff_raw_out.count()*100)
+        _out_report_doc += shift_str
+        _diff_list = []
+        for coeff in self.result_dict[field]['coeff'].values():           # self.result_formula_coeff.values():
+            rseg = coeff[1]
+            oseg = coeff[2]
+            a = coeff[0][0]
+            b = coeff[0][1]
+            if rseg[0] < 0:
+                continue
+            # print(rseg, oseg)
+            if rseg[0] >= oseg[0]:
+                if rseg[1] > oseg[1]:
+                    _diff_list.append(rseg)
+            if (rseg[0] > oseg[0]) and (rseg[1] <= oseg[1]):
+                _diff_list.append((int(rseg[0]), int(slib.round45(b / (1 - a)))))
+            if (rseg[0] < oseg[0]) and (rseg[1] >= oseg[1]):
+                _diff_list.append((int(slib.round45(b / (1 - a), 0)), int(rseg[1])))
+
+        _out_report_doc += 'shift-down(s):'.rjust(17) + ' ' + str(_diff_list) + ' => '
+        # merge to some continuous segments
+        while True:
+            _diff_loop = False
+            for i in range(len(_diff_list)-1):
+                if abs(_diff_list[i][1]-_diff_list[i+1][0]) == 1:
+                    _diff_list[i] = (_diff_list[i][0], _diff_list[i+1][1])
+                    _diff_list.pop(i+1)
+                    _diff_loop = True
+                    break
+            if not _diff_loop:
+                break
+        _diff_list = [x for x in _diff_list if x[0] != x[1]]
+        _out_report_doc += str(_diff_list) + '\n'
+        # _out_report_doc += '---'*40
+        return _out_report_doc
 
     def report(self):
         print(self.__report_doc)
