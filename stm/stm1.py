@@ -33,7 +33,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-import seaborn as sbn
+# import seaborn as sbn
 
 # stm import
 from stm import stmlib as slib
@@ -58,8 +58,6 @@ class ScoreTransformModel(abc.ABC):
         param outdf:      type==DataFrame, transform score data,
     """
 
-    # def __init__(self, model_name='', model_type=''):
-
     @abc.abstractmethod
     def set_data(self, df=None, cols=None):
         """
@@ -73,6 +71,7 @@ class ScoreTransformModel(abc.ABC):
         set parameters used to transform score
         """
 
+    @abc.abstractmethod
     def run(self):
         """
         运行转换处理过程
@@ -92,12 +91,6 @@ class ScoreTransformModel(abc.ABC):
         显示原始分数、转换模型、转换结果的可视化图形
         plot graphs for raw score，model and result score
         """
-    #
-    # def read_df_from_csv(self, filename=''):
-    #     if not os.path.isfile(filename):
-    #         print('filename:{} is not a valid file name or the file not exists!'.format(filename))
-    #         return
-    #     self.df = pd.read_csv(filename)
 
     def save_outdf_to_csv(self, filename):
         self.outdf.to_csv(filename, index=False, encoding='utf-8')
@@ -511,23 +504,25 @@ class PltScore(ScoreTransformModel):
                 # sr == _p or sr > _p
                 y_pos = si
                 if (abs(sr - _p) < value_tiny_value) or (sr > _p):
+                    # top(si==0) or equal(p==sr)
                     if (abs(_p - sr) < value_tiny_value) or (si == 0):
                         y = _start_score + si*_step
                     elif _mode_prox == 'upper_min':
                         y = _start_score + si*_step
                     elif _mode_prox == 'lower_max':
-                        if si > 0:
-                            y = _start_score + (si - 1)*_step
-                            y_pos = si - 1
-                        else:
-                            y = _start_score + si*_step
+                        # si > 0
+                        y = _start_score + (si - 1)*_step
+                        y_pos = si - 1
                     elif 'near' in _mode_prox:
+                        # si is near
                         if abs(_p-sr) < abs(_p-self.__raw_score_ratio_cum[si - 1]):
-                            y = _start_score + (si - 1)*_step
-                            y_pos = si - 1
+                            y = _start_score + si*_step
+                            y_pos = si
+                        # si-1 is near
                         elif abs(_p-sr) > abs(_p-self.__raw_score_ratio_cum[si - 1]):
                             y = _start_score + (si - 1)*_step
                             y_pos = si - 1
+                        # dist is same
                         else:
                             if 'near_max' in _mode_prox:
                                 y = _start_score + si*_step
@@ -765,6 +760,7 @@ class PltScore(ScoreTransformModel):
             }
 
         self.__result_raw_endpoints = result_section_point
+        self.raw_section = make_section
 
         return True
 
@@ -843,113 +839,34 @@ class PltScore(ScoreTransformModel):
 
     def __make_field_report(self, field=''):
         # report start
+        if self.model_type == 'plt':
+            self.__report_formula_text(field)
         # tiltle
         _out_report_doc = '-'*120 + '\n'
         field_title = '<< score field: [{}] >>\n' + \
                       '- -'*40 + '\n'
         _out_report_doc += field_title.format(field)
 
-        # calculating for ratio and segment
-        _out_report_doc += '< running result >\n'
-        plist = self.__raw_score_ratio_cum
-        if self.__value_out_score_decimals == 0:
-            _out_report_doc += '  raw score def ratio: [{}]\n'.\
-                format(', '.join([format(x, '10.6f') for x in self.__result_ratio_dict[field]['def']]))
-            _out_report_doc += '           dest ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '10.6f')
-                                  for x in self.__result_ratio_dict[field]['dest']]))
-            _out_report_doc += '          match ratio: [{}]\n'. \
-                format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
-                                  for x in self.__result_ratio_dict[field]['match']]))
-        else:
-            _out_report_doc += '  raw score sec ratio: [{}]\n'.\
-                format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
-                        for j in range(len(plist))]))
-            _out_report_doc += '           cumu ratio: [{}]\n'.\
-                format(', '.join([format(x, '16.6f') for x in self.__raw_score_ratio_cum]))
-            _out_report_doc += '          match ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '16.6f') for x in self.__result_ratio_dict[field]['match']]))
+        # running result
+        if self.model_type == 'plt':
+            _out_report_doc += self.__report_running_result_plt(field)
+        elif self.model_type == 'ppt':
+            _out_report_doc += self.__report_running_result_ppt(field)
 
-        # get raw segment from result_dict
-        _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
-        if self.__value_out_score_decimals == 0:
-            _out_report_doc += '              section: [{}]\n'.\
-                format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
-        else:
-            _out_report_doc += '              section: [{}]\n'.\
-                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _raw_seg_list]))
+        # formula
+        if self.model_type == 'plt':
+            _out_report_doc += '- -'*40 + '\n'
+            _out_report_doc += '< transforming formulas >\n'
+            for i, col in enumerate(self.__result_formula_text_list):
+                _out_report_doc += ' '*18 + '{}\n'.format(col)
 
-        # get out segment from result_dict[]['coeff']
-        _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
-        if self.__value_out_score_decimals > 0:
-            _out_report_doc += '  out  score  section: [{}]\n'.\
-                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
-        else:
-            _out_report_doc += '  out  score  section: [{}]\n'.\
-                format(', '.join(['({:>3.0f}, {:>3.0f})'.format(x, y) for x, y in _out_seg_list]))
+        # statistics
+        _out_report_doc += self.__report_statistics(field)
 
-        # transforming formulas
-        _out_report_doc += '- -'*40 + '\n'
-        _out_report_doc += '< transforming formulas >\n'
-        for i, col in enumerate(self.__result_formula_text_list):
-            _out_report_doc += ' '*18 + '{}\n'.format(col)
-
-        # statistics for raw and out score
-        _out_report_doc += '- -'*40 + '\n'
-        _out_report_doc += '< statistics >\n'
-
-        # raw score data describing
-        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
-            self.df[field].max(),\
-            self.df[field].min(),\
-            self.df[field].mean(),\
-            self.df[field].median(), \
-            self.df[field].mode()[0], \
-            self.df[field].std(),\
-            self.df[field].skew(),\
-            sts.kurtosis(self.df[field], fisher=False)
-        _out_report_doc += ' '*12 + ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
-                           format(_max, _min, __mean, _median, _mode)
-        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
-
-        # _count_zero = self.maptable.query(field+'_count==0')['seg'].values
-        _count_non_zero = self.maptable.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
-        _count_zero = [x for x in range(self.__raw_score_defined_min, self.__raw_score_defined_max + 1)
-                       if x not in _count_non_zero]
-        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
-                           format(set_ellipsis_in_digits_sequence(_count_zero))
-
-        # out score data describing
-        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
-            self.outdf[field+'_ts'].max(),\
-            self.outdf[field+'_ts'].min(),\
-            self.outdf[field+'_ts'].mean(),\
-            self.outdf[field+'_ts'].median(), \
-            self.outdf[field+'_ts'].mode()[0],\
-            self.outdf[field+'_ts'].std(),\
-            self.outdf[field+'_ts'].skew(), \
-            sts.kurtosis(self.outdf[field+'_ts'], fisher=False)
-        _out_report_doc += ' '*13 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
-                           format(_max, _min, __mean, _median, _mode)
-        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
-                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
-        # _count_zero = self.maptable.query(field+'_count==0')[field+'_ts'].values
-        _count_non_zero = self.maptable.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
-        if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'plt':
-            _count_zero = [x for x in range(int(self.__out_score_real_min), int(self.__out_score_real_max) + 1)
-                           if x not in _count_non_zero]
-        else:
-            _count_zero = ''
-        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
-                           format(set_ellipsis_in_digits_sequence(_count_zero))
-        _out_report_doc += 'size: '.rjust(18) + 'count={}\n' .\
-                           format(self.outdf.count()[0])
-
-        # shift: differece between raw and out score
+        # shift
         _out_report_doc += '- -'*40 + '\n'
         _diff_raw_out = self.outdf[field+'_ts']-self.outdf[field]
-        shift_str = '< score shift down>\n' + \
+        shift_str = '< score shift>\n' + \
                     'shift_max:'.rjust(17) + ' {:3.1f}\n'.format(max(_diff_raw_out)) + \
                     'shift_min:'.rjust(17) + ' {:3.1f}\n'.format(min(_diff_raw_out)) + \
                     'shift_down(%):'.rjust(17) + ' {:.2f}\n'.\
@@ -991,8 +908,7 @@ class PltScore(ScoreTransformModel):
         # report_doc end
         return _out_report_doc
 
-
-    def __make_formula_text(self, field):
+    def __report_formula_text(self, field):
         p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
         score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
         self.__result_formula_text_list = []
@@ -1034,250 +950,138 @@ class PltScore(ScoreTransformModel):
                          ]
             _fi += 1
 
+    def __report_running_result_plt(self, field):
+        # def_ratio, dest_ratio, match_ratio, raw_sec, out_sec
+        _out_report_doc = ''
+        _out_report_doc += '< running result >\n'
+        plist = self.__raw_score_ratio_cum
+        if self.__value_out_score_decimals == 0:
+            _out_report_doc += '  raw score def ratio: [{}]\n'.\
+                format(', '.join([format(x, '10.6f') for x in self.__result_ratio_dict[field]['def']]))
+            _out_report_doc += '           dest ratio: [{}]\n'.\
+                format(', '.join([format(float(x), '10.6f')
+                                  for x in self.__result_ratio_dict[field]['dest']]))
+            _out_report_doc += '          match ratio: [{}]\n'. \
+                format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
+                                  for x in self.__result_ratio_dict[field]['match']]))
+        else:
+            _out_report_doc += '  raw score sec ratio: [{}]\n'.\
+                format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
+                        for j in range(len(plist))]))
+            _out_report_doc += '           cumu ratio: [{}]\n'.\
+                format(', '.join([format(x, '16.6f') for x in self.__raw_score_ratio_cum]))
+            _out_report_doc += '          match ratio: [{}]\n'.\
+                format(', '.join([format(float(x), '16.6f') for x in self.__result_ratio_dict[field]['match']]))
+
+        # get raw segment from result_dict
+        _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
+        if self.__value_out_score_decimals == 0:
+            _out_report_doc += '              section: [{}]\n'.\
+                format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
+        else:
+            _out_report_doc += '              section: [{}]\n'.\
+                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _raw_seg_list]))
+
+        # get out segment from result_dict[]['coeff']
+        _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
+        if self.__value_out_score_decimals > 0:
+            _out_report_doc += '  out  score  section: [{}]\n'.\
+                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
+        else:
+            _out_report_doc += '  out  score  section: [{}]\n'.\
+                format(', '.join(['({:>3.0f}, {:>3.0f})'.format(x, y) for x, y in _out_seg_list]))
+        return _out_report_doc
+
+    def __report_running_result_ppt(self, field):
+        # def_ratio, dest_ratio, match_ratio, raw_sec, out_sec
+        _raw_seg_list = [c[1] for c in self.result_dict[field]['coeff'].values()]
+        _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
+
+        column_width = 15
+        _out_report_doc = '< running result >\n' + '-'*column_width*5 + '\n'
+        _fstr = '{:' + f'{column_width}.8f' + '}'
+        _dstr = '{:' + f'{column_width}d' + '}'
+        _out_report_doc += 'def_ratio'.rjust(column_width) + 'dest_ratio'.rjust(column_width) + \
+                           'match_ratio'.rjust(column_width) + 'raw_score'.rjust(column_width) + \
+                           'out_score'.rjust(column_width) + '\n'
+        for _def, _dest, _match, _raw, _out in zip(self.__result_ratio_dict[field]['def'],
+                                                   self.__result_ratio_dict[field]['dest'],
+                                                   self.__result_ratio_dict[field]['match'],
+                                                   _raw_seg_list,
+                                                   _out_seg_list
+                                                   ):
+            if _match < 0:
+                continue
+            _out_report_doc += (_fstr*3 + _dstr*2 + '\n').\
+                                format(_def, _dest, _match, int(_raw[0]), int(_out[0]))
+        return _out_report_doc
+
+    def __report_formula(self, field):
+        pass
+
+    def __report_statistics(self, field):
+        _out_report_doc = '- -'*40 + '\n'
+        _out_report_doc += '< statistics >\n'
+
+        # raw score data describing
+        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
+            self.df[field].max(),\
+            self.df[field].min(),\
+            self.df[field].mean(),\
+            self.df[field].median(), \
+            self.df[field].mode()[0], \
+            self.df[field].std(),\
+            self.df[field].skew(),\
+            sts.kurtosis(self.df[field], fisher=False)
+        _out_report_doc += ' '*12 + ' raw: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
+                           format(_max, _min, __mean, _median, _mode)
+        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
+                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
+
+        # _count_zero = self.maptable.query(field+'_count==0')['seg'].values
+        _count_non_zero = self.maptable.groupby('seg')[[field+'_count']].sum().query(field+'_count>0').index
+        _count_zero = [x for x in range(self.__raw_score_defined_min, self.__raw_score_defined_max + 1)
+                       if x not in _count_non_zero]
+        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
+                           format(set_ellipsis_in_digits_sequence(_count_zero))
+
+        # out score data describing
+        _max, _min, __mean, _median, _mode, __std, _skew, _kurt = \
+            self.outdf[field+'_ts'].max(),\
+            self.outdf[field+'_ts'].min(),\
+            self.outdf[field+'_ts'].mean(),\
+            self.outdf[field+'_ts'].median(), \
+            self.outdf[field+'_ts'].mode()[0],\
+            self.outdf[field+'_ts'].std(),\
+            self.outdf[field+'_ts'].skew(), \
+            sts.kurtosis(self.outdf[field+'_ts'], fisher=False)
+        _out_report_doc += ' '*13 + 'out: max={:6.2f}, min={:5.2f}, mean={:5.2f}, median={:5.2f}, mode={:6.2f}\n' .\
+                           format(_max, _min, __mean, _median, _mode)
+        _out_report_doc += ' '*18 + 'std={:6.2f},  cv={:5.2f},  ptp={:6.2f},  skew={:5.2f}, kurt={:6.2f}\n' .\
+                           format(__std, __std/__mean, _max-_min, _skew, _kurt)
+
+        # _count_zero = self.maptable.query(field+'_count==0')[field+'_ts'].values
+        _count_non_zero = self.maptable.groupby(field+'_ts')[[field+'_count']].sum().query(field+'_count>0').index
+        if self.model_type == 'ppt': # msin.Models[self.model_name].type == 'plt':
+            _count_zero = [x for x in range(int(self.__out_score_real_min), int(self.__out_score_real_max) + 1)
+                           if x not in _count_non_zero]
+        else:
+            _count_zero = ''
+        _out_report_doc += ' '*18 + 'empty_value={}\n' .\
+                           format(set_ellipsis_in_digits_sequence(_count_zero))
+        _out_report_doc += 'size: '.rjust(18) + 'count={}\n' .\
+                           format(self.outdf.count()[0])
+        return _out_report_doc
+
+    def __report_score_shift(self, field):
+        pass
 
     def report(self):
         print(self.__report_doc)
 
     def plot(self, mode='model'):
-        plot_name = ['raw', 'out', 'model', 'shift', 'dist', 'diff', 'rawbar', 'outbar']
-        if mode not in plot_name:
-            self.__logger.loginfo('error plot: [{}] not in {}'.format(mode, plot_name))
-            return
-        if mode in 'model':
-            # mode: model describe the differrence of input and output score.
-            self.__plot_model()
-        elif mode in 'dist':
-            self.__plot_dist_seaborn()
-        # elif mode in 'bar':
-        #     self.plot_bar('all')
-        elif mode == 'rawbar':
-            self.__plot_rawscore_bar_count()
-        elif mode == 'outbar':
-            self.__plot_outscore_bar_count()
-        elif mode in 'diff, shift':
-            self.__plot_diff()
-        elif not super(PltScore, self).plot(mode):
-            self.__logger.loginfo('error plot: [{}] is invalid!'.format(mode))
-
-    def __plot_diff(self):
-        x = [int(x) for x in self.maptable['seg']][::-1]   # np.arange(self.mode_score_paper_max+1)
-        raw_label = [str(x) for x in self.maptable['seg']][::-1]
-        for f in self.cols:
-            df = [v if self.maptable.query('seg=='+str(v))[f+'_count'].values[0] > 0 else 0 for v in x]
-            outdf = list(self.maptable[f + '_ts'])[::-1]
-            outdf = [out if raw > 0 else 0 for raw, out in zip(df, outdf)]
-            # fig1 = plot.figure('subject: '+f)
-            fig, ax = plot.subplots()
-            # ax.set_figure(fig1)
-            ax.set_title(self.model_name+'['+f+']: diffrence between raw and out')
-            ax.set_xticks(x)
-            ax.set_xticklabels(raw_label)
-            width = 0.4
-            bar_wid = [p - width/2 for p in x]
-            rects1 = ax.bar(bar_wid, df, width, label=f)
-            bar_wid = [p + width/2 for p in x]
-            rects2 = ax.bar(bar_wid, outdf, width, label=f+'_ts')
-
-            """Attach a text label above each bar in *rects*, displaying its height."""
-            for i, rects in enumerate([rects1, rects2]):
-                for rect in rects:
-                    if i == 0:
-                        notes = rect.get_height()
-                    else:
-                        if rect.get_height() > 0:
-                            notes = rect.get_height() - rect.get_x()
-                        else:
-                            notes = 0
-                    height = rect.get_height()
-                    ax.annotate('{}'.format(int(notes)),
-                                xy=(rect.get_x() + rect.get_width() / 2, height),
-                                xytext=(0, 3),  # 3 points vertical offset
-                                textcoords="offset points",
-                                ha='center', va='bottom')
-            ax.legend(loc='upper left', shadow=True, fontsize='x-large')
-            fig.tight_layout()
-            plot.show()
-
-    def __plot_rawscore_bar_count(self, hcolor='r', hwidth=6):
-        seg_list = self.maptable.seg if self.__strategy_dict['mode_score_sort_order'] in ['a', 'ascending'] \
-                   else reversed(self.maptable.seg)
-        raw_label = [str(x) for x in seg_list]
-        x_data = list(range(self.__raw_score_defined_max + 1))
-        for f in self.cols:
-            df = [self.maptable.query('seg=='+str(xv))[f+'_count'].values[0]
-                  if xv in self.maptable.seg else 0
-                  for xv in x_data]
-
-            fig, ax = plot.subplots()
-            # ax.set_title(self.model_name+'  [ '+f+' ]')
-            ax.set_xticks(x_data)
-            ax.set_xticklabels(raw_label)
-            width = 0.4
-            bar_wid = [p + width/2 for p in x_data]
-
-            raw_bar = ax.bar(bar_wid, df, width, label=f)
-            disp_bar = [raw_bar]
-            ax.set_title(self.model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
-                         format(f, self.df[f].mean(), self.df[f].std(), self.df[f].max()))
-
-            for bars in disp_bar:
-                make_color = 0
-                last_height = 0
-                for _bar in bars:
-                    height = _bar.get_height()
-                    xpos = _bar.get_x() + _bar.get_width() / 2
-                    note_str = '{}'.format(int(height))
-                    ypos = 0
-                    if (height > 100) and abs(height - last_height) < 20:
-                        if height < last_height:
-                            ypos = -10
-                        else:
-                            ypos = +10
-                    ax.annotate(note_str,
-                                xy=(xpos, height),
-                                xytext=(0, ypos),              # vertical offset
-                                textcoords="offset points",
-                                ha='center',
-                                va='bottom'
-                                )
-                    if make_color == 2:
-                        yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
-                        plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
-                        make_color = 0
-                    else:
-                        make_color += 1
-                    last_height = height + ypos
-            fig.tight_layout()
-            plot.show()
-
-    def __plot_outscore_bar_count(self, hcolor='r', hwidth=6):
-        for f in self.cols:
-            tsgroup = self.outdf.groupby(f+'_ts')[f].count()
-            raw_label = [str(x) for x in tsgroup.index]
-            x_data = list(tsgroup.index)
-            df = list(tsgroup)
-
-            fig, ax = plot.subplots()
-            # ax.set_title(self.model_name+'  [ '+f+'_ts ]')
-            ax.set_xticks(x_data)
-            ax.set_xticklabels(raw_label)
-            width = 0.4
-            bar_wid = [p + width/2 for p in x_data]
-
-            raw_bar = ax.bar(bar_wid, df, width, label=f)
-            disp_bar = [raw_bar]
-            ax.set_title(self.model_name+' score_col={}  mean={:.2f}, std={:.2f}, max={:3d}'.
-                         format(f+'_ts', self.df[f].mean(), self.df[f].std(), self.df[f].max()))
-
-            for bars in disp_bar:
-                make_color = 0
-                last_height = 0
-                for _bar in bars:
-                    height = _bar.get_height()
-                    xpos = _bar.get_x() + _bar.get_width() / 2
-                    note_str = '{}'.format(int(height))
-                    ypos = 0
-                    if (height > 100) and abs(height - last_height) < 20:
-                        if height < last_height:
-                            ypos = -10
-                        else:
-                            ypos = +10
-                    ax.annotate(note_str,
-                                xy=(xpos, height),
-                                xytext=(0, ypos),              # vertical offset
-                                textcoords="offset points",
-                                ha='center',
-                                va='bottom'
-                                )
-                    if make_color == 2:
-                        yp = height-30 if height > 30 else 0    # avoid to display feint hist height, higher than bar
-                        plot.plot([xpos, xpos], [0, yp], hcolor, linewidth=hwidth)
-                        make_color = 0
-                    else:
-                        make_color += 1
-                    last_height = height + ypos
-            fig.tight_layout()
-            plot.show()
-
-
-    def __plot_dist_hist(self):
-        def plot_dist_fit(field, _label):
-            x_data = self.outdf[field]
-            # local var _mu, __std
-            _mu = np.mean(x_data)
-            __std = np.std(x_data)
-            count, bins, patches = ax.hist(x_data, 35)
-            x_fit = ((1 / (np.sqrt(2 * np.pi) * __std)) * np.exp(-0.5 * (1 / __std * (bins - _mu))**2))
-            # x_fit = x_fit * max(count)/max(x_fit)
-            _color = 'y--' if '_ts' in field else 'g--'
-            ax.plot(bins, x_fit, _color, label=_label)
-            ax.legend(loc='upper right', shadow=True, fontsize='x-large')
-            # print(field, len(count), sum(count), count)
-        for f in self.cols:
-            fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+']: distribution garph')
-            # fit raw score distribution
-            plot_dist_fit(f, 'raw score')
-            # fit out score distribution
-            plot_dist_fit(f+'_ts', 'out score')
-        plot.show()
-
-    def __plot_dist_seaborn(self):
-        for f in self.cols:
-            fig, ax = plot.subplots()
-            ax.set_title(self.model_name+'['+f+']: distribution garph')
-            sbn.kdeplot(self.outdf[f], shade=True)
-            sbn.kdeplot(self.outdf[f+'_ts'], shade=True)
-
-    def __plot_model(self, down_line=True):
-        # 分段线性转换模型
-        plot.rcParams['font.sans-serif'] = ['SimHei']
-        plot.rcParams.update({'font.size': 8})
-        for i, col in enumerate(self.cols):
-            # result = self.result_dict[col]['coeff']
-            # raw_points = [result[x][1][0] for x in result] + [result[max(result.keys())][1][1]]
-            in_max = max(self.__result_raw_endpoints)
-            in_min = min(self.__result_raw_endpoints)
-            out_min = min([min(p) for p in self.__out_score_section])
-            out_max = max([max(p) for p in self.__out_score_section])
-
-            plot.figure(col)
-            plot.rcParams.update({'font.size': 10})
-            plot.title(u'转换模型({})'.format(col))
-            plot.xlim(in_min, in_max)
-            plot.ylim(out_min, out_max)
-            plot.xlabel(u'\n\n原始分数')
-            plot.ylabel(u'转换分数')
-            plot.xticks([])
-            plot.yticks([])
-
-            formula = self.result_dict[col]['coeff']
-            for cfi, cf in enumerate(formula.values()):
-                # segment map function graph
-                _score_order = self.__strategy_dict['mode_score_sort_order']
-                x = cf[1] if _score_order in ['ascending', 'a'] else cf[1][::-1]
-                y = cf[2] if _score_order in ['ascending', 'a'] else cf[2][::-1]
-                plot.plot(x, y, linewidth=2)
-
-                # line from endpoint to axis
-                for j in [0, 1]:
-                    plot.plot([x[j], x[j]], [0, y[j]], '--', linewidth=1)
-                    plot.plot([0, x[j]], [y[j], y[j]], '--', linewidth=1)
-                for j, xx in enumerate(x):
-                    plot.text(xx-2 if j == 1 else xx, out_min-2, '{}'.format(int(xx)))
-
-                # out_score scale value beside y-axis
-                for j, yy in enumerate(y):
-                    plot.text(in_min+1, yy+1 if j == 0 else yy-2, '{}'.format(int(yy)))
-                    if y[0] == y[1]:
-                        break
-
-            if down_line:
-                # darw y = x for showing score shift
-                plot.plot((0, in_max), (0, in_max), 'r--', linewidth=2, markersize=2)
-
-        plot.show()
-        return
+        plot_task = slib.StmPlot(self.cols, self.maptable, self.raw_section, self.__out_score_section)
+        plot_task.plot(mode)
 
 
 def set_ellipsis_in_digits_sequence(digit_seq):

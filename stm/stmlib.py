@@ -1283,17 +1283,21 @@ class TestData:
 
 def plot_diff(cols, maptable, model_name=''):
     _order = 'd' if maptable.seg[0] > maptable.seg[1] else 'a'
-    rawscore = sorted(maptable.seg) if _order == 'd' else list(maptable.seg)
+    rawscore = sorted(maptable.seg)
     raw_label = [str(v) for v in rawscore]
     for f in cols:
-        outscore = list(maptable[f+'_ts'])[::-1] if _order == 'd' else list(maptable[f+'_ts'])
+        outscore = list(maptable[f+'_ts'])
+        outscore = [x if x > -100 else 0 for x in outscore]
+        if _order == 'd':
+           outscore = outscore[::-1]
+        f_rawscore = [x if y > 0 else 0 for x, y in zip(rawscore, outscore)]
         fig, ax = plot.subplots()
         ax.set_title(model_name+'['+f+']: diffrence between raw and out')
         ax.set_xticks(rawscore)
         ax.set_xticklabels(raw_label)
         width = 0.35
         bar_wid = [p - width/2 for p in rawscore]
-        bars1 = ax.bar(bar_wid, rawscore, width, label=f)
+        bars1 = ax.bar(bar_wid, f_rawscore, width, label=f)
         bar_wid = [p + width/2 for p in rawscore]
         bars2 = ax.bar(bar_wid, outscore, width, label=f+'_ts')
         #
@@ -1479,8 +1483,21 @@ def plot_model(
     return
 
 
+def plot_dist_seaborn(df, cols, model_name):
+    import seaborn as sbn
+    for f in cols:
+        fig, ax = plot.subplots()
+        ax.set_title(model_name+'['+f+']: distribution garph')
+        sbn.kdeplot(df[f], shade=True)
+        sbn.kdeplot(df[f+'_ts'], shade=True)
+
+
 class StmPlot:
+
     def __init__(self, cols=None, maptable=None, raw_section=None, out_setion=None):
+
+        self.plot_name = ['model', 'model', 'raw', 'out', 'diff']
+
         # self.model_type = None
         # self.outdf = None
         self.model_name = 'stm'
@@ -1491,20 +1508,23 @@ class StmPlot:
         self.out_section = out_setion
 
     def plot(self, mode='model'):
+        if mode not in self.plot_name:
+            plot.figure('invalid mode {}!'.format(mode))
+            return
         if mode == 'model':
             for col in self.cols:
                 plot_model(col=col,
                            raw_section=self.raw_section,
                            out_section=self.out_section,
                            down_line=True)
-        elif mode == 'rawbar':
+        elif mode == 'raw':
             plot_score_bar_count(
                 scoretype='raw',
                 cols=self.cols,
                 maptable=self.maptable,
                 model_name=self.model_name
             )
-        elif mode == 'outbar':
+        elif mode == 'out':
             plot_score_bar_count(
                 scoretype='out',
                 cols=self.cols,
@@ -1517,9 +1537,7 @@ class StmPlot:
                 cols=self.cols,
                 maptable=self.maptable
             )
-        else:
-            plot.figure('not valid mode!')
-            return False
+
 
 class Formula:
     # used to caculate transformed score
