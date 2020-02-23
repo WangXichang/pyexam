@@ -408,7 +408,7 @@ class PltScore(ScoreTransformModel):
             # get field_ts in outdf
             self.outdf.loc[:, (col + '_ts')] = \
                 self.outdf[col].apply(
-                    lambda x: self.__get_ts_score_from_formula(col, x))
+                    lambda x: self.__ts_formula(col, x))
 
         # create col_ts in maptable
         df_map = self.maptable
@@ -416,32 +416,28 @@ class PltScore(ScoreTransformModel):
             # self.logger.loginfo('   calculate: maptable[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.__get_ts_score_from_formula(col, x))
+                lambda x: self.__ts_formula(col, x))
 
         # make report doc
         self.__make_report()
 
         self.__logger.log('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-' * 120,
                              'debug')
-        # self.logger.loginfo('<< Report >>\n')
-        # self.logger.loginfo('-'*120)
         self.__logger.loginfo(self.__report_doc)
 
     # run end
 
-    # -----------------------------------------------------------------------------------
-    # formula for higher precise, int/int to float
-    # original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
-    # used to : y = (a*x + b) / c
-    #           a=(y2-y1)
-    #           b=y1x2-y2x1
-    #           c=(x2-x1)
-    def __get_ts_score_from_formula(self, field, x):
+    def __ts_formula(self, field, x):
+        # -----------------------------------------------------------------------------------
+        # formula for higher precise, int/int to float
+        # original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
+        # used to : y = (a*x + b) / c
+        #           a=(y2-y1)
+        #           b=y1x2-y2x1
+        #           c=(x2-x1)
         if x > self.__raw_score_defined_max:
-            # raise ValueError
             return self.__out_score_real_max
         if x < self.__raw_score_defined_min:
-            # raise ValueError
             return self.__out_score_real_min
         for cf in self.result_dict[field]['coeff'].values():
             if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
@@ -458,10 +454,9 @@ class PltScore(ScoreTransformModel):
                         return slib.round45(np.mean(cf[2]))
                     else:
                         # invalid mode
-                        return None
+                        return -10000
                 return slib.round45((a * x + b) / c, self.__value_out_score_decimals)
-        # raw score not in coeff[1]
-        return -1000
+        return -10000
 
     # formula for b900, b300
     # coeff:   (a=0, b=x), (x, x), (y, y))
@@ -847,47 +842,6 @@ class PltScore(ScoreTransformModel):
         self.__report_doc += '---' * 40
 
     def __make_field_report(self, field=''):
-        score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
-        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
-        self.__result_formula_text_list = []
-        _fi = 1
-        for k in self.result_dict[field]['coeff']:
-            formula = self.result_dict[field]['coeff'][k]
-
-            _break = True
-            _step = 1 if formula[1][0] < formula[1][1] else -1
-            for _score in range(int(formula[1][0]), int(formula[1][1])+_step, _step):
-                if score_dict.get(_score, -1) > 0:
-                    _break = False
-                    break
-
-            if _break:
-                continue
-
-            if formula[0][0] != 0:
-                self.__result_formula_text_list += \
-                    ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
-                     format(int(_fi), formula[0][0], int(formula[1][p]), int(formula[2][p]))]
-            else:
-                if formula[2][0] != formula[2][1]:
-                    self.__result_formula_text_list += \
-                        ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
-                         format(int(_fi),
-                                formula[0][0], formula[1][p],
-                                self.__strategy_dict['mode_section_degraded'],
-                                formula[2][0], formula[2][1])
-                         ]
-                # y2 == y1
-                else:
-                    self.__result_formula_text_list += \
-                        ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
-                         format(_fi,
-                                formula[0][0],
-                                formula[1][p],
-                                formula[2][0])
-                         ]
-            _fi += 1
-
         # report start
         # tiltle
         _out_report_doc = '-'*120 + '\n'
@@ -1036,6 +990,50 @@ class PltScore(ScoreTransformModel):
 
         # report_doc end
         return _out_report_doc
+
+
+    def __make_formula_text(self, field):
+        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
+        score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
+        self.__result_formula_text_list = []
+        _fi = 1
+        for k in self.result_dict[field]['coeff']:
+            formula = self.result_dict[field]['coeff'][k]
+
+            _break = True
+            _step = 1 if formula[1][0] < formula[1][1] else -1
+            for _score in range(int(formula[1][0]), int(formula[1][1])+_step, _step):
+                if score_dict.get(_score, -1) > 0:
+                    _break = False
+                    break
+
+            if _break:
+                continue
+
+            if formula[0][0] != 0:
+                self.__result_formula_text_list += \
+                    ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d}) + {3:2d}'.
+                     format(int(_fi), formula[0][0], int(formula[1][p]), int(formula[2][p]))]
+            else:
+                if formula[2][0] != formula[2][1]:
+                    self.__result_formula_text_list += \
+                        ['(section-{0:3d}):  y = {1:0.8f}*(x-{2:3d}) + {3}({4:3d}, {5:3d})'.
+                         format(int(_fi),
+                                formula[0][0], formula[1][p],
+                                self.__strategy_dict['mode_section_degraded'],
+                                formula[2][0], formula[2][1])
+                         ]
+                # y2 == y1
+                else:
+                    self.__result_formula_text_list += \
+                        ['(section-{0:3d}):  y = 0 * (x-{2:5.2f}) + {3:5.2f}'.
+                         format(_fi,
+                                formula[0][0],
+                                formula[1][p],
+                                formula[2][0])
+                         ]
+            _fi += 1
+
 
     def report(self):
         print(self.__report_doc)
