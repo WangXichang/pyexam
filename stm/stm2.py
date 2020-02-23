@@ -231,7 +231,12 @@ class ModelAlgorithm:
                 # at bottom, last search for sequence
                 #   set bottom value and avoid to search again
                 if result.bottom:
-                    _seg = [x for x in raw_score_sequence][-1]
+                    # _seg = [x for x in raw_score_sequence][-1]
+                    _seg = 0
+                    for r, s in zip(raw_score_percent_sequence, raw_score_sequence):
+                        if abs(r - 1) < value_tiny_value:
+                            _seg = s
+                            break
                     _percent = 1
                     _bottom = True  # avoid to repeat search
                 # at top, single point for first section
@@ -270,7 +275,6 @@ class ModelAlgorithm:
             if _percent > 0:    # jump over lost section
                 real_percent = _percent
 
-        # print(section_point_list)
         #step-3-3: process last point
         if mode_section_point_last == 'defined':
             _last_value = value_raw_score_min if mode_score_sort_order in ['d', 'descending'] else \
@@ -720,23 +724,6 @@ class ModelAlgorithm:
                         if maptable[col+'_count'][i] > 0:
                             logger.loginfo('{:>15}{:>15}{:>15}{:>15}{:>15}'.format(l1, l2, l3, l4, l5))
 
-                    # logger.loginfo(
-                    #     ' model table: [{0}]\n'
-                    #     'real percent: [{1}]\n'
-                    #     '   get ratio: [{2}]\n'
-                    #     '   raw score: [{3}]\n'
-                    #     '   out score: [{4}]\n'
-                    #     .format(
-                    #     ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
-                    #               for (x, z), y in zip(model_section, cumu_ratio)
-                    #               if x in result.map_dict.values()]),
-                    #     ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
-                    #     ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                    #     ', '.join([format(x, '>12d') for x in maptable.seg]),
-                    #     ', '.join([format(slib.round45(result.formula(x), value_out_score_decimals), '>' +
-                    #                       ('12d' if value_out_score_decimals == 0 else '12.' + str(value_out_score_decimals) + 'f'))
-                    #                for x in maptable.seg]),
-                    #     ))
             elif model_type.lower() == 'pgt':
                 result = ModelAlgorithm.get_pgt_tai_formula(
                     df=df,
