@@ -705,23 +705,38 @@ class ModelAlgorithm:
                     )
                 formula = result.formula
                 if logger:
-                    logger.loginfo(
-                        ' model table: [{0}]\n'
-                        'real percent: [{1}]\n'
-                        '   get ratio: [{2}]\n'
-                        '   raw score: [{3}]\n'
-                        '   out score: [{4}]\n'
-                        .format(
-                        ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
-                                  for (x, z), y in zip(model_section, cumu_ratio)
-                                  if x in result.map_dict.values()]),
-                        ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
-                        ', '.join([format(x, '12.8f') for x in result.real_ratio]),
-                        ', '.join([format(x, '>12d') for x in maptable.seg]),
-                        ', '.join([format(slib.round45(result.formula(x), value_out_score_decimals), '>' +
-                                          ('12d' if value_out_score_decimals == 0 else '12.' + str(value_out_score_decimals) + 'f'))
-                                   for x in maptable.seg]),
-                        ))
+                    column_name = ['def_ratio', 'dest_ratio', 'real_ratio', 'raw-score', 'out_score']
+                    logger.loginfo(''.join([s.rjust(15) for s in column_name]))
+
+                    log_sec_ratio = [format(z, '12.8f') for z in cumu_ratio]
+                    log_dest_ratio = [format(x, '12.8f') for x in result.dest_ratio]
+                    log_match_ratio = [format(x, '12.8f') for x in result.real_ratio]
+                    log_raw_score = [str(x) for x in maptable.seg]
+                    log_out_score = [str(result.formula(x)) for x in maptable.seg]
+
+                    for i, (l1, l2, l3, l4, l5) in enumerate(zip(log_sec_ratio,
+                                                                 log_dest_ratio, log_match_ratio,
+                                                                 log_raw_score, log_out_score)):
+                        if maptable[col+'_count'][i] > 0:
+                            logger.loginfo('{:>15}{:>15}{:>15}{:>15}{:>15}'.format(l1, l2, l3, l4, l5))
+
+                    # logger.loginfo(
+                    #     ' model table: [{0}]\n'
+                    #     'real percent: [{1}]\n'
+                    #     '   get ratio: [{2}]\n'
+                    #     '   raw score: [{3}]\n'
+                    #     '   out score: [{4}]\n'
+                    #     .format(
+                    #     ', '.join([format(int(x), '3d')+':'+format(y, '8.6f')
+                    #               for (x, z), y in zip(model_section, cumu_ratio)
+                    #               if x in result.map_dict.values()]),
+                    #     ', '.join([format(x, '12.8f') for x in result.dest_ratio]),
+                    #     ', '.join([format(x, '12.8f') for x in result.real_ratio]),
+                    #     ', '.join([format(x, '>12d') for x in maptable.seg]),
+                    #     ', '.join([format(slib.round45(result.formula(x), value_out_score_decimals), '>' +
+                    #                       ('12d' if value_out_score_decimals == 0 else '12.' + str(value_out_score_decimals) + 'f'))
+                    #                for x in maptable.seg]),
+                    #     ))
             elif model_type.lower() == 'pgt':
                 result = ModelAlgorithm.get_pgt_tai_formula(
                     df=df,

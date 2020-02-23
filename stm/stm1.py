@@ -916,22 +916,22 @@ class PltScore(ScoreTransformModel):
         _out_seg_list = [x[2] for x in self.result_dict[field]['coeff'].values()]
 
         column_width = 15
-        _out_report_doc = '< match result >\n' + '-'*column_width*5 + '\n'
+        _out_report_doc = '< match result >\n' + '-'*column_width*4 + '\n'
         _fstr = '{:' + f'{column_width}.8f' + '}'
         _dstr = '{:' + f'{column_width}d' + '}'
-        _out_report_doc += 'def_ratio'.rjust(column_width) + 'dest_ratio'.rjust(column_width) + \
-                           'match_ratio'.rjust(column_width) + 'raw_score'.rjust(column_width) + \
+        _out_report_doc += 'match_ratio'.rjust(column_width) + \
+                           'real_ratio'.rjust(column_width) + 'raw_score'.rjust(column_width) + \
                            'out_score'.rjust(column_width) + '\n'
-        for _def, _dest, _match, _raw, _out in zip(self.__result_ratio_dict[field]['def'],
-                                                   self.__result_ratio_dict[field]['dest'],
-                                                   self.__result_ratio_dict[field]['match'],
-                                                   _raw_seg_list,
-                                                   _out_seg_list
-                                                   ):
+        for _dest, _match, _raw, _out in zip(
+                                             self.__result_ratio_dict[field]['dest'],
+                                             self.__result_ratio_dict[field]['match'],
+                                             _raw_seg_list,
+                                             _out_seg_list
+                                             ):
             if _match < 0:
                 continue
-            _out_report_doc += (_fstr*3 + _dstr*2 + '\n').\
-                                format(_def, _dest, _match, int(_raw[0]), int(_out[0]))
+            _out_report_doc += (_fstr*2 + _dstr*2 + '\n').\
+                                format(_dest, _match, int(_raw[0]), int(_out[0]))
         return _out_report_doc
 
     def __report_create_formula_text(self, field):
