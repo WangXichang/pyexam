@@ -42,7 +42,7 @@ import time as __time
 import os as __os
 from collections import namedtuple as __namedtuple
 import importlib as __pb
-import numpy as __np
+# import numpy as __np
 
 from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __models
 __stm_modules = [__slib, __stm1, __stm2, __models]

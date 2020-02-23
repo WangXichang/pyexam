@@ -1,10 +1,6 @@
 # coding: utf-8
 
 
-import numpy as np
-import scipy.stats as sts
-import pandas as pd
-
 import time
 import os
 import re
@@ -13,6 +9,11 @@ import configparser as cfp
 from collections import namedtuple
 import logging
 from logging import handlers
+
+
+import numpy as np
+import scipy.stats as sts
+import pandas as pd
 import matplotlib.pyplot as plot
 
 
