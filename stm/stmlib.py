@@ -679,8 +679,8 @@ def read_config_file(conf_name):
 
     if not mcfg['model_in_check']:
         model_list = ['name', 'type', 'ratio', 'section', 'desc']
+        new_set = False
         if 'model_new' in cfper.keys():
-            new_set = True
             for k in model_list:
                 if k in cfper['model_new'].keys():
                     _s = remove_annotation(cfper['model_new'][k])
@@ -693,20 +693,20 @@ def read_config_file(conf_name):
                     else:
                         s = _s
                     mcfg.update({'model_new_' + k: s})
+                    new_set = True
                 else:
-                    new_set = False
                     print('config error: model para incomplete in model_new: {}'.format(k))
-            if new_set:
-                _ch = Checker.check_model_para(
-                    model_type=mcfg['model_new_type'],
-                    model_ratio=mcfg['model_new_ratio'],
-                    model_section=mcfg['model_new_section'],
-                    model_desc=mcfg['model_new_desc']
-                    )
-                mcfg.update({'model_new_check': _ch})
-                mcfg.update({'model_new_set': True})
-            else:
-                mcfg.update({'model_new_set': False})
+        if new_set:
+            _ch = Checker.check_model_para(
+                model_type=mcfg['model_new_type'],
+                model_ratio=mcfg['model_new_ratio'],
+                model_section=mcfg['model_new_section'],
+                model_desc=mcfg['model_new_desc']
+                )
+            mcfg.update({'model_new_check': _ch})
+            mcfg.update({'model_new_set': True})
+        else:
+            mcfg.update({'model_new_set': False})
 
     if 'data' in cfper.keys():
         df = None

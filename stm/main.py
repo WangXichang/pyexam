@@ -597,7 +597,7 @@ def __read_config(filename='stm.conf'):
         return False
 
     # use new model when no model defined, that is in modelset
-    if mcfg['model_new_set']:
+    if 'model_new_set' in mcfg:
         # new model in config-file
         if mcfg['model_new_check']:
             mcfg.update({'model_name': mcfg['model_new_name']})
