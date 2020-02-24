@@ -38,7 +38,7 @@
         搜索比例值的分数顺序
          'model_score_sort':              ('descending', 'ascending'),
         使用比例确定区间端点的逼近策略
-         'mode_section_point_ratio_prox':               ('upper_min', 'lower_max', 'near_max', 'near_min'),
+         'mode_ratio_prox':               ('upper_min', 'lower_max', 'near_max', 'near_min'),
         使用比例确定区间端点的累计策略
          'mode_section_point_ratio_cumu':               ('yes', 'no'),
         第一端点确定：区间第一个端点映射到转换分数最高(低)值(real)、卷面最高（低）值(defined)
@@ -174,9 +174,9 @@ Models = {
 
 # choices = 4 * 2**5 * 3 * 2  = 768   ## prox, cumu, sort, section_
 Strategy = {
-    'mode_score_sort_order':              ('d', 'a'),                # d: descending, a: ascending
-    'mode_section_point_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_section_point_ratio_cumu':              ('yes', 'no'),
+    'mode_score_order':             ('d', 'a'),                # d: descending, a: ascending
+    'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
+    'mode_ratio_cumu':              ('yes', 'no'),
     'mode_section_point_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
     'mode_section_point_start':     ('step', 'share'),         # first point except first section
     'mode_section_point_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt

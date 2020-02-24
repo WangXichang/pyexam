@@ -287,9 +287,9 @@ class PltScore(ScoreTransformModel):
                  out_score_section=None,
                  raw_score_defined_min=0,
                  raw_score_defined_max=100,
-                 mode_section_point_ratio_prox='upper_min',
-                 mode_section_point_ratio_cumu='no',
-                 mode_score_sort_order='descending',
+                 mode_ratio_prox='upper_min',
+                 mode_ratio_cumu='no',
+                 mode_score_order='descending',
                  mode_section_point_first='real',
                  mode_section_point_start='step',
                  mode_section_point_last='real',
@@ -306,7 +306,7 @@ class PltScore(ScoreTransformModel):
 
         self.__value_out_score_decimals = value_out_score_decimals
 
-        if mode_score_sort_order in ['descending', 'd']:
+        if mode_score_order in ['descending', 'd']:
             raw_p = raw_score_ratio
             self.__out_score_section = out_score_section
         else:
@@ -317,9 +317,9 @@ class PltScore(ScoreTransformModel):
 
         self.__raw_score_defined_min, self.__raw_score_defined_max = raw_score_defined_min, raw_score_defined_max
 
-        self.__strategy_dict['mode_section_point_ratio_prox'] = mode_section_point_ratio_prox
-        self.__strategy_dict['mode_section_point_ratio_cumu'] = mode_section_point_ratio_cumu
-        self.__strategy_dict['mode_score_sort_order'] = mode_score_sort_order
+        self.__strategy_dict['mode_ratio_prox'] = mode_ratio_prox
+        self.__strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
+        self.__strategy_dict['mode_score_order'] = mode_score_order
         self.__strategy_dict['mode_section_point_first'] = mode_section_point_first
         self.__strategy_dict['mode_section_point_start'] = mode_section_point_start
         self.__strategy_dict['mode_section_point_last'] = mode_section_point_last
@@ -349,7 +349,7 @@ class PltScore(ScoreTransformModel):
 
         # calculate seg table
         # self.logger.loginfo('calculating maptable ...')
-        _segsort = 'a' if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 'd'
+        _segsort = 'a' if self.__strategy_dict['mode_score_order'] in ['ascending', 'a'] else 'd'
         seg_model = slib.get_segtable(
                   df=self.df,
                   cols=self.cols,
@@ -462,7 +462,7 @@ class PltScore(ScoreTransformModel):
         result_ratio = []
         value_tiny_value = self.__value_tiny_value     # used to judge zero(s==0) or equality(s1==s2)
 
-        _mode_sort = self.__strategy_dict['mode_score_sort_order']
+        _mode_sort = self.__strategy_dict['mode_score_order']
 
         if _mode_sort in ['d', 'descending']:
             _mode_ppt_score_min = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
@@ -471,7 +471,7 @@ class PltScore(ScoreTransformModel):
             _mode_ppt_score_max = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
             _mode_ppt_score_min = self.__strategy_dict['mode_section_point_first']  # real_max or paper_max
 
-        _mode_prox = self.__strategy_dict['mode_section_point_ratio_prox']
+        _mode_prox = self.__strategy_dict['mode_ratio_prox']
 
         _start_score = self.__out_score_real_max if _mode_sort in ['descending', 'd'] else self.__out_score_real_min
         _step = -1 if _mode_sort in ['descending', 'd'] else 1
@@ -644,8 +644,8 @@ class PltScore(ScoreTransformModel):
         section_defined_min = self.__raw_score_defined_min
         section_defined_max = self.__raw_score_defined_max
 
-        _mode_cumu = self.__strategy_dict['mode_section_point_ratio_cumu']
-        _mode_order = self.__strategy_dict['mode_score_sort_order']
+        _mode_cumu = self.__strategy_dict['mode_ratio_cumu']
+        _mode_order = self.__strategy_dict['mode_score_order']
 
         # first points of first section in raw score
         if self.__strategy_dict['mode_section_point_first'] == 'real':
@@ -688,7 +688,7 @@ class PltScore(ScoreTransformModel):
                 # current point: item[i+1] == -1
                 if (result_section_point[i+1] < 0) and (result_section_point[i] >= 0):
                     if self.__strategy_dict['mode_section_point_last'] == 'defined':
-                        if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
+                        if self.__strategy_dict['mode_score_order'] in ['d', 'descending']:
                             result_section_point[i] = section_defined_min
                         else:
                             result_section_point[i] = section_defined_max
@@ -711,7 +711,7 @@ class PltScore(ScoreTransformModel):
         if self.__strategy_dict['mode_section_point_last'] == 'defined':
             for i in range(len(result_section_point)-1, 0, -1):
                 if result_section_point[i] >= 0:
-                    if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending']:
+                    if self.__strategy_dict['mode_score_order'] in ['d', 'descending']:
                         result_section_point[i] = section_defined_min
                     else:
                         result_section_point[i] = section_defined_max
@@ -723,7 +723,7 @@ class PltScore(ScoreTransformModel):
         sectio_lost = False
         for x, y in zip(result_section_point[:-1],
                         result_section_point[1:]):
-            _step = -1 if self.__strategy_dict['mode_score_sort_order'] in ['d', 'descending'] else 1
+            _step = -1 if self.__strategy_dict['mode_score_order'] in ['d', 'descending'] else 1
             _y = y
             _x = None
             if x != y:
@@ -770,7 +770,7 @@ class PltScore(ScoreTransformModel):
     # new at 2019-09-09
     def __get_seg_from_maptable(self, field, dest_ratio):
 
-        _mode_prox = self.__strategy_dict['mode_section_point_ratio_prox']
+        _mode_prox = self.__strategy_dict['mode_ratio_prox']
         _top_index = self.maptable.index.max()
         _tiny = self.__value_tiny_value
 
@@ -935,7 +935,7 @@ class PltScore(ScoreTransformModel):
         return _out_report_doc
 
     def __report_create_formula_text(self, field):
-        p = 0 if self.__strategy_dict['mode_score_sort_order'] in ['ascending', 'a'] else 1
+        p = 0 if self.__strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         score_dict = {x: y for x, y in zip(self.maptable['seg'], self.maptable[field+'_count'])}
         self.__result_formula_text_list = []
         _fi = 1

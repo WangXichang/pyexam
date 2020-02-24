@@ -704,6 +704,9 @@ def read_config_file(conf_name):
                     model_desc=mcfg['model_new_desc']
                     )
                 mcfg.update({'model_new_check': _ch})
+                mcfg.update({'model_new_set': True})
+            else:
+                mcfg.update({'model_new_set': False})
 
     if 'data' in cfper.keys():
         df = None
@@ -806,9 +809,9 @@ def read_config_file(conf_name):
             mcfg.update({_mode: _mode_str})
     else:
         # set defaul mode
-        mode_dict ={'mode_section_point_ratio_prox': 'upper_min',
-                    'mode_score_sort_order': 'd',
-                    'mode_section_point_ratio_cumu': 'no',
+        mode_dict ={'mode_ratio_prox': 'upper_min',
+                    'mode_score_order': 'd',
+                    'mode_ratio_cumu': 'no',
                     'mode_section_point_first': 'real',
                     'mode_section_point_start': 'step',
                     'mode_section_point_last': 'real',
@@ -837,7 +840,7 @@ def make_config_file(filename):
         logname = test                      # 任务名称，用于生成日志: logname_model_year_month_day.log
         logdisp = True                      # 是否显示计算过程信息 message to consol
         logfile = False                     # 是否将计算过程信息写入日志 message to log file
-        logdata = False                  # 是否保存结果数据：[logname]_df_outscore/maptable_[modelname]_[time].csv
+        logdata = False                     # 是否保存结果数据：[logname]_df_outscore/maptable_[modelname]_[time].csv
 
         
         [data]
@@ -850,28 +853,30 @@ def make_config_file(filename):
         
         
         [value]
-        value_raw_score_min = 0                   # 原始分数卷面最小值 min score for raw score
-        value_raw_score_max = 100                 # 原始分数卷面最大值 max score for raw score
-        value_out_score_decimals = 0              # 转换分数保留小数位 decimal digits for out score
-        value_tiny_value = 10**-8                 # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_raw_score_min = 0             # 原始分数卷面最小值 min score for raw score
+        value_raw_score_max = 100           # 原始分数卷面最大值 max score for raw score
+        value_out_score_decimals = 0        # 转换分数保留小数位 decimal digits for out score
+        value_tiny_value = 10**-8           # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
-        mode_score_sort_order = d                           # 排序策略，取值：d, a
-        mode_section_point_ratio_prox = upper_min           # 逼近策略，取值：upper_min, lower_max, near_max, near_min
-        mode_section_point_ratio_cumu = no                  # 累计策略，取值：yes, no
-        mode_section_point_first = real                     # 第一端点策略，取值：real, defined
-        mode_section_point_start = step                     # 开始端点策略，取值：step, share
-        mode_section_point_last = real                      # 最后端点策略，取值：real, defined
-        mode_section_degraded = to_max                      # 区间退化策略，取值：to_max, to_min, to_mean
-        mode_section_lost = real                            # 区间消失策略，取值：real, zip
+        mode_score_order = d                  # 排序策略，取值：d, a
+        mode_ratio_prox = upper_min           # 逼近策略，取值：upper_min, lower_max, near_max, near_min
+        mode_ratio_cumu = no                  # 累计策略，取值：yes, no
+        mode_section_point_first = real       # 第一端点策略，取值：real, defined
+        mode_section_point_start = step       # 开始端点策略，取值：step, share
+        mode_section_point_last = real        # 最后端点策略，取值：real, defined
+        mode_section_degraded = to_max        # 区间退化策略，取值：to_max, to_min, to_mean (映射到最大、最小、平均值)
+        mode_section_lost = real              # 区间消失策略，取值：real, zip
 
         
         [model_new]
-        name = model-new001                  # 自定义模型名称，使用合法文件名字符 model name
-        type = plt                           # 自定义模型类型， 取值: plt, ppt, pgt
-        section = (100, 91), (90, 81), (80, 71), (70, 61), (60, 51), (50, 41)       # 区间（降序） section(descending)
-        ratio =   10, 16, 25, 25, 17, 6      # 比例（百分数），和等于100 ratios(%), sum==100        
+        name = model-001                      # 自定义模型名称，使用合法文件名字符 model name
+        type = plt                            # 自定义模型类型， 取值: plt, ppt, pgt
+        # 等级分数转换区间（降序） section (descending)
+        section = (150, 131), (130, 111), (110, 91), (90, 71), (70, 51)，（50，30）
+        # 原始分数的等级分数区间划分比例（百分数0-100），和等于100 ratio(%), sum==100
+        ratio =   2, 13, 35, 35, 13, 2
         """
 
     if isfilename(filename):
@@ -891,9 +896,9 @@ class Checker:
             model_name='shandong',
             df=None,
             cols=None,
-            mode_section_point_ratio_prox='upper_min',
-            mode_section_point_ratio_cumu='no',
-            mode_score_sort_order='d',
+            mode_ratio_prox='upper_min',
+            mode_ratio_cumu='no',
+            mode_score_order='d',
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
@@ -921,9 +926,9 @@ class Checker:
 
         # check strategy
         if not Checker.check_strategy(
-                mode_section_point_ratio_prox=mode_section_point_ratio_prox,
-                mode_section_point_ratio_cumu=mode_section_point_ratio_cumu,
-                mode_score_sort_order=mode_score_sort_order,
+                mode_ratio_prox=mode_ratio_prox,
+                mode_ratio_cumu=mode_ratio_cumu,
+                mode_score_order=mode_score_order,
                 mode_section_point_first=mode_section_point_first,
                 mode_section_point_start=mode_section_point_start,
                 mode_section_point_last=mode_section_point_last,
@@ -1022,9 +1027,9 @@ class Checker:
 
     @staticmethod
     def check_strategy(
-            mode_section_point_ratio_prox='upper_min',
-            mode_section_point_ratio_cumu='no',
-            mode_score_sort_order='descending',
+            mode_ratio_prox='upper_min',
+            mode_ratio_cumu='no',
+            mode_score_order='descending',
             mode_section_point_first='real',
             mode_section_point_start='step',
             mode_section_point_last='real',
@@ -1039,9 +1044,9 @@ class Checker:
             logger.logging_consol = True
             logger.logging_file = False
 
-        st = {'mode_section_point_ratio_prox': mode_section_point_ratio_prox,
-              'mode_section_point_ratio_cumu': mode_section_point_ratio_cumu,
-              'mode_score_sort_order': mode_score_sort_order,
+        st = {'mode_ratio_prox': mode_ratio_prox,
+              'mode_ratio_cumu': mode_ratio_cumu,
+              'mode_score_order': mode_score_order,
               'mode_section_point_first': mode_section_point_first,
               'mode_section_point_start': mode_section_point_start,
               'mode_section_point_last': mode_section_point_last,
