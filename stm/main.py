@@ -186,8 +186,6 @@ def run(
         else:
             # print('reading config file fail!')
             return None
-    # else:
-    #     return None
 
     if not isinstance(logname, str):
         task = 'stm'
@@ -335,11 +333,10 @@ def run(
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model))
 
+    stm_result = __namedtuple('R', ['dfscore', 'maptable', 'plot'])
     if r.ok:
-        if r.r1:
-            return r.r1
-        else:
-            return r.r2
+        rr = r.r1 if r.r1 else r.r2
+        return stm_result(rr.outdf, rr.maptable, rr.plot)
     return None
 # end run
 
