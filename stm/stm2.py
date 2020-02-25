@@ -754,12 +754,13 @@ class ModelAlgorithm:
         return r(df, maptable, result.section, cols, model_section)
 
 
-def stm2(*args):
-    final_result = namedtuple('R2', ['outdf', 'maptable', 'plot'])
-    result = ModelAlgorithm.get_stm_score(*args)
+def stm2(**kargs):
+    result = ModelAlgorithm.get_stm_score(**kargs)
     plt = slib.StmPlot(
+        cols=kargs['cols'],
         maptable=result.maptable,
         raw_section=result.raw_section,
         out_setion=result.out_section,
         )
-    return final_result(result.outdf, result.maptable, plt.plot)
+    stm2_result = namedtuple('R2', ['outdf', 'maptable', 'plot'])
+    return stm2_result(result.outdf, result.maptable, plt.plot)

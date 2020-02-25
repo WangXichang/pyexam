@@ -549,10 +549,6 @@ def get_norm_point_pdf(start=100,
     ratio_cumu = [sum(ratio_pdf[:i+1]) for i in range(len(ratio_pdf))]
     result = namedtuple('R', ['pdf', 'cdf', 'points', 'cutoff'])
     return result(ratio_pdf, ratio_cumu, point_list, cutoff)
-    # return result({p: r for p, r in zip(point_list, ratio_pdf)},
-    #               {p: r for p, r in zip(point_list, ratio_cumu)},
-    #               point_list,
-    #               cutoff)
 
 
 def get_norm_section_pdf(
@@ -662,6 +658,7 @@ def isfilename(fstr):
             return True
     return False
 
+
 def read_config_file(conf_name):
     mcfg = dict()
     cfper = dict()
@@ -717,7 +714,7 @@ def read_config_file(conf_name):
                 try:
                     df = pd.read_csv(dffile)
                     mcfg.update({'df': df})
-                except:
+                except IOError:
                     print('data read error!')
             else:
                 print('invalid data file name: df = {}'.format(dffile))
@@ -809,14 +806,14 @@ def read_config_file(conf_name):
             mcfg.update({_mode: _mode_str})
     else:
         # set defaul mode
-        mode_dict ={'mode_ratio_prox': 'upper_min',
-                    'mode_score_order': 'd',
-                    'mode_ratio_cumu': 'no',
-                    'mode_section_point_first': 'real',
-                    'mode_section_point_start': 'step',
-                    'mode_section_point_last': 'real',
-                    'mode_section_degraded': 'to_max',
-                    'mode_section_lost': 'real'}
+        mode_dict = {'mode_ratio_prox': 'upper_min',
+                     'mode_score_order': 'd',
+                     'mode_ratio_cumu': 'no',
+                     'mode_section_point_first': 'real',
+                     'mode_section_point_start': 'step',
+                     'mode_section_point_last': 'real',
+                     'mode_section_degraded': 'to_max',
+                     'mode_section_lost': 'real'}
         mcfg.update(mode_dict)
 
     return mcfg
@@ -856,7 +853,7 @@ def make_config_file(filename):
         value_raw_score_min = 0             # 原始分数卷面最小值 min score for raw score
         value_raw_score_max = 100           # 原始分数卷面最大值 max score for raw score
         value_out_score_decimals = 0        # 转换分数保留小数位 decimal digits for out score
-        value_tiny_value = 10**-8           # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_tiny_value = 10**-10           # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
@@ -917,7 +914,7 @@ class Checker:
 
         # check model name
         if model_name.lower() not in models.Models.keys():
-            logger.loginfo('error name: name={} not in models.Models!'.format(model_name))
+            logger.loginfo('error model name: {} !'.format(model_name))
             return False
 
         # check input data: DataFrame
@@ -1295,7 +1292,7 @@ def plot_diff(cols, maptable, model_name=''):
         outscore = list(maptable[f+'_ts'])
         outscore = [x if x > -100 else 0 for x in outscore]
         if _order == 'd':
-           outscore = outscore[::-1]
+            outscore = outscore[::-1]
         f_rawscore = [x if y > 0 else 0 for x, y in zip(rawscore, outscore)]
         fig, ax = plot.subplots()
         ax.set_title(model_name+'['+f+']: diffrence between raw and out')
@@ -1578,7 +1575,7 @@ class Formula:
 
         denom = x[1]-x[0]
         if abs(denom) > cls.Tiny_Value:
-            return round45((y[1] - y[0]) / denom * (x - x[0]) + y[0], decimals)
+            return round45((y[1] - y[0]) / denom * (raw - x[0]) + y[0], decimals)
         return cls.Invalid_Score
 
     @classmethod
@@ -1593,5 +1590,57 @@ class Formula:
         """
         denom = x[1] - x[0]
         if abs(denom) > cls.Tiny_Value:
-            return round45(((y[1]-y[0]) * x + y[0]*x[1] - y[1]*x[0]) / denom, decimals)
+            return round45(((y[1]-y[0]) * raw + y[0]*x[1] - y[1]*x[0]) / denom, decimals)
         return cls.Invalid_Score
+
+
+def models_hist(font_size=12):
+    from stm import models as m
+
+    def __model_describe(name='shandong'):
+        __ratio = m.Models[name].ratio
+        __section = m.Models[name].section
+        if name == 'b900':
+            __mean, __std, __skewness = 500, 100, 0
+        elif name == 'b300':
+            __mean, __std, __skewness = 180, 30, 0
+        else:
+            samples = []
+            [samples.extend([np.mean(s)] * int(__ratio[_i])) for _i, s in enumerate(__section)]
+            __mean, __std, __skewness = np.mean(samples), np.std(samples), sts.skew(np.array(samples))
+        return __mean, __std, __skewness
+
+    _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'b900']
+
+    ms_dict = dict()
+    for _name in _names:
+        ms_dict.update({_name: __model_describe(name=_name)})
+
+    plot.figure('New Gaokao Score Models: name(mean, std, skewness)')
+    plot.rcParams.update({'font.size': font_size})
+    for i, k in enumerate(_names):
+        plot.subplot(240+i+1)
+        _wid = 2
+        if k in ['shanghai']:
+            x_data = range(40, 71, 3)
+        elif k in ['zhejiang', 'beijing', 'tianjin']:
+            x_data = range(40, 101, 3)
+        elif k in ['shandong']:
+            x_data = [x for x in range(26, 100, 10)]
+            _wid = 8
+        elif k in ['guangdong']:
+            x_data = [np.mean(x) for x in m.Models[k].section][::-1]
+            _wid = 10
+        elif k in ['p7']:
+            x_data = [np.mean(x) for x in m.Models[k].section][::-1]
+            _wid = 10
+        elif k in ['b900']:
+            x_data = [x for x in range(100, 901)]
+            _wid = 1
+        elif k in ['b300']:
+            x_data = [x for x in range(60, 301)]
+            _wid = 1
+        else:
+            raise ValueError(k)
+        plot.bar(x_data, m.Models[k].ratio[::-1], width=_wid)
+        plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))

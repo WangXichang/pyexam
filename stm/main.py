@@ -65,12 +65,12 @@ def run(
         logdisp=True,
         logfile=False,
         loglevel='info',
-        logdata=True,
+        logdata=False,
         verify=False,
         value_raw_score_min=0,
         value_raw_score_max=100,
         value_out_score_decimals=0,
-        value_tiny_value=10**-12,
+        value_tiny_value=10**-10,
         ):
 
     """
@@ -134,7 +134,7 @@ def run(
         value_raw_score_min: int,       原始分数的理论最小值
         value_raw_score_max: int,       原始分数的理论最大值
         value_out_score_decimals: int,  输出分数的保留小数位数
-        value_tiny_value: float,        微小值，用于过程计算的精度控制， 一般可设为10**-8，最小为10**-14
+        value_tiny_value: float,        微小值，用于过程计算的精度控制， 推荐设为10**-10，最小为10**-14
     ---
     返回值
     返回结果为名称元组：（outdf, maptable, plot, formula）
@@ -186,6 +186,8 @@ def run(
         else:
             # print('reading config file fail!')
             return None
+    # else:
+    #     return None
 
     if not isinstance(logname, str):
         task = 'stm'
@@ -258,7 +260,7 @@ def run(
         r = result_namedtuple(True, m1, None)
         if verify:
             verify_pass = True
-            m2 = __run2(
+            m2 = __run2(  #
                 name=model,
                 df=df,
                 cols=cols,
@@ -295,7 +297,7 @@ def run(
     # 'pgt': call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
-        m2 = __run2(
+        m2 = __run2(   #
                   name=model,
                   df=df,
                   cols=cols,
@@ -408,7 +410,7 @@ def __run2(
         value_raw_score_max=100,
         raw_score_step=1,
         value_out_score_decimals=0,
-        value_tiny_value=10**-12,
+        value_tiny_value=10**-10,
         logger=None,
         ):
     """
@@ -435,12 +437,12 @@ def __run2(
         return None
 
     model = __models.Models[name]
-    return __stm2.ModelAlgorithm.get_stm_score(
+    return __stm2.stm2(     # ModelAlgorithm.get_stm_score
         df=df,
         cols=cols,
         model_ratio_pdf=model.ratio,
         model_section=model.section,
-        model_type=model.type.lower(),
+        model_type=model.type,
         value_raw_score_max=value_raw_score_max,
         value_raw_score_min=value_raw_score_min,
         raw_score_step=raw_score_step,
