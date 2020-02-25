@@ -49,14 +49,13 @@ __stm_modules = [__slib, __stm1, __stm2, __models]
 
 
 def run(
-        use_cfg=None,
-        # new_cfg=None,
         model='shandong',
         df=None,
-        cols=(),
+        cols=None,
+        cfg=None,
+        mode_score_order='d',
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_score_order='d',
         mode_section_point_first='real',
         mode_section_point_start='step',
         mode_section_point_last='real',
@@ -77,42 +76,39 @@ def run(
     """
     ---
     基本参数：
-        cfg: str, 配置文件名称
-        newcfg: str, 生成新的配置文件名
-        model: str, 转换模型名称
+        model: str, 模型名称
         df: DataFrame, 原始分数数据
-        cols: list of str, 需要转换的原始分数列（字段）
-        注： 如果配置了configfile，则优先使用配置文件的选项进行计算，否则使用其他参数的设置进行计算
+        cols: list of str, 需要转换的原始分数列（字段）, 某考试科目的分数，可以同时指定多个科目，如 ['km1', 'km2']
+        cfg: str, 配置文件名称
+        注： 如果配置了cfg，则优先使用配置文件的选项进行计算，否则使用其他参数的设置进行计算
+             将cfg设置为第4个参数，是为了强制使用cfg=filename形式调用
+             模型名称model、分数数据df、分数数据列cols, 必须同时设置，模型名称可以使用缺省值shandong，其它两个参数必须设置
     ---
     算法策略参数：
           mode_score_order: 分数排序方式 score sort method: descending or ascending
                       'd': 降序方式排序，从高分数开始计算
                       'a': 升序方式排序，从低分数开始计算
 
-          mode_ratio_prox: the mode to proxmate ratio value of raw score points
+          mode_ratio_prox: 比例值逼近方式 the mode to proxmate ratio value of raw score points
                          搜索对应比例的确定等级区间分值点的方式
               'upper_min': 小于该比例值的分值中最大的值   get score with min value in bigger percentile
               'lower_max': 大于该比例值的分值中最小的值   get score with max value in less percentile
                'near_min': 最接近该比例值的分值中最小的值 get score with min value in near percentile
                'near_max': 最接近该比例值的分值中最大的值 get score with max value in near percentile
 
-          mode_ratio_cumu: 比例累加控制方式 use or not cumulative section ratio to locate section point
+          mode_ratio_cumu: 比例是否累积 use or not cumulative section ratio to locate section point
                     'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
                      'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
-          mode_section_point_first: 区间的第一个点的取值方式
+          mode_section_point_first: 第一个端点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
-          mode_section_point_first: 区间的第一个点的取值方式
-                            'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
-                         'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
-
-          mode_section_point_start: 区间的开始点的取值方式（第一个区间开始点使用mode_section_point_first确定）
+          mode_section_point_start: 起始端点的取值方式（第一个区间开始点使用mode_section_point_first确定）
                             'step': 取顺延值，即上一个区间的末端点值加1（descending）或减1(ascending)
                            'share': 取共享值，即上一个区间的末端点值
 
-          mode_section_point_last: 区间的末端点的取值方式
+          mode_section_point_last:  末端点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
@@ -126,49 +122,35 @@ def run(
                              'zip': 将消失区间推压，即移动到最后，使其他区间上移
     ---
     任务控制参数：
-        logname: str, 任务名称， 用于日志文件、输出数据文件的前缀
-        logdisp: bool, 是否显示计算运行结果
-        logfile: bool, 是否将计算运行结果写入日志文件
-        loglevel: str, 输出结果的等级：'debug', 'info'
-        logdata: bool, 是否将计算结果写入文件，包括转换输出分数(df_outscore)、转换映射表(df_maptable)
-        verify: bool, 是否使用算法验证，即使用两种计算算法对计算结果进行验证
+        logname: str,  任务名称， 用于日志文件、输出数据文件的前缀
+        logdisp: bool, 显示控制，是否显示计算运行结果
+        logfile: bool, 日志控制，是否将计算运行结果写入日志文件
+        logdata: bool, 数据控制，是否将计算结果写入文件，指转换分数(df_outscore)和转换映射表(df_maptable)
+        ---
+        loglevel: str, 输出结果的等级：'debug', 'info'，在调试系统时使用
+        verify: bool,  是否使用算法验证，即使用两种计算算法对计算结果进行验证， 在调试系统时shiy
     ---
-    分值数值与计算精度：
-        value_raw_score_min: int, 原始分数的最小值
-        value_raw_score_max: int, 原始分数的最大值
-        value_out_score_decimals: int, 输出分数的小数位数
-        value_tiny_value: float, 最小精度值，用于过程计算的精度控制， 一般可设为10**-10
+    数值计算参数：
+        value_raw_score_min: int,       原始分数的理论最小值
+        value_raw_score_max: int,       原始分数的理论最大值
+        value_out_score_decimals: int,  输出分数的保留小数位数
+        value_tiny_value: float,        微小值，用于过程计算的精度控制， 一般可设为10**-8，最小为10**-14
     ---
     返回值
-    返回结果为名称元组：（ok, r1, r2）
-      (1) ok: bool, 计算是（True）否（False）成功， successful（True） or not(False)
-      (2) r1: 主算法的计算结果
-              模块stm1中类PltScore的实例
-              主要数据结果是PltScore.outdf, PltScore.maptable
-              result of stm1, instance of PltScore
-      (3) r2: 辅助算法的计算结果， 模块stm2中函数ModelAlgorithm.get_stm_score()的返回结果，
-              元素名称为outdf,maptable的元组
-              如果不指定verify 或 verify != True时，r2为None
-              result of stm2, namedtuple('outdf', 'maptable')
-              r2 is None if verify != True
+    返回结果为名称元组：（outdf, maptable, plot, formula）
+    outdf: DataFrame,           转换分数结果
+    maptable：DataFrame,        转换映射表
+    plot: function              转换模型（model）、原始分数分布（raw）、转换分数(out)、分数差异(diff)图示
+    formula: dict               转换公式
     ---
-    调用方式
+    应用示例：
       [1] from stm import main
-      [2] m = main.run(model_name='zhejiang', df=data, col=['ls'])
-      [3] m.ok
-      [4] m.r1.maptable.head()
-      [5] m.r1.outdf.head()
+      [2] m = main.run(model='zhejiang', df=rawscore, col=['ls'])
+      [3] m.maptable.head()
+      [4] m.outdf.head()
+      [5] m.plot('model')
     ---
     """
-
-    # deprecated to
-    # create new config file
-    # if isinstance(new_cfg, str):
-    #     if not ('{' in new_cfg):
-    #         make_config_file(new_cfg)
-    #         return True
-    #     else:
-    #         return False
 
     # calculation for converting score
     result_namedtuple = __namedtuple('Result', ['ok', 'r1', 'r2'])
@@ -177,10 +159,9 @@ def run(
         __pb.reload(m)
 
     mcfg = dict()
-    if isinstance(use_cfg, str):
-        if __os.path.isfile(use_cfg):
-            mcfg = __read_config(use_cfg)
-        if len(mcfg) > 0:
+    if isinstance(cfg, str):
+        mcfg = __read_config(cfg)
+        if mcfg:
             model = mcfg['model_name']
             df = mcfg['df']
             cols = mcfg['cols']
@@ -202,6 +183,9 @@ def run(
             value_out_score_decimals = mcfg['value_out_score_decimals']
             value_tiny_value = mcfg['value_tiny_value']
             verify = mcfg['verify']
+        else:
+            # print('reading config file fail!')
+            return None
 
     if not isinstance(logname, str):
         task = 'stm'
@@ -220,7 +204,7 @@ def run(
     stmlogger.loginfo_start('task:' + task + ' model:' + model + stm_no)
 
     # log--disp--file: config messages form mcfg by reading cfg file
-    stmlogger.loginfo('read config in {}'.format(use_cfg) + '\n' + '-' * 120)
+    stmlogger.loginfo('read config in {}'.format(cfg) + '\n' + '-' * 120)
     key_list = list(mcfg.keys())
     for i, k in enumerate(key_list):
         if k == 'df':
@@ -349,13 +333,12 @@ def run(
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model))
 
-    if not r.ok:
-        return None
-    else:
+    if r.ok:
         if r.r1:
             return r.r1
         else:
             return r.r2
+    return None
 # end run
 
 
@@ -575,24 +558,51 @@ def __run2p(
 # end--run2p
 
 
-def make_config_file(confname='stm_test.cfg'):
-    if __slib.isfilename(confname):
-        __slib.make_config_file(confname)
+def models(name=None):
+    Models = __models.Models
+    if isinstance(name, str):
+        if name in Models:
+            v = Models[name]
+            print('{:<15s} {},  {} '.format(name, v.type, v.desc))
+            print('{:<15s} {}'.format(' ', v.ratio))
+            print('{:<15s} {}'.format('', v.section))
+        else:
+            print('name={} not found!'.format(name))
+        return
+    elif name is not None:
+        print('invalid name={}'.format(name))
+        return
+
+    for k in Models:
+        v = Models[k]
+        print('{:<15s} {},  {} '.format(k, v.type, v.desc))
+        print('{:<15s} {}'.format(' ', v.ratio))
+        print('{:<15s} {}'.format('', v.section))
+
+
+def make_config_file(filename='stm.cfg'):
+    if __slib.isfilename(filename):
+        __slib.make_config_file(filename)
         return True
     else:
         print('invalid file name!')
         return False
 
-def __read_config(filename='stm.conf'):
+def __read_config(filename='stm.cfg'):
+
+    if isinstance(filename, str):
+        if '.' not in filename:
+            filename += '.cfg'
+    else:
+        print('Invalid filename={}'.format(filename))
+        return False
 
     if not __os.path.isfile(filename):
         print('conf file: {} not found!'.format(filename))
         return False
 
-    config_read = __slib.read_config_file(filename)
-    if config_read:
-        mcfg = config_read
-    else:
+    mcfg = __slib.read_config_file(filename)
+    if not mcfg:
         print('read config file {} fail!'.format(filename))
         return False
 
@@ -616,7 +626,7 @@ def __read_config(filename='stm.conf'):
             return False
 
     if mcfg['df'] is None:
-        print('no data file assigned!')
+        print('reading data file to df fail!')
         return False
     if mcfg['cols'] is None:
         print('no data columns assigned!')

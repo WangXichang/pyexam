@@ -1074,7 +1074,7 @@ class Checker:
                 logger.loginfo('warning: df is pandas.Series!')
                 return False
             else:
-                logger.loginfo('error data: df is not pandas.DataFrame!')
+                logger.loginfo('error data: df(type={}) is not pandas.DataFrame!'.format(type(df)))
                 return False
         if len(df) == 0:
             logger.loginfo('error data: df is empty!')

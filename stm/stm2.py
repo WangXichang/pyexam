@@ -587,7 +587,6 @@ class ModelAlgorithm:
         return Result(formula, section_list, map_dict, grade_step, top_level_score)
 
     @classmethod
-    # @slib.timer_wrapper
     def get_stm_score(cls,
                       df,
                       cols,
@@ -751,5 +750,16 @@ class ModelAlgorithm:
 
         if logger:
             logger.loginfo('stm2 running end \n' + '-' * 100)
-        r = namedtuple('r', ['outdf', 'maptable', 'section', 'formula'])
-        return r(df, maptable, result.section, result.formula)
+        r = namedtuple('r', ['outdf', 'maptable', 'raw_section', 'cols', 'out_section'])
+        return r(df, maptable, result.section, cols, model_section)
+
+
+def stm2(*args):
+    final_result = namedtuple('R2', ['outdf', 'maptable', 'plot'])
+    result = ModelAlgorithm.get_stm_score(*args)
+    plt = slib.StmPlot(
+        maptable=result.maptable,
+        raw_section=result.raw_section,
+        out_setion=result.out_section,
+        )
+    return final_result(result.outdf, result.maptable, plt.plot)

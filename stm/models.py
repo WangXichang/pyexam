@@ -185,22 +185,6 @@ Strategy = {
     }
 
 
-def models_show(name=None):
-    if isinstance(name, str):
-        if name in Models:
-            v = Models[name]
-            print('{:<15s} {},  {} '.format(name, v.type, v.desc))
-            print('{:<15s} {}'.format(' ', v.ratio))
-            print('{:<15s} {}'.format('', v.section))
-        return
-
-    for k in Models:
-        v = Models[k]
-        print('{:<15s} {},  {} '.format(k, v.type, v.desc))
-        print('{:<15s} {}'.format(' ', v.ratio))
-        print('{:<15s} {}'.format('', v.section))
-
-
 def models_hist(font_size=12):
     import matplotlib.pyplot as plot
     _names = ['shanghai', 'zhejiang', 'beijing', 'tianjin', 'shandong', 'guangdong', 'p7', 'b900']
