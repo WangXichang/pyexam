@@ -158,10 +158,9 @@ def run(
     for m in __stm_modules:
         __pb.reload(m)
 
-    mcfg = dict()
     if isinstance(cfg, str):
         mcfg = __read_config(cfg)
-        if mcfg:
+        if len(mcfg) > 0:
             model = mcfg['model_name']
             df = mcfg['df']
             cols = mcfg['cols']
@@ -256,6 +255,7 @@ def run(
             logger=stmlogger,
             )
         r = result_namedtuple(True, m1, None)
+
         if verify:
             verify_pass = True
             m2 = __run2(  #
@@ -292,6 +292,7 @@ def run(
             if verify_pass:
                 stmlogger.loginfo('verify passed!')
             r = result_namedtuple(verify_pass, m1, m2)
+
     # 'pgt': call stmlib.Algorithm.get_stm_score
     else:
         stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
@@ -333,10 +334,12 @@ def run(
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model))
 
+    # united result namedtuple
     stm_result = __namedtuple('R', ['dfscore', 'maptable', 'plot'])
     if r.ok:
         rr = r.r1 if r.r1 else r.r2
         return stm_result(rr.outdf, rr.maptable, rr.plot)
+
     return None
 # end run
 
@@ -594,16 +597,16 @@ def __read_config(filename='stm.cfg'):
             filename += '.cfg'
     else:
         print('Invalid filename={}'.format(filename))
-        return False
+        return dict()
 
     if not __os.path.isfile(filename):
         print('conf file: {} not found!'.format(filename))
-        return False
+        return dict()
 
     mcfg = __slib.read_config_file(filename)
     if not mcfg:
         print('read config file {} fail!'.format(filename))
-        return False
+        return dict()
 
     # use new model when no model defined, that is in modelset
     if 'model_new_set' in mcfg:
@@ -622,13 +625,13 @@ def __read_config(filename='stm.cfg'):
         # no model can be used
         else:
             print('bad new model definition in config file !')
-            return False
+            return dict()
 
     if mcfg['df'] is None:
         print('reading data file to df fail!')
-        return False
+        return dict()
     if mcfg['cols'] is None:
         print('no data columns assigned!')
-        return False
+        return dict()
 
     return mcfg

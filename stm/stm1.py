@@ -390,6 +390,8 @@ class PltScore(ScoreTransformModel):
             elif self.model_type == 'plt':
                 # self.logger.loginfo('get plt formula ...')
                 _get_formula = self.__get_formula_plt(col)
+            elif self.model_type == 'pgt':
+                _get_formula = self.__get_formula_pgt(col)
             else:
                 self.__logger.log('error model type: not supported type={}'.format(self.model_type),
                                      'error')
@@ -553,13 +555,15 @@ class PltScore(ScoreTransformModel):
         result_section = [coeff_dict[k][1] for k in coeff_dict.keys()]
         result_def_ratio = [self.__raw_score_ratio_cum[section_index_dict[x]]
                             for x in result_section]
+
+        # set result
         self.__result_ratio_dict[col] = dict()
         self.__result_ratio_dict[col]['def'] = result_def_ratio
         self.__result_ratio_dict[col]['dest'] = result_def_ratio
         self.__result_ratio_dict[col]['match'] = result_ratio
         self.__result_ratio_dict[col]['section'] = result_section
         self.raw_section = result_section
-        self.__out_score_section = [coeff_dict[k][2] for k in coeff_dict]
+        # self.__out_score_section = [coeff_dict[k][2] for k in coeff_dict]
 
         return True
 
@@ -595,11 +599,100 @@ class PltScore(ScoreTransformModel):
 
         # --step 2
         # calculate Coefficients
-        self.__get_formula_coeff(field)
+        self.__get_plt_formula_coeff(field)
         self.result_dict[field] = {'coeff': copy.deepcopy(self.__result_formula_coeff)}
         return True
 
-    def __get_formula_coeff(self, field=None):
+    def __get_formula_pgt(self, field):
+
+        # standard result
+        def_ratio = None    # no definition ratio in pgt
+        dest_ratio = []
+        match_ratio = []
+        raw_section = []
+
+        section_num = len(self.__out_score_section)
+
+        # set top_level
+        top_level = None
+        top_ratio = self.__raw_score_ratio_cum[0]
+        dest_ratio = [top_ratio]
+        at_top = True
+        last_seg = None
+        last_percent = None
+        for row in self.maptable.iterrows():
+            this_percent = row[field+'_percent']
+            this_seg = row['seg']
+            match_this = True
+            if this_percent >= top_ratio:
+                ratio_mode = self.__strategy_dict['mode_ratio_prox']
+                if ratio_mode == 'upper_min':
+                    pass
+                elif ratio_mode == 'lower_max':
+                    if at_top:
+                        pass
+                    else:
+                        match_this = False
+                elif 'near' in ratio_mode:
+                    if abs(this_percent-top_ratio) < abs(top_ratio - last_percent):
+                        pass
+                    elif abs(this_percent-top_ratio) > abs(top_ratio - last_percent):
+                        match_this = False
+                    else:
+                        if ratio_mode == 'near_max':
+                            pass
+                        else:
+                            match_this = False
+            if match_this:
+                match_ratio.append(this_percent)
+                top_level = this_seg
+            else:
+                match_ratio.append(last_percent)
+                top_level = last_seg
+            last_seg = row['seg']
+            last_percent = row[field+'_percent']
+            if at_top:
+                at_top = False
+
+        # set other section length
+        if self.__strategy_dict['mode_section_point_last'] == 'defined':
+            other_section_length = (top_level - self.__raw_score_defined_min)
+        else:
+            other_section_length = (top_level - self.__raw_score_real_min)
+
+        # get endpoints
+        # if self.__strategy_dict['mode_section_point_first'] == 'real':
+        section_points = [self.__raw_score_real_max, top_level]
+        num = 1
+        for row in self.maptable.iterrows():
+            # bottom
+            if abs(row[field+'_percent'] - 1) < self.__value_tiny_value:
+                pass
+
+            # located
+            if row['seg'] >= top_level - other_section_length*num:
+                section_points.append(row['seg'])
+                num += 1
+        pnum_diff = len(section_points) - len(self.__out_score_section) - 1
+        if pnum_diff > 0:
+            section_points += [-1]*pnum_diff
+
+        # set section
+        self.raw_section = [(section_points[0], section_points[1])]
+        _raw_score_step = -1 if self.__strategy_dict['mode_score_order'] == 'd' else 1
+        for i, p in enumerate(section_points[2:]):
+            if p > 0:
+                if self.__strategy_dict['mode_section_point_start'] == 'step':
+                    self.raw_section.append((section_points[i+1], p))
+                else:
+                    self.raw_section.append((section_points[i + 1] + _raw_score_step, p))
+
+        # set result
+        self.result_dict = None
+
+        return
+
+    def __get_plt_formula_coeff(self, field=None):
         # coeff: (a, b), (x1, x2), (y1, y2)
         # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
         #        -2: y = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
