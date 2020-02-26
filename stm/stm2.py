@@ -528,9 +528,9 @@ class ModelAlgorithm:
                             mode_section_point_start='step',
                             value_raw_score_min=0,
                             value_out_score_decimals=0,
+                            value_tiny_value=10**-8,
                             ):
 
-        section_point_list = [df[col].max()]
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
             dest_ratio=percent_first,
             seg_seq=maptable.seg,
@@ -542,36 +542,87 @@ class ModelAlgorithm:
         else:
             raise ValueError
 
+        match_ratio_list = []
         top_level_score = None
+        set_this = True
         if mode_ratio_prox == 'upper_min' or r.bottom or r.top:
-            top_level_score = r.this_seg
+            pass
         elif mode_ratio_prox == 'lower_max':
-            top_level_score = r.last_seg
+            set_this = False
         elif 'near' in mode_ratio_prox:
             if r.this_seg_near:
-                top_level_score = r.this_seg
+                pass
             elif r.dist_to_last < r.dist_to_this:
-                top_level_score = r.last_seg
+                set_this = False
             else:
                 if mode_ratio_prox == 'near_max':
-                    top_level_score = r.last_seg
+                    set_this = False
                 else:
-                    top_level_score = r.this_seg
-        # top_level_score = slib.round45(df.query(col + '>=' + str(top_level_score))[col].mean(), 0)
+                    pass
+        if set_this:
+            top_level_score = r.this_seg
+            match_ratio_list.append(r.this_percent)
+        else:
+            top_level_score = r.last_seg
+            match_ratio_list.append(r.last_percent)
 
-        _step = -1
+        # top_level_score = slib.round45(df.query(col + '>=' + str(top_level_score))[col].mean(), 0)
 
         # use float value for grade step
         # to avoid to increase much cumulative error in last section
-        grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
-        for j in range(grade_num-1):
-            if j < grade_num-2:
-                section_point_list.append(top_level_score + grade_step * _step * (j + 1))
-            else:
+        # grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
+        # for j in range(grade_num-1):
+        #     if j < grade_num-2:
+        #         section_point_list.append(top_level_score + grade_step * _step * (j + 1))
+        #     else:
+        #         if mode_section_point_last == 'defined':
+        #             section_point_list.append(value_raw_score_min)
+        #         else:
+        #             section_point_list.append(min(maptable.loc[maptable[col+'_count'] > 0]['seg']))
+        #
+
+        _step = -1      # prohibit: mode_score_order == 'a'
+        if mode_section_point_last == 'defined':
+            grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
+        else:
+            grade_step = (top_level_score - min(maptable.loc[maptable[col+'_count']>0]['seg']))/(grade_num-1)
+        section_point_list = [top_level_score]
+        dest_point = section_point_list + \
+                     [top_level_score + _step * grade_step * num for num in range(grade_num-1)]
+        step_num = 1
+        dest_point = top_level_score + _step * grade_step * step_num
+        last_seg = None
+        for ind, row in maptable.iterrows():
+            this_seg = row['seg']
+            # reach bottom
+            if abs(row[col+'_percent'] - 1) < value_tiny_value:
                 if mode_section_point_last == 'defined':
                     section_point_list.append(value_raw_score_min)
                 else:
-                    section_point_list.append(min(maptable.loc[maptable[col+'_count'] > 0]['seg']))
+                    section_point_list.append(min(maptable.loc[maptable[col+'_count']>0]['seg']))
+                break
+            # condition
+            if this_seg <= dest_point:
+                if this_seg == dest_point:
+                    section_point_list.append(this_seg)
+                elif mode_ratio_prox == 'upper_min':
+                    section_point_list.append(last_seg)
+                elif mode_ratio_prox == 'lower_max':
+                    section_point_list.append(this_seg)
+                elif 'near' in mode_ratio_prox:
+                    if abs(this_seg - dest_point) < abs(last_seg - dest_point):
+                        section_point_list.append(this_seg)
+                    elif abs(this_seg - dest_point) > abs(last_seg - dest_point):
+                        section_point_list.append(last_seg)
+                    else:
+                        if mode_ratio_prox == 'near_max':
+                            section_point_list.append(last_seg)
+                        else:
+                            section_point_list.append(this_seg)
+                # print(dest_point, section_point_list[-1])
+                step_num += 1
+                dest_point = top_level_score + _step * grade_step * step_num
+            last_seg = this_seg
 
         section_list = []
         if mode_section_point_first == 'defined':

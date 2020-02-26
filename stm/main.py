@@ -319,8 +319,8 @@ def run(
     if r.ok:
         rr = r.r1 if r.r1 else r.r2
         return stm_result(rr.outdf, rr.maptable, rr.plot)
-
-    return None
+    else:
+        return r
 # end run
 
 

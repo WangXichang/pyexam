@@ -663,8 +663,7 @@ class PltScore(ScoreTransformModel):
                 break
             last_seg = row['seg']
             last_percent = row[col + '_percent']
-            if at_top:
-                at_top = False
+            at_top = False
 
         # set other section length
         if self.__strategy_dict['mode_section_point_last'] == 'defined':
@@ -683,7 +682,7 @@ class PltScore(ScoreTransformModel):
             this_seg = row['seg']
             this_percent = row[col+'_percent']
             # at bottom or percent==1
-            if abs(row[col + '_percent'] - 1) < self.__value_tiny_value:
+            if abs(this_percent - 1) < self.__value_tiny_value:
                 if self.__strategy_dict['mode_section_point_last'] == 'defined':
                     section_points.append(self.__raw_score_defined_min)
                     match_ratio.append(1)
@@ -694,24 +693,25 @@ class PltScore(ScoreTransformModel):
             # located: seg >= length
             set_this = True
             if this_seg <= dest_score:
-                if prox_mode == 'upper_min':
-                    section_points.append(this_seg)
-                elif prox_mode == 'lower_max':
-                    section_points.append(last_seg)
+                if this_seg == dest_score:
+                    pass
+                elif prox_mode == 'upper_min':
                     set_this = False
+                elif prox_mode == 'lower_max':
+                    pass
                 elif 'near' in prox_mode:
                     if abs(dest_score - last_seg) < abs(dest_score - this_seg):
-                        section_points.append(last_seg)
                         set_this = False
                     elif abs(dest_score - last_seg) > abs(dest_score - this_seg):
-                        section_points.append(this_seg)
+                        pass
                     else:
                         if self.__strategy_dict['mode_ratio_prox'] == 'near_min':
-                            section_points.append(min(this_seg, last_seg))
+                            pass
                         else:
-                            section_points.append(max(this_seg, last_seg))
                             set_this = False
+                section_points.append(this_seg if set_this else last_seg)
                 match_ratio.append((this_percent if set_this else last_percent))
+                # print(dest_score, section_points[-1])
                 num += 1
                 dest_score = top_level + section_length * num * _step
             last_seg = row['seg']
