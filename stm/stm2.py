@@ -421,9 +421,9 @@ class ModelAlgorithm:
                         mode_ratio_prox='upper_min',
                         mode_ratio_cumu='no',
                         mode_score_order='d',
-                        mode_value_raw_score_max='real',  # map by real ratio
-                        mode_value_raw_score_min='real',  # map by real ratio
-                        out_score_decimal=0,
+                        value_raw_score_max='real',  # map by real ratio
+                        value_raw_score_min='real',  # map by real ratio
+                        value_out_score_decimal=0,
                         value_tiny_value=10**-12
                         ):
         map_dict = dict()
@@ -449,12 +449,12 @@ class ModelAlgorithm:
                     dest_ratio = raw_ratio
             dest_ratio_list.append(dest_ratio)
             if rscore == _rmax:
-                if mode_value_raw_score_max == 'defined':
+                if value_raw_score_max == 'defined':
                     map_dict.update({rscore: max(out_score_points)})
                     real_ratio_list.append(0)
                     continue
             if rscore == _rmin:
-                if mode_value_raw_score_min == 'defined':
+                if value_raw_score_min == 'defined':
                     map_dict.update({rscore: min(out_score_points)})
                     real_ratio_list.append(1)
                     continue
@@ -504,7 +504,7 @@ class ModelAlgorithm:
         # function of formula
         def formula(x):
             if x in map_dict:
-                return slib.round45(map_dict[x], out_score_decimal)
+                return slib.round45(map_dict[x], value_out_score_decimal)
             else:
                 # set None to raise ValueError in score calculating to avoid create misunderstand
                 return -2000
@@ -520,12 +520,14 @@ class ModelAlgorithm:
                             col=None,
                             maptable=None,
                             percent_first=0.01,
+                            model_section=None,
                             mode_ratio_prox='upper_min',
                             mode_score_order='d',
-                            model_section=None,
-                            # value_raw_score_max=100,
+                            mode_section_point_first='real',
+                            mode_section_point_last='real',
+                            mode_section_point_start='step',
                             value_raw_score_min=0,
-                            # grade_num=15
+                            value_out_score_decimals=0,
                             ):
 
         section_point_list = [df[col].max()]
@@ -542,41 +544,57 @@ class ModelAlgorithm:
 
         top_level_score = None
         if mode_ratio_prox == 'upper_min' or r.bottom or r.top:
-            top_level_score=r.this_seg
+            top_level_score = r.this_seg
         elif mode_ratio_prox == 'lower_max':
-            top_level_score=r.last_seg
+            top_level_score = r.last_seg
         elif 'near' in mode_ratio_prox:
             if r.this_seg_near:
-                top_level_score=r.this_seg
+                top_level_score = r.this_seg
+            elif r.dist_to_last < r.dist_to_this:
+                top_level_score = r.last_seg
             else:
-                top_level_score=r.last_seg
-        top_level_score = slib.round45(df.query(col + '>=' + str(top_level_score))[col].mean(), 0)
-        section_point_list.append(top_level_score)
+                if mode_ratio_prox == 'near_max':
+                    top_level_score = r.last_seg
+                else:
+                    top_level_score = r.this_seg
+        # top_level_score = slib.round45(df.query(col + '>=' + str(top_level_score))[col].mean(), 0)
 
-        _step = -1 if mode_score_order in ['d', 'descending'] else 1
+        _step = -1
 
         # use float value for grade step
         # to avoid to increase much cumulative error in last section
         grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
         for j in range(grade_num-1):
-            section_point_list.append(slib.round45(top_level_score + grade_step * _step * (j + 1), 0))
-        section_list = []
-        for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:])):
-            if i == 0:
-                section_list.append((x, y))
+            if j < grade_num-2:
+                section_point_list.append(top_level_score + grade_step * _step * (j + 1))
             else:
-                section_list.append((x+_step, y))
+                if mode_section_point_last == 'defined':
+                    section_point_list.append(value_raw_score_min)
+                else:
+                    section_point_list.append(min(maptable.loc[maptable[col+'_count'] > 0]['seg']))
+
+        section_list = []
+        if mode_section_point_first == 'defined':
+            section_list.append((max(maptable.seg), top_level_score))
+        else:
+            section_list.append((max(maptable.loc[maptable[col+'_count'] > 0]['seg']),
+                                top_level_score))
+        for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:])):
+            _x = slib.round45(x, value_out_score_decimals)
+            _y = slib.round45(y, value_out_score_decimals)
+            if mode_section_point_start == 'step':
+                section_list.append((_x+_step, _y))
+            else:
+                section_list.append((_x, _y))
         # print(section_point_list, '\n', section_list)
 
         map_dict = dict()
-        for si, sp in enumerate(section_point_list[1:]):  # grade_level == si+1
-            if si == 0:
-                for ss in range(section_point_list[si], sp+_step, _step):
-                    map_dict.update({ss: max(model_section[si])})
-            else:
-                for ss in range(section_point_list[si]+_step, sp+_step, _step):
-                    map_dict.update({ss: max(model_section[si])})
-        
+        for sp in maptable.seg:  # grade_level == si+1
+            for sec1, sec2 in zip(section_list, model_section):
+                if sec1[0] >= sp >= sec1[1]:
+                    map_dict.update({sp: max(sec2)})
+                    break
+
         def formula(x):
             if x in map_dict.keys():
                 return map_dict[x]
@@ -617,13 +635,20 @@ class ModelAlgorithm:
         if logger:
             logger.loginfo('stm2 start ...')
 
+        if model_type == 'pgt':
+            _score_order = 'd'
+            if mode_score_order != 'd':
+                logger.loginfo('warning: adjust mode_score_order:a to d (desceding)!')
+        else:
+            _score_order = mode_score_order
+
         # create seg_table
         seg = slib.get_segtable(
               df=df,
               cols=cols,
               segmax=value_raw_score_max,
               segmin=value_raw_score_min,
-              segsort=mode_score_order,
+              segsort=_score_order,
               segstep=raw_score_step,
               display=False,
               )
@@ -702,9 +727,9 @@ class ModelAlgorithm:
                     mode_ratio_prox=mode_ratio_prox,
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_score_order=mode_score_order,
-                    mode_value_raw_score_max=mode_section_point_first,
-                    mode_value_raw_score_min=mode_section_point_last,
-                    out_score_decimal=value_out_score_decimals
+                    value_raw_score_max=mode_section_point_first,
+                    value_raw_score_min=mode_section_point_last,
+                    value_out_score_decimal=value_out_score_decimals
                     )
                 formula = result.formula
                 if logger:
@@ -730,10 +755,13 @@ class ModelAlgorithm:
                     maptable=maptable,
                     percent_first=model_ratio_pdf[0]/100,
                     model_section=model_section,
-                    mode_score_order=mode_score_order,
+                    mode_score_order='d',
                     mode_ratio_prox=mode_ratio_prox,
-                    # value_raw_score_max=value_raw_score_max,
+                    mode_section_point_start=mode_section_point_start,
+                    mode_section_point_first=mode_section_point_first,
+                    mode_section_point_last=mode_section_point_last,
                     value_raw_score_min=value_raw_score_min,
+                    value_out_score_decimals=value_out_score_decimals
                     )
                 if logger:
                     logger.loginfo('tai score section: {}'.format(result.section))

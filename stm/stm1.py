@@ -677,27 +677,32 @@ class PltScore(ScoreTransformModel):
         num = 1
         _step = -1
         last_seg = None
+        last_percent = 0
         dest_score = top_level + section_length * num * _step
         for i, row in self.maptable.iterrows():
             this_seg = row['seg']
-
+            this_percent = row[col+'_percent']
             # at bottom or percent==1
             if abs(row[col + '_percent'] - 1) < self.__value_tiny_value:
                 if self.__strategy_dict['mode_section_point_last'] == 'defined':
                     section_points.append(self.__raw_score_defined_min)
+                    match_ratio.append(1)
                 else:
                     section_points.append(this_seg)
+                    match_ratio.append(row[col+'_percent'])
                 break
-
             # located: seg >= length
+            set_this = True
             if this_seg <= dest_score:
                 if prox_mode == 'upper_min':
                     section_points.append(this_seg)
                 elif prox_mode == 'lower_max':
                     section_points.append(last_seg)
+                    set_this = False
                 elif 'near' in prox_mode:
                     if abs(dest_score - last_seg) < abs(dest_score - this_seg):
                         section_points.append(last_seg)
+                        set_this = False
                     elif abs(dest_score - last_seg) > abs(dest_score - this_seg):
                         section_points.append(this_seg)
                     else:
@@ -705,16 +710,12 @@ class PltScore(ScoreTransformModel):
                             section_points.append(min(this_seg, last_seg))
                         else:
                             section_points.append(max(this_seg, last_seg))
+                            set_this = False
+                match_ratio.append((this_percent if set_this else last_percent))
                 num += 1
                 dest_score = top_level + section_length * num * _step
-                # print(dest_score, this_seg)
-                # print(section_points)
             last_seg = row['seg']
-
-        # points is less than length
-        # pnum_diff = len(section_points) - len(self.__out_score_section) - 1
-        # if pnum_diff > 0:
-        #     section_points += [-1]*pnum_diff
+            last_percent = row[col+'_percent']
 
         # set section
         raw_section = [(section_points[0], section_points[1])]
@@ -726,7 +727,9 @@ class PltScore(ScoreTransformModel):
                     raw_section.append((section_points[i-1] + _step, p))
                 else:
                     raw_section.append((section_points[i-1], p))
-        # print(raw_section)
+        raw_section = [(slib.round45(x, self.__value_out_score_decimals),
+                        slib.round45(y, self.__value_out_score_decimals))
+                       for (x, y) in raw_section]
 
         # set result
         self.raw_section = raw_section
@@ -737,11 +740,11 @@ class PltScore(ScoreTransformModel):
 
         self.__get_formula_coeff(col)
 
-        print(top_ratio)
-        print(top_level)
-        print(section_length)
-        print(section_points)
-        print(raw_section)
+        # print(top_ratio)
+        # print(top_level)
+        # print(section_length)
+        # print(section_points)
+        # print(raw_section)
 
         return True
 
@@ -1002,6 +1005,8 @@ class PltScore(ScoreTransformModel):
             _out_report_doc += self.__report_running_result_plt(col)
         elif self.model_type == 'ppt':
             _out_report_doc += self.__report_running_result_ppt(col)
+        elif self.model_type == 'pgt':
+            _out_report_doc += self.__report_running_result_pgt(col)
 
         # formula
         if self.model_type == 'plt':
@@ -1079,6 +1084,36 @@ class PltScore(ScoreTransformModel):
                 continue
             _out_report_doc += (_fstr*2 + _dstr*2 + '\n').\
                                 format(_dest, _match, int(_raw[0]), int(_out[0]))
+        return _out_report_doc
+
+    def __report_running_result_pgt(self, col):
+        # def_ratio, dest_ratio, match_ratio, raw_sec, out_sec
+        _out_report_doc = ''
+        _out_report_doc += '< match result >\n'
+
+        _out_report_doc += '  top score def ratio: [{:<10.6}]\n'.\
+            format(self.__result_ratio_dict[col]['def'][0])
+        _out_report_doc += '          match ratio: [{}]\n'. \
+            format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
+                              for x in self.__result_ratio_dict[col]['match']]))
+
+        # get raw segment from result_dict
+        _raw_seg_list = [c[1] for c in self.result_coeff_dict[col]['coeff'].values()]
+        if self.__value_out_score_decimals == 0:
+            _out_report_doc += '              section: [{}]\n'.\
+                format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
+        else:
+            _out_report_doc += '              section: [{}]\n'.\
+                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _raw_seg_list]))
+
+        # get out segment from result_dict[]['coeff']
+        _out_seg_list = [x[2] for x in self.result_coeff_dict[col]['coeff'].values()]
+        if self.__value_out_score_decimals > 0:
+            _out_report_doc += '  out  score  section: [{}]\n'.\
+                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
+        else:
+            _out_report_doc += '  out  score  section: [{}]\n'.\
+                format(', '.join(['({:>3.0f}, {:>3.0f})'.format(x, y) for x, y in _out_seg_list]))
         return _out_report_doc
 
     def __report_create_formula_text(self, col):

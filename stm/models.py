@@ -141,8 +141,8 @@ Models = {
                                 ),
     'tai':          ModelFields(
                                 __MODEL_TYPE_PGT,
-                                [1, 99],                # only ratio[0]==1 is useful for set top score group
-                                tuple((i, i) for i in range(15, 0, -1)),             # grade from 1 to 15
+                                [0.1, 99.9],                # only ratio[0]==1 is useful for set top score group
+                                tuple((i, i) for i in range(15, 0, -1)),             # grade from 15 to 1
                                 'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
                                 ),
     'b300plt1':     ModelFields(
