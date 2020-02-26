@@ -1015,7 +1015,8 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += self.__report_statistics(col)
 
         # shift
-        _out_report_doc += self.__report_score_shift(col)
+        if self.model_type in ['plt', 'ppt']:
+            _out_report_doc += self.__report_score_shift(col)
 
         # report_doc end
         return _out_report_doc

@@ -236,7 +236,8 @@ def run(
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     model_type = __models.Models[model].type
-    # plt, ppt : call stm1.PltScore
+    r = result_namedtuple(False, None, None)
+    # current suppot: plt, ppt, pgt
     if model_type in ['plt', 'ppt', 'pgt']:
         m1 = __run1(
             name=model,
@@ -293,28 +294,6 @@ def run(
             if verify_pass:
                 stmlogger.loginfo('verify passed!')
             r = result_namedtuple(verify_pass, m1, m2)
-
-    # 'pgt': call stmlib.Algorithm.get_stm_score
-    else:
-        stmlogger.loginfo('run model by stm2, cols={} ... '.format(cols))
-        m2 = __run2(   #
-                  name=model,
-                  df=df,
-                  cols=cols,
-                  value_raw_score_min=value_raw_score_min,
-                  value_raw_score_max=value_raw_score_max,
-                  mode_ratio_prox=mode_ratio_prox,
-                  mode_ratio_cumu=mode_ratio_cumu,
-                  mode_score_order=mode_score_order,
-                  mode_section_point_first=mode_section_point_first,
-                  mode_section_point_start=mode_section_point_start,
-                  mode_section_point_last=mode_section_point_last,
-                  mode_section_degraded=mode_section_degraded,
-                  value_out_score_decimals=value_out_score_decimals,
-                  value_tiny_value=value_tiny_value,
-                  logger=stmlogger,
-                  )
-        r = result_namedtuple(True, None, m2)
 
     if r.ok:
         t = __time.localtime()
