@@ -204,15 +204,16 @@ def run(
 
     # log--disp--file: config messages form mcfg by reading cfg file
     stmlogger.loginfo('read config in {}'.format(cfg) + '\n' + '-' * 120)
-    key_list = list(mcfg.keys())
-    for i, k in enumerate(key_list):
-        if k == 'df':
-            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k].columns))
-        else:
-            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
-        if i == len(key_list)-1:
-            logstr += '\n' + '-' * 120
-        stmlogger.loginfo(logstr)
+    if cfg:
+        key_list = list(mcfg.keys())
+        for i, k in enumerate(key_list):
+            if k == 'df':
+                logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k].columns))
+            else:
+                logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
+            if i == len(key_list)-1:
+                logstr += '\n' + '-' * 120
+            stmlogger.loginfo(logstr)
 
     if not __slib.Checker.check_run(
             model_name=model,
@@ -236,7 +237,7 @@ def run(
 
     model_type = __models.Models[model].type
     # plt, ppt : call stm1.PltScore
-    if model_type in ['plt', 'ppt']:
+    if model_type in ['plt', 'ppt', 'pgt']:
         m1 = __run1(
             name=model,
             df=df,
@@ -389,7 +390,7 @@ def __run1(
         return m
     else:
         result = __namedtuple('Result', ['outdf', 'maptable', 'plot', 'formula'])
-        return result(m.outdf, m.maptable, m.plot, m.result_dict)
+        return result(m.outdf, m.maptable, m.plot, m.result_coeff_dict)
 # end run1
 
 
