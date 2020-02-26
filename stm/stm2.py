@@ -733,20 +733,19 @@ class ModelAlgorithm:
                     )
                 formula = result.formula
                 if logger:
-                    column_name = ['def_ratio', 'dest_ratio', 'real_ratio', 'raw-score', 'out_score']
+                    column_name = ['real_ratio', 'match_ratio', 'raw-score', 'out_score']
                     logger.loginfo(''.join([s.rjust(15) for s in column_name]))
-
-                    log_sec_ratio = [format(z, '12.8f') for z in cumu_ratio]
+                    # log_sec_ratio = [format(z, '12.8f') for z in cumu_ratio]
                     log_dest_ratio = [format(x, '12.8f') for x in result.dest_ratio]
                     log_match_ratio = [format(x, '12.8f') for x in result.real_ratio]
                     log_raw_score = [str(x) for x in maptable.seg]
                     log_out_score = [str(result.formula(x)) for x in maptable.seg]
 
-                    for i, (l1, l2, l3, l4, l5) in enumerate(zip(log_sec_ratio,
+                    for i, (l2, l3, l4, l5) in enumerate(zip(   # log_sec_ratio,
                                                                  log_dest_ratio, log_match_ratio,
                                                                  log_raw_score, log_out_score)):
                         if maptable[col+'_count'][i] > 0:
-                            logger.loginfo('{:>15}{:>15}{:>15}{:>15}{:>15}'.format(l1, l2, l3, l4, l5))
+                            logger.loginfo('{:>15}{:>15}{:>15}{:>15}'.format(l2, l3, l4, l5))
 
             elif model_type.lower() == 'pgt':
                 result = ModelAlgorithm.get_pgt_tai_formula(
