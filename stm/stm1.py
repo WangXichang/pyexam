@@ -249,8 +249,8 @@ class PltScore(ScoreTransformModel):
         self.result_coeff_dict = dict()
         self.__report_doc = ''
         self.__result_raw_endpoints = []
-        self.__result_ratio_dict = dict()
-        self.__result_formula_coeff = dict()
+        self.__result_matched_dict = dict()
+        # self.__result_formula_coeff = dict()
         self.__result_formula_text_list = ''
 
     # plt
@@ -549,24 +549,21 @@ class PltScore(ScoreTransformModel):
             # end scanning raw_score_ratio_list
         # end scanning maptable
 
-        self.__result_formula_coeff = coeff_dict
+        # self.__result_formula_coeff = coeff_dict
         formula_dict = {k: '{cf[0][0]:.8f} * (x - {cf[1][1]:.0f}) + {cf[0][1]:.0f}'.format(cf=coeff_dict[k])
                         for k in coeff_dict}
-        self.result_coeff_dict[col] = {
-                                 'coeff': coeff_dict,
-                                 'formula': formula_dict
-                                 }
+        self.result_coeff_dict[col] = {'coeff': coeff_dict, 'formula': formula_dict}
 
         result_section = [coeff_dict[k][1] for k in coeff_dict.keys()]
         result_def_ratio = [self.__raw_score_ratio_cum[section_index_dict[x]]
                             for x in result_section]
 
         # set result
-        self.__result_ratio_dict[col] = dict()
-        self.__result_ratio_dict[col]['def'] = result_def_ratio
-        self.__result_ratio_dict[col]['dest'] = result_def_ratio
-        self.__result_ratio_dict[col]['match'] = result_ratio
-        self.__result_ratio_dict[col]['section'] = result_section
+        self.__result_matched_dict[col] = dict()
+        self.__result_matched_dict[col]['def'] = result_def_ratio
+        self.__result_matched_dict[col]['dest'] = result_def_ratio
+        self.__result_matched_dict[col]['match'] = result_ratio
+        self.__result_matched_dict[col]['section'] = result_section
         self.raw_section = result_section
         # self.__out_score_section = [coeff_dict[k][2] for k in coeff_dict]
 
@@ -582,10 +579,10 @@ class PltScore(ScoreTransformModel):
         # display ratio searching result at section i
         if self.__logger:
             for i, (cumu_ratio, dest_ratio, match, raw_sec, out_sec) in \
-                enumerate(zip(self.__result_ratio_dict[col]['def'],
-                              self.__result_ratio_dict[col]['dest'],
-                              self.__result_ratio_dict[col]['match'],
-                              self.__result_ratio_dict[col]['section'],
+                enumerate(zip(self.__result_matched_dict[col]['def'],
+                              self.__result_matched_dict[col]['dest'],
+                              self.__result_matched_dict[col]['match'],
+                              self.__result_matched_dict[col]['section'],
                               self.__out_score_section,
                               )):
                 self.__logger.log('   <{0:02d}> ratio: [def:{1:.4f}  dest:{2:.4f}  match:{3:.4f}] => '
@@ -608,7 +605,7 @@ class PltScore(ScoreTransformModel):
         return True
 
     def __get_formula_pgt(self, col):
-        self.__result_ratio_dict[col] = dict()
+        self.__result_matched_dict[col] = dict()
 
         # standard result
         def_ratio = self.__raw_score_ratio_cum
@@ -621,10 +618,10 @@ class PltScore(ScoreTransformModel):
             self.__logger.loginfo(' error mode: pgt dont allow to set mode_score_order to "a":!')
             self.raw_section = raw_section
             self.result_coeff_dict[col] = dict()
-            self.__result_ratio_dict[col]['def'] = def_ratio
-            self.__result_ratio_dict[col]['dest'] = dest_ratio
-            self.__result_ratio_dict[col]['match'] = match_ratio
-            self.__result_ratio_dict[col]['section'] = raw_section
+            self.__result_matched_dict[col]['def'] = def_ratio
+            self.__result_matched_dict[col]['dest'] = dest_ratio
+            self.__result_matched_dict[col]['match'] = match_ratio
+            self.__result_matched_dict[col]['section'] = raw_section
             return False
 
         section_num = len(self.__out_score_section)
@@ -737,10 +734,10 @@ class PltScore(ScoreTransformModel):
 
         # set result
         self.raw_section = raw_section
-        self.__result_ratio_dict[col]['def'] = def_ratio
-        self.__result_ratio_dict[col]['dest'] = dest_ratio
-        self.__result_ratio_dict[col]['match'] = match_ratio
-        self.__result_ratio_dict[col]['section'] = raw_section
+        self.__result_matched_dict[col]['def'] = def_ratio
+        self.__result_matched_dict[col]['dest'] = dest_ratio
+        self.__result_matched_dict[col]['match'] = match_ratio
+        self.__result_matched_dict[col]['section'] = raw_section
 
         self.__get_coeff_dict(col)
 
@@ -757,12 +754,12 @@ class PltScore(ScoreTransformModel):
         # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
         #        -2: y = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
         #        -3: y = [(y2-y1)*x + y1x2 - y2x1]/(x2 - x1)              # (ax + b) / c ; int / int
-
-        x_list = self.__result_ratio_dict[col]['section']
-
         # calculate coefficient
-        y_list = self.__out_score_section
-        for i, (x, y) in enumerate(zip(x_list, y_list)):
+
+        raw_section = self.__result_matched_dict[col]['section']
+        out_section = self.__out_score_section
+        _result_formula_coeff = dict()
+        for i, (x, y) in enumerate(zip(raw_section, out_section)):
             v = x[1] - x[0]
             if v == 0:
                 a = 0
@@ -780,9 +777,9 @@ class PltScore(ScoreTransformModel):
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
                 b = (y[0]*x[1]-y[1]*x[0])/v         # (y1x2 - y2x1) / (x2 - x1)
-            self.__result_formula_coeff.\
+            _result_formula_coeff.\
                 update({i: [(a, b), (int(x[0]), int(x[1])), (int(y[0]), int(y[1]))]})
-        self.result_coeff_dict[col] = {'coeff': copy.deepcopy(self.__result_formula_coeff)}
+        self.result_coeff_dict[col] = {'coeff': _result_formula_coeff}
         return True
 
     # new at 2019-09-09
@@ -909,7 +906,7 @@ class PltScore(ScoreTransformModel):
         if len_less > 0:
             make_section += [[-1, -1] for _ in range(len_less)]
 
-        self.__result_ratio_dict[col] = {
+        self.__result_matched_dict[col] = {
             'def': self.__raw_score_ratio_cum,
             'dest': result_dest_ratio,
             'match': result_matched_ratio,
@@ -1015,6 +1012,7 @@ class PltScore(ScoreTransformModel):
         # formula
         if self.model_type == 'plt':
             _out_report_doc += self.__report_formula(col)
+
         # statistics
         _out_report_doc += self.__report_statistics(col)
 
@@ -1032,13 +1030,13 @@ class PltScore(ScoreTransformModel):
         plist = self.__raw_score_ratio_cum
         if self.__value_out_score_decimals == 0:
             _out_report_doc += '  raw score def ratio: [{}]\n'.\
-                format(', '.join([format(x, '10.6f') for x in self.__result_ratio_dict[col]['def']]))
+                format(', '.join([format(x, '10.6f') for x in self.__result_matched_dict[col]['def']]))
             _out_report_doc += '           dest ratio: [{}]\n'.\
                 format(', '.join([format(float(x), '10.6f')
-                                  for x in self.__result_ratio_dict[col]['dest']]))
+                                  for x in self.__result_matched_dict[col]['dest']]))
             _out_report_doc += '          match ratio: [{}]\n'. \
                 format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
-                                  for x in self.__result_ratio_dict[col]['match']]))
+                                  for x in self.__result_matched_dict[col]['match']]))
         else:
             _out_report_doc += '  raw score sec ratio: [{}]\n'.\
                 format(', '.join([format(plist[j]-plist[j-1] if j > 0 else plist[0], '16.6f')
@@ -1046,7 +1044,7 @@ class PltScore(ScoreTransformModel):
             _out_report_doc += '           cumu ratio: [{}]\n'.\
                 format(', '.join([format(x, '16.6f') for x in self.__raw_score_ratio_cum]))
             _out_report_doc += '          match ratio: [{}]\n'.\
-                format(', '.join([format(float(x), '16.6f') for x in self.__result_ratio_dict[col]['match']]))
+                format(', '.join([format(float(x), '16.6f') for x in self.__result_matched_dict[col]['match']]))
 
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_coeff_dict[col]['coeff'].values()]
@@ -1081,8 +1079,8 @@ class PltScore(ScoreTransformModel):
                            'raw_score'.rjust(column_width) + \
                            'out_score'.rjust(column_width) + '\n'
         for _dest, _match, _raw, _out in zip(
-                self.__result_ratio_dict[col]['match'],
-                self.__result_ratio_dict[col]['dest'],
+                self.__result_matched_dict[col]['match'],
+                self.__result_matched_dict[col]['dest'],
                 _raw_seg_list,
                 _out_seg_list
                 ):
@@ -1097,29 +1095,26 @@ class PltScore(ScoreTransformModel):
         _out_report_doc = ''
         _out_report_doc += '< match result >\n'
 
-        _out_report_doc += '  top score def ratio: [{:<10.6}]\n'.\
-            format(self.__result_ratio_dict[col]['def'][0])
-        _out_report_doc += '          match ratio: [{}]\n'. \
-            format(', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
-                              for x in self.__result_ratio_dict[col]['match']]))
-
-        # get raw segment from result_dict
-        _raw_seg_list = [c[1] for c in self.result_coeff_dict[col]['coeff'].values()]
-        if self.__value_out_score_decimals == 0:
-            _out_report_doc += '              section: [{}]\n'.\
-                format(', '.join(['({:3d}, {:3d})'.format(int(x), int(y)) for x, y in _raw_seg_list]))
-        else:
-            _out_report_doc += '              section: [{}]\n'.\
-                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _raw_seg_list]))
-
+        _top_score_ratio = self.__result_matched_dict[col]['def'][0]
         # get out segment from result_dict[]['coeff']
         _out_seg_list = [x[2] for x in self.result_coeff_dict[col]['coeff'].values()]
-        if self.__value_out_score_decimals > 0:
-            _out_report_doc += '  out  score  section: [{}]\n'.\
-                format(', '.join(['({:6.2f}, {:6.2f})'.format(x, y) for x, y in _out_seg_list]))
-        else:
-            _out_report_doc += '  out  score  section: [{}]\n'.\
-                format(', '.join(['({:>3.0f}, {:>3.0f})'.format(x, y) for x, y in _out_seg_list]))
+        # get raw segment from result_dict
+        _raw_seg_list = [c[1] for c in self.result_coeff_dict[col]['coeff'].values()]
+        _top_level = _raw_seg_list[0][0]
+        _grade_len = _top_level/(len(_raw_seg_list)-1)
+        _match_ratio = ', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
+                                  for x in self.__result_matched_dict[col]['match']])
+        _section_format = '({:3d}, {:3d})' if self.__value_out_score_decimals == 0 else '({:6.2f}, {:6.2f})'
+        _raw_section = ', '.join([_section_format.format(int(x), int(y)) for x, y in _raw_seg_list])
+        _out_section = ', '.join([_section_format.format(int(x), int(y)) for x, y in _out_seg_list])
+
+        _out_report_doc += '  top score def ratio: [{:^10.6f}]\n'.format(_top_score_ratio)
+        _out_report_doc += '      top score level: [{:^8.2f}]\n'.format(_top_level)
+        _out_report_doc += ' grade section length: [{:^10.6}]\n'.format(_grade_len)
+        _out_report_doc += 'endpoints match ratio: [{}]\n'.format(_match_ratio)
+        _out_report_doc += '              section: [{}]\n'.format(_raw_section)
+        _out_report_doc += '  out  score  section: [{}]\n'.format(_out_section)
+
         return _out_report_doc
 
     def __report_create_formula_text(self, col):

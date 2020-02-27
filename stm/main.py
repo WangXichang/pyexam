@@ -237,13 +237,39 @@ def run(
 
     model_type = __models.Models[model].type
     r = result_namedtuple(False, None, None)
+
     # current suppot: plt, ppt, pgt
-    if model_type in ['plt', 'ppt', 'pgt']:
-        m1 = __run1(
+    if model_type not in ['plt', 'ppt', 'pgt']:
+        return None
+
+    m1 = __run1(
+        name=model,
+        df=df,
+        cols=cols,
+        raw_score_range=(value_raw_score_min, value_raw_score_max),
+        mode_ratio_prox=mode_ratio_prox,
+        mode_ratio_cumu=mode_ratio_cumu,
+        mode_score_order=mode_score_order,
+        mode_section_point_first=mode_section_point_first,
+        mode_section_point_start=mode_section_point_start,
+        mode_section_point_last=mode_section_point_last,
+        mode_section_degraded=mode_section_degraded,
+        mode_section_lost=mode_section_lost,
+        value_out_score_decimals=value_out_score_decimals,
+        value_tiny_value=value_tiny_value,
+        logger=stmlogger,
+        )
+    if m1:
+        r = result_namedtuple(True, m1, None)
+
+    if verify:
+        verify_pass = True
+        m2 = __run2(  #
             name=model,
             df=df,
             cols=cols,
-            raw_score_range=(value_raw_score_min, value_raw_score_max),
+            value_raw_score_min=value_raw_score_min,
+            value_raw_score_max=value_raw_score_max,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_order=mode_score_order,
@@ -256,44 +282,22 @@ def run(
             value_tiny_value=value_tiny_value,
             logger=stmlogger,
             )
-        r = result_namedtuple(True, m1, None)
-
-        if verify:
-            verify_pass = True
-            m2 = __run2(  #
-                name=model,
-                df=df,
-                cols=cols,
-                value_raw_score_min=value_raw_score_min,
-                value_raw_score_max=value_raw_score_max,
-                mode_ratio_prox=mode_ratio_prox,
-                mode_ratio_cumu=mode_ratio_cumu,
-                mode_score_order=mode_score_order,
-                mode_section_point_first=mode_section_point_first,
-                mode_section_point_start=mode_section_point_start,
-                mode_section_point_last=mode_section_point_last,
-                mode_section_degraded=mode_section_degraded,
-                mode_section_lost=mode_section_lost,
-                value_out_score_decimals=value_out_score_decimals,
-                value_tiny_value=value_tiny_value,
-                logger=stmlogger,
-                )
-            for col in cols:
-                out1 = m1.outdf.sort_values(col)[[col, col+'_ts']].values
-                out2 = m2.outdf.sort_values(col)[[col, col+'_ts']].values
-                comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
-                if len(comp) > 0:
-                    stmlogger.loginfo('verify fail: col={},  {} records different in both algorithm!'.
-                                        format(col, len(comp)))
-                    for i in range(min(len(comp), 5)):
-                        vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
-                        stmlogger.loginfo(vs)
-                    if len(comp) > 5:
-                        stmlogger.loginfo('...')
-                    verify_pass = False
-            if verify_pass:
-                stmlogger.loginfo('verify passed!')
-            r = result_namedtuple(verify_pass, m1, m2)
+        for col in cols:
+            out1 = m1.outdf.sort_values(col)[[col, col+'_ts']].values
+            out2 = m2.outdf.sort_values(col)[[col, col+'_ts']].values
+            comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
+            if len(comp) > 0:
+                stmlogger.loginfo('verify fail: col={},  {} records different in both algorithm!'.
+                                    format(col, len(comp)))
+                for i in range(min(len(comp), 5)):
+                    vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
+                    stmlogger.loginfo(vs)
+                if len(comp) > 5:
+                    stmlogger.loginfo('...')
+                verify_pass = False
+        if verify_pass:
+            stmlogger.loginfo('verify passed!')
+        r = result_namedtuple(verify_pass, m1, m2)
 
     if r.ok:
         t = __time.localtime()
@@ -314,13 +318,16 @@ def run(
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model))
 
-    # united result namedtuple
-    stm_result = __namedtuple('R', ['dfscore', 'maptable', 'plot'])
-    if r.ok:
-        rr = r.r1 if r.r1 else r.r2
-        return stm_result(rr.outdf, rr.maptable, rr.plot)
-    else:
+    # verify result
+    if verify:
         return r
+
+    # no verify result namedtuple
+    stm_result = __namedtuple('StmResult', ['dfscore', 'maptable', 'plot'])
+    if r.ok:
+        return stm_result(r.r1.outdf, r.r1.maptable, r.r1.plot)
+    else:
+        return None
 # end run
 
 
