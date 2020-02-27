@@ -916,7 +916,7 @@ class Checker:
             logger.logging_file = False
 
         # check model name
-        if model_name.lower() not in models.Models.keys():
+        if model_name not in models.Models.keys():
             logger.loginfo('error model name: {} !'.format(model_name))
             return False
 

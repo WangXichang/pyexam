@@ -162,6 +162,10 @@ def run(
     if isinstance(cfg, str):
         mcfg = __read_config(cfg)
         if len(mcfg) > 0:
+            _mfcg = dict()
+            for k, v in mcfg:
+                _mfcg.update({k: v.lower()})
+            mcfg = _mfcg
             model = mcfg['model_name']
             df = mcfg['df']
             cols = mcfg['cols']
@@ -191,7 +195,20 @@ def run(
     if not isinstance(logname, str):
         task = 'stm'
     else:
-        task = logname
+        task = logname.lower()
+
+    # lower
+    model=model.lower()
+    cols = [s.lower() for s in cols]
+    mode_ratio_prox=mode_ratio_prox.lower()
+    mode_ratio_cumu=mode_ratio_cumu.lower()
+    mode_score_prox=mode_score_prox.lower()
+    mode_score_order=mode_score_order.lower()
+    mode_section_point_first=mode_section_point_first.lower()
+    mode_section_point_start=mode_section_point_start.lower()
+    mode_section_point_last=mode_section_point_last.lower()
+    mode_section_degraded=mode_section_degraded.lower()
+    mode_section_lost=mode_section_lost.lower()
 
     stmlogger = __slib.get_logger(model, logname=task)
     stmlogger.set_level(loglevel)
@@ -223,12 +240,13 @@ def run(
             cols=cols,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
-            mode_score_prox='upper_min',
+            mode_score_prox=mode_score_prox,
             mode_score_order=mode_score_order,
             mode_section_point_first=mode_section_point_first,
             mode_section_point_start=mode_section_point_start,
             mode_section_point_last=mode_section_point_last,
             mode_section_degraded=mode_section_degraded,
+            mode_section_lost=mode_section_lost,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
             out_score_decimal_digits=value_out_score_decimals,
             logger=stmlogger,
