@@ -376,7 +376,7 @@ def __run1(
         return m
     else:
         result = __namedtuple('Result', ['outdf', 'maptable', 'plot', 'formula'])
-        return result(m.outdf, m.maptable, m.plot, m.result_coeff_dict)
+        return result(m.outdf, m.maptable, m.plot, m.result_formula_coeff_dict)
 # end run1
 
 
