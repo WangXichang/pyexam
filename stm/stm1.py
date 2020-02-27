@@ -404,7 +404,7 @@ class PltScore(ScoreTransformModel):
             # get field_ts in outdf
             self.outdf.loc[:, (col + '_ts')] = \
                 self.outdf[col].apply(
-                    lambda x: self.__ts_formula(col, x))
+                    lambda x: self.__formula_from_coeff(col, x))
 
         # create col_ts in maptable
         df_map = self.maptable
@@ -412,7 +412,7 @@ class PltScore(ScoreTransformModel):
             # self.logger.loginfo('   calculate: maptable[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.__ts_formula(col, x))
+                lambda x: self.__formula_from_coeff(col, x))
 
         # make report doc
         self.__make_report()
@@ -423,14 +423,18 @@ class PltScore(ScoreTransformModel):
 
     # run end
 
-    def __ts_formula(self, field, x):
-        # -----------------------------------------------------------------------------------
+    def __formula_from_coeff(self, field, x):
+        # formula from result_coeff_dict
+        # ----------------------------------------------
         # formula for higher precise, int/int to float
         # original: y = (y2-y1)/(x2-x1)*(x-x1) + y1
         # used to : y = (a*x + b) / c
         #           a=(y2-y1)
         #           b=y1x2-y2x1
         #           c=(x2-x1)
+        # return: invalid=-10000, precise: out_score_decimals
+        #   mode: mode_sectio_degraded
+        # ----------------------------------------------
         if x > self.__raw_score_defined_max:
             return self.__out_score_real_max
         if x < self.__raw_score_defined_min:
