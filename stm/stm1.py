@@ -1113,11 +1113,11 @@ class PltScore(ScoreTransformModel):
     def __report_formula(self, col):
         out_report_doc = '- -' * 40 + '\n'
         out_report_doc += '< formula >\n'
-        for i, col in enumerate(self.__report_make_formula_doc(col)):
+        for i, col in enumerate(self.__report_formula_doc(col)):
             out_report_doc += ' ' * 18 + '{}\n'.format(col)
         return out_report_doc
 
-    def __report_make_formula_doc(self, col):
+    def __report_formula_doc(self, col):
         p = 0 if self.__strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         result_formula_text = []
         _fi = 1
