@@ -604,7 +604,7 @@ class PltScore(ScoreTransformModel):
 
         # --step 2
         # calculate Coefficients
-        self.__get_formula_coeff(col)
+        self.__get_coeff_dict(col)
         return True
 
     def __get_formula_pgt(self, col):
@@ -742,7 +742,7 @@ class PltScore(ScoreTransformModel):
         self.__result_ratio_dict[col]['match'] = match_ratio
         self.__result_ratio_dict[col]['section'] = raw_section
 
-        self.__get_formula_coeff(col)
+        self.__get_coeff_dict(col)
 
         # print(top_ratio)
         # print(top_level)
@@ -752,7 +752,7 @@ class PltScore(ScoreTransformModel):
 
         return True
 
-    def __get_formula_coeff(self, col=None):
+    def __get_coeff_dict(self, col=None):
         # coeff: (a, b), (x1, x2), (y1, y2)
         # formula-1: y = (y2-y1)/(x2 -x1)*(x - x1) + y1                   # a(x - b) + c
         #        -2: y = (y2-y1)/(x2 -x1)*x + (y1x2 - y2x1)/(x2 - x1)     # ax + b
