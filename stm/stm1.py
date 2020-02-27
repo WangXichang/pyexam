@@ -1110,37 +1110,41 @@ class PltScore(ScoreTransformModel):
 
         return _out_report_doc
 
-    def __report_formula(self, col):
-        out_report_doc = '- -' * 40 + '\n'
-        out_report_doc += '< formula >\n'
-        for i, col in enumerate(self.__report_formula_doc(col)):
-            out_report_doc += ' ' * 18 + '{}\n'.format(col)
-        return out_report_doc
+    # def __report_formula(self, col):
+    #     out_report_doc = '- -' * 40 + '\n'
+    #     out_report_doc += '< formula >\n'
+    #     for i, col_formula_doc in enumerate(self.__report_formula_doc(col)):
+    #         out_report_doc += ' ' * 18 + '{}\n'.format(col_formula_doc)
+    #     return out_report_doc
 
-    def __report_formula_doc(self, col):
+    def __report_formula(self, col):
         p = 0 if self.__strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
         result_formula_text = []
         _fi = 1
         for k in self.result_formula_coeff_dict[col]['coeff']:
             formula = self.result_formula_coeff_dict[col]['coeff'][k]
-
             # section lost
             if formula[1][0] < 0:
-                result_formula_text += ['(section-{0:3d}):'.format(_fi) + '  ******']
+                result_formula_text.append(['(section-{0:3d}):'.format(_fi) + '  ******'])
                 continue
-
-            var_str = '(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d})'.\
-                      format(int(_fi), formula[0][0], int(formula[1][p]))
-            # section degraded
-            if formula[0][0] == 0:
-                cons_str = self.__strategy_dict['mode_section_degraded'] + \
-                           '({0:3d}, {1:3d})'.format(formula[2][0], formula[2][1])
             else:
-                cons_str = '{:2d}'.format(int(formula[2][p]))
-            result_formula_text += [var_str + ' + ' + cons_str]
-
+                var_str = '(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d})'.\
+                          format(int(_fi), formula[0][0], int(formula[1][p]))
+                # section degraded
+                if formula[0][0] == 0:
+                    cons_str = self.__strategy_dict['mode_section_degraded'] + \
+                               '({0:3d}, {1:3d})'.format(formula[2][0], formula[2][1])
+                else:
+                    cons_str = '{:2d}'.format(int(formula[2][p]))
+                result_formula_text.append([var_str + ' + ' + cons_str])
             _fi += 1
-        return result_formula_text
+
+        out_report_doc = '- -' * 40 + '\n'
+        out_report_doc += '< formula >\n'
+        for _f in result_formula_text:
+            out_report_doc += ' ' * 18 + '{}\n'.format(_f)
+
+        return out_report_doc
 
     def __report_statistics(self, col):
         _out_report_doc = '- -'*40 + '\n'
