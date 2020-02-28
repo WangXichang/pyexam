@@ -681,7 +681,10 @@ class PltScore(ScoreTransformModel):
 
         # get endpoints
         prox_mode = self.__strategy_dict['mode_score_prox']
-        section_points = [self.__raw_score_real_max, top_level]
+        if self.__strategy_dict['mode_section_point_first'] == 'defined':
+            section_points = [self.__raw_score_defined_max, top_level]
+        else:
+            section_points = [self.__raw_score_real_max, top_level]
         num = 1
         _step = -1
         last_seg = None
