@@ -155,9 +155,9 @@ class ModelAlgorithm:
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
             mode_score_order='d',
-            mode_section_point_first='real',
-            mode_section_point_start='step',
-            mode_section_point_last='real',
+            mode_endpoint_first='real',
+            mode_endpoint_start='step',
+            mode_endpoint_last='real',
             mode_section_lost='real',
             value_raw_score_max=100,
             value_raw_score_min=0,
@@ -171,7 +171,7 @@ class ModelAlgorithm:
         :param raw_score_percent_sequence: real score cumulative percent
         :param mode_ratio_prox: 'upper_min, lower_max, near_max, near_min'
         :param mode_ratio_cumu: 'yes', 'no', if 'yes', use cumulative ratio in searching process
-        :param mode_section_point_first: how to choose first point on section
+        :param mode_endpoint_first: how to choose first point on section
         :param value_tiny_value: if difference between ratio and percent, regard as equating
         :return: section_list, section_point_list, section_real_ratio_list
         """
@@ -188,7 +188,7 @@ class ModelAlgorithm:
         # step-1: locate first section point
         _startpoint = -1
         for seg, ratio in zip(raw_score_sequence, raw_score_percent_sequence):
-            if mode_section_point_first == 'real':
+            if mode_endpoint_first == 'real':
                 if ratio < value_tiny_value:
                     # skip empty seg
                     continue
@@ -276,7 +276,7 @@ class ModelAlgorithm:
                 real_percent = _percent
 
         #step-3-3: process last point
-        if mode_section_point_last == 'defined':
+        if mode_endpoint_last == 'defined':
             _last_value = value_raw_score_min if mode_score_order in ['d', 'descending'] else \
                           value_raw_score_max
             i = 0
@@ -288,7 +288,7 @@ class ModelAlgorithm:
                 i += 1
 
         # step-4: make section
-        #   with strategy: mode_section_point_start
+        #   with strategy: mode_endpoint_start
         #                  default: step
         section_list = []
         lost = False
@@ -304,7 +304,7 @@ class ModelAlgorithm:
                     # first section
                     _x, _y = x, y
             else:
-                if mode_section_point_start == 'share':
+                if mode_endpoint_start == 'share':
                     if i == 0:
                         # first section
                         _x, _y = x, y
@@ -519,21 +519,21 @@ class ModelAlgorithm:
                             df=None,
                             col=None,
                             maptable=None,
-                            percent_first=0.01,
+                            top_levle_ratio=0.01,
                             model_section=None,
                             mode_ratio_prox='upper_min',
                             mode_score_order='d',
                             mode_score_prox='upper_min',
-                            mode_section_point_first='real',
-                            mode_section_point_last='real',
-                            mode_section_point_start='step',
+                            mode_endpoint_first='real',
+                            mode_endpoint_last='real',
+                            mode_endpoint_start='step',
                             value_raw_score_min=0,
                             value_out_score_decimals=0,
                             value_tiny_value=10**-8,
                             ):
 
         r = ModelAlgorithm.get_score_from_score_ratio_sequence(
-            dest_ratio=percent_first,
+            dest_ratio=top_levle_ratio,
             seg_seq=maptable.seg,
             ratio_seq=maptable[col+'_percent']
         )
@@ -576,14 +576,14 @@ class ModelAlgorithm:
         #     if j < grade_num-2:
         #         section_point_list.append(top_level_score + grade_step * _step * (j + 1))
         #     else:
-        #         if mode_section_point_last == 'defined':
+        #         if mode_endpoint_last == 'defined':
         #             section_point_list.append(value_raw_score_min)
         #         else:
         #             section_point_list.append(min(maptable.loc[maptable[col+'_count'] > 0]['seg']))
         #
 
         _step = -1      # prohibit: mode_score_order == 'a'
-        if mode_section_point_last == 'defined':
+        if mode_endpoint_last == 'defined':
             grade_step = (top_level_score - value_raw_score_min)/(grade_num-1)
         else:
             grade_step = (top_level_score - min(maptable.loc[maptable[col+'_count']>0]['seg']))/(grade_num-1)
@@ -597,7 +597,7 @@ class ModelAlgorithm:
             this_seg = row['seg']
             # reach bottom
             if abs(row[col+'_percent'] - 1) < value_tiny_value:
-                if mode_section_point_last == 'defined':
+                if mode_endpoint_last == 'defined':
                     section_point_list.append(value_raw_score_min)
                 else:
                     section_point_list.append(min(maptable.loc[maptable[col+'_count']>0]['seg']))
@@ -626,7 +626,7 @@ class ModelAlgorithm:
             last_seg = this_seg
 
         section_list = []
-        if mode_section_point_first == 'defined':
+        if mode_endpoint_first == 'defined':
             section_list.append((max(maptable.seg), top_level_score))
         else:
             section_list.append((max(maptable.loc[maptable[col+'_count'] > 0]['seg']),
@@ -634,7 +634,7 @@ class ModelAlgorithm:
         for i, (x, y) in enumerate(zip(section_point_list[:-1], section_point_list[1:])):
             _x = slib.round45(x, value_out_score_decimals)
             _y = slib.round45(y, value_out_score_decimals)
-            if mode_section_point_start == 'step':
+            if mode_endpoint_start == 'step':
                 section_list.append((_x+_step, _y))
             else:
                 section_list.append((_x, _y))
@@ -670,9 +670,9 @@ class ModelAlgorithm:
                       mode_ratio_prox='upper_min',
                       mode_score_prox='upper_min',
                       mode_score_order='d',
-                      mode_section_point_first='real',
-                      mode_section_point_start='step',
-                      mode_section_point_last='real',
+                      mode_endpoint_first='real',
+                      mode_endpoint_start='step',
+                      mode_endpoint_last='real',
                       mode_section_degraded='to_max',
                       mode_section_lost='real',
                       value_out_score_decimals=0,
@@ -728,9 +728,9 @@ class ModelAlgorithm:
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_score_order=mode_score_order,
-                    mode_section_point_first=mode_section_point_first,
-                    mode_section_point_start=mode_section_point_start,
-                    mode_section_point_last=mode_section_point_last,
+                    mode_endpoint_first=mode_endpoint_first,
+                    mode_endpoint_start=mode_endpoint_start,
+                    mode_endpoint_last=mode_endpoint_last,
                     mode_section_lost=mode_section_lost,
                     value_raw_score_max=value_raw_score_max,
                     value_raw_score_min=value_raw_score_min,
@@ -780,8 +780,8 @@ class ModelAlgorithm:
                     mode_ratio_prox=mode_ratio_prox,
                     mode_ratio_cumu=mode_ratio_cumu,
                     mode_score_order=mode_score_order,
-                    value_raw_score_max=mode_section_point_first,
-                    value_raw_score_min=mode_section_point_last,
+                    value_raw_score_max=mode_endpoint_first,
+                    value_raw_score_min=mode_endpoint_last,
                     value_out_score_decimal=value_out_score_decimals
                     )
                 formula = result.formula
@@ -805,14 +805,14 @@ class ModelAlgorithm:
                     df=df,
                     col=col,
                     maptable=maptable,
-                    percent_first=model_ratio_pdf[0]/100,
+                    top_levle_ratio=model_ratio_pdf[0] / 100,
                     model_section=model_section,
                     mode_score_order='d',
                     mode_score_prox=mode_score_prox,
                     mode_ratio_prox=mode_ratio_prox,
-                    mode_section_point_start=mode_section_point_start,
-                    mode_section_point_first=mode_section_point_first,
-                    mode_section_point_last=mode_section_point_last,
+                    mode_endpoint_start=mode_endpoint_start,
+                    mode_endpoint_first=mode_endpoint_first,
+                    mode_endpoint_last=mode_endpoint_last,
                     value_raw_score_min=value_raw_score_min,
                     value_out_score_decimals=value_out_score_decimals
                     )

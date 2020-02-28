@@ -57,21 +57,21 @@ def run(
         mode_score_prox='upper_min',
         mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
+        mode_endpoint_first='real',
+        mode_endpoint_start='step',
+        mode_endpoint_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
         logname=None,
         logdisp=True,
         logfile=False,
-        loglevel='info',
         logdata=False,
-        verify=False,
         value_raw_score_min=0,
         value_raw_score_max=100,
         value_out_score_decimals=0,
         value_tiny_value=10**-10,
+        loglevel='info',
+        verify=False,
         ):
 
     """
@@ -101,15 +101,15 @@ def run(
                     'yes': 以区间比例累计方式搜索 look up ratio with cumulative ratio
                      'no': 以区间比例独立方式搜索 look up ratio with interval ratio respectively
 
-          mode_section_point_first: 第一个端点的取值方式
+          mode_endpoint_first: 第一个端点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
-          mode_section_point_start: 起始端点的取值方式（第一个区间开始点使用mode_section_point_first确定）
+          mode_endpoint_start: 起始端点的取值方式（第一个区间开始点使用mode_endpoint_first确定）
                             'step': 取顺延值，即上一个区间的末端点值加1（descending）或减1(ascending)
                            'share': 取共享值，即上一个区间的末端点值
 
-          mode_section_point_last:  末端点的取值方式
+          mode_endpoint_last:  末端点的取值方式
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
@@ -163,7 +163,7 @@ def run(
         mcfg = __read_config(cfg)
         if len(mcfg) > 0:
             _mfcg = dict()
-            for k in mcfg:
+            for k in mcfg.keys():
                 _mfcg.update({k: mcfg[k].lower() if isinstance(mcfg[k], str) else mcfg[k]})
             mcfg = _mfcg
             model = mcfg['model_name']
@@ -175,9 +175,9 @@ def run(
             mode_ratio_cumu = mcfg['mode_ratio_cumu']
             mode_score_prox = mcfg['mode_score_prox']
             mode_score_order = mcfg['mode_score_order']
-            mode_section_point_first = mcfg['mode_section_point_first']
-            mode_section_point_start = mcfg['mode_section_point_start']
-            mode_section_point_last = mcfg['mode_section_point_last']
+            mode_endpoint_first = mcfg['mode_endpoint_first']
+            mode_endpoint_start = mcfg['mode_endpoint_start']
+            mode_endpoint_last = mcfg['mode_endpoint_last']
             mode_section_degraded = mcfg['mode_section_degraded']
             mode_section_lost = mcfg['mode_section_lost']
             logname = mcfg['logname']
@@ -204,9 +204,9 @@ def run(
     mode_ratio_cumu=mode_ratio_cumu.lower()
     mode_score_prox=mode_score_prox.lower()
     mode_score_order=mode_score_order.lower()
-    mode_section_point_first=mode_section_point_first.lower()
-    mode_section_point_start=mode_section_point_start.lower()
-    mode_section_point_last=mode_section_point_last.lower()
+    mode_endpoint_first=mode_endpoint_first.lower()
+    mode_endpoint_start=mode_endpoint_start.lower()
+    mode_endpoint_last=mode_endpoint_last.lower()
     mode_section_degraded=mode_section_degraded.lower()
     mode_section_lost=mode_section_lost.lower()
 
@@ -242,9 +242,9 @@ def run(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_prox=mode_score_prox,
             mode_score_order=mode_score_order,
-            mode_section_point_first=mode_section_point_first,
-            mode_section_point_start=mode_section_point_start,
-            mode_section_point_last=mode_section_point_last,
+            mode_endpoint_first=mode_endpoint_first,
+            mode_endpoint_start=mode_endpoint_start,
+            mode_endpoint_last=mode_endpoint_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
@@ -272,9 +272,9 @@ def run(
         mode_ratio_cumu=mode_ratio_cumu,
         mode_score_prox=mode_score_prox,
         mode_score_order=mode_score_order,
-        mode_section_point_first=mode_section_point_first,
-        mode_section_point_start=mode_section_point_start,
-        mode_section_point_last=mode_section_point_last,
+        mode_endpoint_first=mode_endpoint_first,
+        mode_endpoint_start=mode_endpoint_start,
+        mode_endpoint_last=mode_endpoint_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
@@ -296,9 +296,9 @@ def run(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_prox=mode_score_prox,
             mode_score_order=mode_score_order,
-            mode_section_point_first=mode_section_point_first,
-            mode_section_point_start=mode_section_point_start,
-            mode_section_point_last=mode_section_point_last,
+            mode_endpoint_first=mode_endpoint_first,
+            mode_endpoint_start=mode_endpoint_start,
+            mode_endpoint_last=mode_endpoint_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             value_out_score_decimals=value_out_score_decimals,
@@ -362,9 +362,9 @@ def __run1(
         mode_ratio_cumu='no',
         mode_score_prox='upper_min',
         mode_score_order='d',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
+        mode_endpoint_first='real',
+        mode_endpoint_start='step',
+        mode_endpoint_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
         raw_score_range=(0, 100),
@@ -387,9 +387,9 @@ def __run1(
         mode_ratio_cumu=mode_ratio_cumu,
         mode_score_prox=mode_score_prox,
         mode_score_order=mode_score_order,
-        mode_section_point_first=mode_section_point_first,
-        mode_section_point_start=mode_section_point_start,
-        mode_section_point_last=mode_section_point_last,
+        mode_endpoint_first=mode_endpoint_first,
+        mode_endpoint_start=mode_endpoint_start,
+        mode_endpoint_last=mode_endpoint_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
@@ -414,9 +414,9 @@ def __run2(
         mode_ratio_prox='upper_min',
         mode_score_order='d',
         mode_score_prox='upper_min',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
+        mode_endpoint_first='real',
+        mode_endpoint_start='step',
+        mode_endpoint_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
         value_raw_score_min=0,
@@ -439,9 +439,9 @@ def __run2(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_prox=mode_score_prox,
             mode_score_order=mode_score_order,
-            mode_section_point_first=mode_section_point_first,
-            mode_section_point_start=mode_section_point_start,
-            mode_section_point_last=mode_section_point_last,
+            mode_endpoint_first=mode_endpoint_first,
+            mode_endpoint_start=mode_endpoint_start,
+            mode_endpoint_last=mode_endpoint_last,
             mode_section_degraded=mode_section_degraded,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
             out_score_decimal_digits=value_out_score_decimals,
@@ -464,9 +464,9 @@ def __run2(
         mode_ratio_prox=mode_ratio_prox,
         mode_score_prox=mode_score_prox,
         mode_score_order=mode_score_order,
-        mode_section_point_first=mode_section_point_first,
-        mode_section_point_start=mode_section_point_start,
-        mode_section_point_last=mode_section_point_last,
+        mode_endpoint_first=mode_endpoint_first,
+        mode_endpoint_start=mode_endpoint_start,
+        mode_endpoint_last=mode_endpoint_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
@@ -490,9 +490,9 @@ def __run2p(
         mode_ratio_prox='upper_min',
         mode_score_prox='upper_min',
         mode_score_order='d',
-        mode_section_point_first='real',
-        mode_section_point_start='step',
-        mode_section_point_last='real',
+        mode_endpoint_first='real',
+        mode_endpoint_start='step',
+        mode_endpoint_last='real',
         mode_section_degraded='to_max',
         mode_section_lost='real',
         out_score_decimal_digits=0,
@@ -522,9 +522,9 @@ def __run2p(
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_prox=mode_score_prox,
             mode_score_order=mode_score_order,
-            mode_section_point_first=mode_section_point_first,
-            mode_section_point_start=mode_section_point_start,
-            mode_section_point_last=mode_section_point_last,
+            mode_endpoint_first=mode_endpoint_first,
+            mode_endpoint_start=mode_endpoint_start,
+            mode_endpoint_last=mode_endpoint_last,
             mode_section_degraded=mode_section_degraded,
             mode_section_lost=mode_section_lost,
             logger=logger,
@@ -545,9 +545,9 @@ def __run2p(
         mode_ratio_prox=mode_ratio_prox,
         mode_score_prox=mode_score_prox,
         mode_score_order=mode_score_order,
-        mode_section_point_first=mode_section_point_first,
-        mode_section_point_start=mode_section_point_start,
-        mode_section_point_last=mode_section_point_last,
+        mode_endpoint_first=mode_endpoint_first,
+        mode_endpoint_start=mode_endpoint_start,
+        mode_endpoint_last=mode_endpoint_last,
         mode_section_degraded=mode_section_degraded,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=out_score_decimal_digits,

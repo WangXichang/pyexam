@@ -42,11 +42,11 @@
         使用比例确定区间端点的累计策略
          'mode_section_point_ratio_cumu':               ('yes', 'no'),
         第一端点确定：区间第一个端点映射到转换分数最高(低)值(real)、卷面最高（低）值(defined)
-          'mode_section_point_first':     ('real', 'defined')
+          'mode_endpoint_first':     ('real', 'defined')
         开始端点确定：区间开始端点映射到上一个区间的下一个值(step)、使用上一个区间端点（share）
-          'mode_section_point_start':     ('step', 'share')
+          'mode_endpoint_start':     ('step', 'share')
         最后端点确定：区间最后端点映射到实际最高（低）分(real)、卷面最高（低）分(defined)
-          'mode_section_point_last':      ('real', 'defined')
+          'mode_endpoint_last':      ('real', 'defined')
         退化区间映射：区间退化为单点情况，映射到转换分值的最大（to_max）、最小(map_to_min)、平均值(map_to_min)
           'mode_section_degraded':        ('to_max', 'map_to_min', 'map_to_mean'),
         消失区间处理：区间丢失情况，忽略(ignore)，向下增加一个点(next_one_point)，向下增加两个点(next_two_point)
@@ -178,9 +178,9 @@ Strategy = {
     'mode_score_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
-    'mode_section_point_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
-    'mode_section_point_start':     ('step', 'share'),         # first point except first section
-    'mode_section_point_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
+    'mode_endpoint_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
+    'mode_endpoint_start':     ('step', 'share'),         # first point except first section
+    'mode_endpoint_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
     'mode_section_degraded':        ('to_max', 'to_min', 'to_mean'),
     'mode_section_lost':            ('real', 'zip'),                # not used in stm1
     }

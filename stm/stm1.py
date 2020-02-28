@@ -291,9 +291,9 @@ class PltScore(ScoreTransformModel):
                  mode_ratio_cumu='no',
                  mode_score_prox='upper_min',
                  mode_score_order='descending',
-                 mode_section_point_first='real',
-                 mode_section_point_start='step',
-                 mode_section_point_last='real',
+                 mode_endpoint_first='real',
+                 mode_endpoint_start='step',
+                 mode_endpoint_last='real',
                  mode_section_degraded='to_max',
                  mode_section_lost='real',
                  mode_score_zero='real',
@@ -322,9 +322,9 @@ class PltScore(ScoreTransformModel):
         self.__strategy_dict['mode_score_prox'] = mode_score_prox
         self.__strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.__strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
-        self.__strategy_dict['mode_section_point_first'] = mode_section_point_first
-        self.__strategy_dict['mode_section_point_start'] = mode_section_point_start
-        self.__strategy_dict['mode_section_point_last'] = mode_section_point_last
+        self.__strategy_dict['mode_endpoint_first'] = mode_endpoint_first
+        self.__strategy_dict['mode_endpoint_start'] = mode_endpoint_start
+        self.__strategy_dict['mode_endpoint_last'] = mode_endpoint_last
         self.__strategy_dict['mode_section_degraded'] = mode_section_degraded
         self.__strategy_dict['mode_section_lost'] = mode_section_lost
 
@@ -474,11 +474,11 @@ class PltScore(ScoreTransformModel):
         _mode_sort = self.__strategy_dict['mode_score_order']
 
         if _mode_sort in ['d', 'descending']:
-            _mode_ppt_score_min = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
-            _mode_ppt_score_max = self.__strategy_dict['mode_section_point_first']  # real_max or paper_max
+            _mode_ppt_score_min = self.__strategy_dict['mode_endpoint_last']  # real_min or paper_min
+            _mode_ppt_score_max = self.__strategy_dict['mode_endpoint_first']  # real_max or paper_max
         else:
-            _mode_ppt_score_max = self.__strategy_dict['mode_section_point_last']  # real_min or paper_min
-            _mode_ppt_score_min = self.__strategy_dict['mode_section_point_first']  # real_max or paper_max
+            _mode_ppt_score_max = self.__strategy_dict['mode_endpoint_last']  # real_min or paper_min
+            _mode_ppt_score_min = self.__strategy_dict['mode_endpoint_first']  # real_max or paper_max
 
         _mode_prox = self.__strategy_dict['mode_ratio_prox']
 
@@ -563,8 +563,8 @@ class PltScore(ScoreTransformModel):
         # set result
         self.result_matched_dict[col] = dict()
         self.result_matched_dict[col]['def'] = result_def_ratio
-        self.result_matched_dict[col]['dest'] = result_def_ratio
-        self.result_matched_dict[col]['match'] = result_ratio
+        self.result_matched_dict[col]['dest'] = result_ratio        # real percent to match out_section
+        self.result_matched_dict[col]['match'] = result_def_ratio   # matched in out_section
         self.result_matched_dict[col]['section'] = result_section
         self.raw_section = result_section
         # self.__out_score_section = [coeff_dict[k][2] for k in coeff_dict]
@@ -674,14 +674,14 @@ class PltScore(ScoreTransformModel):
         # print(top_level)
 
         # set other section length
-        if self.__strategy_dict['mode_section_point_last'] == 'defined':
+        if self.__strategy_dict['mode_endpoint_last'] == 'defined':
             section_length = (top_level - self.__raw_score_defined_min) / (section_num - 1)
         else:
             section_length = (top_level - self.__raw_score_real_min) / (section_num - 1)
 
         # get endpoints
         prox_mode = self.__strategy_dict['mode_score_prox']
-        if self.__strategy_dict['mode_section_point_first'] == 'defined':
+        if self.__strategy_dict['mode_endpoint_first'] == 'defined':
             section_points = [self.__raw_score_defined_max, top_level]
         else:
             section_points = [self.__raw_score_real_max, top_level]
@@ -695,7 +695,7 @@ class PltScore(ScoreTransformModel):
             this_percent = row[col+'_percent']
             # at bottom or percent==1
             if abs(this_percent - 1) < self.__value_tiny_value:
-                if self.__strategy_dict['mode_section_point_last'] == 'defined':
+                if self.__strategy_dict['mode_endpoint_last'] == 'defined':
                     section_points.append(self.__raw_score_defined_min)
                     match_ratio.append(1)
                 else:
@@ -735,7 +735,7 @@ class PltScore(ScoreTransformModel):
             if i < 2:
                 continue
             if p >= self.__raw_score_defined_min:
-                if self.__strategy_dict['mode_section_point_start'] == 'step':
+                if self.__strategy_dict['mode_endpoint_start'] == 'step':
                     raw_section.append((section_points[i-1] + _step, p))
                 else:
                     raw_section.append((section_points[i-1], p))
@@ -810,7 +810,7 @@ class PltScore(ScoreTransformModel):
         _mode_order = self.__strategy_dict['mode_score_order']
 
         # first points of first section in raw score
-        if self.__strategy_dict['mode_section_point_first'] == 'real':
+        if self.__strategy_dict['mode_endpoint_first'] == 'real':
             section_start_point = section_real_min \
                 if _mode_order in ['a', 'ascending'] else section_real_max
         else:
@@ -822,7 +822,7 @@ class PltScore(ScoreTransformModel):
         # ratio: preset,  percent: computed from data in maptable
         last_ratio = 0
         last_match = 0
-        if self.__strategy_dict['mode_section_point_start'] == 'share':
+        if self.__strategy_dict['mode_endpoint_start'] == 'share':
             _step = 0
         else:
             _step = 1 if _mode_order in ['a', 'ascending'] else -1
@@ -845,11 +845,11 @@ class PltScore(ScoreTransformModel):
             # save result endpoints (noshare, share)
             result_section_point.append(this_section_end_point)
 
-            # set last point if mode_section_point_last == 'defined'
+            # set last point if mode_endpoint_last == 'defined'
             if i > 1:
                 # current point: item[i+1] == -1
                 if (result_section_point[i+1] < 0) and (result_section_point[i] >= 0):
-                    if self.__strategy_dict['mode_section_point_last'] == 'defined':
+                    if self.__strategy_dict['mode_endpoint_last'] == 'defined':
                         if self.__strategy_dict['mode_score_order'] in ['d', 'descending']:
                             result_section_point[i] = section_defined_min
                         else:
@@ -870,7 +870,7 @@ class PltScore(ScoreTransformModel):
                         result_section_point[i] = -1
 
         # set last point again if [-1] >= 0 else alread set in loop
-        if self.__strategy_dict['mode_section_point_last'] == 'defined':
+        if self.__strategy_dict['mode_endpoint_last'] == 'defined':
             for i in range(len(result_section_point)-1, 0, -1):
                 if result_section_point[i] >= 0:
                     if self.__strategy_dict['mode_score_order'] in ['d', 'descending']:
@@ -889,7 +889,7 @@ class PltScore(ScoreTransformModel):
             _y = y
             _x = None
             if x != y:
-                if self.__strategy_dict['mode_section_point_start'] == 'share':
+                if self.__strategy_dict['mode_endpoint_start'] == 'share':
                     if not sectio_lost:
                         _x = x
                     else:
@@ -1082,16 +1082,23 @@ class PltScore(ScoreTransformModel):
                            'match_ratio'.rjust(column_width) + \
                            'raw_score'.rjust(column_width) + \
                            'out_score'.rjust(column_width) + '\n'
-        for _dest, _match, _raw, _out in zip(
-                self.result_matched_dict[col]['match'],
+        top = True
+        tail = False
+        for _real, _match, _raw, _out in zip(
                 self.result_matched_dict[col]['dest'],
+                self.result_matched_dict[col]['match'],
                 _raw_seg_list,
                 _out_seg_list
                 ):
-            if _match < 0:
+            if (top and _real < 0) or tail:
                 continue
-            _out_report_doc += (_fstr*2 + _dstr*2 + '\n').\
-                                format(_dest, _match, int(_raw[0]), int(_out[0]))
+            _out_report_doc += (_fstr.format(_real) if _real > 0 else '***'.center(column_width)) + \
+                               _fstr.format(_match) + \
+                               (_dstr*2+'\n').format(int(_raw[0]), int(_out[0]))
+            top = False
+            if abs(_real - 1) < self.__value_tiny_value:
+                tail = True
+
         return _out_report_doc
 
     def __report_running_result_pgt(self, col):
@@ -1107,7 +1114,7 @@ class PltScore(ScoreTransformModel):
         _top_level = _raw_seg_list[0][1]
         # _grade_len = _top_level/(len(_out_seg_list)-1)
         # set grade section length
-        if self.__strategy_dict['mode_section_point_last'] == 'defined':
+        if self.__strategy_dict['mode_endpoint_last'] == 'defined':
             _grade_len = (_top_level - self.__raw_score_defined_min) / (len(_out_seg_list) - 1)
         else:
             _grade_len = (_top_level - self.__raw_score_real_min) / (len(_out_seg_list) - 1)
