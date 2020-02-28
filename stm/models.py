@@ -89,17 +89,17 @@ Models = {
     'zhejiang':     ModelFields(__MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 6, 7, 8, 7, 7, 7, 7, 7, 7, 6, 5, 4, 3, 2, 1, 1),
                                 tuple((x, x) for x in range(100, 39, -3)),
-                                'Zhejiang NewGaokao transform model'
+                                'NewGaokao Zhejiang transform model'
                                 ),
     'shanghai':     ModelFields(__MODEL_TYPE_PLT,
                                 (5, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5),
                                 tuple((x, x) for x in range(70, 39, -3)),
-                                'Shanghai NewGaokao transform model'
+                                'NewGaokao Shanghai transform model'
                                 ),
     'beijing':      ModelFields(__MODEL_TYPE_PLT,
                                 (1, 2, 3, 4, 5, 7, 8, 9, 8, 8, 7, 6, 6, 6, 5, 4, 4, 3, 2, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
-                                'Beijing NewGaokao transform model'),
+                                'NewGaokao Beijing transform model'),
     'tianjin':      ModelFields(__MODEL_TYPE_PLT,
                                 (2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 5, 4, 3, 1, 1, 1),
                                 tuple((100-i*3, 100-i*3) for i in range(21)),
@@ -108,27 +108,27 @@ Models = {
     'shandong':     ModelFields(__MODEL_TYPE_PLT,
                                 (3, 7, 16, 24, 24, 16, 7, 3),
                                 tuple((100-i*10, 100-i*10-9) for i in range(8)),
-                                'Shandong NewGaokao transform model'
+                                'NewGaokao Shandong transform model'
                                 ),
     'b300':         ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __hn300pdf.pdf],
                                 [(x, x) for x in reversed(__hn300pdf.points)],
-                                'standard score model, 60-300'
+                                'Standard Score model, 60-300'
                                 ),
     'guangdong':    ModelFields(__MODEL_TYPE_PLT,
                                 (17, 33, 33, 15, 2),
                                 ((100, 83), (82, 71), (70, 59), (58, 41), (40, 30)),
-                                'Guangdong NewGaokao transform model'
+                                'NewGaokao Guangdong transform model'
                                 ),
     'p7':           ModelFields(__MODEL_TYPE_PLT,
                                 (15, 35, 35, 13, 2),
                                 ((100, 86), (85, 71), (70, 56), (55, 41), (40, 30)),
-                                '7 Province/Cities(Jiangsu, Chongqing, ...) transform model'
+                                'NewGaokao 7-Province/Cities(Jiangsu, Fujian, Chongqing, Hunan, Hubei, Hebei, Liaoning) transform model'
                                 ),
     'b900':         ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __hn900pdf.pdf],
                                 [(x, x) for x in reversed(__hn900pdf.points)],
-                                'standard score model， 100-900'),
+                                'Standard Score model， 100-900'),
     'z':            ModelFields(__MODEL_TYPE_PPT,
                                 [p * 100 for p in __zpdf.pdf],
                                 [(x/100, x/100) for x in reversed(__zpdf.points)],
@@ -143,7 +143,7 @@ Models = {
                                 __MODEL_TYPE_PGT,
                                 [0.1, 99.9],                # only ratio[0]==1 is useful for set top score group
                                 tuple((i, i) for i in range(15, 0, -1)),             # grade from 15 to 1
-                                'taiwan grade score model, 1-15 levels, top_level = mean(top 1% scores)'
+                                'Taiwan College Admission Test Grade Score model, 1-15 levels, top_level = mean(top 0.1%)'
                                 ),
     'b300plt1':     ModelFields(
                                 'plt',

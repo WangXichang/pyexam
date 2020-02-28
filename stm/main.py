@@ -553,8 +553,6 @@ def models(name=None):
         if name in Models:
             v = Models[name]
             print('{:<15s} {},  {} '.format(name, v.type, v.desc))
-            print('{:<15s} {}'.format(' ', v.ratio))
-            print('{:<15s} {}'.format('', v.section))
         else:
             print('name={} not found!'.format(name))
         return
@@ -565,8 +563,6 @@ def models(name=None):
     for k in Models:
         v = Models[k]
         print('{:<15s} {},  {} '.format(k, v.type, v.desc))
-        print('{:<15s} {}'.format(' ', v.ratio))
-        print('{:<15s} {}'.format('', v.section))
 
 
 def make_config_file(filename='stm.cfg'):
