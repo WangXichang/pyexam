@@ -175,6 +175,7 @@ Models = {
 # choices = 4 * 2**5 * 3 * 2  = 768   ## prox, cumu, sort, section_
 Strategy = {
     'mode_score_order':             ('d', 'a'),                # d: descending, a: ascending
+    'mode_score_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
     'mode_section_point_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score

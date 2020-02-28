@@ -808,6 +808,7 @@ def read_config_file(conf_name):
         # set defaul mode
         mode_dict = {'mode_ratio_prox': 'upper_min',
                      'mode_score_order': 'd',
+                     'mode_score_prox': 'upper_min',
                      'mode_ratio_cumu': 'no',
                      'mode_section_point_first': 'real',
                      'mode_section_point_start': 'step',
@@ -857,14 +858,15 @@ def make_config_file(filename):
 
                 
         [mode]
-        mode_score_order = d                  # 排序策略，取值：d, a
-        mode_ratio_prox = upper_min           # 逼近策略，取值：upper_min, lower_max, near_max, near_min
-        mode_ratio_cumu = no                  # 累计策略，取值：yes, no
-        mode_section_point_first = real       # 第一端点策略，取值：real, defined
-        mode_section_point_start = step       # 开始端点策略，取值：step, share
-        mode_section_point_last = real        # 最后端点策略，取值：real, defined
-        mode_section_degraded = to_max        # 区间退化策略，取值：to_max, to_min, to_mean (映射到最大、最小、平均值)
-        mode_section_lost = real              # 区间消失策略，取值：real, zip
+        mode_score_order = d                  # 排序策略：d, a
+        mode_score_prox = upper_min           # 分值逼近策略：upper_min, lower_max, near_max, near_min
+        mode_ratio_prox = upper_min           # 比例逼近策略：upper_min, lower_max, near_max, near_min
+        mode_ratio_cumu = no                  # 累计策略：yes, no
+        mode_section_point_first = real       # 第一端点策略：real, defined
+        mode_section_point_start = step       # 开始端点策略：step, share
+        mode_section_point_last = real        # 最后端点策略：real, defined
+        mode_section_degraded = to_max        # 区间退化策略：to_max, to_min, to_mean (映射到最大、最小、平均值)
+        mode_section_lost = real              # 区间消失策略：real, zip
 
         
         [model_new]
@@ -895,6 +897,7 @@ class Checker:
             cols=None,
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
+            mode_score_prox='upper_min',
             mode_score_order='d',
             mode_section_point_first='real',
             mode_section_point_start='step',
@@ -913,7 +916,7 @@ class Checker:
             logger.logging_file = False
 
         # check model name
-        if model_name.lower() not in models.Models.keys():
+        if model_name not in models.Models.keys():
             logger.loginfo('error model name: {} !'.format(model_name))
             return False
 
@@ -925,6 +928,7 @@ class Checker:
         if not Checker.check_strategy(
                 mode_ratio_prox=mode_ratio_prox,
                 mode_ratio_cumu=mode_ratio_cumu,
+                mode_score_prox=mode_score_prox,
                 mode_score_order=mode_score_order,
                 mode_section_point_first=mode_section_point_first,
                 mode_section_point_start=mode_section_point_start,
@@ -1026,6 +1030,7 @@ class Checker:
     def check_strategy(
             mode_ratio_prox='upper_min',
             mode_ratio_cumu='no',
+            mode_score_prox='upper_min',
             mode_score_order='descending',
             mode_section_point_first='real',
             mode_section_point_start='step',
@@ -1041,8 +1046,10 @@ class Checker:
             logger.logging_consol = True
             logger.logging_file = False
 
-        st = {'mode_ratio_prox': mode_ratio_prox,
+        st = {
+              'mode_ratio_prox': mode_ratio_prox,
               'mode_ratio_cumu': mode_ratio_cumu,
+              'mode_score_prox': mode_score_prox,
               'mode_score_order': mode_score_order,
               'mode_section_point_first': mode_section_point_first,
               'mode_section_point_start': mode_section_point_start,

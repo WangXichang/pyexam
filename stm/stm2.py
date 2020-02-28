@@ -523,6 +523,7 @@ class ModelAlgorithm:
                             model_section=None,
                             mode_ratio_prox='upper_min',
                             mode_score_order='d',
+                            mode_score_prox='upper_min',
                             mode_section_point_first='real',
                             mode_section_point_last='real',
                             mode_section_point_start='step',
@@ -605,17 +606,17 @@ class ModelAlgorithm:
             if this_seg <= dest_point:
                 if this_seg == dest_point:
                     section_point_list.append(this_seg)
-                elif mode_ratio_prox == 'upper_min':
+                elif mode_score_prox == 'upper_min':
                     section_point_list.append(last_seg)
-                elif mode_ratio_prox == 'lower_max':
+                elif mode_score_prox == 'lower_max':
                     section_point_list.append(this_seg)
-                elif 'near' in mode_ratio_prox:
+                elif 'near' in mode_score_prox:
                     if abs(this_seg - dest_point) < abs(last_seg - dest_point):
                         section_point_list.append(this_seg)
                     elif abs(this_seg - dest_point) > abs(last_seg - dest_point):
                         section_point_list.append(last_seg)
                     else:
-                        if mode_ratio_prox == 'near_max':
+                        if mode_score_prox == 'near_max':
                             section_point_list.append(last_seg)
                         else:
                             section_point_list.append(this_seg)
@@ -667,6 +668,7 @@ class ModelAlgorithm:
                       raw_score_step=1,
                       mode_ratio_cumu='no',
                       mode_ratio_prox='upper_min',
+                      mode_score_prox='upper_min',
                       mode_score_order='d',
                       mode_section_point_first='real',
                       mode_section_point_start='step',
@@ -806,6 +808,7 @@ class ModelAlgorithm:
                     percent_first=model_ratio_pdf[0]/100,
                     model_section=model_section,
                     mode_score_order='d',
+                    mode_score_prox=mode_score_prox,
                     mode_ratio_prox=mode_ratio_prox,
                     mode_section_point_start=mode_section_point_start,
                     mode_section_point_first=mode_section_point_first,

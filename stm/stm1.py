@@ -289,6 +289,7 @@ class PltScore(ScoreTransformModel):
                  raw_score_defined_max=100,
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
+                 mode_score_prox='upper_min',
                  mode_score_order='descending',
                  mode_section_point_first='real',
                  mode_section_point_start='step',
@@ -317,9 +318,10 @@ class PltScore(ScoreTransformModel):
 
         self.__raw_score_defined_min, self.__raw_score_defined_max = raw_score_defined_min, raw_score_defined_max
 
+        self.__strategy_dict['mode_score_order'] = mode_score_order
+        self.__strategy_dict['mode_score_prox'] = mode_score_prox
         self.__strategy_dict['mode_ratio_prox'] = mode_ratio_prox
         self.__strategy_dict['mode_ratio_cumu'] = mode_ratio_cumu
-        self.__strategy_dict['mode_score_order'] = mode_score_order
         self.__strategy_dict['mode_section_point_first'] = mode_section_point_first
         self.__strategy_dict['mode_section_point_start'] = mode_section_point_start
         self.__strategy_dict['mode_section_point_last'] = mode_section_point_last
@@ -673,6 +675,7 @@ class PltScore(ScoreTransformModel):
             section_length = (top_level - self.__raw_score_real_min) / (section_num - 1)
 
         # get endpoints
+        prox_mode = self.__strategy_dict['mode_score_prox']
         section_points = [self.__raw_score_real_max, top_level]
         num = 1
         _step = -1
@@ -712,9 +715,9 @@ class PltScore(ScoreTransformModel):
                             set_this = False
                 section_points.append(this_seg if set_this else last_seg)
                 match_ratio.append((this_percent if set_this else last_percent))
-                # print(dest_score, section_points[-1])
+                # print(dest_score, section_points[-1], section_length)
                 num += 1
-                dest_score = top_level + section_length * num * _step
+                dest_score = top_level - section_length * num
             last_seg = row['seg']
             last_percent = row[col+'_percent']
 
@@ -1094,7 +1097,12 @@ class PltScore(ScoreTransformModel):
         # get raw segment from result_dict
         _raw_seg_list = [c[1] for c in self.result_formula_coeff_dict[col]['coeff'].values()]
         _top_level = _raw_seg_list[0][1]
-        _grade_len = _top_level/(len(_raw_seg_list)-1)
+        # _grade_len = _top_level/(len(_out_seg_list)-1)
+        # set grade section length
+        if self.__strategy_dict['mode_section_point_last'] == 'defined':
+            _grade_len = (_top_level - self.__raw_score_defined_min) / (len(_out_seg_list) - 1)
+        else:
+            _grade_len = (_top_level - self.__raw_score_real_min) / (len(_out_seg_list) - 1)
         _match_ratio = ', '.join([format(float(x), '10.6f') if x > 0 else '***'.rjust(10)
                                   for x in self.result_matched_dict[col]['match']])
         _section_format = '({:3d}, {:3d})' if self.__value_out_score_decimals == 0 else '({:6.2f}, {:6.2f})'
@@ -1109,13 +1117,6 @@ class PltScore(ScoreTransformModel):
         _out_report_doc += '    out score section: [{}]\n'.format(_out_section)
 
         return _out_report_doc
-
-    # def __report_formula(self, col):
-    #     out_report_doc = '- -' * 40 + '\n'
-    #     out_report_doc += '< formula >\n'
-    #     for i, col_formula_doc in enumerate(self.__report_formula_doc(col)):
-    #         out_report_doc += ' ' * 18 + '{}\n'.format(col_formula_doc)
-    #     return out_report_doc
 
     def __report_formula(self, col):
         p = 0 if self.__strategy_dict['mode_score_order'] in ['ascending', 'a'] else 1
