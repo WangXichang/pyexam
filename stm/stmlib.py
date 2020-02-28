@@ -804,18 +804,20 @@ def read_config_file(conf_name):
         for _mode in cfper['mode']:
             _mode_str = remove_annotation(cfper['mode'][_mode])
             mcfg.update({_mode: _mode_str})
-    else:
-        # set defaul mode
-        mode_dict = {'mode_ratio_prox': 'upper_min',
-                     'mode_score_order': 'd',
-                     'mode_score_prox': 'upper_min',
-                     'mode_ratio_cumu': 'no',
-                     'mode_section_point_first': 'real',
-                     'mode_section_point_start': 'step',
-                     'mode_section_point_last': 'real',
-                     'mode_section_degraded': 'to_max',
-                     'mode_section_lost': 'real'}
-        mcfg.update(mode_dict)
+
+    # set defaul mode
+    defa_mode = {'mode_ratio_prox': 'upper_min',
+                 'mode_score_order': 'd',
+                 'mode_score_prox': 'upper_min',
+                 'mode_ratio_cumu': 'no',
+                 'mode_section_point_first': 'real',
+                 'mode_section_point_start': 'step',
+                 'mode_section_point_last': 'real',
+                 'mode_section_degraded': 'to_max',
+                 'mode_section_lost': 'real'}
+    for _mode in defa_mode:
+        if _mode not in mcfg:
+            mcfg.update({_mode: defa_mode[_mode]})
 
     return mcfg
 
@@ -861,7 +863,7 @@ def make_config_file(filename):
         mode_score_order = d                  # 排序策略：d, a
         mode_score_prox = upper_min           # 分值逼近策略：upper_min, lower_max, near_max, near_min
         mode_ratio_prox = upper_min           # 比例逼近策略：upper_min, lower_max, near_max, near_min
-        mode_ratio_cumu = no                  # 累计策略：yes, no
+        mode_ratio_cumu = no                  # 比例累计策略：no, yes
         mode_section_point_first = real       # 第一端点策略：real, defined
         mode_section_point_start = step       # 开始端点策略：step, share
         mode_section_point_last = real        # 最后端点策略：real, defined
@@ -870,12 +872,10 @@ def make_config_file(filename):
 
         
         [model_new]
-        name = model-001                      # 自定义模型名称，使用合法文件名字符 model name
-        type = plt                            # 自定义模型类型， 取值: plt, ppt, pgt
-        # 等级分数转换区间（降序） section (descending)
-        section = (150, 131), (130, 111), (110, 91), (90, 71), (70, 51)，（50，30）
-        # 原始分数的等级分数区间划分比例（百分数0-100），和等于100 ratio(%), sum==100
-        ratio =   2, 13, 35, 35, 13, 2
+        name = model-001                      # 自定义模型名称: 使用合法文件名字符, valid char used in file name
+        type = plt                            # 自定义模型类型: plt, ppt, pgt
+        section = (150, 131), (130, 111), (110, 91), (90, 71), (70, 51)，（50，30）          # 转换分数区间（降序） out score section (descending)
+        ratio =   2, 13, 35, 35, 13, 2                                                      # 原始分数等级区间划分比例（百分数0-100），和等于100, ratio(%), sum==100
         """
 
     if isfilename(filename):

@@ -163,8 +163,8 @@ def run(
         mcfg = __read_config(cfg)
         if len(mcfg) > 0:
             _mfcg = dict()
-            for k, v in mcfg:
-                _mfcg.update({k: v.lower()})
+            for k in mcfg:
+                _mfcg.update({k: mcfg[k].lower() if isinstance(mcfg[k], str) else mcfg[k]})
             mcfg = _mfcg
             model = mcfg['model_name']
             df = mcfg['df']

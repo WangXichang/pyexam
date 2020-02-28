@@ -629,7 +629,7 @@ class PltScore(ScoreTransformModel):
         section_num = len(self.__out_score_section)
 
         # set top_level
-        top_level = None
+        top001_level = None
         top_ratio = self.__raw_score_ratio_cum[0]
         at_top = True
         last_seg = None
@@ -659,14 +659,19 @@ class PltScore(ScoreTransformModel):
                             match_this = False
                 if match_this:
                     match_ratio.append(this_percent)
-                    top_level = this_seg
+                    top001_level = this_seg
                 else:
                     match_ratio.append(last_percent)
-                    top_level = last_seg
+                    top001_level = last_seg
                 break
             last_seg = row['seg']
             last_percent = row[col + '_percent']
             at_top = False
+        # print(top001_level)
+        top_level = sum([row[0] * row[1] for ind, row in
+                        self.maptable.loc[self.maptable.seg >= top001_level][['seg', col+'_count']].iterrows()]) \
+                    / sum(self.maptable.loc[self.maptable.seg >= top001_level][col+'_count'])
+        # print(top_level)
 
         # set other section length
         if self.__strategy_dict['mode_section_point_last'] == 'defined':
