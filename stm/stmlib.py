@@ -813,7 +813,7 @@ def read_config_file(conf_name):
                  'mode_endpoint_first': 'real',
                  'mode_endpoint_start': 'step',
                  'mode_endpoint_last': 'real',
-                 'mode_section_degraded': 'to_max',
+                 'mode_section_shrink': 'to_max',
                  'mode_section_lost': 'real'}
     for _mode in defa_mode:
         if _mode not in mcfg:
@@ -867,7 +867,7 @@ def make_config_file(filename):
         mode_endpoint_first = real            # 第一端点策略：real, defined
         mode_endpoint_start = step            # 开始端点策略：step, share
         mode_endpoint_last = real             # 最后端点策略：real, defined
-        mode_section_degraded = to_max        # 区间退化策略：to_max, to_min, to_mean (映射到最大、最小、平均值)
+        mode_section_shrink = to_max        # 区间退化策略：to_max, to_min, to_mean (映射到最大、最小、平均值)
         mode_section_lost = real              # 区间消失策略：real, zip
 
         
@@ -902,7 +902,7 @@ class Checker:
             mode_endpoint_first='real',
             mode_endpoint_start='step',
             mode_endpoint_last='real',
-            mode_section_degraded='map_to_max',
+            mode_section_shrink='map_to_max',
             mode_section_lost='real',
             raw_score_range=(0, 100),
             out_score_decimal_digits=0,
@@ -933,7 +933,7 @@ class Checker:
                 mode_endpoint_first=mode_endpoint_first,
                 mode_endpoint_start=mode_endpoint_start,
                 mode_endpoint_last=mode_endpoint_last,
-                mode_section_degraded=mode_section_degraded,
+                mode_section_shrink=mode_section_shrink,
                 mode_section_lost=mode_section_lost,
                 logger=logger,
                 models=models,
@@ -1035,7 +1035,7 @@ class Checker:
             mode_endpoint_first='real',
             mode_endpoint_start='step',
             mode_endpoint_last='real',
-            mode_section_degraded='map_to_max',
+            mode_section_shrink='map_to_max',
             mode_section_lost='ignore',
             logger=None,
             models=None,
@@ -1054,7 +1054,7 @@ class Checker:
               'mode_endpoint_first': mode_endpoint_first,
               'mode_endpoint_start': mode_endpoint_start,
               'mode_endpoint_last': mode_endpoint_last,
-              'mode_section_degraded': mode_section_degraded,
+              'mode_section_shrink': mode_section_shrink,
               'mode_section_lost': mode_section_lost,
               }
         for sk in st.keys():
@@ -1439,7 +1439,7 @@ def plot_model(
             b = (y[0] * x[1] - y[1] * x[0]) / d     # (y1x2 - y2x1) / (x2 - x1)
         else:
             a = 0
-            b = max(y)                              # mode_section_degraded == 'to_max'
+            b = max(y)                              # mode_section_shrink == 'to_max'
         formula_list.append([(a, b), sorted(x), sorted(y)])
 
     in_min, in_max = min(min(_raw_section, key=min)), max(max(_raw_section, key=max))

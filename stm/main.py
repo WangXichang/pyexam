@@ -55,12 +55,12 @@ def run(
         cfg=None,
         mode_score_order='d',
         mode_score_prox='upper_min',
-        mode_ratio_prox='upper_min',
         mode_ratio_cumu='no',
+        mode_ratio_prox='upper_min',
         mode_endpoint_first='real',
         mode_endpoint_start='step',
         mode_endpoint_last='real',
-        mode_section_degraded='to_max',
+        mode_section_shrink='to_max',
         mode_section_lost='real',
         logname=None,
         logdisp=True,
@@ -113,7 +113,7 @@ def run(
                             'real': 取实际值，即实际得分的最高分（descending）或最低分数(ascending)
                          'defined': 取定义值，即卷面定义的最高分value_raw_score_min（descending）或最低分数value_raw_score_max(ascending)
 
-             mode_section_degraded: 区间退化处理方式
+             mode_section_shrink: 区间退化处理方式
                           'to_max': 取对应输出区间的最大值
                           'to_min': 取对应输出区间的最小值
                          'to_mean': 取对应输出区间的平均值
@@ -178,7 +178,7 @@ def run(
             mode_endpoint_first = mcfg['mode_endpoint_first']
             mode_endpoint_start = mcfg['mode_endpoint_start']
             mode_endpoint_last = mcfg['mode_endpoint_last']
-            mode_section_degraded = mcfg['mode_section_degraded']
+            mode_section_shrink = mcfg['mode_section_shrink']
             mode_section_lost = mcfg['mode_section_lost']
             logname = mcfg['logname']
             logdisp = mcfg['logdisp']
@@ -207,7 +207,7 @@ def run(
     mode_endpoint_first=mode_endpoint_first.lower()
     mode_endpoint_start=mode_endpoint_start.lower()
     mode_endpoint_last=mode_endpoint_last.lower()
-    mode_section_degraded=mode_section_degraded.lower()
+    mode_section_shrink=mode_section_shrink.lower()
     mode_section_lost=mode_section_lost.lower()
 
     stmlogger = __slib.get_logger(model, logname=task)
@@ -245,7 +245,7 @@ def run(
             mode_endpoint_first=mode_endpoint_first,
             mode_endpoint_start=mode_endpoint_start,
             mode_endpoint_last=mode_endpoint_last,
-            mode_section_degraded=mode_section_degraded,
+            mode_section_shrink=mode_section_shrink,
             mode_section_lost=mode_section_lost,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
             out_score_decimal_digits=value_out_score_decimals,
@@ -275,7 +275,7 @@ def run(
         mode_endpoint_first=mode_endpoint_first,
         mode_endpoint_start=mode_endpoint_start,
         mode_endpoint_last=mode_endpoint_last,
-        mode_section_degraded=mode_section_degraded,
+        mode_section_shrink=mode_section_shrink,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
         value_tiny_value=value_tiny_value,
@@ -299,7 +299,7 @@ def run(
             mode_endpoint_first=mode_endpoint_first,
             mode_endpoint_start=mode_endpoint_start,
             mode_endpoint_last=mode_endpoint_last,
-            mode_section_degraded=mode_section_degraded,
+            mode_section_shrink=mode_section_shrink,
             mode_section_lost=mode_section_lost,
             value_out_score_decimals=value_out_score_decimals,
             value_tiny_value=value_tiny_value,
@@ -365,7 +365,7 @@ def __run1(
         mode_endpoint_first='real',
         mode_endpoint_start='step',
         mode_endpoint_last='real',
-        mode_section_degraded='to_max',
+        mode_section_shrink='to_max',
         mode_section_lost='real',
         raw_score_range=(0, 100),
         value_out_score_decimals=0,
@@ -390,7 +390,7 @@ def __run1(
         mode_endpoint_first=mode_endpoint_first,
         mode_endpoint_start=mode_endpoint_start,
         mode_endpoint_last=mode_endpoint_last,
-        mode_section_degraded=mode_section_degraded,
+        mode_section_shrink=mode_section_shrink,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
         value_tiny_value=value_tiny_value,
@@ -417,7 +417,7 @@ def __run2(
         mode_endpoint_first='real',
         mode_endpoint_start='step',
         mode_endpoint_last='real',
-        mode_section_degraded='to_max',
+        mode_section_shrink='to_max',
         mode_section_lost='real',
         value_raw_score_min=0,
         value_raw_score_max=100,
@@ -442,7 +442,7 @@ def __run2(
             mode_endpoint_first=mode_endpoint_first,
             mode_endpoint_start=mode_endpoint_start,
             mode_endpoint_last=mode_endpoint_last,
-            mode_section_degraded=mode_section_degraded,
+            mode_section_shrink=mode_section_shrink,
             raw_score_range=(value_raw_score_min, value_raw_score_max),
             out_score_decimal_digits=value_out_score_decimals,
             logger=logger,
@@ -467,7 +467,7 @@ def __run2(
         mode_endpoint_first=mode_endpoint_first,
         mode_endpoint_start=mode_endpoint_start,
         mode_endpoint_last=mode_endpoint_last,
-        mode_section_degraded=mode_section_degraded,
+        mode_section_shrink=mode_section_shrink,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=value_out_score_decimals,
         value_tiny_value=value_tiny_value,
@@ -493,7 +493,7 @@ def __run2p(
         mode_endpoint_first='real',
         mode_endpoint_start='step',
         mode_endpoint_last='real',
-        mode_section_degraded='to_max',
+        mode_section_shrink='to_max',
         mode_section_lost='real',
         out_score_decimal_digits=0,
         logger=None,
@@ -525,7 +525,7 @@ def __run2p(
             mode_endpoint_first=mode_endpoint_first,
             mode_endpoint_start=mode_endpoint_start,
             mode_endpoint_last=mode_endpoint_last,
-            mode_section_degraded=mode_section_degraded,
+            mode_section_shrink=mode_section_shrink,
             mode_section_lost=mode_section_lost,
             logger=logger,
             models=__models
@@ -548,7 +548,7 @@ def __run2p(
         mode_endpoint_first=mode_endpoint_first,
         mode_endpoint_start=mode_endpoint_start,
         mode_endpoint_last=mode_endpoint_last,
-        mode_section_degraded=mode_section_degraded,
+        mode_section_shrink=mode_section_shrink,
         mode_section_lost=mode_section_lost,
         value_out_score_decimals=out_score_decimal_digits,
         logger=logger,

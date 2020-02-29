@@ -15,10 +15,10 @@
                   }
 
     模型参数
-    MODEL_SETTING_DICT = {'type': str := 'plt' or 'ppt',
-                          'ratio': list := percent value for segments
-                          'seg': list := output score segments or points
-                          'desc': str := test to describe model
+    MODEL_SETTING_DICT = {'type': str,      # 'plt' or 'ppt',
+                          'ratio': list,    # percent value used to set each grade interval, sum==100
+                          'section': list,  # output score interval, desending
+                          'desc': str,      # test to describe model
                           }
         各等级分数转换比例设置，用于定义模型
         比例的设置从高分段到低分段，与分段设置相对应
@@ -48,7 +48,7 @@
         最后端点确定：区间最后端点映射到实际最高（低）分(real)、卷面最高（低）分(defined)
           'mode_endpoint_last':      ('real', 'defined')
         退化区间映射：区间退化为单点情况，映射到转换分值的最大（to_max）、最小(map_to_min)、平均值(map_to_min)
-          'mode_section_degraded':        ('to_max', 'map_to_min', 'map_to_mean'),
+          'mode_section_shrink':        ('to_max', 'map_to_min', 'map_to_mean'),
         消失区间处理：区间丢失情况，忽略(ignore)，向下增加一个点(next_one_point)，向下增加两个点(next_two_point)
           'mode_section_lost':            ('ignore', 'next_one_point', 'next_two_point'),
 
@@ -59,7 +59,6 @@
 
 
 from collections import namedtuple as __ndp
-import numpy as __np
 from stm import stmlib as __slib
 
 
@@ -75,15 +74,6 @@ __zpdf = __slib.get_norm_point_pdf(start=-400, end=400, loc=0, std=100, step=1, 
 __tpdf = __slib.get_norm_point_pdf(start=10, end=90, loc=50, std=10, step=1, add_cutoff=True, mode='middle')
 
 
-# model parameters: type,   transform mode, in ['plt', 'ppt', 'tai']
-#                           plt: zhejiang, shanghai, beijing, tianjin, shandong, guangdong, ss7, hn300plt1..plt3
-#                           ppt: hn900, hn300, zscore, tscore
-#                           tai: tai
-#                  ratio,   tuple, list     # used to get raw score section in plt, to define out score percent in ppt
-#                           sum==100
-#                  section, tuple or list of tuple or list     # out score section
-#                           len(section) == len(ratio);  p1>=p2 for each (p1, p2) in section
-#                  desc,    describing model
 ModelFields = __ndp('ModelFields', ['type', 'ratio', 'section', 'desc'])
 Models = {
     'zhejiang':     ModelFields(__MODEL_TYPE_PLT,
@@ -145,30 +135,30 @@ Models = {
                                 tuple((i, i) for i in range(15, 0, -1)),             # grade from 15 to 1
                                 'Taiwan College Admission Test Grade Score model, 1-15 levels, top_level = mean(top 0.1%)'
                                 ),
-    'b300plt1':     ModelFields(
-                                'plt',
-                                (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
-                                tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
-                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
-                                ),
-    'b300plt2':     ModelFields(
-                                'plt',
-                                (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
-                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
-                                ),
-    'b300plt3':     ModelFields(
-                                'plt',
-                                (1, 2, 14, 33, 33, 14, 2, 1),
-                                tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
-                                'plt for 60-300, 8-section, [(300, 271), (270, 241), ..., (90, 60)]'
-                                ),
-    'b300plt4':     ModelFields(
-                                'plt',
-                                (3, 14, 33, 33, 14, 3),
-                                tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
-                                'plt for 60-300, 5-sections, [(300, 261), (270, 221), ..., (100, 60)]'
-                                ),
+    # 'b300plt1':     ModelFields(
+    #                             'plt',
+    #                             (0.14, 2.14, 13.59, 34.13, 34.13, 13.59, 2.14, 0.14),
+    #                             tuple((x, x-30+1) if x > 90 else (x, x-30) for x in range(300, 60, -30)),
+    #                             'plt for 60-300, 8-sections, [(300, 271), (270, 241), ..., (90, 60)]'
+    #                             ),
+    # 'b300plt2':     ModelFields(
+    #                             'plt',
+    #                             (0.2, 2.1, 13.6, 34.1, 34.1, 13.6, 2.1, 0.2),
+    #                             tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+    #                             'plt for 60-300, 8-sections, [(300, 271), (270, 241), ..., (90, 60)]'
+    #                             ),
+    # 'b300plt3':     ModelFields(
+    #                             'plt',
+    #                             (1, 2, 14, 33, 33, 14, 2, 1),
+    #                             tuple((x, x - 30 + 1) if x > 90 else (x, x - 30) for x in range(300, 60, -30)),
+    #                             'plt for 60-300, 8-sections, [(300, 271), (270, 241), ..., (90, 60)]'
+    #                             ),
+    # 'b300plt4':     ModelFields(
+    #                             'plt',
+    #                             (3, 14, 33, 33, 14, 3),
+    #                             tuple((x, x - 40 + 1) if x > 100 else (x, x - 40) for x in range(300, 60, -40)),
+    #                             'plt for 60-300, 5-sections, [(300, 261), (270, 221), ..., (100, 60)]'
+    #                             ),
     }
 
 
@@ -178,9 +168,9 @@ Strategy = {
     'mode_score_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
-    'mode_endpoint_first':     ('real', 'defined'),       # first point of first section, to defined maxmin score
-    'mode_endpoint_start':     ('step', 'share'),         # first point except first section
-    'mode_endpoint_last':      ('real', 'defined'),       # last point of last section, useful to type--ppt
-    'mode_section_degraded':        ('to_max', 'to_min', 'to_mean'),
+    'mode_endpoint_first':          ('real', 'defined'),       # first point of first section, to defined maxmin score
+    'mode_endpoint_start':          ('step', 'share'),         # first point except first section
+    'mode_endpoint_last':           ('real', 'defined'),       # last point of last section, useful to type--ppt
+    'mode_section_shrink':          ('to_max', 'to_min', 'to_mean'),
     'mode_section_lost':            ('real', 'zip'),                # not used in stm1
     }

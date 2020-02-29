@@ -356,7 +356,7 @@ class ModelAlgorithm:
     def get_plt_formula(cls,
             raw_section,
             out_section,
-            mode_section_degraded='to_max',
+            mode_section_shrink='to_max',
             mode_score_order='d',
             out_score_decimal=0
             ):
@@ -366,11 +366,11 @@ class ModelAlgorithm:
             # rsec is degraded
             if rsec[0] == rsec[1]:
                 a = 0
-                if mode_section_degraded == 'to_max':
+                if mode_section_shrink == 'to_max':
                     b = max(osec)
-                elif mode_section_degraded == 'to_min':
+                elif mode_section_shrink == 'to_min':
                     b = min(osec)
-                elif mode_section_degraded == 'to_mean':
+                elif mode_section_shrink == 'to_mean':
                     b = np.mean(osec)
                 else:
                     raise ValueError
@@ -673,7 +673,7 @@ class ModelAlgorithm:
                       mode_endpoint_first='real',
                       mode_endpoint_start='step',
                       mode_endpoint_last='real',
-                      mode_section_degraded='to_max',
+                      mode_section_shrink='to_max',
                       mode_section_lost='real',
                       value_out_score_decimals=0,
                       value_tiny_value=10**-12,
@@ -739,7 +739,7 @@ class ModelAlgorithm:
                 result = ModelAlgorithm.get_plt_formula(
                     raw_section=raw_section.section,
                     out_section=model_section,
-                    mode_section_degraded=mode_section_degraded,
+                    mode_section_shrink=mode_section_shrink,
                     mode_score_order=mode_score_order,
                     out_score_decimal=value_out_score_decimals
                     )

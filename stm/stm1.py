@@ -294,7 +294,7 @@ class PltScore(ScoreTransformModel):
                  mode_endpoint_first='real',
                  mode_endpoint_start='step',
                  mode_endpoint_last='real',
-                 mode_section_degraded='to_max',
+                 mode_section_shrink='to_max',
                  mode_section_lost='real',
                  mode_score_zero='real',
                  value_out_score_decimals=None,
@@ -325,7 +325,7 @@ class PltScore(ScoreTransformModel):
         self.__strategy_dict['mode_endpoint_first'] = mode_endpoint_first
         self.__strategy_dict['mode_endpoint_start'] = mode_endpoint_start
         self.__strategy_dict['mode_endpoint_last'] = mode_endpoint_last
-        self.__strategy_dict['mode_section_degraded'] = mode_section_degraded
+        self.__strategy_dict['mode_section_shrink'] = mode_section_shrink
         self.__strategy_dict['mode_section_lost'] = mode_section_lost
 
         self.__value_tiny_value = value_tiny_value
@@ -446,13 +446,13 @@ class PltScore(ScoreTransformModel):
                 a = (cf[2][1] - cf[2][0])
                 b = cf[2][0] * cf[1][1] - cf[2][1] * cf[1][0]
                 c = (cf[1][1] - cf[1][0])
-                # x1 == x2: use mode_section_degraded: max, min, mean(y1, y2)
+                # x1 == x2: use mode_section_shrink: max, min, mean(y1, y2)
                 if c == 0:
-                    if self.__strategy_dict['mode_section_degraded'] == 'to_max':
+                    if self.__strategy_dict['mode_section_shrink'] == 'to_max':
                         return slib.round45(max(cf[2]), self.__value_out_score_decimals)
-                    elif self.__strategy_dict['mode_section_degraded'] == 'to_min':
+                    elif self.__strategy_dict['mode_section_shrink'] == 'to_min':
                         return slib.round45(min(cf[2]), self.__value_out_score_decimals)
-                    elif self.__strategy_dict['mode_section_degraded'] == 'to_mean':
+                    elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
                         return slib.round45(np.mean(cf[2]))
                     else:
                         # invalid mode
@@ -774,16 +774,16 @@ class PltScore(ScoreTransformModel):
             v = x[1] - x[0]
             if v == 0:
                 a = 0
-                # mode_section_degraded
-                _mode_section_degraded = self.__strategy_dict['mode_section_degraded']
-                if _mode_section_degraded == 'to_max':         # x1 == x2 : y = max(y1, y2)
+                # mode_section_shrink
+                _mode_section_shrink = self.__strategy_dict['mode_section_shrink']
+                if _mode_section_shrink == 'to_max':         # x1 == x2 : y = max(y1, y2)
                     b = max(y)
-                elif _mode_section_degraded == 'to_min':       # x1 == x2 : y = min(y1, y2)
+                elif _mode_section_shrink == 'to_min':       # x1 == x2 : y = min(y1, y2)
                     b = min(y)
-                elif _mode_section_degraded == 'to_mean':      # x1 == x2 : y = mean(y1, y2)
+                elif _mode_section_shrink == 'to_mean':      # x1 == x2 : y = mean(y1, y2)
                     b = np.mean(y)
                 else:
-                    self.__logger.loginfo('error mode_section_degraded value: {}'.format(_mode_section_degraded))
+                    self.__logger.loginfo('error mode_section_shrink value: {}'.format(_mode_section_shrink))
                     raise ValueError
             else:
                 a = (y[1]-y[0])/v                   # (y2 - y1) / (x2 - x1)
@@ -1148,7 +1148,7 @@ class PltScore(ScoreTransformModel):
                           format(int(_fi), formula[0][0], int(formula[1][p]))
                 # section degraded
                 if formula[0][0] == 0:
-                    cons_str = self.__strategy_dict['mode_section_degraded'] + \
+                    cons_str = self.__strategy_dict['mode_section_shrink'] + \
                                '({0:3d}, {1:3d})'.format(formula[2][0], formula[2][1])
                 else:
                     cons_str = '{:2d}'.format(int(formula[2][p]))
