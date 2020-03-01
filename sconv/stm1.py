@@ -448,7 +448,7 @@ class PltScore(ScoreTransformModel):
         formula_dict = self.result_formula_coeff_dict[col]['coeff']
         for ki in formula_dict:
             c, (x1, x2), (y1, y2) = formula_dict[ki]
-            if (x1<= x <= x2) or (x1 >= x >= x2):
+            if (x1 <= x <= x2) or (x1 >= x >= x2):
                 a =y2-y1
                 b = y1 * x2 - y2* x1
                 c = x2 - x1
@@ -460,25 +460,28 @@ class PltScore(ScoreTransformModel):
                     elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
                         result_value = np.mean(y1, y2)
                 result_value = (a * x + b) / c
-            result_value = slib.round45(result_value, self.__value_out_score_decimals)
-        result_value2 = -20000
-        for cf in self.result_formula_coeff_dict[col]['coeff'].values():
-            if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
-                a = (cf[2][1] - cf[2][0])
-                b = cf[2][0] * cf[1][1] - cf[2][1] * cf[1][0]
-                c = (cf[1][1] - cf[1][0])
-                # x1 == x2: use mode_section_shrink: max, min, mean(y1, y2)
-                if c == 0:
-                    if self.__strategy_dict['mode_section_shrink'] == 'to_max':
-                        result_value2 = slib.round45(max(cf[2]), self.__value_out_score_decimals)
-                    elif self.__strategy_dict['mode_section_shrink'] == 'to_min':
-                        result_value2 = slib.round45(min(cf[2]), self.__value_out_score_decimals)
-                    elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
-                        result_value2 = slib.round45(np.mean(cf[2]))
-                result_value2 = slib.round45((a * x + b) / c, self.__value_out_score_decimals)
-        if result_value == result_value2:
-            return result_value
-        return -99999
+                break
+        result_value = slib.round45(result_value, self.__value_out_score_decimals)
+
+        # result_value2 = -20000
+        # for cf in self.result_formula_coeff_dict[col]['coeff'].values():
+        #     if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
+        #         a = (cf[2][1] - cf[2][0])
+        #         b = cf[2][0] * cf[1][1] - cf[2][1] * cf[1][0]
+        #         c = (cf[1][1] - cf[1][0])
+        #         # x1 == x2: use mode_section_shrink: max, min, mean(y1, y2)
+        #         if c == 0:
+        #             if self.__strategy_dict['mode_section_shrink'] == 'to_max':
+        #                 result_value2 = slib.round45(max(cf[2]), self.__value_out_score_decimals)
+        #             elif self.__strategy_dict['mode_section_shrink'] == 'to_min':
+        #                 result_value2 = slib.round45(min(cf[2]), self.__value_out_score_decimals)
+        #             elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
+        #                 result_value2 = slib.round45(np.mean(cf[2]))
+        #         result_value2 = slib.round45((a * x + b) / c, self.__value_out_score_decimals)
+        # if result_value == result_value2:
+        #     return result_value
+
+        return result_value
 
     # formula for b900, b300
     # coeff:   (a=0, b=x), (x, x), (y, y))

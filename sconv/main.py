@@ -159,6 +159,7 @@ def run(
     for m in __stm_modules:
         __pb.reload(m)
 
+    mcfg = dict()
     if isinstance(cfg, str):
         mcfg = __read_config(cfg)
         if len(mcfg) > 0:
@@ -198,17 +199,17 @@ def run(
         task = logname.lower()
 
     # lower
-    model=model.lower()
+    model = model.lower()
     cols = [s.lower() for s in cols]
-    mode_ratio_prox=mode_ratio_prox.lower()
-    mode_ratio_cumu=mode_ratio_cumu.lower()
-    mode_score_prox=mode_score_prox.lower()
-    mode_score_order=mode_score_order.lower()
-    mode_endpoint_first=mode_endpoint_first.lower()
-    mode_endpoint_start=mode_endpoint_start.lower()
-    mode_endpoint_last=mode_endpoint_last.lower()
-    mode_section_shrink=mode_section_shrink.lower()
-    mode_section_lost=mode_section_lost.lower()
+    mode_ratio_prox = mode_ratio_prox.lower()
+    mode_ratio_cumu = mode_ratio_cumu.lower()
+    mode_score_prox = mode_score_prox.lower()
+    mode_score_order = mode_score_order.lower()
+    mode_endpoint_first = mode_endpoint_first.lower()
+    mode_endpoint_start = mode_endpoint_start.lower()
+    mode_endpoint_last = mode_endpoint_last.lower()
+    mode_section_shrink = mode_section_shrink.lower()
+    mode_section_lost = mode_section_lost.lower()
 
     stmlogger = __slib.get_logger(model, logname=task)
     stmlogger.set_level(loglevel)
@@ -311,7 +312,7 @@ def run(
             comp = [(x, y) for x, y in zip(out1, out2) if x[1] != y[1]]
             if len(comp) > 0:
                 stmlogger.loginfo('verify fail: col={},  {} records different in both algorithm!'.
-                                    format(col, len(comp)))
+                    format(col, len(comp)))
                 for i in range(min(len(comp), 5)):
                     vs = 'stm1: {0} --> {1},   stm2: {2} -- > {3}'.format(*comp[i][0], *comp[i][1])
                     stmlogger.loginfo(vs)
@@ -369,7 +370,7 @@ def __run1(
         mode_section_lost='real',
         raw_score_range=(0, 100),
         value_out_score_decimals=0,
-        value_tiny_value=10 ** -12,
+        value_tiny_value=10 ** -10,
         logger=None,
         debug=False,
         ):
