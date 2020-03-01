@@ -44,7 +44,7 @@ from collections import namedtuple as __namedtuple
 import importlib as __pb
 # import numpy as __np
 
-from stm import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __models
+from sconv import stmlib as __slib, stm1 as __stm1, stm2 as __stm2, models as __models
 __stm_modules = [__slib, __stm1, __stm2, __models]
 
 
@@ -145,7 +145,7 @@ def run(
     formula: dict               转换公式
     ---
     应用示例：
-      [1] from stm import main
+      [1] from sconv import main
       [2] m = main.run(model='zhejiang', df=rawscore, col=['ls'])
       [3] m.maptable.head()
       [4] m.outdf.head()
@@ -193,7 +193,7 @@ def run(
             return None
 
     if not isinstance(logname, str):
-        task = 'stm'
+        task = 'sconv'
     else:
         task = logname.lower()
 
@@ -405,7 +405,7 @@ def __run1(
 # end run1
 
 
-# get stm score by calling stmlib2.ModelAlgorithm
+# get sconv score by calling stmlib2.ModelAlgorithm
 def __run2(
         name='shandong',
         df=None,
@@ -476,7 +476,7 @@ def __run2(
 # end run2
 
 
-# calc stm score by calling methods in stmlib2.ModelAlgorithm
+# calc sconv score by calling methods in stmlib2.ModelAlgorithm
 def __run2p(
         df,
         cols,
@@ -574,7 +574,7 @@ def models(name=None):
         print('{:<15s} {},  {} '.format(k, v.type, v.desc))
 
 
-def make_config_file(filename='stm.cfg'):
+def make_config_file(filename='sconv.cfg'):
     if __slib.isfilename(filename):
         __slib.make_config_file(filename)
         return True
@@ -582,7 +582,7 @@ def make_config_file(filename='stm.cfg'):
         print('invalid file name!')
         return False
 
-def __read_config(filename='stm.cfg'):
+def __read_config(filename='sconv.cfg'):
 
     if isinstance(filename, str):
         if '.' not in filename:

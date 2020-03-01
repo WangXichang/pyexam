@@ -352,7 +352,13 @@ class SegTable(object):
         # create output dataframe with segstep = 1
         if self.__display:
             print('---seg calculation start---')
-        seglist = [x for x in range(int(self.__segMin), int(self.__segMax + 1))]
+        if self.segstep >= 1:
+            seglist = [x for x in range(int(self.__segMin), int(self.__segMax + 1))]
+        else:
+            _segnum = (self.__segMax - self.__segMin + self.__segStep)/self.__segStep
+            seglist = [self.__segMin+i*self.__segStep for i in range(int(_segnum))
+                       if self.__segMin+i*self.__segStep < self.__segMax] + \
+                      [self.__segMax]
         if self.__segSort in ['d', 'D']:
             seglist = sorted(seglist, reverse=True)
         self.__outdfframe = pd.DataFrame({'seg': seglist})
@@ -747,6 +753,11 @@ def read_config_file(conf_name):
         else:
             mcfg.update({'value_raw_score_max': 100})
 
+        if 'value_raw_score_step' in mcfg.keys():
+            mcfg['value_raw_score_step'] = int(mcfg['value_raw_score_step'])
+        else:
+            mcfg.update({'value_raw_score_step': 1})
+
         if 'value_out_score_decimals' in mcfg.keys():
             mcfg['value_out_score_decimals'] = int(mcfg['value_out_score_decimals'])
         else:
@@ -855,8 +866,9 @@ def make_config_file(filename):
         [value]
         value_raw_score_min = 0             # 原始分数卷面最小值 min score for raw score
         value_raw_score_max = 100           # 原始分数卷面最大值 max score for raw score
+        value_raw_score_step = 1            # 原始分数的分值间隔（步长）raw score step
         value_out_score_decimals = 0        # 转换分数保留小数位 decimal digits for out score
-        value_tiny_value = 10**-10           # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_tiny_value = 10**-10          # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
@@ -867,7 +879,7 @@ def make_config_file(filename):
         mode_endpoint_first = real            # 第一端点策略：real, defined
         mode_endpoint_start = step            # 开始端点策略：step, share
         mode_endpoint_last = real             # 最后端点策略：real, defined
-        mode_section_shrink = to_max        # 区间退化策略：to_max, to_min, to_mean (映射到最大、最小、平均值)
+        mode_section_shrink = to_max          # 区间退化策略：to_max, to_min, to_mean (映射到最大、最小、平均值)
         mode_section_lost = real              # 区间消失策略：real, zip
 
         
@@ -944,15 +956,6 @@ class Checker:
             logger.logger.info('warning: decimal digits={} set may error!'.format(out_score_decimal_digits))
 
         return True
-
-    # @staticmethod
-    # def reload_stm_modules(modules=None):
-    #     try:
-    #         for m in modules:
-    #             pb.reload(m)
-    #     except IOError:
-    #         return False
-    #     return True
 
     @staticmethod
     def check_model(model_name, model_lib=None, logger=None):
@@ -1111,10 +1114,10 @@ class Checker:
 def get_logger(model_name, logname=None):
     gmt = time.localtime()
     if not isinstance(logname, str):
-        task_str = 'stm'
+        task_str = 'sconv'
     else:
         if len(logname) == 0:
-            task_str = 'stm'
+            task_str = 'sconv'
         else:
             task_str = logname
     log_file = \
@@ -1510,7 +1513,7 @@ class StmPlot:
 
         # self.model_type = None
         # self.outdf = None
-        self.model_name = 'stm'
+        self.model_name = 'sconv'
 
         self.cols = cols
         self.maptable = maptable
@@ -1602,7 +1605,7 @@ class Formula:
 
 
 def models_hist(font_size=12):
-    from stm import models as m
+    from sconv import models as m
 
     def __model_describe(name='shandong'):
         __ratio = m.Models[name].ratio

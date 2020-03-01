@@ -23,7 +23,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plot
 import scipy.stats as sts
-from stm import models as mdin
+from sconv import models as mdin
 
 
 def show_models():

@@ -59,7 +59,7 @@
 
 
 from collections import namedtuple as __ndp
-from stm import stmlib as __slib
+from sconv import stmlib as __slib
 
 
 # model type

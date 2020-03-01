@@ -35,8 +35,8 @@ import matplotlib.pyplot as plot
 import scipy.stats as sts
 # import seaborn as sbn
 
-# stm import
-from stm import stmlib as slib
+# sconv import
+from sconv import stmlib as slib
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -342,7 +342,7 @@ class PltScore(ScoreTransformModel):
     # plt score run
     def run(self):
 
-        self.__logger.log('stm start ...\n' + '-' * 120, 'debug')
+        self.__logger.log('sconv start ...\n' + '-' * 120, 'debug')
         stime = time.time()
 
         if self.__out_score_section is not None:

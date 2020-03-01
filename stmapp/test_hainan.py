@@ -1,7 +1,7 @@
 # coding: utf8
 
 
-from stm import main
+from sconv import main
 from stmapp import models_util as utl
 
 

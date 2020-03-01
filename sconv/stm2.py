@@ -6,7 +6,7 @@ import numpy as np
 import scipy.stats as sts
 # import pandas as pd
 
-from stm import stmlib as slib
+from sconv import stmlib as slib
 
 
 class ModelAlgorithm:
@@ -679,7 +679,7 @@ class ModelAlgorithm:
                       value_tiny_value=10**-12,
                       logger=None,
                       ):
-        # start stm
+        # start sconv
         if isinstance(cols, tuple):
             cols = list(cols)
         elif isinstance(cols, str):

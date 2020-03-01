@@ -16,7 +16,7 @@ class Logger(object):
     }
 
     def __init__(self,
-                 filename='stm.log',
+                 filename='sconv.log',
                  level='info',
                  when='D',
                  back_count=3,
