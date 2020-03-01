@@ -289,8 +289,8 @@ class PltScore(ScoreTransformModel):
                  raw_score_defined_max=100,
                  mode_ratio_prox='upper_min',
                  mode_ratio_cumu='no',
-                 mode_score_prox='upper_min',
                  mode_score_order='descending',
+                 mode_score_prox='upper_min',
                  mode_endpoint_first='real',
                  mode_endpoint_start='step',
                  mode_endpoint_last='real',
@@ -406,7 +406,7 @@ class PltScore(ScoreTransformModel):
             # get field_ts in outdf
             self.outdf.loc[:, (col + '_ts')] = \
                 self.outdf[col].apply(
-                    lambda x: self.__formula_from_coeff(col, x))
+                    lambda x: self.__map_formula_from_coeff(col, x))
 
         # create col_ts in maptable
         df_map = self.maptable
@@ -414,7 +414,7 @@ class PltScore(ScoreTransformModel):
             # self.logger.loginfo('   calculate: maptable[{0}] => [{0}_ts]'.format(col))
             col_name = col + '_ts'
             df_map.loc[:, col_name] = df_map['seg'].apply(
-                lambda x: self.__formula_from_coeff(col, x))
+                lambda x: self.__map_formula_from_coeff(col, x))
 
         # make report doc
         self.__make_report()
@@ -425,7 +425,7 @@ class PltScore(ScoreTransformModel):
 
     # run end
 
-    def __formula_from_coeff(self, field, x):
+    def __map_formula_from_coeff(self, col, x):
         # formula from result_coeff_dict
         # ----------------------------------------------
         # formula for higher precise, int/int to float
@@ -437,11 +437,32 @@ class PltScore(ScoreTransformModel):
         # return: invalid=-10000, precise: out_score_decimals
         #   mode: mode_sectio_degraded
         # ----------------------------------------------
+        # value exception: out of range
         if x > self.__raw_score_defined_max:
             return self.__out_score_real_max
         if x < self.__raw_score_defined_min:
             return self.__out_score_real_min
-        for cf in self.result_formula_coeff_dict[field]['coeff'].values():
+
+        result_value = -10000
+        # value formula: form [x1, x2] to [y1, y2]
+        formula_dict = self.result_formula_coeff_dict[col]['coeff']
+        for ki in formula_dict:
+            c, (x1, x2), (y1, y2) = formula_dict[ki]
+            if (x1<= x <= x2) or (x1 >= x >= x2):
+                a =y2-y1
+                b = y1 * x2 - y2* x1
+                c = x2 - x1
+                if abs(c) < self.__value_tiny_value:
+                    if self.__strategy_dict['mode_section_shrink'] == 'to_max':
+                        result_value = max(y1, y2)
+                    elif self.__strategy_dict['mode_section_shrink'] == 'to_min':
+                        result_value = min(y1, y2)
+                    elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
+                        result_value = np.mean(y1, y2)
+                result_value = (a * x + b) / c
+            result_value = slib.round45(result_value, self.__value_out_score_decimals)
+        result_value2 = -20000
+        for cf in self.result_formula_coeff_dict[col]['coeff'].values():
             if (cf[1][0] <= x <= cf[1][1]) or (cf[1][0] >= x >= cf[1][1]):
                 a = (cf[2][1] - cf[2][0])
                 b = cf[2][0] * cf[1][1] - cf[2][1] * cf[1][0]
@@ -449,16 +470,15 @@ class PltScore(ScoreTransformModel):
                 # x1 == x2: use mode_section_shrink: max, min, mean(y1, y2)
                 if c == 0:
                     if self.__strategy_dict['mode_section_shrink'] == 'to_max':
-                        return slib.round45(max(cf[2]), self.__value_out_score_decimals)
+                        result_value2 = slib.round45(max(cf[2]), self.__value_out_score_decimals)
                     elif self.__strategy_dict['mode_section_shrink'] == 'to_min':
-                        return slib.round45(min(cf[2]), self.__value_out_score_decimals)
+                        result_value2 = slib.round45(min(cf[2]), self.__value_out_score_decimals)
                     elif self.__strategy_dict['mode_section_shrink'] == 'to_mean':
-                        return slib.round45(np.mean(cf[2]))
-                    else:
-                        # invalid mode
-                        return -10000
-                return slib.round45((a * x + b) / c, self.__value_out_score_decimals)
-        return -10000
+                        result_value2 = slib.round45(np.mean(cf[2]))
+                result_value2 = slib.round45((a * x + b) / c, self.__value_out_score_decimals)
+        if result_value == result_value2:
+            return result_value
+        return -99999
 
     # formula for b900, b300
     # coeff:   (a=0, b=x), (x, x), (y, y))
@@ -1141,24 +1161,24 @@ class PltScore(ScoreTransformModel):
             formula = self.result_formula_coeff_dict[col]['coeff'][k]
             # section lost
             if formula[1][0] < 0:
-                result_formula_text.append(['(section-{0:3d}):'.format(_fi) + '  ******'])
+                result_formula_text.append(['[section-{0:2d}]:'.format(_fi) + '  ******'])
                 continue
             else:
-                var_str = '(section-{0:3d}):  y = {1:0.8f}*(x-{2:2d})'.\
+                var_str = '[section-{0:2d}]:  y = {1:0.8f}*(x-{2:2d})'.\
                           format(int(_fi), formula[0][0], int(formula[1][p]))
                 # section degraded
                 if formula[0][0] == 0:
                     cons_str = self.__strategy_dict['mode_section_shrink'] + \
                                '({0:3d}, {1:3d})'.format(formula[2][0], formula[2][1])
                 else:
-                    cons_str = '{:2d}'.format(int(formula[2][p]))
+                    cons_str = '{:3d}'.format(int(formula[2][p]))
                 result_formula_text.append([var_str + ' + ' + cons_str])
             _fi += 1
 
         out_report_doc = '- -' * 40 + '\n'
         out_report_doc += '< formula >\n'
         for _f in result_formula_text:
-            out_report_doc += ' ' * 18 + '{}\n'.format(_f)
+            out_report_doc += ' ' * 12 + '{}\n'.format(_f[0])
 
         return out_report_doc
 

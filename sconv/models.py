@@ -166,8 +166,8 @@ Models = {
 Strategy = {
     'mode_score_order':             ('d', 'a'),                # d: descending, a: ascending
     'mode_score_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
-    'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_ratio_cumu':              ('yes', 'no'),
+    'mode_ratio_prox':              ('upper_min', 'lower_max', 'near_max', 'near_min'),
     'mode_endpoint_first':          ('real', 'defined'),       # first point of first section, to defined maxmin score
     'mode_endpoint_start':          ('step', 'share'),         # first point except first section
     'mode_endpoint_last':           ('real', 'defined'),       # last point of last section, useful to type--ppt
