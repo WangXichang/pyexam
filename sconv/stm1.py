@@ -248,7 +248,7 @@ class PltScore(ScoreTransformModel):
         self.raw_section = []
         self.result_raw_endpoints = []
         self.result_formula_coeff_dict = dict()
-        self.result__report_doc = ''
+        self.result_report_doc = ''
         self.result_matched_dict = dict()
         # self.__result_formula_coeff = dict()
         self.__result_formula_text_list = ''
@@ -421,7 +421,7 @@ class PltScore(ScoreTransformModel):
 
         self.__logger.log('transform score end, elapsed-time:{:.4f}'.format(time.time() - stime) + '\n' + '-' * 120,
                              'debug')
-        self.__logger.loginfo(self.result__report_doc)
+        self.__logger.loginfo(self.result_report_doc)
 
     # run end
 
@@ -1011,16 +1011,16 @@ class PltScore(ScoreTransformModel):
 
     # create report and col_ts in maptable
     def __make_report(self):
-        if len(self.result__report_doc) == 0:
-            self.result__report_doc += 'strategies' + '\n'
+        if len(self.result_report_doc) == 0:
+            self.result_report_doc += 'strategies' + '\n'
         else:
-            self.result__report_doc += '\n strategies' + '\n'
+            self.result_report_doc += '\n strategies' + '\n'
         for k in self.__strategy_dict.keys():
-            self.result__report_doc += ' ' * 15 + '{0:<30s} {1}'. \
+            self.result_report_doc += ' ' * 15 + '{0:<30s} {1}'. \
                 format(k + ' = ', self.__strategy_dict[k]) + '\n'
         for col in self.cols:
-            self.result__report_doc += self.__make_field_report(col)
-        self.result__report_doc += '---' * 40
+            self.result_report_doc += self.__make_field_report(col)
+        self.result_report_doc += '---' * 40
 
     def __make_field_report(self, col=''):
         # --tiltle
@@ -1291,7 +1291,7 @@ class PltScore(ScoreTransformModel):
         return _out_report_doc
 
     def report(self):
-        print(self.result__report_doc)
+        print(self.result_report_doc)
 
     def plot(self, mode='model'):
         plot_task = slib.StmPlot(self.cols, self.maptable, self.raw_section, self.__out_score_section)

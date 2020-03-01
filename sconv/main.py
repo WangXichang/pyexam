@@ -264,7 +264,7 @@ def run(
         return None
 
     m1 = __run1(
-        name=model,
+        model=model,
         df=df,
         cols=cols,
         raw_score_range=(value_raw_score_min, value_raw_score_max),
@@ -287,7 +287,7 @@ def run(
     if verify:
         verify_pass = True
         m2 = __run2(  #
-            name=model,
+            model=model,
             df=df,
             cols=cols,
             value_raw_score_min=value_raw_score_min,
@@ -346,16 +346,16 @@ def run(
         return r
 
     # no verify result namedtuple
-    stm_result = __namedtuple('StmResult', ['dfscore', 'maptable', 'plot'])
+    stm_result = __namedtuple('StmResult', ['dfscore', 'maptable', 'plot', 'report'])
     if r.ok:
-        return stm_result(r.r1.outdf, r.r1.maptable, r.r1.plot)
+        return stm_result(r.r1.outdf, r.r1.maptable, r.r1.plot, r.r1.report)
     else:
         return None
 # end run
 
 
 def __run1(
-        name='shandong',
+        model='shandong',
         df=None,
         cols=(),
         mode_ratio_prox='upper_min',
@@ -374,13 +374,13 @@ def __run1(
         debug=False,
         ):
 
-    ratio_tuple = tuple(x * 0.01 for x in __models.Models[name].ratio)
-    model_type = __models.Models[name].type
-    m = __stm1.PltScore(name, model_type)
+    ratio_tuple = tuple(x * 0.01 for x in __models.Models[model].ratio)
+    model_type = __models.Models[model].type
+    m = __stm1.PltScore(model, model_type)
     m.set_data(df=df, cols=cols)
     m.set_para(
         raw_score_ratio=ratio_tuple,
-        out_score_section=__models.Models[name].section,
+        out_score_section=__models.Models[model].section,
         raw_score_defined_max=max(raw_score_range),
         raw_score_defined_min=min(raw_score_range),
         mode_ratio_prox=mode_ratio_prox,
@@ -400,14 +400,18 @@ def __run1(
     if debug:
         return m
     else:
-        result = __namedtuple('Result', ['outdf', 'maptable', 'plot', 'formula'])
-        return result(m.outdf, m.maptable, m.plot, m.result_formula_coeff_dict)
+        result = __namedtuple('Result', ['outdf', 'maptable', 'plot', 'report'])    # 'formula',
+        _report = '-' * 120 + '\n' + \
+                  'model_name: ' + model + '\n' + \
+                  '-' * 120 + '\n' + \
+                  m.result_report_doc
+        return result(m.outdf, m.maptable, m.plot, _report)    # , m.result_formula_coeff_dict
 # end run1
 
 
 # get sconv score by calling stmlib2.ModelAlgorithm
 def __run2(
-        name='shandong',
+        model='shandong',
         df=None,
         cols=(),
         mode_ratio_cumu='no',
@@ -432,7 +436,7 @@ def __run2(
     """
 
     if not __slib.Checker.check_run(
-            model_name=name,
+            model_name=model,
             df=df,
             cols=cols,
             mode_ratio_prox=mode_ratio_prox,
@@ -450,7 +454,7 @@ def __run2(
             ):
         return None
 
-    model = __models.Models[name]
+    model = __models.Models[model]
     return __stm2.stm2(     # ModelAlgorithm.get_stm_score
         df=df,
         cols=cols,
