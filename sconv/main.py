@@ -222,18 +222,8 @@ def run(
     stmlogger.loginfo('\n*** running begin ***')
     stmlogger.loginfo_start('task:' + task + ' model:' + model + stm_no)
 
-    # log--disp--file: config messages form mcfg by reading cfg file
-    stmlogger.loginfo('read config in {}'.format(cfg) + '\n' + '-' * 120)
     if cfg:
-        key_list = list(mcfg.keys())
-        for i, k in enumerate(key_list):
-            if k == 'df':
-                logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k].columns))
-            else:
-                logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
-            if i == len(key_list)-1:
-                logstr += '\n' + '-' * 120
-            stmlogger.loginfo(logstr)
+        __log_info_from_cfg(stmlogger, cfg, mcfg)
 
     if not __slib.Checker.check_run(
             model_name=model,
@@ -255,14 +245,11 @@ def run(
             ):
         stmlogger.loginfo_end('task:' + task + ' model:' + model + stm_no)
         return None
+
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
     model_type = __models.Models[model].type
     r = result_namedtuple(False, None, None)
-
-    # current suppot: plt, ppt, pgt
-    if model_type not in ['plt', 'ppt', 'pgt']:
-        return None
 
     m1 = __run1(
         model=model,
@@ -282,8 +269,7 @@ def run(
         value_tiny_value=value_tiny_value,
         logger=stmlogger,
         )
-    if m1:
-        r = result_namedtuple(True, m1, None)
+    r = result_namedtuple(True, m1, None)
 
     if verify:
         verify_pass = True
@@ -291,8 +277,6 @@ def run(
             model=model,
             df=df,
             cols=cols,
-            value_raw_score_min=value_raw_score_min,
-            value_raw_score_max=value_raw_score_max,
             mode_ratio_prox=mode_ratio_prox,
             mode_ratio_cumu=mode_ratio_cumu,
             mode_score_prox=mode_score_prox,
@@ -302,6 +286,8 @@ def run(
             mode_endpoint_last=mode_endpoint_last,
             mode_section_shrink=mode_section_shrink,
             mode_section_lost=mode_section_lost,
+            value_raw_score_min=value_raw_score_min,
+            value_raw_score_max=value_raw_score_max,
             value_out_score_decimals=value_out_score_decimals,
             value_tiny_value=value_tiny_value,
             logger=stmlogger,
@@ -324,20 +310,7 @@ def run(
         r = result_namedtuple(verify_pass, m1, m2)
 
     if r.ok:
-        t = __time.localtime()
-        fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
-        save_dfscore_name = task + '_df_outscore_' + model + '_' + fno + '.csv'
-        save_dfmap_name = task + '_df_maptable_' + model + '_' + fno + '.csv'
-        if r.r1 is not None:
-            dfscore = r.r1.outdf
-            dfmaptable = r.r1.maptable
-        else:
-            dfscore = r.r2.outdf
-            dfmaptable = r.r2.maptable
-        if logdata:
-            dfscore.to_csv(save_dfscore_name, index=False)
-            dfmaptable.to_csv(save_dfmap_name, index=False)
-        stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
+        __log_save_data(stmlogger, logdata, task, model, cols, r)
         stmlogger.loginfo_end('task:' + task + '  model:{}{} '.format(model, stm_no))
     else:
         stmlogger.loginfo_end('model={} running fail!'.format(model))
@@ -353,6 +326,45 @@ def run(
     else:
         return None
 # end run
+
+
+def __log_info_from_cfg(stmlogger, cfg, mcfg):
+    # log--disp--file: config messages form mcfg by reading cfg file
+    stmlogger.loginfo('read config in {}'.format(cfg) + '\n' + '-' * 120)
+    key_list = list(mcfg.keys())
+    for i, k in enumerate(key_list):
+        if k in ['df:filename',  'model_in_check', 'verify', 'loglevel']:
+            continue
+        if k == 'df':
+            logstr = '   {:25s}: {}'.format(k,
+                                            'filename:' + mcfg['df:filename'] + ', ' +
+                                            'columns:' + str(list(mcfg[k].columns)))
+        elif k =='model_name':
+            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]) +
+                                                ('in built-in models' if mcfg['model_in_check']
+                                                else 'user-defined model'))
+        else:
+            logstr = '   {:25s}: {:10s}'.format(k, str(mcfg[k]))
+        if i == len(key_list)-1:
+            logstr += '\n' + '-' * 120
+        stmlogger.loginfo(logstr)
+
+
+def __log_save_data(stmlogger, logdata, task, model, cols, r):
+    t = __time.localtime()
+    fno = '_'.join(map(str, [t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec]))
+    save_dfscore_name = task + '_df_outscore_' + model + '_' + fno + '.csv'
+    save_dfmap_name = task + '_df_maptable_' + model + '_' + fno + '.csv'
+    if r.r1 is not None:
+        dfscore = r.r1.outdf
+        dfmaptable = r.r1.maptable
+    else:
+        dfscore = r.r2.outdf
+        dfmaptable = r.r2.maptable
+    if logdata:
+        dfscore.to_csv(save_dfscore_name, index=False)
+        dfmaptable.to_csv(save_dfmap_name, index=False)
+    stmlogger.loginfo('result data: {}\n    score cols: {}'.format(list(dfscore.columns), cols))
 
 
 def __run1(

@@ -715,7 +715,7 @@ def read_config_file(conf_name):
         df = None
         if 'df' in cfper['data']:
             dffile = remove_annotation(cfper['data']['df'])
-            mcfg.update({'datafile': dffile})
+            mcfg.update({'df:filename': dffile})
             if os.path.isfile(dffile):
                 try:
                     df = pd.read_csv(dffile)
@@ -902,6 +902,8 @@ def make_config_file(filename):
 
 class Checker:
 
+    MODEL_TYPE_LIST = ('plt', 'ppt', 'pgt')
+
     @staticmethod
     def check_run(
             model_name='shandong',
@@ -988,7 +990,7 @@ class Checker:
             logger.logging_file = False
 
         # check type
-        if model_type not in ['ppt', 'plt', 'pgt']:
+        if model_type not in Checker.MODEL_TYPE_LIST:
             logger.loginfo('error type: valid type must be in {}'.format(model_type, ['ppt', 'plt', 'pgt']))
             return False
 
