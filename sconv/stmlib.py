@@ -868,7 +868,7 @@ def make_config_file(filename):
         value_raw_score_max = 100           # 原始分数卷面最大值 max score for raw score
         value_raw_score_step = 1            # 原始分数的分值间隔（步长）raw score step
         value_out_score_decimals = 0        # 转换分数保留小数位 decimal digits for out score
-        value_tiny_value = 10**-10          # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
+        value_tiny_value = 10**-12          # 计算使用的微小值，小于该值的误差被忽略 smallest value for precision
 
                 
         [mode]
@@ -1656,3 +1656,58 @@ def models_hist(font_size=12):
             raise ValueError(k)
         plot.bar(x_data, m.Models[k].ratio[::-1], width=_wid)
         plot.title(k+'({:.2f}, {:.2f}, {:.2f})'.format(*ms_dict[k]))
+
+
+def make_maptable_doc(maptable, col_width=10, seg_decimal=0, pecent_decimal=6, ts_decimal=0, sep=False):
+    """
+    保存分数转换映射表为文档文件
+    save map talbe to text doc file
+    # deprecated: use module ptt to create griding and  paging text doc
+    # with open(filename, mode='w', encoding='utf-8') as f:
+    #     f.write(ptt.make_mpage(self.maptable, page_line_num=50))
+    """
+
+    columns_list = list(maptable.columns)
+    t = ' '
+    for cname in maptable.columns:
+        _cname = cname if len(cname) <= col_width else cname[:col_width]
+        if cname == 'seg':
+            _w = 5
+        elif ('_coun' in cname) or ('_sum' in cname):
+            _w = 10
+        elif '_ts' in cname:
+            _w = 10
+        else:
+            _w = col_width
+        t += ('{}'.format(_cname)).center(_w)
+    t += '\n'
+
+    start = False
+    wtext = ''
+    for row_no, row in maptable.iterrows():
+        s = '|'
+        for ci, col in enumerate(row):
+            if columns_list[ci] == 'seg':
+                _fstr = '{:5.' + str(seg_decimal) + 'f}'
+                s += _fstr.format(col)
+            elif ('_count' in columns_list[ci]) or ('_sum' in columns_list[ci]):
+                s += ('{:5d}'.format(int(col))).center(10)
+            elif '_ts' in columns_list[ci]:
+                _fstr = '{:8.' + str(ts_decimal) + 'f}  '
+                s += _fstr.format(col)
+            elif isinstance(col, float):
+                s += ('{:.8f}'.format(col)).rjust(col_width)
+            else:
+                s += ('{}'.format(col)).rjust(col_width)
+        s += '|'
+        if not start:
+            wtext += t
+            wtext += '-' * len(s) + '\n'
+            start = True
+        wtext += s + '\n'
+        if sep:
+            wtext += '-' * len(s) + '\n'
+    if not sep:
+        wtext += s + '\n' + '-' * len(s) + '\n'
+
+    return wtext

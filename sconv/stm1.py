@@ -86,47 +86,11 @@ class ScoreTransformModel(abc.ABC):
         """
 
     @abc.abstractmethod
-    def plot(self, mode='raw'):
+    def plot(self):
         """
         显示原始分数、转换模型、转换结果的可视化图形
         plot graphs for raw score，model and result score
         """
-
-    def save_outdf_to_csv(self, filename):
-        self.outdf.to_csv(filename, index=False, encoding='utf-8')
-
-    def save_report_doc(self, filename):
-        with open(filename, mode='w', encoding='utf-8') as f:
-            f.write(self.out_report_doc)
-
-    def save_maptable_doc(self, filename, col_width=20):
-        """
-        保存分数转换映射表为文档文件
-        save map talbe to text doc file
-        # deprecated: use module ptt to create griding and  paging text doc
-        # with open(filename, mode='w', encoding='utf-8') as f:
-        #     f.write(ptt.make_mpage(self.maptable, page_line_num=50))
-        """
-        with open(filename, mode='w', encoding='utf-8') as f:
-            t = ' '
-            for cname in self.maptable.columns:
-                t += ('{}'.format(cname)).rjust(col_width)
-            t += '\n'
-            start = False
-            for row_no, row in self.maptable.iterrows():
-                s = '|'
-                for col in row:
-                    if isinstance(col, float):
-                        s += ('{:.8f}'.format(col)).rjust(col_width)
-                    else:
-                        s += ('{}'.format(col)).rjust(col_width)
-                s += '|'
-                if not start:
-                    f.write(t)
-                    f.write('-'*len(s) + '\n')
-                    start = True
-                f.write(s + '\n' + '-'*len(s) + '\n')
-
 
 
 # piecewise linear transform model
@@ -250,8 +214,7 @@ class PltScore(ScoreTransformModel):
         self.result_formula_coeff_dict = dict()
         self.result_report_doc = ''
         self.result_matched_dict = dict()
-        # self.__result_formula_coeff = dict()
-        self.__result_formula_text_list = ''
+        # self.__result_formula_text_list = ''
 
     # plt
     def set_data(self, df=None, cols=None):
