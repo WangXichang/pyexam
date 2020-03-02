@@ -655,7 +655,7 @@ class PltScore(ScoreTransformModel):
             at_top = False
         # print(top001_level)
         top_level = sum([row[0] * row[1] for ind, row in
-                        self.maptable.loc[self.maptable.seg >= top001_level][['seg', col+'_count']].iterrows()]) \
+                         self.maptable.loc[self.maptable.seg >= top001_level][['seg', col+'_count']].iterrows()]) \
                     / sum(self.maptable.loc[self.maptable.seg >= top001_level][col+'_count'])
         # print(top_level)
 
@@ -735,6 +735,7 @@ class PltScore(ScoreTransformModel):
         self.result_matched_dict[col]['dest'] = dest_ratio
         self.result_matched_dict[col]['match'] = match_ratio
         self.result_matched_dict[col]['section'] = raw_section
+        self.result_matched_dict[col]['top_level_first'] = top001_level
 
         self.__get_coeff_dict(col)
 
@@ -1109,9 +1110,11 @@ class PltScore(ScoreTransformModel):
         _section_format = '({:3d}, {:3d})' if self.__value_out_score_decimals == 0 else '({:6.2f}, {:6.2f})'
         _raw_section = ', '.join([_section_format.format(int(x), int(y)) for x, y in _raw_seg_list])
         _out_section = ', '.join([_section_format.format(int(x), int(y)) for x, y in _out_seg_list])
+        _top_level_ratio = self.result_matched_dict[col]['top_level_first']
 
-        _out_report_doc += '  top score def ratio: [{:^10.6f}]\n'.format(_top_score_ratio)
-        _out_report_doc += ' top section baseline: [{:^8.2f}]\n'.format(_top_level)
+        _out_report_doc += '  top level def ratio: [{:^10.6f}]\n'.format(_top_score_ratio)
+        _out_report_doc += 'score at ratio:{:6.3f}: [{:^8.2f}]\n'.format(_top_score_ratio, _top_level_ratio)
+        _out_report_doc += '  top level from mean: [{:^8.2f}]\n'.format(_top_level)
         _out_report_doc += '   raw section length: [{:^10.6}]\n'.format(_grade_len)
         _out_report_doc += 'endpoints match ratio: [{}]\n'.format(_match_ratio)
         _out_report_doc += '    raw score section: [{}]\n'.format(_raw_section)

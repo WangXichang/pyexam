@@ -248,8 +248,8 @@ def run(
 
     stmlogger.loginfo('data columns: {}, score fields: {}'.format(list(df.columns), cols))
 
-    model_type = __models.Models[model].type
-    r = result_namedtuple(False, None, None)
+    # model_type = __models.Models[model].type
+    # r = result_namedtuple(False, None, None)
 
     m1 = __run1(
         model=model,
